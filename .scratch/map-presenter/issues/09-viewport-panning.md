@@ -15,8 +15,9 @@ Behavior:
 - With no Player Display connected, the preview falls back to the full map.
 - Viewport mode and Grid Fit mode (issue 08) are mutually exclusive; both use the preview.
 
-Acceptance: dragging the rectangle moves the map on the Player Display live and 1 map inch stays 1 physical inch throughout; exiting the mode, the preview matches what the TV shows; the rectangle can never leave the map bounds; with a map smaller than the screen the mode is unavailable and the map stays centered.
+Acceptance: dragging the rectangle moves the map on the Player Display live and 1 map inch stays 1 physical inch throughout; exiting the mode, the preview matches what the Player Display shows — including black letterbox, never adjacent map content the players can't see; the rectangle can never leave the map bounds; with a map smaller than the Player Display the mode is unavailable and the map stays centered.
 
 ## Comments
 
+- 2026-08-29 (implementation review): two-axis review applied. Fixed: the mirror aspect-fit the Viewport but drew the full image, leaking adjacent map into the preview whenever its aspect differed from the Player Display's — now masked to the mirrored region with black letterbox; disconnecting the Player Display mid-pan stranded the mode — now exits to normal. Known minor gaps, accepted: a display with unequal horizontal/vertical ppi renders slightly distorted on the glass but not in the mirror (region shown still matches); the squares-wide field stays editable during Viewport mode (a change just re-clamps the origin).
 - 2026-08-29 (grilling session): designed in-session. Decisions: pan-only (resize = zoom = breaks True Scale, rejected); preview mirrors the Player Display outside the mode (trade-off accepted: whole-map overview only inside the mode); live panning while dragging (Blackout, issue 07, is the tool for hiding transitions); centered initial position, in-memory.

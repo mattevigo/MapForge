@@ -9,6 +9,10 @@ final class AppState: ObservableObject {
     @Published var squaresWide: Double = 30 {
         didSet { presentIfPossible() }
     }
+    /// Viewport origin in map inches; nil = centered (the default on map load).
+    @Published var viewportOrigin: CGPoint? {
+        didSet { presentIfPossible() }
+    }
     @Published private(set) var playerScreen: NSScreen?
 
     private let playerWindow = PlayerWindowController()
@@ -41,6 +45,7 @@ final class AppState: ObservableObject {
         guard panel.runModal() == .OK, let url = panel.url, let image = NSImage(contentsOf: url) else { return }
         mapURL = url
         mapImage = image
+        viewportOrigin = nil
         presentIfPossible()
     }
 
