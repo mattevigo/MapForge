@@ -1,0 +1,47 @@
+name: MapForge
+options:
+  bundleIdPrefix: com.mattevigo
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+
+targets:
+  MapForge:
+    type: application
+    platform: macOS
+    sources: [MapForge]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mattevigo.MapForge
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        ENABLE_HARDENED_RUNTIME: NO
+        COMBINE_HIDPI_IMAGES: YES
+
+  MapForgeTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [MapForgeTests]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+    dependencies:
+      - target: MapForge
+
+schemes:
+  MapForge:
+    build:
+      targets:
+        MapForge: all
+        MapForgeTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets: [MapForgeTests]
