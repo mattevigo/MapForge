@@ -46,7 +46,7 @@ final class ScaleMathTests: XCTestCase {
     }
 
     func testCalibrationCorrectionScalesPointsPerInch() {
-        // TV claims 508 mm but a ruler measured the 200 mm calibration bar as 190 mm on glass:
+        // The display claims 508 mm but a ruler measured the 200 mm calibration bar as 190 mm on glass:
         // the display is smaller than claimed → more pixels per real inch.
         var corrected = display
         corrected.calibrationFactor = 190.0 / 200.0

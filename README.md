@@ -1,6 +1,6 @@
 # MapForge
 
-Presents DnD battle Maps on an HDMI-attached Player Display at True Scale (1 map inch = 1 physical inch), controlled from a Control Window on the Mac's own display.
+Presents DnD Maps on an HDMI-attached Player Display at True Scale (1 map inch = 1 physical inch), controlled from a Control Window on the Mac's own display.
 
 Vocabulary: [CONTEXT.md](CONTEXT.md) · Decisions: [docs/adr/](docs/adr/) · Spec: `.scratch/map-presenter/spec.md`
 

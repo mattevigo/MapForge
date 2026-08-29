@@ -19,6 +19,9 @@ final class PlayerWindowController {
 
     private func makeWindow(on screen: NSScreen) -> NSWindow {
         let w = NSWindow(contentRect: screen.frame, styleMask: [.borderless], backing: .buffered, defer: false, screen: screen)
+        // Above the menu bar: with "displays have separate Spaces" the external
+        // screen carries its own menu bar, which floats over normal-level windows.
+        w.level = NSWindow.Level(rawValue: NSWindow.Level.mainMenu.rawValue + 1)
         w.backgroundColor = .black
         w.isReleasedWhenClosed = false
         w.collectionBehavior = [.fullScreenAuxiliary, .stationary]

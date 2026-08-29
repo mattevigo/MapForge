@@ -44,9 +44,10 @@ final class AppState: ObservableObject {
         presentIfPossible()
     }
 
-    /// POC display policy: auto-present on the first external screen whenever a Map is loaded.
+    /// Display policy: auto-present only when exactly one external screen is connected;
+    /// with two or more, do nothing until the picker exists (issue 05).
     func presentIfPossible() {
-        guard mapImage != nil, let screen = externalScreens.first else {
+        guard mapImage != nil, externalScreens.count == 1, let screen = externalScreens.first else {
             playerScreen = nil
             playerWindow.hide()
             return

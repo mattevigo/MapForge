@@ -45,6 +45,9 @@ struct ControlView: View {
             } icon: {
                 Image(systemName: "tv").foregroundStyle(.green)
             }
+        } else if appState.externalScreens.count > 1 {
+            Label("Multiple external displays — picker not built yet (issue 05)", systemImage: "tv.slash")
+                .foregroundStyle(.orange)
         } else {
             Label("No Player Display connected", systemImage: "tv.slash")
                 .foregroundStyle(.secondary)
