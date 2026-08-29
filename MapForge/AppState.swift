@@ -17,6 +17,7 @@ final class AppState: ObservableObject {
 
     private let playerWindow = PlayerWindowController()
     private var screenObserver: NSObjectProtocol?
+    private var closeObserver: NSObjectProtocol?
 
     init() {
         screenObserver = NotificationCenter.default.addObserver(
@@ -25,6 +26,18 @@ final class AppState: ObservableObject {
             queue: .main
         ) { _ in
             Task { @MainActor [weak self] in self?.presentIfPossible() }
+        }
+        // Closing the Control Window must quit the whole app: otherwise the Player
+        // window stays fullscreen on the Player Display with no controls anywhere —
+        // the app looks stuck and only the buried Window-menu reopen can recover it.
+        closeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: nil,
+            queue: .main
+        ) { note in
+            let isControlWindow = (note.object as? NSWindow)?.identifier?.rawValue.hasPrefix("control") ?? false
+            guard isControlWindow else { return }
+            Task { @MainActor in NSApp.terminate(nil) }
         }
     }
 
