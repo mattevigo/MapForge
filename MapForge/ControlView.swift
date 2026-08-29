@@ -30,8 +30,10 @@ struct ControlView: View {
                 modeControls
             }
 
-            if mode == .gridFit, fitSquare == nil {
-                Text("Drag a square over one grid square of the map, then nudge it with the handles or arrow keys (⇧ resizes).")
+            // Shown for the whole mode, not just before the first drag: the caption
+            // vanishing mid-drag resized the preview under the cursor.
+            if mode == .gridFit {
+                Text("Drag a square over one grid square of the map; nudge with the handles or arrow keys (⇧ resizes).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

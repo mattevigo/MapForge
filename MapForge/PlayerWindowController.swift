@@ -5,16 +5,41 @@ import SwiftUI
 @MainActor
 final class PlayerWindowController {
     private var window: NSWindow?
+    private var hasContentView = false
 
     func present(appState: AppState, on screen: NSScreen) {
+        moveBuriedWindows(offPlayerScreen: screen)
         let w = window ?? makeWindow(on: screen)
-        w.setFrame(screen.frame, display: true)
-        w.contentView = NSHostingView(rootView: PlayerView().environmentObject(appState))
-        w.orderFront(nil)
+        // The hosting view observes AppState and updates itself; rebuilding it on
+        // every present() (which fires per drag tick) would churn the whole hierarchy.
+        if !hasContentView {
+            w.contentView = NSHostingView(rootView: PlayerView().environmentObject(appState))
+            hasContentView = true
+        }
+        if w.frame != screen.frame {
+            w.setFrame(screen.frame, display: true)
+        }
+        if !w.isVisible {
+            w.orderFront(nil)
+        }
     }
 
     func hide() {
         window?.orderOut(nil)
+    }
+
+    /// The Player window covers its screen above the menu bar: any app window left
+    /// there (typically the Control Window) would be buried and unclickable —
+    /// "the buttons don't work". Move such windows to another screen first.
+    private func moveBuriedWindows(offPlayerScreen screen: NSScreen) {
+        let otherScreens = NSScreen.screens.filter { $0 != screen }.map(\.frame)
+        for w in NSApp.windows where w !== window && w.isVisible && !(w is NSPanel) {
+            if let rescue = WindowLayout.controlWindowRelocation(controlFrame: w.frame,
+                                                                 playerScreenFrame: screen.frame,
+                                                                 otherScreenFrames: otherScreens) {
+                w.setFrame(rescue, display: true)
+            }
+        }
     }
 
     private func makeWindow(on screen: NSScreen) -> NSWindow {
