@@ -49,6 +49,14 @@ struct ControlView: View {
         }
         .padding()
         .frame(minWidth: 480, minHeight: 400)
+        // The Control Window IS the app: its close button kept being hit during mode
+        // work (it reads like "exit this mode"), killing the session — every "crash"
+        // reported against Grid Fit/panning was this. Minimize stays; quit is ⌘Q.
+        .onAppear {
+            if let window = NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix("control") == true }) {
+                window.styleMask.remove(.closable)
+            }
+        }
         .onChange(of: appState.playerScreen) { _, screen in
             // Losing the Player Display mid-pan would strand the mode with no overlay.
             if mode == .viewport, screen == nil { mode = .normal }
