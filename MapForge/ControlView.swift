@@ -111,6 +111,11 @@ struct ControlView: View {
                     }
                     .frame(width: visible.width, height: visible.height)
                     .clipped()
+                    // .clipped() masks drawing only: the overflowing Image still owns
+                    // its full frame for hit-testing and would swallow clicks on the
+                    // controls above. The mirror is pure display — take it out of
+                    // hit-testing entirely.
+                    .allowsHitTesting(false)
                     .position(x: visible.midX, y: visible.midY)
                 } else {
                     let fitted = GridFit.fittedImageRect(imagePixelSize: image.pixelSize,

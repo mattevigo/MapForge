@@ -41,6 +41,23 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// Test seam: UI tests load a map via `--test-map <path> [--test-squares N]`,
+    /// bypassing the open panel (NSOpenPanel can't be driven from XCUITest).
+    func loadMapFromLaunchArgumentsIfPresent() {
+        let args = CommandLine.arguments
+        guard let idx = args.firstIndex(of: "--test-map"), args.indices.contains(idx + 1) else { return }
+        let url = URL(fileURLWithPath: args[idx + 1])
+        guard let image = NSImage(contentsOf: url) else { return }
+        if let sIdx = args.firstIndex(of: "--test-squares"), args.indices.contains(sIdx + 1),
+           let squares = Double(args[sIdx + 1]) {
+            squaresWide = squares
+        }
+        mapURL = url
+        mapImage = image
+        viewportOrigin = nil
+        presentIfPossible()
+    }
+
     var externalScreens: [NSScreen] { NSScreen.screens.filter { !$0.isBuiltin } }
 
     var playerMetrics: DisplayMetrics? {

@@ -8,6 +8,7 @@ struct MapForgeApp: App {
         Window("MapForge Control", id: "control") {
             ControlView()
                 .environmentObject(appState)
+                .onAppear { appState.loadMapFromLaunchArgumentsIfPresent() }
         }
         .defaultSize(width: 560, height: 480)
     }
