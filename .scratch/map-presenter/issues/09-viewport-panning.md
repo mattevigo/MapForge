@@ -1,6 +1,6 @@
 # 09 — Viewport panning
 
-Status: ready-for-agent
+Status: closed
 Blocked by: 01
 
 Pan the Viewport from the Control Window: a dedicated Viewport mode shows the full map in the preview with a rectangle sized to exactly what the Player Display shows at True Scale; the DM drags it to choose the visible region. Outside the mode, the preview mirrors the Player Display — the exact portion players see, filling the preview. Pulls the pan half of issue 06 forward; rotation stays in 06.
@@ -22,3 +22,5 @@ Acceptance: dragging the rectangle moves the map on the Player Display live and 
 - 2026-08-30 (bug fix): with a Map overflowing the Player Display, every Control Window button above the preview (Open Map…, Fit Grid…, Pan Viewport…) stopped responding to clicks. Cause: the mirror's Image gets a frame far larger than the preview and SwiftUI's `.clipped()` masks drawing only — the invisible overflow still owned its full frame for hit-testing and swallowed the clicks. Small maps (letterboxed mirror) were immune, which is why it read as "some types of maps". Fix: `.allowsHitTesting(false)` on the mirror (pure display; the interactive overlays live in the non-mirror branch). Locked down by MapForgeUITests/ModeButtonsUITests driving the real app via a new `--test-map` launch-argument seam (a Player Display must be connected). Known quirk: XCUITest `isHittable` reports false for these buttons even when clicks work; assert on mode entry instead.
 - 2026-08-29 (implementation review): two-axis review applied. Fixed: the mirror aspect-fit the Viewport but drew the full image, leaking adjacent map into the preview whenever its aspect differed from the Player Display's — now masked to the mirrored region with black letterbox; disconnecting the Player Display mid-pan stranded the mode — now exits to normal. Known minor gaps, accepted: a display with unequal horizontal/vertical ppi renders slightly distorted on the glass but not in the mirror (region shown still matches); the squares-wide field stays editable during Viewport mode (a change just re-clamps the origin).
 - 2026-08-29 (grilling session): designed in-session. Decisions: pan-only (resize = zoom = breaks True Scale, rejected); preview mirrors the Player Display outside the mode (trade-off accepted: whole-map overview only inside the mode); live panning while dragging (Blackout, issue 07, is the tool for hiding transitions); centered initial position, in-memory.
+
+- 2026-08-30 (closed): feature shipped on `feature/viewport-panning` and the unclickable-buttons regression fixed (commit f584644, see 2026-08-30 bug-fix comment). Closed on user's request.
