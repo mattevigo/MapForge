@@ -2,8 +2,9 @@
 // Player Display mirror active. SwiftUI's .clipped() masks drawing only — an
 // overflowing mirror Image that participates in hit-testing swallows clicks on
 // every control above the preview (only for maps that overflow the Player
-// Display, which is why small maps were immune). Requires a connected Player
-// Display; the app loads a fixture map via the --test-map launch-argument seam.
+// Display, which is why small maps were immune). The app loads a fixture map and
+// presents on the built-in screen via the --test-map / --test-player-screen seams,
+// so these run without a TV attached.
 import XCTest
 import AppKit
 
@@ -32,7 +33,8 @@ final class ModeButtonsUITests: XCTestCase {
     private func launchApp(squares: Double, pixelsWide: Int, pixelsHigh: Int) throws -> XCUIApplication {
         let map = try fixturePNG(pixelsWide: pixelsWide, pixelsHigh: pixelsHigh)
         let app = XCUIApplication()
-        app.launchArguments = ["--test-map", map.path, "--test-squares", String(squares)]
+        app.launchArguments = ["--test-map", map.path, "--test-squares", String(squares),
+                               "--test-player-screen", "auto"]
         app.launch()
         return app
     }

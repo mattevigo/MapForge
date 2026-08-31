@@ -8,6 +8,24 @@ extension NSScreen {
     var isBuiltin: Bool {
         displayID.map { CGDisplayIsBuiltin($0) != 0 } ?? false
     }
+
+    /// Stable across replug and reboot, unlike `displayID`. Falls back to the transient
+    /// ID only when CoreGraphics has no UUID for the display, which keeps the picker
+    /// working for the session even though the choice will not be remembered.
+    var displayIdentity: DisplayIdentity? {
+        guard let id = displayID else { return nil }
+        let uuid = CGDisplayCreateUUIDFromDisplayID(id).map {
+            CFUUIDCreateString(nil, $0.takeRetainedValue()) as String
+        }
+        return DisplayIdentity(uuid: uuid ?? "display-id:\(id)", name: localizedName)
+    }
+
+    @MainActor
+    var displayCandidate: DisplayCandidate? {
+        displayIdentity.map {
+            DisplayCandidate(identity: $0, isBuiltin: isBuiltin, metrics: DisplayMetrics(screen: self))
+        }
+    }
 }
 
 extension DisplayMetrics {

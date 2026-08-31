@@ -36,6 +36,10 @@ _Avoid_: calibration, grid detection, auto-grid
 The per-display correction factor for True Scale. EDID physical size is the default; a measured ruler check overrides it, saved per display.
 _Avoid_: DPI setting, scaling
 
+**Display Identity**:
+The stable key for a physical display, used to remember which screen is the Player Display and, later, its Calibration. Derived from the display's UUID, not the `CGDirectDisplayID`, which macOS reassigns on replug and across reboots.
+_Avoid_: screen ID, display number, monitor name
+
 **Viewport**:
 The region of a Map currently visible on the Player Display. At True Scale most Maps exceed the screen, so the DM pans the Viewport from the Control Window.
 _Avoid_: camera, crop, window

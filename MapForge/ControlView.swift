@@ -212,20 +212,57 @@ struct ControlView: View {
         }
     }
 
+    // MARK: Player Display
+
     @ViewBuilder
     private var playerDisplayStatus: some View {
-        if let screen = appState.playerScreen, let metrics = appState.playerMetrics {
-            Label {
-                Text(verbatim: "\(screen.localizedName) — \(Int(metrics.physicalSizeMM.width))×\(Int(metrics.physicalSizeMM.height)) mm, \(String(format: "%.1f", metrics.pixelsPerInch.width)) ppi")
-            } icon: {
-                Image(systemName: "tv").foregroundStyle(.green)
+        HStack(spacing: 8) {
+            Image(systemName: appState.playerScreen == nil ? "tv.slash" : "tv")
+                .foregroundStyle(appState.playerScreen == nil ? Color.secondary : Color.green)
+            Picker("Player Display", selection: playerDisplaySelection) {
+                Text("None — not presenting").tag(DisplayIdentity?.none)
+                ForEach(appState.displayCandidates, id: \.identity) { candidate in
+                    Text(label(for: candidate)).tag(DisplayIdentity?.some(candidate.identity))
+                }
             }
-        } else if appState.externalScreens.count > 1 {
-            Label("Multiple external displays — picker not built yet (issue 05)", systemImage: "tv.slash")
+            .labelsHidden()
+            .frame(maxWidth: 420)
+        }
+        // Presented, but EDID reports no physical size: True Scale is a guess until
+        // Calibration. Said plainly rather than hiding the screen from the picker.
+        if appState.playerScreen != nil, appState.playerMetrics == nil {
+            Label("Physical size unknown — True Scale unverified on this display",
+                  systemImage: "exclamationmark.triangle")
+                .font(.caption)
                 .foregroundStyle(.orange)
-        } else {
-            Label("No Player Display connected", systemImage: "tv.slash")
+        }
+        if appState.displayCandidates.count > 1,
+           appState.displayCandidates.allSatisfy(\.isBuiltin) == false,
+           appState.playerScreen == nil {
+            Label("Multiple displays connected — choose the Player Display above",
+                  systemImage: "questionmark.circle")
+                .font(.caption)
                 .foregroundStyle(.secondary)
         }
+    }
+
+    private var playerDisplaySelection: Binding<DisplayIdentity?> {
+        Binding(
+            get: { appState.playerScreen?.displayIdentity },
+            set: { if let identity = $0 { appState.chooseDisplay(identity) } }
+        )
+    }
+
+    /// Resolution and physical size, so two identical TVs are told apart by text.
+    private func label(for candidate: DisplayCandidate) -> String {
+        var parts = [candidate.identity.name]
+        if candidate.isBuiltin { parts.append("(built-in)") }
+        if let metrics = candidate.metrics {
+            parts.append("— \(Int(metrics.pixelSize.width))×\(Int(metrics.pixelSize.height)) px")
+            parts.append("\(Int(metrics.physicalSizeMM.width))×\(Int(metrics.physicalSizeMM.height)) mm")
+        } else {
+            parts.append("— size unknown")
+        }
+        return parts.joined(separator: " ")
     }
 }
