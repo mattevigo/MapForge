@@ -11,7 +11,12 @@ struct PlayerView: View {
                 if let image = appState.mapImage,
                    let map = appState.mapScale,
                    let metrics = appState.playerMetrics {
-                    let frame = ScaleMath.trueScaleFrame(map: map, display: metrics, screenSizePoints: geo.size)
+                    let viewport = ScaleMath.resolvedViewport(map: map, display: metrics,
+                                                              screenSizePoints: geo.size,
+                                                              desiredOrigin: appState.viewportOrigin)
+                    let frame = ScaleMath.trueScaleFrame(map: map, display: metrics,
+                                                         screenSizePoints: geo.size,
+                                                         viewportOriginInches: viewport.originInches)
                     Image(nsImage: image)
                         .resizable()
                         .interpolation(.high)

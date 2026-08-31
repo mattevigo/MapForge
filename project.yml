@@ -34,14 +34,28 @@ targets:
     dependencies:
       - target: MapForge
 
+  MapForgeUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: [MapForgeUITests]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+    dependencies:
+      - target: MapForge
+
 schemes:
   MapForge:
     build:
       targets:
         MapForge: all
         MapForgeTests: [test]
+        MapForgeUITests: [test]
     run:
       config: Debug
     test:
       config: Debug
-      targets: [MapForgeTests]
+      targets: [MapForgeTests, MapForgeUITests]
