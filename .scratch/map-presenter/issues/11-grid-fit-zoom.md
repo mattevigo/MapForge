@@ -1,6 +1,6 @@
 # 11 — Grid Fit zoom
 
-Status: ready-for-agent
+Status: closed
 Blocked by: 08
 
 Zoom and pan the Control Window preview while in Grid Fit mode, so the DM draws the fit square over a magnified grid square instead of over the whole map at once. Today Grid Fit hard-fits the entire image into the preview (`GridFit.fittedImageRect`, taken in the non-mirror branch of `ControlView.preview`): on a 3000x2000 px map in a ~450 pt preview the view scale is ~0.15, so one printed grid square is ~15 preview points and a 1-point mis-drag is ~6.7% error in the derived squares-wide. Zoom removes the precision ceiling without changing what Grid Fit produces.
@@ -33,3 +33,9 @@ Acceptance: on a real VTT map, zooming into one printed grid square and drawing 
 ## Comments
 
 - 2026-08-31 (grilling session): designed via /grilling. Decisions: zoom the Control Window preview, not the Player Display (the player viewport's zoom *is* True Scale, derived from squares-wide — zooming it to set squares-wide is circular); augment the existing flow rather than replace it; scope held to squares-wide only; scroll/pinch + ⌥-drag over click-to-zoom; 1:1 ceiling because image pixels bound the achievable precision; nudge floored at 1 image px; Viewport mode deliberately left out. No ADR — the True Scale invariant is untouched.
+
+- 2026-08-31 (implementation): shipped on `feature/grid-fit-zoom` (PreviewTransform + ScrollWheel, GridFitOverlay/ControlView wiring, 16 unit tests, one UI test). Two-axis review applied. Fixed from review: two chained `.gesture()` calls do not compose in SwiftUI, so the draw gesture shadowed the pan and every ⌥-drag was silently swallowed; and `MagnifyGesture` reports cumulative magnification, which the code compounded against the live scale each frame so a pinch accelerated — it now multiplies the scale the pinch began at and anchors on the pinch's own start location rather than the preview centre. Recorded as scope after the fact: the 1:1 pin for maps smaller than the preview, and the pan clamp.
+
+  Two failures that only surfaced by driving the real app, both invisible to unit tests because every button kept working and only the pixels stood still: an `NSViewRepresentable` scroll catcher placed in Grid Fit's `.position()`-based ZStack never gets a non-zero frame, so it never reaches a window and never receives events (replaced with a local `NSEvent` monitor scoped to the view's global frame); and a `hitTest` override returning nil — added to stop that catcher stealing clicks — also muted `scrollWheel`, which routes through hit-testing. The zoom is now covered by a UI test that compares rendered pixels.
+
+  Known gap: ⌥-drag panning has no automated test. XCUITest's `perform(withKeyModifiers:)` does not hold the modifier across `press(forDuration:thenDragTo:)`, so the test failed against code verified working by driving the real app with synthetic ⌥ key events. The pan math is unit tested; the gesture wiring is not. Also unverified on real hardware: trackpad pinch, which has no synthetic-event equivalent — worth a human check.
