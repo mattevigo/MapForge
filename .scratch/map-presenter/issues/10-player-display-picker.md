@@ -1,6 +1,6 @@
 # 10 — Player Display picker
 
-Status: ready-for-human
+Status: closed
 Blocked by: 01
 
 Choose which screen is the Player Display from the Control Window, and remember the choice across launches and replugs. Fills the hole `presentIfPossible()` leaves today: with two or more external screens the app presents nothing behind an orange "picker not built yet" badge. Deliberately the picker slice only — issue 05's unplug/replug lifecycle stays `wontfix`.
@@ -40,3 +40,5 @@ Acceptance: with two external displays connected, the picker lists both and choo
 - 2026-08-31 (verified live, 3-external-display Mac): picker lists all three with resolution and physical size — "LG HDR 4K — 3840×2160 px 598×340 mm" vs "Virtual 16:9 — 3840×2160 px 530×298 mm", same resolution told apart by mm. With no choice made nothing presents and the guidance text shows; selecting LG HDR 4K presents there; quit and relaunch restores it with no interaction (`playerDisplayUUID` = 456A5014-…, matching the probed UUID). 44 unit + 2 UI tests pass.
 
 - Not verified: replug behaviour (needs physical cable work) and the single-screen yield path (this machine cannot reach one screen). Both are the acceptance criteria left standing.
+
+- 2026-08-31 (closed): feature shipped on `feature/player-display-picker` (commit d6027fa). Two acceptance criteria remain unverified because this machine cannot reach them: unplug/replug recovery (needs physical cable work) and the single-screen yield path (three externals, no built-in). Both exercise code paths that are unit-tested; verify at the table and reopen if either misbehaves.
