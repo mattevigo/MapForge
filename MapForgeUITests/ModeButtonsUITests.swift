@@ -61,6 +61,35 @@ final class ModeButtonsUITests: XCTestCase {
         app.buttons["Cancel"].click()
     }
 
+    /// Scroll-to-zoom must actually reach the preview. This caught two real failures:
+    /// an NSViewRepresentable catcher inside Grid Fit's .position()-based ZStack never
+    /// gets a non-zero frame (so never receives events), and a hitTest override that
+    /// returned nil muted scrollWheel dispatch entirely. Compares the rendered window
+    /// before and after, because both bugs left every button working and only the
+    /// pixels unchanged.
+    func testScrollZoomChangesThePreview() throws {
+        let app = try launchApp(squares: 30, pixelsWide: 3000, pixelsHigh: 2000)
+
+        let fit = app.buttons["Fit Grid…"]
+        XCTAssertTrue(fit.waitForExistence(timeout: 5), "Fit Grid… button not found")
+        fit.click()
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 3),
+                      "Fit Grid… click did not enter Grid Fit mode")
+
+        let window = app.windows.firstMatch
+        let before = window.screenshot().pngRepresentation
+        window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
+            .scroll(byDeltaX: 0, deltaY: 200)
+        Thread.sleep(forTimeInterval: 1.0)
+
+        XCTAssertNotEqual(before, window.screenshot().pngRepresentation,
+                          "scrolling did not change the preview — zoom is not wired up")
+
+        app.buttons["Cancel"].click()
+        XCTAssertTrue(app.buttons["Fit Grid…"].waitForExistence(timeout: 2),
+                      "Cancel did not leave Grid Fit mode after zooming")
+    }
+
     /// Control case: a small map (no overflow, letterboxed mirror). Pan Viewport
     /// is unavailable by design; Fit Grid must be clickable.
     func testFitGridClickableWithSmallMap() throws {

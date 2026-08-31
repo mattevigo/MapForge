@@ -10,20 +10,28 @@ struct GridFitSquare: Equatable {
 /// Interactive Grid Fit overlay on the Control Window preview: drag to draw a square
 /// over one grid square, then adjust via corner handles or arrow keys (⇧ resizes).
 struct GridFitOverlay: View {
-    let fittedRect: CGRect
-    let imagePixelSize: CGSize
+    let transform: PreviewTransform
+    let containerSize: CGSize
     @Binding var square: GridFitSquare?
+    /// Zoom/pan is owner state: the overlay reports the transform it wants, the way
+    /// ViewportOverlay reports a desired origin rather than binding one.
+    let onTransform: (PreviewTransform) -> Void
 
     @State private var dragStart: GridFitSquare?
+    @State private var panStart: PreviewTransform?
     @FocusState private var focused: Bool
 
     private let minSideImagePixels: CGFloat = 2
-    private var viewScale: CGFloat { fittedRect.width / imagePixelSize.width }
+    private var imagePixelSize: CGSize { transform.imagePixelSize }
+    private var viewScale: CGFloat { transform.scale }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             Color.clear
                 .contentShape(Rectangle())
+                // ⌥ pans; a plain drag on empty preview draws. The modifier is what
+                // keeps panning from colliding with draw/move/resize.
+                .gesture(panGesture)
                 .gesture(drawGesture)
 
             if let s = square {
@@ -67,21 +75,18 @@ struct GridFitOverlay: View {
         .focused($focused)
         .onKeyPress(keys: [.leftArrow, .rightArrow, .upArrow, .downArrow], action: nudge)
         .onAppear { focused = true }
+        .onScrollWheel { delta, location in zoom(by: delta, at: location) }
+        .gesture(magnifyGesture)
     }
 
     private let corners: [(CGFloat, CGFloat)] = [(-1, -1), (1, -1), (-1, 1), (1, 1)]
 
     private func viewRect(of s: GridFitSquare) -> CGRect {
-        let side = s.side * viewScale
-        return CGRect(x: fittedRect.minX + (s.center.x - s.side / 2) * viewScale,
-                      y: fittedRect.minY + (s.center.y - s.side / 2) * viewScale,
-                      width: side,
-                      height: side)
+        transform.viewRect(ofSquareCenteredAt: s.center, side: s.side)
     }
 
     private func imagePoint(from viewPoint: CGPoint) -> CGPoint {
-        CGPoint(x: (viewPoint.x - fittedRect.minX) / viewScale,
-                y: (viewPoint.y - fittedRect.minY) / viewScale)
+        transform.imagePoint(from: viewPoint)
     }
 
     /// A fresh drag on empty preview (re)draws the square from its start corner.
@@ -132,10 +137,44 @@ struct GridFitOverlay: View {
                              side: max(side, minSideImagePixels))
     }
 
-    /// Arrow keys move by 1 preview point; ⇧+up/right grows, ⇧+down/left shrinks.
+    /// ⌥-drag pans the zoomed preview; without the modifier the drag draws a square.
+    private var panGesture: some Gesture {
+        DragGesture(minimumDistance: 1, coordinateSpace: .named("gridFit"))
+            .modifiers(.option)
+            .onChanged { value in
+                if panStart == nil { panStart = transform }
+                guard let start = panStart else { return }
+                onTransform(start.panned(by: value.translation, container: containerSize))
+            }
+            .onEnded { _ in panStart = nil }
+    }
+
+    /// Trackpad pinch, anchored on the preview centre — a magnify gesture carries no
+    /// usable cursor location, unlike the scroll wheel.
+    private var magnifyGesture: some Gesture {
+        MagnifyGesture()
+            .onChanged { value in
+                let centre = CGPoint(x: containerSize.width / 2, y: containerSize.height / 2)
+                zoom(toScale: transform.scale * value.magnification, at: centre)
+            }
+    }
+
+    /// Scroll up to zoom in. Exponential so each notch is the same proportional step
+    /// whatever the current zoom, rather than crawling when zoomed in.
+    private func zoom(by delta: CGFloat, at location: CGPoint) {
+        guard delta != 0 else { return }
+        zoom(toScale: transform.scale * exp(delta * 0.01), at: location)
+    }
+
+    private func zoom(toScale scale: CGFloat, at location: CGPoint) {
+        onTransform(transform.zoomed(to: scale, anchoringViewPoint: location, container: containerSize))
+    }
+
+    /// Arrow keys move by 1 preview point (floored at 1 image px, so the step refines
+    /// as the DM zooms in); ⇧+up/right grows, ⇧+down/left shrinks.
     private func nudge(_ press: KeyPress) -> KeyPress.Result {
         guard square != nil else { return .ignored }
-        let step = 1 / viewScale
+        let step = transform.nudgeStepImagePixels
         if press.modifiers.contains(.shift) {
             let grows = press.key == .upArrow || press.key == .rightArrow
             square?.side = max(minSideImagePixels, (square?.side ?? 0) + (grows ? step : -step))
