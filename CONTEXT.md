@@ -28,6 +28,10 @@ _Avoid_: dashboard, admin window, DM screen
 A user-chosen watched folder of Maps. Per-Map settings persist in sidecar metadata so a Map is configured once.
 _Avoid_: collection, catalog
 
+**Grid Fit**:
+Declaring a Map's Grid by dragging a square over a single grid square of the artwork in the Control Window; the Map's size in squares derives from it. Adjusts the Map's declared size, not the display — that is Calibration.
+_Avoid_: calibration, grid detection, auto-grid
+
 **Calibration**:
 The per-display correction factor for True Scale. EDID physical size is the default; a measured ruler check overrides it, saved per display.
 _Avoid_: DPI setting, scaling
