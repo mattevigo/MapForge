@@ -14,7 +14,10 @@ final class ModeButtonsUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    /// Writes a flat-color PNG with the given true pixel size to a temp path.
+    /// Writes a PNG with the given true pixel size to a temp path. The content is
+    /// deliberately asymmetric: the zoom and pan tests compare rendered pixels, and a
+    /// uniform or repeating fill looks unchanged after a pan, failing against code
+    /// that works.
     private func fixturePNG(pixelsWide: Int, pixelsHigh: Int) throws -> URL {
         let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixelsWide, pixelsHigh: pixelsHigh,
                                    bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
@@ -23,6 +26,13 @@ final class ModeButtonsUITests: XCTestCase {
         NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
         NSColor.systemTeal.setFill()
         NSRect(x: 0, y: 0, width: pixelsWide, height: pixelsHigh).fill()
+        // One big off-centre landmark, so any pan visibly changes the render.
+        NSColor.black.setFill()
+        NSRect(x: pixelsWide / 8, y: pixelsHigh / 6,
+               width: pixelsWide / 3, height: pixelsHigh / 3).fill()
+        NSColor.white.setFill()
+        NSRect(x: pixelsWide * 5 / 8, y: pixelsHigh / 2,
+               width: pixelsWide / 5, height: pixelsHigh / 4).fill()
         NSGraphicsContext.restoreGraphicsState()
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("mapforge-uitest-\(pixelsWide)x\(pixelsHigh).png")

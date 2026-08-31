@@ -121,23 +121,20 @@ struct ControlView: View {
                     .allowsHitTesting(false)
                     .position(x: visible.midX, y: visible.midY)
                 } else {
-                    // Grid Fit draws through its zoomable transform; every other use of
-                    // this branch is the plain aspect fit, which is that transform's floor.
-                    let transform = mode == .gridFit
-                        ? (gridFitTransform ?? PreviewTransform.fitted(imagePixelSize: image.pixelSize,
-                                                                       container: geo.size))
-                        : PreviewTransform.fitted(imagePixelSize: image.pixelSize, container: geo.size)
+                    // Only Grid Fit carries a zoom; every other use of this branch is the
+                    // plain aspect fit, which is that transform's floor.
+                    let transform = (mode == .gridFit ? gridFitTransform : nil)
+                        ?? PreviewTransform.fitted(imagePixelSize: image.pixelSize, container: geo.size)
                     let fitted = transform.imageRect
                     ZStack(alignment: .topLeading) {
                         Image(nsImage: image)
                             .resizable()
                             .frame(width: fitted.width, height: fitted.height)
                             .position(x: fitted.midX, y: fitted.midY)
-                            // Zoomed in, this frame is far larger than the preview, and
-                            // .clipped() masks drawing only — the overflow would own its
-                            // full hit region and swallow clicks on the controls above,
-                            // the same regression issue 09 hit with the mirror. The
-                            // image is pure display; the overlays handle interaction.
+                            // Zoomed in this frame is far larger than the preview, and an
+                            // overflowing Image owns its full frame for hit-testing — the
+                            // regression issue 09 hit with the mirror. Pure display; the
+                            // overlays handle interaction.
                             .allowsHitTesting(false)
                         if mode == .gridFit {
                             GridFitOverlay(transform: transform,

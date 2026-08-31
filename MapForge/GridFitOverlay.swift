@@ -18,10 +18,18 @@ struct GridFitOverlay: View {
     let onTransform: (PreviewTransform) -> Void
 
     @State private var dragStart: GridFitSquare?
+    /// The transform a ⌥-pan started from, so the pan stays relative to the gesture's
+    /// origin instead of accumulating rounding per event.
     @State private var panStart: PreviewTransform?
+    /// The transform a pinch started from: `MagnifyGesture` reports cumulative
+    /// magnification, so compounding it against the live scale would accelerate.
+    @State private var pinchStart: PreviewTransform?
     @FocusState private var focused: Bool
 
     private let minSideImagePixels: CGFloat = 2
+    /// Scroll delta to zoom factor. Small enough that a single trackpad flick doesn't
+    /// cross the whole fit-to-1:1 range.
+    private let zoomSensitivity: CGFloat = 0.01
     private var imagePixelSize: CGSize { transform.imagePixelSize }
     private var viewScale: CGFloat { transform.scale }
 
@@ -29,10 +37,10 @@ struct GridFitOverlay: View {
         ZStack(alignment: .topLeading) {
             Color.clear
                 .contentShape(Rectangle())
-                // ⌥ pans; a plain drag on empty preview draws. The modifier is what
-                // keeps panning from colliding with draw/move/resize.
-                .gesture(panGesture)
-                .gesture(drawGesture)
+                // Both drags go through ONE .gesture() call: two chained calls do not
+                // compose — the later one wins outright and swallowed every ⌥-drag.
+                // `exclusively` gives the ⌥-filtered pan first refusal.
+                .gesture(panGesture.exclusively(before: drawGesture))
 
             if let s = square {
                 let r = viewRect(of: s)
@@ -89,20 +97,6 @@ struct GridFitOverlay: View {
         transform.imagePoint(from: viewPoint)
     }
 
-    /// A fresh drag on empty preview (re)draws the square from its start corner.
-    private var drawGesture: some Gesture {
-        DragGesture(minimumDistance: 2, coordinateSpace: .named("gridFit"))
-            .onChanged { value in
-                let start = imagePoint(from: value.startLocation)
-                let current = imagePoint(from: value.location)
-                square = squareBetween(anchor: start, dragged: current)
-            }
-            .onEnded { _ in
-                if let s = square, s.side < minSideImagePixels { square = nil }
-                focused = true
-            }
-    }
-
     private var moveGesture: some Gesture {
         DragGesture()
             .onChanged { value in
@@ -137,9 +131,10 @@ struct GridFitOverlay: View {
                              side: max(side, minSideImagePixels))
     }
 
-    /// ⌥-drag pans the zoomed preview; without the modifier the drag draws a square.
+    /// ⌥-drag pans the zoomed preview. `.modifiers(.option)` also stops a plain drag
+    /// matching it, so the draw gesture below stays unfiltered.
     private var panGesture: some Gesture {
-        DragGesture(minimumDistance: 1, coordinateSpace: .named("gridFit"))
+        DragGesture(minimumDistance: 2, coordinateSpace: .named("gridFit"))
             .modifiers(.option)
             .onChanged { value in
                 if panStart == nil { panStart = transform }
@@ -149,21 +144,41 @@ struct GridFitOverlay: View {
             .onEnded { _ in panStart = nil }
     }
 
-    /// Trackpad pinch, anchored on the preview centre — a magnify gesture carries no
-    /// usable cursor location, unlike the scroll wheel.
+    /// A fresh drag on empty preview (re)draws the square from its start corner.
+    private var drawGesture: some Gesture {
+        DragGesture(minimumDistance: 2, coordinateSpace: .named("gridFit"))
+            .onChanged { value in
+                square = squareBetween(anchor: imagePoint(from: value.startLocation),
+                                       dragged: imagePoint(from: value.location))
+            }
+            .onEnded { _ in
+                if let s = square, s.side < minSideImagePixels { square = nil }
+                focused = true
+            }
+    }
+
+    /// Trackpad pinch, anchored where the pinch started so it matches the scroll
+    /// wheel's cursor-anchored behaviour. `magnification` is cumulative from the
+    /// gesture's start, so it multiplies the scale the pinch began at, not the live one.
     private var magnifyGesture: some Gesture {
         MagnifyGesture()
             .onChanged { value in
-                let centre = CGPoint(x: containerSize.width / 2, y: containerSize.height / 2)
-                zoom(toScale: transform.scale * value.magnification, at: centre)
+                let start = pinchStart ?? {
+                    pinchStart = transform
+                    return transform
+                }()
+                onTransform(start.zoomed(to: start.scale * value.magnification,
+                                         anchoringViewPoint: value.startLocation,
+                                         container: containerSize))
             }
+            .onEnded { _ in pinchStart = nil }
     }
 
     /// Scroll up to zoom in. Exponential so each notch is the same proportional step
     /// whatever the current zoom, rather than crawling when zoomed in.
     private func zoom(by delta: CGFloat, at location: CGPoint) {
         guard delta != 0 else { return }
-        zoom(toScale: transform.scale * exp(delta * 0.01), at: location)
+        zoom(toScale: transform.scale * exp(delta * zoomSensitivity), at: location)
     }
 
     private func zoom(toScale scale: CGFloat, at location: CGPoint) {

@@ -101,6 +101,18 @@ final class PreviewTransformTests: XCTestCase {
                        1, accuracy: 1e-9)
     }
 
+    func testZoomingFromAFixedStartDoesNotCompound() {
+        // MagnifyGesture reports magnification cumulatively from the pinch's start, so
+        // a pinch must multiply the scale it began at. Multiplying the live scale each
+        // frame instead accelerates: 1.2x reported twice would land on 1.44x, not 1.2x.
+        let start = fitted()
+        let cursor = CGPoint(x: 200, y: 150)
+        let once = start.zoomed(to: start.scale * 1.2, anchoringViewPoint: cursor, container: container)
+        let twice = start.zoomed(to: start.scale * 1.2, anchoringViewPoint: cursor, container: container)
+        XCTAssertEqual(once.scale, twice.scale, accuracy: 1e-9)
+        XCTAssertEqual(twice.scale, fitted().scale * 1.2, accuracy: 1e-9)
+    }
+
     // MARK: Panning
 
     func testPanningOffsetsTheImageRect() {
