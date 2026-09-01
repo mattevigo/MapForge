@@ -13,17 +13,35 @@ final class AppState: ObservableObject {
     @Published var viewportOrigin: CGPoint? {
         didSet { presentIfPossible() }
     }
+    /// The Walls, Lights and Pawns authored on the current Map. Edits are debounced to
+    /// disk; the Map's Grid, by contrast, is still in-memory only (see FogDocument).
+    @Published var fog = FogDocument() {
+        didSet {
+            guard fog != oldValue, mapURL != nil else { return }
+            fogAutosave.schedule(fog)
+        }
+    }
+    /// Set when a fog file exists but could not be read, so the UI can say so rather than
+    /// letting a DM assume their Walls were never there and redraw over them.
+    @Published private(set) var fogLoadFailure: FogStore.UnreadableFile?
     @Published private(set) var playerScreen: NSScreen?
     /// The DM's explicit pick. Nil = let the policy choose (remembered, else sole external).
     @Published private(set) var chosenDisplay: DisplayIdentity?
 
     private let playerWindow = PlayerWindowController()
     private let preferences: DisplayPreferences
+    private let fogStore: FogStore
+    private var fogAutosave: FogAutosave!
     private var screenObserver: NSObjectProtocol?
     private var closeObserver: NSObjectProtocol?
 
-    init(preferences: DisplayPreferences = DisplayPreferences()) {
+    init(preferences: DisplayPreferences = DisplayPreferences(),
+         fogStore: FogStore = FogStore()) {
         self.preferences = preferences
+        self.fogStore = fogStore
+        fogAutosave = FogAutosave { [weak self] document in
+            self?.writeFog(document)
+        }
         screenObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil,
@@ -41,7 +59,12 @@ final class AppState: ObservableObject {
         ) { note in
             let isControlWindow = (note.object as? NSWindow)?.identifier?.rawValue.hasPrefix("control") ?? false
             guard isControlWindow else { return }
-            Task { @MainActor in NSApp.terminate(nil) }
+            // Flush before terminating: a Wall drawn in the last half-second is still
+            // sitting in the debounce, and quitting is exactly when it would be lost.
+            Task { @MainActor [weak self] in
+                self?.flushPendingFogWrites()
+                NSApp.terminate(nil)
+            }
         }
     }
 
@@ -69,10 +92,7 @@ final class AppState: ObservableObject {
            let squares = Double(args[sIdx + 1]) {
             squaresWide = squares
         }
-        mapURL = url
-        mapImage = image
-        viewportOrigin = nil
-        presentIfPossible()
+        loadMap(image: image, at: url)
     }
 
     /// Every connected screen, built-in included: presenting on the built-in is how the
@@ -100,10 +120,35 @@ final class AppState: ObservableObject {
         panel.allowedContentTypes = [.png, .jpeg, .webP]
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url, let image = NSImage(contentsOf: url) else { return }
+        loadMap(image: image, at: url)
+    }
+
+    /// Switch to a Map, bringing its fog with it. Any edit still sitting in the debounce
+    /// belongs to the *outgoing* Map, so it is flushed before `mapURL` moves on.
+    func loadMap(image: NSImage, at url: URL) {
+        fogAutosave.flush()
         mapURL = url
         mapImage = image
         viewportOrigin = nil
+        fog = fogStore.load(forMapAt: url) ?? FogDocument()
+        fogLoadFailure = fogStore.lastLoadFailure
         presentIfPossible()
+    }
+
+    /// Write fog for the Map it was authored on. A failed write must be visible: silently
+    /// dropping a traced room is the one outcome this feature cannot have.
+    private func writeFog(_ document: FogDocument) {
+        guard let url = mapURL else { return }
+        do {
+            try fogStore.save(document, forMapAt: url)
+        } catch {
+            NSLog("MapForge: could not save fog for \(url.lastPathComponent): \(error)")
+        }
+    }
+
+    /// Flush any pending fog edit. Called as the app terminates.
+    func flushPendingFogWrites() {
+        fogAutosave.flush()
     }
 
     /// Resolve the Player Display through the policy and present there. With two or more
