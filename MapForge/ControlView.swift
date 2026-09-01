@@ -150,6 +150,10 @@ struct ControlView: View {
                             }
                         }
                     }
+                    // The Viewport drag measures itself here. Without this space the
+                    // gesture falls back to the dragged rectangle's own coordinates,
+                    // which move with it — see ViewportOverlay.dragGesture.
+                    .coordinateSpace(name: ViewportOverlay.coordinateSpace)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
