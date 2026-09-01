@@ -9,6 +9,9 @@ struct ControlView: View {
     @State private var fitSquare: GridFitSquare?
     @State private var squaresWideBeforeFit: Double = 0
     @State private var viewportOriginBeforePan: CGPoint?
+    /// Grid Fit's preview zoom/pan. Mode-local view state, not part of the Map — it is
+    /// reset to fit-to-window on entering the mode.
+    @State private var gridFitTransform: PreviewTransform?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -33,7 +36,7 @@ struct ControlView: View {
             // Shown for the whole mode, not just before the first drag: the caption
             // vanishing mid-drag resized the preview under the cursor.
             if mode == .gridFit {
-                Text("Drag a square over one grid square of the map; nudge with the handles or arrow keys (⇧ resizes).")
+                Text("Drag a square over one grid square; scroll to zoom, ⌥-drag to pan, arrow keys nudge (⇧ resizes).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -118,17 +121,25 @@ struct ControlView: View {
                     .allowsHitTesting(false)
                     .position(x: visible.midX, y: visible.midY)
                 } else {
-                    let fitted = GridFit.fittedImageRect(imagePixelSize: image.pixelSize,
-                                                        container: geo.size)
+                    // Only Grid Fit carries a zoom; every other use of this branch is the
+                    // plain aspect fit, which is that transform's floor.
+                    let transform = (mode == .gridFit ? gridFitTransform : nil)
+                        ?? PreviewTransform.fitted(imagePixelSize: image.pixelSize, container: geo.size)
+                    let fitted = transform.imageRect
                     ZStack(alignment: .topLeading) {
                         Image(nsImage: image)
                             .resizable()
                             .frame(width: fitted.width, height: fitted.height)
                             .position(x: fitted.midX, y: fitted.midY)
+                            // Zoomed in this frame is far larger than the preview, and an
+                            // overflowing Image owns its full frame for hit-testing — the
+                            // regression issue 09 hit with the mirror. Pure display; the
+                            // overlays handle interaction.
+                            .allowsHitTesting(false)
                         if mode == .gridFit {
-                            GridFitOverlay(fittedRect: fitted,
-                                           imagePixelSize: image.pixelSize,
-                                           square: $fitSquare)
+                            GridFitOverlay(transform: transform,
+                                           containerSize: geo.size,
+                                           square: $fitSquare) { gridFitTransform = $0 }
                         }
                         if mode == .viewport, let map = appState.mapScale, let viewport = resolvedViewport {
                             ViewportOverlay(fittedRect: fitted,
@@ -139,6 +150,10 @@ struct ControlView: View {
                             }
                         }
                     }
+                    // The Viewport drag measures itself here. Without this space the
+                    // gesture falls back to the dragged rectangle's own coordinates,
+                    // which move with it — see ViewportOverlay.dragGesture.
+                    .coordinateSpace(name: ViewportOverlay.coordinateSpace)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -178,12 +193,16 @@ struct ControlView: View {
     private func startGridFit() {
         squaresWideBeforeFit = appState.squaresWide
         fitSquare = nil
+        // Open on the whole map: the zoomed-out view is the orientation step, and zoom
+        // is opt-in for the precision moment.
+        gridFitTransform = nil
         mode = .gridFit
     }
 
     private func endGridFit() {
         mode = .normal
         fitSquare = nil
+        gridFitTransform = nil
     }
 
     private func cancelGridFit() {

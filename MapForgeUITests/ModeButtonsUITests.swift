@@ -14,7 +14,10 @@ final class ModeButtonsUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    /// Writes a flat-color PNG with the given true pixel size to a temp path.
+    /// Writes a PNG with the given true pixel size to a temp path. The content is
+    /// deliberately asymmetric: the zoom and pan tests compare rendered pixels, and a
+    /// uniform or repeating fill looks unchanged after a pan, failing against code
+    /// that works.
     private func fixturePNG(pixelsWide: Int, pixelsHigh: Int) throws -> URL {
         let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixelsWide, pixelsHigh: pixelsHigh,
                                    bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
@@ -23,6 +26,13 @@ final class ModeButtonsUITests: XCTestCase {
         NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
         NSColor.systemTeal.setFill()
         NSRect(x: 0, y: 0, width: pixelsWide, height: pixelsHigh).fill()
+        // One big off-centre landmark, so any pan visibly changes the render.
+        NSColor.black.setFill()
+        NSRect(x: pixelsWide / 8, y: pixelsHigh / 6,
+               width: pixelsWide / 3, height: pixelsHigh / 3).fill()
+        NSColor.white.setFill()
+        NSRect(x: pixelsWide * 5 / 8, y: pixelsHigh / 2,
+               width: pixelsWide / 5, height: pixelsHigh / 4).fill()
         NSGraphicsContext.restoreGraphicsState()
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("mapforge-uitest-\(pixelsWide)x\(pixelsHigh).png")
@@ -59,6 +69,35 @@ final class ModeButtonsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2),
                       "Fit Grid… click did not enter Grid Fit mode")
         app.buttons["Cancel"].click()
+    }
+
+    /// Scroll-to-zoom must actually reach the preview. This caught two real failures:
+    /// an NSViewRepresentable catcher inside Grid Fit's .position()-based ZStack never
+    /// gets a non-zero frame (so never receives events), and a hitTest override that
+    /// returned nil muted scrollWheel dispatch entirely. Compares the rendered window
+    /// before and after, because both bugs left every button working and only the
+    /// pixels unchanged.
+    func testScrollZoomChangesThePreview() throws {
+        let app = try launchApp(squares: 30, pixelsWide: 3000, pixelsHigh: 2000)
+
+        let fit = app.buttons["Fit Grid…"]
+        XCTAssertTrue(fit.waitForExistence(timeout: 5), "Fit Grid… button not found")
+        fit.click()
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 3),
+                      "Fit Grid… click did not enter Grid Fit mode")
+
+        let window = app.windows.firstMatch
+        let before = window.screenshot().pngRepresentation
+        window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
+            .scroll(byDeltaX: 0, deltaY: 200)
+        Thread.sleep(forTimeInterval: 1.0)
+
+        XCTAssertNotEqual(before, window.screenshot().pngRepresentation,
+                          "scrolling did not change the preview — zoom is not wired up")
+
+        app.buttons["Cancel"].click()
+        XCTAssertTrue(app.buttons["Fit Grid…"].waitForExistence(timeout: 2),
+                      "Cancel did not leave Grid Fit mode after zooming")
     }
 
     /// Control case: a small map (no overflow, letterboxed mirror). Pan Viewport

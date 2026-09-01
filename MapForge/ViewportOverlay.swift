@@ -17,6 +17,9 @@ struct ViewportOverlay: View {
 
     @State private var dragStartOrigin: CGPoint?
 
+    /// A stable space for the drag, anchored to the preview rather than the moving rectangle.
+    static let coordinateSpace = "viewportOverlay"
+
     private var previewPointsPerMapInch: CGFloat { fittedRect.width / map.physicalWidthInches }
 
     var body: some View {
@@ -35,8 +38,13 @@ struct ViewportOverlay: View {
             .position(x: rect.midX, y: rect.midY)
     }
 
+    /// The drag is measured in the container's coordinate space, never the default —
+    /// which is the *rectangle's own*, and the rectangle moves as you drag it. Each
+    /// point of movement was subtracted from the next event's `translation`, so the
+    /// reported translation oscillated (18.75 → 4.92 → 18.96 → 10.17 …) instead of
+    /// growing, and the Viewport visibly jumped back and drifted off the cursor.
     private var dragGesture: some Gesture {
-        DragGesture()
+        DragGesture(coordinateSpace: .named(Self.coordinateSpace))
             .onChanged { value in
                 if dragStartOrigin == nil { dragStartOrigin = originInches }
                 guard let start = dragStartOrigin else { return }
