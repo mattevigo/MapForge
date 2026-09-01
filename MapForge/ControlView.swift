@@ -48,6 +48,8 @@ struct ControlView: View {
 
             playerDisplayStatus
 
+            fogLoadWarning
+
             preview
         }
         .padding()
@@ -228,6 +230,31 @@ struct ControlView: View {
                                          squaresWide: CGFloat(squares)) {
             square.side = side
             fitSquare = square
+        }
+    }
+
+    // MARK: Fog
+
+    /// Shown when a Map's fog file exists but could not be read. Silence here is the
+    /// dangerous case: the DM would see a Map with no Walls, assume none were ever drawn,
+    /// redraw them, and the next save would overwrite the file that still holds the
+    /// originals. The path is spelled out so they can recover it by hand.
+    @ViewBuilder
+    private var fogLoadWarning: some View {
+        if let failure = appState.fogLoadFailure {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Could not read this Map's fog — its Walls and Lights are not shown.")
+                    Text("\(failure.url.path) — drawing over this Map will replace it.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+            }
+            .padding(8)
+            .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
         }
     }
 
