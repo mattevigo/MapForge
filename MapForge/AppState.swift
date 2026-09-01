@@ -146,6 +146,14 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// Switch a Light on or off from the live panel, outside the fog editing mode.
+    /// Takes effect immediately on the Player Display: this is the action a DM performs
+    /// mid-session with players watching.
+    func toggleLight(id: Light.ID) {
+        guard let index = fog.lights.firstIndex(where: { $0.id == id }) else { return }
+        fog.lights[index].isOn.toggle()
+    }
+
     /// Flush any pending fog edit. Called as the app terminates.
     func flushPendingFogWrites() {
         fogAutosave.flush()

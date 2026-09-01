@@ -3,7 +3,7 @@ import SwiftUI
 struct ControlView: View {
     @EnvironmentObject private var appState: AppState
 
-    private enum PreviewMode { case normal, gridFit, viewport, walls }
+    private enum PreviewMode { case normal, gridFit, viewport, fog }
 
     @State private var mode: PreviewMode = .normal
     @State private var fitSquare: GridFitSquare?
@@ -15,10 +15,16 @@ struct ControlView: View {
     /// Wall drawing's preview zoom/pan. Mode-local like Grid Fit's, and reset to
     /// fit-to-window on entering the mode.
     @State private var wallTransform: PreviewTransform?
-    /// Walls as they were on entering the mode, so Cancel restores them wholesale —
-    /// the same revert Grid Fit does with `squaresWideBeforeFit`. `WallEdits` also
-    /// carries the undo history, which is mode-local and cannot unwind past this.
-    @State private var wallEdits = WallEdits(walls: [])
+    /// The fog as it was on entering the mode, so Cancel restores it wholesale — the
+    /// same revert Grid Fit does with `squaresWideBeforeFit`. `FogEdits` also carries the
+    /// undo history, which is mode-local and cannot unwind past this.
+    @State private var fogEdits = FogEdits(document: FogDocument())
+    /// Which fog concept a click places. One mode for all of them: the DM needs to see a
+    /// torch against the room they traced to know the room works.
+    @State private var tool: FogTool = .walls
+    /// The Light whose radii the inspector edits. Owned here, not in the overlay, because
+    /// the numeric editor lives beside the preview.
+    @State private var selectedLight: Light.ID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -52,15 +58,18 @@ struct ControlView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            if mode == .walls {
-                Text("Click to place Wall corners, double-click to end a chain, Esc to cancel it. ⇧ frees the angle; click a Wall then ⌫ to delete. Scroll to zoom, ⌥-drag to pan.")
+            if mode == .fog {
+                Text(tool.hint)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                lightInspector
             }
 
             playerDisplayStatus
 
             fogLoadWarning
+
+            lightToggles
 
             preview
         }
@@ -138,7 +147,7 @@ struct ControlView: View {
                     // Only Grid Fit carries a zoom; every other use of this branch is the
                     // plain aspect fit, which is that transform's floor.
                     let modeTransform = mode == .gridFit ? gridFitTransform
-                                      : mode == .walls ? wallTransform : nil
+                                      : mode == .fog ? wallTransform : nil
                     let transform = modeTransform
                         ?? PreviewTransform.fitted(imagePixelSize: image.pixelSize, container: geo.size)
                     let fitted = transform.imageRect
@@ -157,14 +166,15 @@ struct ControlView: View {
                                            containerSize: geo.size,
                                            square: $fitSquare) { gridFitTransform = $0 }
                         }
-                        if mode == .walls {
-                            WallOverlay(transform: transform,
-                                        containerSize: geo.size,
-                                        walls: appState.fog.walls,
-                                        gridPixels: gridPixels,
-                                        onCommit: { wallEdits.add($0); applyWallEdits() },
-                                        onDelete: { wallEdits.delete($0); applyWallEdits() },
-                                        onTransform: { wallTransform = $0 })
+                        if mode == .fog {
+                            FogOverlay(transform: transform,
+                                       containerSize: geo.size,
+                                       tool: tool,
+                                       gridPixels: gridPixels,
+                                       edits: $fogEdits,
+                                       selectedLight: $selectedLight,
+                                       onChange: { applyFogEdits() },
+                                       onTransform: { wallTransform = $0 })
                         }
                         if mode == .viewport, let map = appState.mapScale, let viewport = resolvedViewport {
                             ViewportOverlay(fittedRect: fitted,
@@ -199,7 +209,7 @@ struct ControlView: View {
                 .disabled(appState.mapImage == nil)
             Button("Pan Viewport…") { startViewportPan() }
                 .disabled(!mapOverflowsViewport)
-            Button("Draw Walls…") { startWallEditing() }
+            Button("Edit Fog…") { startFogEditing() }
                 .disabled(appState.mapImage == nil)
         case .gridFit:
             if fitSquare != nil, let snap = GridFit.snapSuggestion(for: appState.squaresWide) {
@@ -214,40 +224,52 @@ struct ControlView: View {
                 .keyboardShortcut(.cancelAction)
             Button("Done") { mode = .normal }
                 .keyboardShortcut(.defaultAction)
-        case .walls:
-            Text(appState.fog.walls.count == 1 ? "1 Wall" : "\(appState.fog.walls.count) Walls")
+        case .fog:
+            Picker("Tool", selection: $tool) {
+                ForEach(FogTool.allCases, id: \.self) { Text($0.label).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 160)
+            Text(fogSummary)
                 .foregroundStyle(.secondary)
-            Button("Undo") { wallEdits.undo(); applyWallEdits() }
-                .disabled(!wallEdits.canUndo)
+            Button("Undo") { fogEdits.undo(); applyFogEdits() }
+                .disabled(!fogEdits.canUndo)
                 .keyboardShortcut("z", modifiers: .command)
-            Button("Cancel") { cancelWallEditing() }
+            Button("Cancel") { cancelFogEditing() }
             Button("Done") { mode = .normal }
                 .keyboardShortcut(.defaultAction)
         }
     }
 
-    private func startWallEditing() {
-        wallEdits = WallEdits(walls: appState.fog.walls)
+    private func startFogEditing() {
+        fogEdits = FogEdits(document: appState.fog)
         // Open on the whole Map, as Grid Fit does: the zoomed-out view orients, and zoom
         // is opt-in for the precision moment.
         wallTransform = nil
-        mode = .walls
+        mode = .fog
     }
 
     /// Discard the whole session, including anything the autosave debounce already wrote:
     /// restoring the Walls re-triggers `fog`'s didSet, and the explicit flush makes the
     /// file correct now rather than half a second from now, so a quit in between cannot
     /// persist Walls the DM cancelled.
-    private func cancelWallEditing() {
-        appState.fog.walls = wallEdits.originalWalls
+    private func cancelFogEditing() {
+        appState.fog = fogEdits.original
         appState.flushPendingFogWrites()
         mode = .normal
     }
 
-    /// Push the edited Walls onto the Map. Called after every action so the Player
-    /// Display and the fog file stay in step with what the DM sees.
-    private func applyWallEdits() {
-        appState.fog.walls = wallEdits.walls
+    /// Push the edited fog onto the Map. Called after every action so the Player Display
+    /// and the fog file stay in step with what the DM sees.
+    private func applyFogEdits() {
+        appState.fog = fogEdits.document
+    }
+
+    private var fogSummary: String {
+        let walls = appState.fog.walls.count
+        let lights = appState.fog.lights.count
+        return "\(walls) \(walls == 1 ? "Wall" : "Walls"), \(lights) \(lights == 1 ? "Light" : "Lights")"
     }
 
     /// One Grid square in image pixels, or nil when no Grid has been declared — snapping
@@ -300,6 +322,65 @@ struct ControlView: View {
     }
 
     // MARK: Fog
+
+    /// The live panel: on/off for every Light, always visible, never behind a mode.
+    /// Toggling is the one fog action a DM performs mid-session with players watching, so
+    /// it must be one click with nothing to open first.
+    @ViewBuilder
+    private var lightToggles: some View {
+        if !appState.fog.lights.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    Text("Lights:").foregroundStyle(.secondary)
+                    ForEach(Array(appState.fog.lights.enumerated()), id: \.element.id) { index, light in
+                        Toggle(isOn: Binding(
+                            get: { light.isOn },
+                            set: { _ in appState.toggleLight(id: light.id) }
+                        )) {
+                            Text("\(index + 1)")
+                        }
+                        .toggleStyle(.button)
+                        .help("Light \(index + 1): bright \(Int(light.brightSquares)), dim \(Int(light.dimSquares)) squares")
+                    }
+                }
+            }
+        }
+    }
+
+    /// Radii for the Light selected in the fog mode. In **Grid squares**, because a Light
+    /// is a physical thing — every 5e stat block reads "bright 20 ft, dim 40 ft".
+    @ViewBuilder
+    private var lightInspector: some View {
+        if mode == .fog, tool == .lights, let light = appState.fog.lights.first(where: { $0.id == selectedLight }) {
+            HStack(spacing: 10) {
+                Text("Bright:")
+                TextField("bright", value: Binding(
+                    get: { Double(light.brightSquares) },
+                    set: { fogEdits.setLightRadii(id: light.id, brightSquares: CGFloat($0),
+                                                  dimSquares: light.dimSquares); applyFogEdits() }
+                ), format: .number)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 52)
+
+                Text("Dim:")
+                TextField("dim", value: Binding(
+                    get: { Double(light.dimSquares) },
+                    set: { fogEdits.setLightRadii(id: light.id, brightSquares: light.brightSquares,
+                                                  dimSquares: CGFloat($0)); applyFogEdits() }
+                ), format: .number)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 52)
+
+                Text("squares").foregroundStyle(.secondary)
+                if gridPixels == nil {
+                    Text("— no Grid declared, so these have no physical size yet")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
+            .font(.callout)
+        }
+    }
 
     /// Shown when a Map's fog file exists but could not be read. Silence here is the
     /// dangerous case: the DM would see a Map with no Walls, assume none were ever drawn,
