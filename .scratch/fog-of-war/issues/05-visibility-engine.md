@@ -1,7 +1,6 @@
 # 05 — Visibility engine
 
-Status: ready-for-agent
-Blocked by: 02, 03
+Status: ready-for-human
 
 The core geometry: given the Walls, Lights and Pawns on a Map, compute Visibility — for every point, whether it is bright, dim or unlit. Pure, testable, no rendering, no GPU. See [ADR 0002](../../../docs/adr/0002-cpu-visibility-polygons.md).
 
@@ -33,3 +32,15 @@ Acceptance: the case list above passes as unit tests. On a real dungeon map with
 ## Comments
 
 - 2026-09-01 (grilling session): designed via `/grill-with-docs`. CPU polygons over a shader, and no third-party geometry library — both recorded in ADR 0002 with the conditions for revisiting.
+
+- 2026-09-01 (implemented): `Visibility`, `Polygon` and `VisibilityCache`, 18 unit tests. Built ahead of 02 and 03 — the block on them was only ever for Walls and Lights as *data*, and issue 01 delivered that, so the engine could be proven with hand-built `FogDocument`s and no UI in the way.
+
+  The engine returns polygons per Light (bright and dim) rather than a sampled grid, so a shadow edge lands exactly on the Wall casting it and issue 06 can fill them straight into a Canvas path.
+
+  Two degenerate cases cost real work and are now tested, not assumed. A Light sitting exactly on a Wall endpoint made `atan2(0,0)` undefined and lost the whole far side of the sweep; a Wall touching the Light is now treated as non-blocking, which is also what the geometry says — it casts a shadow of zero width. And rays are cast a hair either side of every vertex, which is what stops the classic one-pixel leak where two Walls meet.
+
+  `boundaryWalls` lives here rather than in the fog file: the four implicit Walls belong to the image, so they are derived at load exactly as issue 01 specified and never stored.
+
+  Performance is measured, not asserted: 80 Walls and 8 Lights compute in ~14 ms, against ADR 0002's bet that a hand-authored Map never needs a GPU. The test names the ADR so a future failure points at the decision to revisit.
+
+  Acceptance met in geometry: a traced room with a doorway throws a wedge into the corridor whose width matches similar triangles to within 2 px at 100 px beyond the door. The "on a real dungeon map" half needs issues 02 and 06 before a human can look at it.
