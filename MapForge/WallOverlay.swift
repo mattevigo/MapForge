@@ -40,11 +40,18 @@ struct WallOverlay: View {
         ZStack(alignment: .topLeading) {
             Color.clear
                 .contentShape(Rectangle())
-                // One .gesture() call, with the ⌥-filtered pan given first refusal:
-                // two chained calls do not compose, as GridFitOverlay found the hard way.
-                .gesture(panGesture)
-                .onTapGesture(count: 2) { finishChain() }
-                .onTapGesture { location in place(at: location) }
+                // ONE .gesture() call. `.onTapGesture` is itself a gesture modifier, so
+                // chaining them does not compose — the outermost simply wins, and the
+                // single tap would claim every click while the double-click never fired.
+                // GridFitOverlay paid for this lesson with its ⌥-drag; the remedy is the
+                // same, an explicit `exclusively` chain that states the priority.
+                // SpatialTapGesture, not TapGesture, because placing a vertex needs the
+                // location and `.onTapGesture(count: 2)` supplies none.
+                .gesture(
+                    panGesture
+                        .exclusively(before: doubleTapGesture)
+                        .exclusively(before: singleTapGesture)
+                )
                 .onContinuousHover { phase in
                     switch phase {
                     case .active(let location): cursor = location
@@ -60,8 +67,8 @@ struct WallOverlay: View {
         .focusable()
         .focused($focused)
         .onKeyPress(.escape) { chain.cancel(); return .handled }
+        // `.delete` IS U+007F — backspace on macOS. One registration covers it.
         .onKeyPress(.delete) { deleteSelected() }
-        .onKeyPress(keys: [.init("\u{7F}")]) { _ in deleteSelected() }
         .onModifierKeysChanged { _, new in freeAngle = new.contains(.shift) }
         .onAppear { focused = true }
         .onScrollWheel { delta, location in zoom(by: delta, at: location) }
@@ -80,7 +87,10 @@ struct WallOverlay: View {
                     // A 2.5 pt line is far too thin to click. Widen the hit area only.
                     path.move(to: a); path.addLine(to: b)
                 }.strokedPath(StrokeStyle(lineWidth: 12)))
-                .onTapGesture { selected = wall.id }
+                // Only selectable between chains: mid-trace, a click near an existing Wall
+                // means "place a vertex here", which is exactly where a DM joins onto one.
+                .onTapGesture { if !chain.isDrawing { selected = wall.id } }
+                .allowsHitTesting(!chain.isDrawing)
         }
     }
 
@@ -111,14 +121,35 @@ struct WallOverlay: View {
     /// Where a click would land, shown before it happens — snapping is visible, never silent.
     @ViewBuilder
     private var snapIndicator: some View {
-        if let cursor, let resolved = resolve(viewPoint: cursor), resolved.target != .none {
-            let p = viewPoint(resolved.point)
-            Circle()
-                .stroke(resolved.target == .endpoint ? Color.green : Color.secondary, lineWidth: 2)
-                .frame(width: 12, height: 12)
-                .position(x: p.x, y: p.y)
-                .allowsHitTesting(false)
+        if let cursor {
+            let resolved = resolve(viewPoint: cursor)
+            if resolved.target != .none {
+                let p = viewPoint(resolved.point)
+                Circle()
+                    .stroke(resolved.target == .endpoint ? Color.green : Color.secondary,
+                            lineWidth: 2)
+                    .frame(width: 12, height: 12)
+                    .position(x: p.x, y: p.y)
+                    .allowsHitTesting(false)
+            }
         }
+    }
+
+    /// Ends the chain. First refusal over the single tap, so a double-click commits
+    /// rather than placing a third vertex on top of the second.
+    private var doubleTapGesture: some Gesture {
+        SpatialTapGesture(count: 2, coordinateSpace: .named(Self.coordinateSpace))
+            .onEnded { value in
+                // The second click still places its vertex before committing — a DM who
+                // double-clicks the last corner means to include it.
+                place(at: value.location)
+                finishChain()
+            }
+    }
+
+    private var singleTapGesture: some Gesture {
+        SpatialTapGesture(coordinateSpace: .named(Self.coordinateSpace))
+            .onEnded { value in place(at: value.location) }
     }
 
     // MARK: Geometry
@@ -130,31 +161,32 @@ struct WallOverlay: View {
     /// Where a click at `viewPoint` lands: angle-constrained against the chain, then
     /// snapped. Snapping runs last so a snap target always wins over the constraint —
     /// closing the chain matters more than keeping it at 45°.
-    private func resolve(viewPoint: CGPoint) -> WallSnap.Result? {
+    private func resolve(viewPoint: CGPoint) -> WallSnap.Result {
         let raw = MapPoint(transform.imagePoint(from: viewPoint))
         let constrained = (!freeAngle && chain.lastVertex != nil)
             ? WallSnap.constrainAngle(from: chain.lastVertex!, to: raw)
             : raw
-        return WallSnap.snap(constrained, to: walls + chainWalls,
+        return WallSnap.snap(constrained, to: snapCandidates,
                              gridPixels: gridPixels, tolerance: snapTolerance)
     }
 
-    /// The chain's own vertices are snap targets too — that is how a DM closes a room
-    /// back onto its first corner.
-    private var chainWalls: [Wall] {
-        chain.vertices.map { Wall(from: $0, to: $0) }
+    /// Existing Wall endpoints, plus the chain's *first* vertex — that is how a DM closes
+    /// a room back onto where they started. Deliberately not every vertex of the chain:
+    /// each one a magnet would silently swallow vertices when tracing a narrow corridor,
+    /// where the tolerance in image pixels can exceed the corridor's own width.
+    private var snapCandidates: [MapPoint] {
+        WallSnap.endpoints(of: walls) + (chain.vertices.first.map { [$0] } ?? [])
     }
 
     private var rubberBandTarget: MapPoint? {
-        cursor.flatMap { resolve(viewPoint: $0)?.point }
+        cursor.map { resolve(viewPoint: $0).point }
     }
 
     // MARK: Actions
 
     private func place(at location: CGPoint) {
         selected = nil
-        guard let resolved = resolve(viewPoint: location) else { return }
-        chain.place(resolved.point)
+        chain.place(resolve(viewPoint: location).point)
         focused = true
     }
 

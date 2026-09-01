@@ -33,7 +33,12 @@ struct WallChain {
         }
     }
 
-    /// Discard everything. Esc means "forget this", not "keep what I have so far".
+    /// Discard everything.
+    ///
+    /// A deliberate deviation from issue 02, which reads "double-click or Esc to end the
+    /// chain". Esc is `.cancelAction` in both other Control Window modes, and an Esc that
+    /// silently committed a half-traced chain would be the only destructive Escape in the
+    /// app. Double-click is the commit path; this is the discard.
     mutating func cancel() {
         vertices = []
     }

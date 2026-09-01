@@ -33,3 +33,13 @@ Acceptance: on a real VTT map, tracing a room's walls produces a closed chain wi
   One design decision worth recording: the angle constraint *rotates* the span rather than projecting it onto the axis. Projecting shortens the Wall as the cursor drifts off the axis, so it visibly lags the pointer. Rotating keeps the length the DM dragged and corrects only the direction. Snapping then runs after the constraint, so a snap target always wins — closing a chain matters more than holding 45°.
 
   Not verified: the three UI tests could not run here — the `MapForgeUITests` target hangs in this environment, on `develop` as well as on this branch. They parse and are written against the same `--test-map` harness the existing UI tests use, but they need a human run on a real desktop session. That is the main thing left before this can be closed.
+
+- 2026-09-01 (review): the two-axis review found the central interaction broken and a requirement simply missing.
+
+  **The gesture composition was wrong.** `.onTapGesture` *is* a gesture modifier, so chaining a single-tap and a double-tap does not compose — the outermost claims every click and the double-click never fires. A comment in the code claimed it followed `GridFitOverlay`'s hard-won "one `.gesture()` call" lesson while doing the opposite. Chains could only ever have been discarded with Esc, never committed. Now one `.gesture()` with an explicit `exclusively` chain, and `SpatialTapGesture` rather than `TapGesture` because placing the final vertex needs a location that `.onTapGesture(count: 2)` does not supply.
+
+  **Undo was specified and not built.** `WallEdits` now groups undo by action, so a chain traced with three clicks takes one press to remove, not two. It is mode-local by construction and cannot unwind past the Walls the mode opened with — that is Cancel's job, and Cancel now also flushes the fog file, since the autosave debounce may already have written Walls the DM then cancelled.
+
+  Also fixed: `WallSnap` took fabricated zero-length Walls as snap candidates and now takes points; only the chain's *first* vertex is a magnet, not every vertex, which would have swallowed vertices when tracing a corridor narrower than the snap tolerance; Walls are not selectable mid-chain, where a click near one means "join here"; and a duplicate delete-key registration is gone.
+
+  One deliberate deviation, now documented in the code: the issue says "Esc to end the chain", but Esc discards it. Esc is `.cancelAction` in both other modes, and an Esc that silently committed a half-traced chain would be the only destructive Escape in the app. Double-click commits.

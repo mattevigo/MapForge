@@ -77,7 +77,7 @@ final class WallDrawingUITests: XCTestCase {
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.7)).click()
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)).click()
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)).doubleClick()
-        XCTAssertTrue(app.staticTexts["1 Walls"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["1 Wall"].waitForExistence(timeout: 2))
 
         app.buttons["Cancel"].click()
         app.buttons["Draw Walls…"].click()

@@ -16,8 +16,9 @@ struct ControlView: View {
     /// fit-to-window on entering the mode.
     @State private var wallTransform: PreviewTransform?
     /// Walls as they were on entering the mode, so Cancel restores them wholesale —
-    /// the same revert Grid Fit does with `squaresWideBeforeFit`.
-    @State private var wallsBeforeEditing: [Wall] = []
+    /// the same revert Grid Fit does with `squaresWideBeforeFit`. `WallEdits` also
+    /// carries the undo history, which is mode-local and cannot unwind past this.
+    @State private var wallEdits = WallEdits(walls: [])
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -161,10 +162,8 @@ struct ControlView: View {
                                         containerSize: geo.size,
                                         walls: appState.fog.walls,
                                         gridPixels: gridPixels,
-                                        onCommit: { appState.fog.walls.append(contentsOf: $0) },
-                                        onDelete: { wall in
-                                            appState.fog.walls.removeAll { $0.id == wall.id }
-                                        },
+                                        onCommit: { wallEdits.add($0); applyWallEdits() },
+                                        onDelete: { wallEdits.delete($0); applyWallEdits() },
                                         onTransform: { wallTransform = $0 })
                         }
                         if mode == .viewport, let map = appState.mapScale, let viewport = resolvedViewport {
@@ -216,8 +215,11 @@ struct ControlView: View {
             Button("Done") { mode = .normal }
                 .keyboardShortcut(.defaultAction)
         case .walls:
-            Text("\(appState.fog.walls.count) Walls")
+            Text(appState.fog.walls.count == 1 ? "1 Wall" : "\(appState.fog.walls.count) Walls")
                 .foregroundStyle(.secondary)
+            Button("Undo") { wallEdits.undo(); applyWallEdits() }
+                .disabled(!wallEdits.canUndo)
+                .keyboardShortcut("z", modifiers: .command)
             Button("Cancel") { cancelWallEditing() }
             Button("Done") { mode = .normal }
                 .keyboardShortcut(.defaultAction)
@@ -225,16 +227,27 @@ struct ControlView: View {
     }
 
     private func startWallEditing() {
-        wallsBeforeEditing = appState.fog.walls
+        wallEdits = WallEdits(walls: appState.fog.walls)
         // Open on the whole Map, as Grid Fit does: the zoomed-out view orients, and zoom
         // is opt-in for the precision moment.
         wallTransform = nil
         mode = .walls
     }
 
+    /// Discard the whole session, including anything the autosave debounce already wrote:
+    /// restoring the Walls re-triggers `fog`'s didSet, and the explicit flush makes the
+    /// file correct now rather than half a second from now, so a quit in between cannot
+    /// persist Walls the DM cancelled.
     private func cancelWallEditing() {
-        appState.fog.walls = wallsBeforeEditing
+        appState.fog.walls = wallEdits.originalWalls
+        appState.flushPendingFogWrites()
         mode = .normal
+    }
+
+    /// Push the edited Walls onto the Map. Called after every action so the Player
+    /// Display and the fog file stay in step with what the DM sees.
+    private func applyWallEdits() {
+        appState.fog.walls = wallEdits.walls
     }
 
     /// One Grid square in image pixels, or nil when no Grid has been declared — snapping

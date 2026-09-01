@@ -80,7 +80,82 @@ final class WallChainTests: XCTestCase {
         XCTAssertEqual(chain.lastVertex, MapPoint(x: 30, y: 40))
     }
 
+    // MARK: Undo
+
+    func testUndoRemovesTheLastCommittedChain() {
+        // The issue requires undo over drawing and deletion. A DM who traces a wrong
+        // room must not have to select and delete each span of it by hand.
+        var history = WallEdits(walls: [])
+        history.add([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 100, y: 0))])
+        history.add([Wall(from: MapPoint(x: 0, y: 50), to: MapPoint(x: 100, y: 50))])
+        XCTAssertEqual(history.walls.count, 2)
+
+        history.undo()
+        XCTAssertEqual(history.walls.count, 1)
+        XCTAssertEqual(history.walls[0].from, MapPoint(x: 0, y: 0))
+    }
+
+    func testUndoRestoresADeletedWall() {
+        // Deletion is the easier half to get wrong: undo has to put the Wall back, not
+        // merely stop deleting further ones.
+        let wall = Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 100, y: 0))
+        var history = WallEdits(walls: [wall])
+        history.delete(wall)
+        XCTAssertTrue(history.walls.isEmpty)
+
+        history.undo()
+        XCTAssertEqual(history.walls, [wall])
+    }
+
+    func testUndoUnwindsAWholeChainAtOnce() {
+        // A chain is one action to the DM — three clicks tracing a corner — so undoing
+        // it must not take two presses for its two spans.
+        var history = WallEdits(walls: [])
+        history.add([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 100, y: 0)),
+                     Wall(from: MapPoint(x: 100, y: 0), to: MapPoint(x: 100, y: 100))])
+        history.undo()
+        XCTAssertTrue(history.walls.isEmpty, "one chain took more than one undo")
+    }
+
+    func testUndoWithNothingToUndoDoesNothing() {
+        var history = WallEdits(walls: [Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 1, y: 1))])
+        history.undo()
+        XCTAssertEqual(history.walls.count, 1, "undo ate a Wall it never created")
+    }
+
+    func testUndoStopsAtTheStateTheModeOpenedIn() {
+        // Undo is mode-local: it must not reach back past the Walls that were already
+        // on the Map when the DM entered the mode. Cancel is the tool for that.
+        let existing = Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 1, y: 1))
+        var history = WallEdits(walls: [existing])
+        history.add([Wall(from: MapPoint(x: 5, y: 5), to: MapPoint(x: 6, y: 6))])
+        history.undo()
+        history.undo()
+        XCTAssertEqual(history.walls, [existing])
+    }
+
     // MARK: Acceptance
+
+    func testAChainJoinsOntoAnExistingWallsEndpoint() {
+        // The half of the acceptance sentence the room test does not reach: "on existing
+        // endpoints when starting a chain where another ends". No Grid at all here, so
+        // only endpoint snapping can close the join.
+        let existing = [Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 100, y: 0))]
+        let sloppyStart = MapPoint(x: 104, y: 3)
+
+        let snapped = WallSnap.snap(sloppyStart, to: WallSnap.endpoints(of: existing),
+                                    gridPixels: nil, tolerance: 12)
+        XCTAssertEqual(snapped.target, .endpoint)
+
+        var chain = WallChain()
+        chain.place(snapped.point)
+        chain.place(MapPoint(x: 100, y: 100))
+        let walls = existing + chain.finish()
+
+        // The join is watertight if a Light on one side of the corner cannot round it
+        // through a gap: the two Walls share an exact endpoint.
+        XCTAssertEqual(walls[0].to, walls[1].from, "the chain did not start where the Wall ended")
+    }
 
     func testATracedRoomIsWatertight() {
         // Issue 02's acceptance criterion, checked the way it asks to be checked: through
@@ -95,7 +170,7 @@ final class WallChainTests: XCTestCase {
         var chain = WallChain()
         for click in sloppyClicks {
             // Exactly what the UI does per click: snap, then place.
-            chain.place(WallSnap.snap(click, to: chain.vertices.map { Wall(from: $0, to: $0) },
+            chain.place(WallSnap.snap(click, to: chain.vertices.first.map { [$0] } ?? [],
                                       gridPixels: grid, tolerance: 12).point)
         }
         let walls = chain.finish()

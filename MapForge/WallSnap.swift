@@ -24,9 +24,9 @@ enum WallSnap {
     /// instead of on the Wall beside it still leaves the gap endpoint snapping exists to
     /// close. `gridPixels` is nil when no Grid has been declared — snapping to a Grid that
     /// does not exist would scatter vertices.
-    static func snap(_ point: MapPoint, to walls: [Wall], gridPixels: CGFloat?,
+    static func snap(_ point: MapPoint, to candidates: [MapPoint], gridPixels: CGFloat?,
                      tolerance: CGFloat) -> Result {
-        if let endpoint = nearestEndpoint(to: point, in: walls, within: tolerance) {
+        if let endpoint = nearest(to: point, among: candidates, within: tolerance) {
             return Result(point: endpoint, target: .endpoint)
         }
         if let grid = gridPixels, grid > 0 {
@@ -39,17 +39,20 @@ enum WallSnap {
         return Result(point: point, target: .none)
     }
 
-    private static func nearestEndpoint(to point: MapPoint, in walls: [Wall],
-                                        within tolerance: CGFloat) -> MapPoint? {
+    /// Every Wall endpoint, as snap candidates.
+    static func endpoints(of walls: [Wall]) -> [MapPoint] {
+        walls.flatMap { [$0.from, $0.to] }
+    }
+
+    private static func nearest(to point: MapPoint, among candidates: [MapPoint],
+                                within tolerance: CGFloat) -> MapPoint? {
         var best: MapPoint?
         var bestDistance = tolerance
-        for wall in walls {
-            for endpoint in [wall.from, wall.to] {
-                let d = distance(point, endpoint)
-                if d <= bestDistance {
-                    bestDistance = d
-                    best = endpoint
-                }
+        for candidate in candidates {
+            let d = distance(point, candidate)
+            if d <= bestDistance {
+                bestDistance = d
+                best = candidate
             }
         }
         return best

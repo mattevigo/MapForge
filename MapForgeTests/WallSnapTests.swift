@@ -11,7 +11,7 @@ final class WallSnapTests: XCTestCase {
         // The reason endpoint snapping exists: a chain that starts a hair off another
         // Wall's end leaves a hairline gap, and Light pours through it.
         let existing = [Wall(from: MapPoint(x: 100, y: 100), to: MapPoint(x: 200, y: 100))]
-        let snapped = WallSnap.snap(MapPoint(x: 203, y: 104), to: existing,
+        let snapped = WallSnap.snap(MapPoint(x: 203, y: 104), to: WallSnap.endpoints(of: existing),
                                     gridPixels: nil, tolerance: tolerance)
         XCTAssertEqual(snapped.point, MapPoint(x: 200, y: 100))
         XCTAssertEqual(snapped.target, .endpoint)
@@ -21,7 +21,7 @@ final class WallSnapTests: XCTestCase {
         // Priority is stated in the issue: endpoints first, then the Grid. A vertex that
         // lands on the Grid instead of on the Wall next to it still leaves a gap.
         let existing = [Wall(from: MapPoint(x: 103, y: 103), to: MapPoint(x: 200, y: 103))]
-        let snapped = WallSnap.snap(MapPoint(x: 101, y: 101), to: existing,
+        let snapped = WallSnap.snap(MapPoint(x: 101, y: 101), to: WallSnap.endpoints(of: existing),
                                     gridPixels: 50, tolerance: tolerance)
         XCTAssertEqual(snapped.point, MapPoint(x: 103, y: 103))
         XCTAssertEqual(snapped.target, .endpoint)
@@ -29,7 +29,7 @@ final class WallSnapTests: XCTestCase {
 
     func testSnapsToTheNearestOfSeveralEndpoints() {
         let existing = [Wall(from: MapPoint(x: 100, y: 100), to: MapPoint(x: 108, y: 100))]
-        let snapped = WallSnap.snap(MapPoint(x: 107, y: 101), to: existing,
+        let snapped = WallSnap.snap(MapPoint(x: 107, y: 101), to: WallSnap.endpoints(of: existing),
                                     gridPixels: nil, tolerance: tolerance)
         XCTAssertEqual(snapped.point, MapPoint(x: 108, y: 100))
     }
@@ -38,7 +38,7 @@ final class WallSnapTests: XCTestCase {
         // Snapping must not reach across the map — a vertex the DM placed deliberately
         // in open space has to stay where they put it.
         let existing = [Wall(from: MapPoint(x: 100, y: 100), to: MapPoint(x: 200, y: 100))]
-        let snapped = WallSnap.snap(MapPoint(x: 400, y: 400), to: existing,
+        let snapped = WallSnap.snap(MapPoint(x: 400, y: 400), to: WallSnap.endpoints(of: existing),
                                     gridPixels: nil, tolerance: tolerance)
         XCTAssertEqual(snapped.point, MapPoint(x: 400, y: 400))
         XCTAssertEqual(snapped.target, .none)
