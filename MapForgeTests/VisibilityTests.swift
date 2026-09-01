@@ -116,7 +116,11 @@ final class VisibilityTests: XCTestCase {
         let light = Light(at: MapPoint(x: 0, y: 0), brightSquares: 10, dimSquares: 10)
         let region = Visibility.compute(walls: [wall], lights: [light],
                                         pixelsPerSquare: 10).first!
-        XCTAssertFalse(region.bright.isEmpty, "a Light on a Wall produced no region at all")
+        // Asserting the polygon is non-degenerate is far too weak: a zero-area shape
+        // collapsed onto the Wall's own line has plenty of vertices and lights nothing.
+        // Name the actual requirement — the side the Light is on is lit.
+        XCTAssertTrue(region.bright.contains(MapPoint(x: 0, y: -30)),
+                      "the side the Light is on went dark")
     }
 
     func testALightExactlyOnAWallEndpointTerminates() {
@@ -190,6 +194,75 @@ final class VisibilityTests: XCTestCase {
                         brightSquares: 3)
         let regions = Visibility.compute(walls: [], lights: [pawn.light], pixelsPerSquare: 10)
         XCTAssertEqual(Visibility.level(at: MapPoint(x: 20, y: 0), in: regions), .bright)
+    }
+
+    func testALightOnAWallStillBlocksTheFarSide() {
+        // The other half of the case above: not blinding the Light where it stands must
+        // not turn a Wall through it into no Wall at all.
+        let wall = Wall(from: MapPoint(x: -50, y: 0), to: MapPoint(x: 50, y: 0))
+        let light = Light(at: MapPoint(x: 0, y: 20), brightSquares: 10, dimSquares: 10)
+        let region = Visibility.compute(walls: [wall], lights: [light],
+                                        pixelsPerSquare: 10).first!
+
+        XCTAssertTrue(region.bright.contains(MapPoint(x: 0, y: 40)), "dark on the Light's side")
+        XCTAssertFalse(region.bright.contains(MapPoint(x: 0, y: -20)), "lit through the Wall")
+    }
+
+    func testBrightNeverReachesWhereDimDoesNot() {
+        // Bright and dim are swept independently, with their own radius-culled Wall sets,
+        // so nothing structurally guarantees one nests inside the other. Rendering assumes
+        // it does: issue 06 draws dim then bright over it.
+        let walls = [Wall(from: MapPoint(x: -60, y: 40), to: MapPoint(x: 60, y: 40)),
+                     Wall(from: MapPoint(x: 30, y: -60), to: MapPoint(x: 30, y: 60))]
+        let light = Light(at: MapPoint(x: 0, y: 0), brightSquares: 5, dimSquares: 10)
+        let region = Visibility.compute(walls: walls, lights: [light],
+                                        pixelsPerSquare: 10).first!
+
+        for angle in stride(from: 0.0, to: 2 * .pi, by: .pi / 32) {
+            for radius in stride(from: 5.0, through: 45.0, by: 5.0) {
+                let point = MapPoint(x: cos(angle) * radius, y: sin(angle) * radius)
+                if region.bright.contains(point) {
+                    XCTAssertTrue(region.dim.contains(point),
+                                  "bright but not dim at angle \(angle), radius \(radius)")
+                }
+            }
+        }
+    }
+
+    func testTwoLightsMeetAcrossAWallWithNoSeam() {
+        // The half of the case list the precedence test cannot reach: with a Wall in play
+        // the two regions are real polygons, and the point where they meet must be lit by
+        // one or the other — a gap there would draw as a dark seam between two torches.
+        let wall = Wall(from: MapPoint(x: -100, y: 40), to: MapPoint(x: 100, y: 40))
+        let a = Light(at: MapPoint(x: -30, y: 0), brightSquares: 10, dimSquares: 10)
+        let b = Light(at: MapPoint(x: 30, y: 0), brightSquares: 10, dimSquares: 10)
+        let regions = Visibility.compute(walls: [wall], lights: [a, b], pixelsPerSquare: 10)
+
+        // Sweep the midline between them, in front of the Wall: every point is within
+        // reach of both, so none may be unlit.
+        for y in stride(from: -30.0, through: 30.0, by: 5.0) {
+            XCTAssertNotEqual(Visibility.level(at: MapPoint(x: 0, y: y), in: regions), .unlit,
+                              "seam between two Lights at y=\(y)")
+        }
+    }
+
+    // MARK: Scale
+
+    func testShadowsAreExactOnALargeMap() {
+        // The vertex nudge is a fixed angle, so its effect in pixels grows with distance.
+        // On a 6000 px map — a large VTT battle map — a corner 3000 px from the Light must
+        // still block cleanly rather than leak or over-block.
+        let corner = MapPoint(x: 3000, y: 3000)
+        let walls = [Wall(from: MapPoint(x: 3000, y: -3000), to: corner),
+                     Wall(from: corner, to: MapPoint(x: 6000, y: 3000))]
+        let light = Light(at: MapPoint(x: 0, y: 0), brightSquares: 200, dimSquares: 200)
+        let region = Visibility.compute(walls: walls, lights: [light],
+                                        pixelsPerSquare: 40).first!
+
+        XCTAssertTrue(region.bright.contains(MapPoint(x: 2000, y: 2000)),
+                      "dark in front of the corner at map scale")
+        XCTAssertFalse(region.bright.contains(MapPoint(x: 4500, y: 4500)),
+                       "leaked through the corner at map scale")
     }
 
     // MARK: Acceptance
