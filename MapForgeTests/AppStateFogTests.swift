@@ -85,4 +85,51 @@ final class AppStateFogTests: XCTestCase {
     private func isolatedPreferences() -> DisplayPreferences {
         DisplayPreferences(defaults: UserDefaults(suiteName: "AppStateFogTests.\(UUID().uuidString)")!)
     }
+
+    // MARK: Grid declaration
+
+    func testANewMapHasNotDeclaredItsGrid() throws {
+        // squaresWide defaults to 30 and carries over between Maps, so "has a value" is
+        // not "was declared". Light radii are in Grid squares, and treating the default
+        // as declared renders every Light at a plausible-looking wrong size.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        XCTAssertFalse(appState.hasDeclaredGrid)
+    }
+
+    func testSettingTheGridDeclaresIt() throws {
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        appState.squaresWide = 24
+        XCTAssertTrue(appState.hasDeclaredGrid)
+    }
+
+    func testSwitchingMapsClearsTheDeclaration() throws {
+        // The next Map inherits the number but not the claim that it is right.
+        let first = try makeMap(named: "dungeon")
+        let second = try makeMap(named: "tavern")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: first.image, at: first.url)
+        appState.squaresWide = 24
+        appState.loadMap(image: second.image, at: second.url)
+        XCTAssertFalse(appState.hasDeclaredGrid, "the new Map inherited a Grid declaration")
+    }
+
+    // MARK: Live light toggling
+
+    func testSettingALightStateIsIdempotent() throws {
+        // The live row binds a Toggle straight to this. SwiftUI writes the same value
+        // twice on a state resync, and a toggle-based setter would flip it back.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let torch = Light(at: MapPoint(x: 10, y: 10), brightSquares: 4)
+        appState.fog.lights = [torch]
+
+        appState.setLight(id: torch.id, isOn: false)
+        appState.setLight(id: torch.id, isOn: false)
+        XCTAssertFalse(appState.fog.lights[0].isOn, "the repeated write flipped it back on")
+    }
 }

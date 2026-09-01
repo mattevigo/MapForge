@@ -64,9 +64,7 @@ struct FogEdits {
     /// around under the DM's cursor as they drag it.
     mutating func moveLight(id: Light.ID, to point: MapPoint) {
         guard let index = document.lights.firstIndex(where: { $0.id == id }) else { return }
-        // Outside a drag each move is its own step; inside one, `beginLightDrag` already
-        // took the single snapshot the whole drag will undo to.
-        if dragOrigin == nil { record() }
+        record()
         document.lights[index].at = point
     }
 
@@ -91,22 +89,28 @@ struct FogEdits {
 
     /// A drag emits a position per frame; without this each would be an undo step, and
     /// walking back one drag would take dozens of presses.
-    mutating func beginLightDrag(id: Light.ID) {
+    mutating func beginLightDrag() {
         guard dragOrigin == nil else { return }
         dragOrigin = document
         history.append(document)
     }
 
     mutating func endLightDrag() {
-        // A drag that never moved anything leaves a history entry identical to the state
-        // it was pushed from; drop it rather than making the DM press undo for a no-op.
-        if let origin = dragOrigin, origin == document, !history.isEmpty {
+        // A drag that changed nothing leaves a history entry identical to the state it was
+        // pushed from; drop it rather than making the DM press undo for a no-op. Selecting
+        // a Light is exactly this gesture.
+        if let origin = dragOrigin, origin == document, history.last == origin {
             history.removeLast()
         }
         dragOrigin = nil
     }
 
+    /// Push one undo step — unless a drag is in flight, where `beginLightDrag` already
+    /// pushed the single entry the whole drag undoes to. Every mutation routes through
+    /// here, so an edit that lands mid-drag (a delete on ⌫, say) cannot push a second
+    /// entry and make one action take two presses to undo.
     private mutating func record() {
+        guard dragOrigin == nil else { return }
         history.append(document)
     }
 }

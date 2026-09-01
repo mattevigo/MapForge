@@ -35,3 +35,15 @@ Acceptance: placing a torch (bright 20 ft / dim 40 ft) on a Map with a declared 
   Acceptance is tested through the engine: a 4-square torch lights exactly 4 squares bright and 8 dim, and switching it off empties the region. The "no perceptible delay" half is `VisibilityCache` doing the work — measured at ~14 ms for a far larger scene in issue 05.
 
   Not verified: the four UI tests still could not run — `MapForgeUITests` hangs in this environment, on `develop` too.
+
+- 2026-09-01 (review): the reviews found the scope section's headline requirement unmet and several real defects.
+
+  **The no-Grid degradation was unreachable.** The scope section requires a Light to "degrade visibly rather than silently rendering at a wrong size" when the Grid is undeclared, and the warning existed — but `squaresWide` defaults to 30 and its stepper clamps at 1, so the nil case it was gated on could never occur. Exactly the silent failure the line forbids. `AppState.hasDeclaredGrid` now distinguishes a declared Grid from the default, it clears when a Map loads (the number carries over; the claim that it is right does not), and the warning sits beside the Lights rather than inside an inspector a DM might never open.
+
+  **Undo could double-push.** A delete landing mid-drag recorded a second history entry, so one action took two presses to undo. `record()` is now the single guarded chokepoint. A dangling drag no longer swallows every later edit's undo either.
+
+  **A select-click silently moved a Light.** `minimumDistance: 0` means `.onChanged` fires on mouse-down, and it wrote a *snapped* position — so merely clicking an unsnapped Light dragged it onto the Grid. A drag with zero translation now does nothing.
+
+  **The live toggle was reverted by the next fog edit**, since it wrote to `appState.fog` while the mode overwrote that wholesale from the edit buffer; in the mode it now routes through `FogEdits`. And `AppState.setLight` takes a value rather than toggling, because a SwiftUI binding writes the same value twice on a state resync.
+
+  Two process failures worth recording. Five wall-undo tests were deleted when `WallEdits` became `FogEdits` and only two were replaced — chain-grouped undo and the mode-local floor, both added by issue 02's own review, were left untested; all five are restored here. And the count in the comment above (24) was wrong.

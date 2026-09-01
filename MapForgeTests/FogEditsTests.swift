@@ -95,7 +95,7 @@ final class FogEditsTests: XCTestCase {
         // Dragging a Light emits a position per frame. Each becoming an undo step would
         // take dozens of presses to walk back one drag.
         var edits = FogEdits(document: FogDocument(lights: [torch]))
-        edits.beginLightDrag(id: torch.id)
+        edits.beginLightDrag()
         for x in stride(from: 60.0, through: 200.0, by: 10.0) {
             edits.moveLight(id: torch.id, to: MapPoint(x: x, y: 50))
         }
@@ -109,9 +109,93 @@ final class FogEditsTests: XCTestCase {
         // Selecting a Light is a mousedown-mouseup that begins and ends a drag without
         // moving anything. It must not cost the DM an undo press.
         var edits = FogEdits(document: FogDocument(lights: [torch]))
-        edits.beginLightDrag(id: torch.id)
+        edits.beginLightDrag()
         edits.endLightDrag()
         XCTAssertFalse(edits.canUndo, "a no-op drag entered the undo history")
+    }
+
+    func testDeletingDuringADragIsStillOneUndoStep() {
+        // Not a gesture a DM performs deliberately, but the state machine must not corrupt
+        // its history if it happens: ⌫ while a drag is in flight.
+        var edits = FogEdits(document: FogDocument(lights: [torch]))
+        edits.beginLightDrag()
+        edits.moveLight(id: torch.id, to: MapPoint(x: 200, y: 200))
+        edits.deleteLight(id: torch.id)
+        edits.endLightDrag()
+
+        // ONE press must restore it, not two.
+        edits.undo()
+        XCTAssertFalse(edits.document.lights.isEmpty, "undo did not restore the Light")
+        XCTAssertFalse(edits.canUndo, "the delete-during-drag left a second history entry")
+    }
+
+    func testANestedDragStartIsIgnored() {
+        // Two begins without an end between them must not push two history entries, or
+        // the drag would take two presses to undo.
+        var edits = FogEdits(document: FogDocument(lights: [torch]))
+        edits.beginLightDrag()
+        edits.moveLight(id: torch.id, to: MapPoint(x: 100, y: 100))
+        edits.beginLightDrag()
+        edits.moveLight(id: torch.id, to: MapPoint(x: 200, y: 200))
+        edits.endLightDrag()
+
+        edits.undo()
+        XCTAssertEqual(edits.document.lights[0].at, torch.at, "the drag took more than one undo")
+    }
+
+    func testADanglingDragDoesNotSwallowLaterUndoSteps() {
+        // If a drag is never ended — the mode torn down mid-gesture — every later edit
+        // would silently skip recording, and undo would stop working for the session.
+        var edits = FogEdits(document: FogDocument(lights: [torch]))
+        edits.beginLightDrag()
+        edits.moveLight(id: torch.id, to: MapPoint(x: 99, y: 99))
+        edits.endLightDrag()
+
+        edits.addWalls([wall])
+        edits.undo()
+        XCTAssertTrue(edits.document.walls.isEmpty, "a later edit was not undoable")
+    }
+
+    // MARK: Wall undo — restored from WallChainTests when WallEdits became FogEdits
+
+    func testUndoUnwindsAWholeChainAtOnce() {
+        // A chain is one action to the DM — three clicks tracing a corner — so undoing it
+        // must not take two presses for its two spans.
+        var edits = FogEdits(document: FogDocument())
+        edits.addWalls([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 100, y: 0)),
+                        Wall(from: MapPoint(x: 100, y: 0), to: MapPoint(x: 100, y: 100))])
+        edits.undo()
+        XCTAssertTrue(edits.document.walls.isEmpty, "one chain took more than one undo")
+    }
+
+    func testUndoRestoresADeletedWall() {
+        var edits = FogEdits(document: FogDocument(walls: [wall]))
+        edits.deleteWall(id: wall.id)
+        XCTAssertTrue(edits.document.walls.isEmpty)
+        edits.undo()
+        XCTAssertEqual(edits.document.walls, [wall])
+    }
+
+    func testUndoWithNothingToUndoDoesNothing() {
+        var edits = FogEdits(document: FogDocument(walls: [wall]))
+        edits.undo()
+        XCTAssertEqual(edits.document.walls, [wall], "undo ate a Wall it never created")
+    }
+
+    func testUndoStopsAtTheStateTheModeOpenedIn() {
+        // Undo is mode-local: it must not reach back past the fog that was already on the
+        // Map when the DM entered the mode. Cancel is the tool for that.
+        var edits = FogEdits(document: FogDocument(walls: [wall]))
+        edits.addWalls([Wall(from: MapPoint(x: 5, y: 5), to: MapPoint(x: 6, y: 6))])
+        edits.undo()
+        edits.undo()
+        XCTAssertEqual(edits.document.walls, [wall])
+    }
+
+    func testAnEmptyChainIsNotAnUndoStep() {
+        var edits = FogEdits(document: FogDocument())
+        edits.addWalls([])
+        XCTAssertFalse(edits.canUndo)
     }
 
     // MARK: Acceptance

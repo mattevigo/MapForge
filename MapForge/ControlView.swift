@@ -12,9 +12,9 @@ struct ControlView: View {
     /// Grid Fit's preview zoom/pan. Mode-local view state, not part of the Map — it is
     /// reset to fit-to-window on entering the mode.
     @State private var gridFitTransform: PreviewTransform?
-    /// Wall drawing's preview zoom/pan. Mode-local like Grid Fit's, and reset to
+    /// The fog mode's preview zoom/pan. Mode-local like Grid Fit's, and reset to
     /// fit-to-window on entering the mode.
-    @State private var wallTransform: PreviewTransform?
+    @State private var fogTransform: PreviewTransform?
     /// The fog as it was on entering the mode, so Cancel restores it wholesale — the
     /// same revert Grid Fit does with `squaresWideBeforeFit`. `FogEdits` also carries the
     /// undo history, which is mode-local and cannot unwind past this.
@@ -68,6 +68,8 @@ struct ControlView: View {
             playerDisplayStatus
 
             fogLoadWarning
+
+            undeclaredGridWarning
 
             lightToggles
 
@@ -147,7 +149,7 @@ struct ControlView: View {
                     // Only Grid Fit carries a zoom; every other use of this branch is the
                     // plain aspect fit, which is that transform's floor.
                     let modeTransform = mode == .gridFit ? gridFitTransform
-                                      : mode == .fog ? wallTransform : nil
+                                      : mode == .fog ? fogTransform : nil
                     let transform = modeTransform
                         ?? PreviewTransform.fitted(imagePixelSize: image.pixelSize, container: geo.size)
                     let fitted = transform.imageRect
@@ -174,7 +176,7 @@ struct ControlView: View {
                                        edits: $fogEdits,
                                        selectedLight: $selectedLight,
                                        onChange: { applyFogEdits() },
-                                       onTransform: { wallTransform = $0 })
+                                       onTransform: { fogTransform = $0 })
                         }
                         if mode == .viewport, let map = appState.mapScale, let viewport = resolvedViewport {
                             ViewportOverlay(fittedRect: fitted,
@@ -246,7 +248,7 @@ struct ControlView: View {
         fogEdits = FogEdits(document: appState.fog)
         // Open on the whole Map, as Grid Fit does: the zoomed-out view orients, and zoom
         // is opt-in for the precision moment.
-        wallTransform = nil
+        fogTransform = nil
         mode = .fog
     }
 
@@ -275,7 +277,8 @@ struct ControlView: View {
     /// One Grid square in image pixels, or nil when no Grid has been declared — snapping
     /// to a Grid that does not exist would scatter vertices.
     private var gridPixels: CGFloat? {
-        guard let image = appState.mapImage, appState.squaresWide > 0 else { return nil }
+        guard appState.hasDeclaredGrid,
+              let image = appState.mapImage, appState.squaresWide > 0 else { return nil }
         return GridFit.squareSide(imageWidth: image.pixelSize.width,
                                   squaresWide: appState.squaresWide)
     }
@@ -323,6 +326,37 @@ struct ControlView: View {
 
     // MARK: Fog
 
+    /// Set a Light's state, from the live row. In the fog mode the write has to go
+    /// through `FogEdits`, or the next edit would overwrite `appState.fog` wholesale from
+    /// the edit buffer and silently revert the toggle.
+    private func setLight(id: Light.ID, isOn: Bool) {
+        if mode == .fog {
+            if fogEdits.document.lights.first(where: { $0.id == id })?.isOn != isOn {
+                fogEdits.toggleLight(id: id)
+                applyFogEdits()
+            }
+        } else {
+            appState.setLight(id: id, isOn: isOn)
+        }
+    }
+
+    /// Light radii are in Grid squares, so an undeclared Grid renders every Light at a
+    /// plausible-looking wrong size. Shown beside the Lights themselves rather than
+    /// buried in the inspector: a DM who relaunches and never selects a Light would
+    /// otherwise get no signal at all, which is the silent failure issue 03 forbids.
+    @ViewBuilder
+    private var undeclaredGridWarning: some View {
+        if !appState.fog.lights.isEmpty, !appState.hasDeclaredGrid {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                Text("This Map's Grid has not been declared, so Light radii have no real size — run Fit Grid, or set the squares-wide value.")
+                    .font(.caption)
+            }
+            .padding(8)
+            .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+        }
+    }
+
     /// The live panel: on/off for every Light, always visible, never behind a mode.
     /// Toggling is the one fog action a DM performs mid-session with players watching, so
     /// it must be one click with nothing to open first.
@@ -335,7 +369,7 @@ struct ControlView: View {
                     ForEach(Array(appState.fog.lights.enumerated()), id: \.element.id) { index, light in
                         Toggle(isOn: Binding(
                             get: { light.isOn },
-                            set: { _ in appState.toggleLight(id: light.id) }
+                            set: { setLight(id: light.id, isOn: $0) }
                         )) {
                             Text("\(index + 1)")
                         }

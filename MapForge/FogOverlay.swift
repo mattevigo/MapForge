@@ -121,10 +121,12 @@ struct FogOverlay: View {
                     // A 2.5 pt line is far too thin to click. Widen the hit area only.
                     path.move(to: a); path.addLine(to: b)
                 }.strokedPath(StrokeStyle(lineWidth: 12)))
-                // Only selectable with the Wall tool and between chains: mid-trace, a
-                // click near an existing Wall means "place a vertex here", which is
-                // exactly where a DM joins onto one.
-                .onTapGesture { selectedWall = wall.id; selectedLight = nil }
+                // A child gesture beats an ancestor's, so this would eat the base layer's
+                // double-click — and "close the room by finishing on an existing Wall" is
+                // exactly the motion that lands there. Hit-testing is therefore off during
+                // a chain, and off for the very first click too: selection is what the DM
+                // wants between chains, placement is what they want during one.
+                .gesture(TapGesture().onEnded { selectedWall = wall.id; selectedLight = nil })
                 .allowsHitTesting(tool == .walls && !chain.isDrawing)
         }
     }
@@ -157,9 +159,14 @@ struct FogOverlay: View {
                     lightDragStart = light.at
                     selectedLight = light.id
                     selectedWall = nil
-                    edits.beginLightDrag(id: light.id)
+                    edits.beginLightDrag()
                 }
                 guard let start = lightDragStart else { return }
+                // minimumDistance is 0 so a plain click selects, which means .onChanged
+                // fires on mouse-down with zero translation. Writing a snapped position
+                // there would silently move an unsnapped Light onto the Grid just for
+                // being clicked — so a drag that has not moved does nothing.
+                guard value.translation != .zero else { return }
                 let moved = MapPoint(x: start.x + value.translation.width / transform.scale,
                                      y: start.y + value.translation.height / transform.scale)
                 edits.moveLight(id: light.id, to: snapped(moved))
