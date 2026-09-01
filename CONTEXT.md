@@ -45,7 +45,7 @@ The region of a Map currently visible on the Player Display. At True Scale most 
 _Avoid_: camera, crop, window
 
 **Sidecar**:
-The per-Map metadata file (`<map>.mapforge.json`) stored next to the image, holding its Grid, rotation, and scale settings.
+The per-Map metadata file stored next to the image. Fog — Walls, Lights and Pawns — lives in `<map>.fog.json`; the Grid, rotation and scale settings it was also meant to hold are not persisted at all yet.
 _Avoid_: config file, manifest
 
 **Blackout**:

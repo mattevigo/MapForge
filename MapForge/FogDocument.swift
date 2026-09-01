@@ -16,10 +16,6 @@ struct Wall: Codable, Equatable, Identifiable {
         self.from = from
         self.to = to
     }
-
-    init(id: UUID = UUID(), from: CGPoint, to: CGPoint) {
-        self.init(id: id, from: MapPoint(from), to: MapPoint(to))
-    }
 }
 
 /// A point on the Map in image pixels.
@@ -30,18 +26,37 @@ struct Wall: Codable, Equatable, Identifiable {
 /// while Light radii are in Grid squares, and quietly confusing the two misplaces
 /// everything on the Map.
 struct MapPoint: Codable, Equatable {
-    var imagePixels: CGPoint
-
-    init(_ imagePixels: CGPoint) {
-        self.imagePixels = imagePixels
-    }
+    var x: CGFloat
+    var y: CGFloat
 
     init(x: CGFloat, y: CGFloat) {
-        self.init(CGPoint(x: x, y: y))
+        self.x = x
+        self.y = y
     }
 
-    var x: CGFloat { imagePixels.x }
-    var y: CGFloat { imagePixels.y }
+    init(_ point: CGPoint) {
+        self.init(x: point.x, y: point.y)
+    }
+
+    var cgPoint: CGPoint { CGPoint(x: x, y: y) }
+
+    /// Nests the pair under its unit, so the file reads
+    /// `"from": {"imagePixels": {"x": 100, "y": 200}}` — the unit named *and* the
+    /// components named. Encoding a bare CGPoint would give `[100, 200]`, leaving a
+    /// reader to guess both.
+    private enum CodingKeys: String, CodingKey { case imagePixels }
+    private struct Components: Codable { var x: CGFloat; var y: CGFloat }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let components = try container.decode(Components.self, forKey: .imagePixels)
+        self.init(x: components.x, y: components.y)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(Components(x: x, y: y), forKey: .imagePixels)
+    }
 }
 
 /// The fog data authored on one Map, as persisted in `<map>.fog.json`.
@@ -88,12 +103,6 @@ struct Light: Codable, Equatable, Identifiable {
         self.dimSquares = dimSquares ?? brightSquares * 2
         self.isOn = isOn
     }
-
-    init(id: UUID = UUID(), at: CGPoint, brightSquares: CGFloat,
-         dimSquares: CGFloat? = nil, isOn: Bool = true) {
-        self.init(id: id, at: MapPoint(at), brightSquares: brightSquares,
-                  dimSquares: dimSquares, isOn: isOn)
-    }
 }
 
 /// A Pawn: a token with a label and a colour, drawn for players whether or not the Fog
@@ -117,7 +126,7 @@ struct Pawn: Codable, Equatable, Identifiable {
         set { light.at = newValue }
     }
 
-    init(id: UUID = UUID(), at: CGPoint, label: String, colorHex: String,
+    init(id: UUID = UUID(), at: MapPoint, label: String, colorHex: String,
          brightSquares: CGFloat, dimSquares: CGFloat? = nil) {
         self.id = id
         self.label = label

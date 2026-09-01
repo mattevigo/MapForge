@@ -20,8 +20,8 @@ final class FogStoreTests: XCTestCase {
 
     func testFogSurvivesARelaunch() throws {
         // The point of the whole issue: nobody redraws a room's Walls twice.
-        let document = FogDocument(walls: [Wall(from: CGPoint(x: 100, y: 200),
-                                                to: CGPoint(x: 340, y: 200))])
+        let document = FogDocument(walls: [Wall(from: MapPoint(x: 100, y: 200),
+                                                to: MapPoint(x: 340, y: 200))])
         try FogStore().save(document, forMapAt: mapURL)
         XCTAssertEqual(FogStore().load(forMapAt: mapURL), document)
     }
@@ -29,7 +29,7 @@ final class FogStoreTests: XCTestCase {
     func testFileSitsBesideTheImage() throws {
         // Moving the image and its fog file together must preserve the Walls, so the
         // fog file has to be a sibling with a predictable name.
-        try FogStore().save(FogDocument(walls: [Wall(from: .zero, to: CGPoint(x: 1, y: 1))]),
+        try FogStore().save(FogDocument(walls: [Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 1, y: 1))]),
                             forMapAt: mapURL)
         let expected = directory.appendingPathComponent("dungeon.fog.json")
         XCTAssertTrue(FileManager.default.fileExists(atPath: expected.path))
@@ -52,10 +52,23 @@ final class FogStoreTests: XCTestCase {
         // Deleting the last Wall must not leave the previous Walls on disk to
         // reappear at the next launch.
         let store = FogStore()
-        try store.save(FogDocument(walls: [Wall(from: .zero, to: CGPoint(x: 1, y: 1))]),
+        try store.save(FogDocument(walls: [Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 1, y: 1))]),
                        forMapAt: mapURL)
         try store.save(FogDocument(), forMapAt: mapURL)
         XCTAssertNil(store.load(forMapAt: mapURL))
+    }
+
+    func testAGoodMapDoesNotInheritAnEarlierFailure() throws {
+        // One store outlives many Maps. A failure left set from a corrupt Map would
+        // attach a stale error to the next good one — and the UI would blame the
+        // wrong file.
+        let store = FogStore()
+        try Data(#"{ truncated"#.utf8).write(to: directory.appendingPathComponent("bad.fog.json"))
+        _ = store.load(forMapAt: directory.appendingPathComponent("bad.png"))
+        XCTAssertNotNil(store.lastLoadFailure, "precondition: the corrupt Map failed")
+
+        _ = store.load(forMapAt: mapURL)
+        XCTAssertNil(store.lastLoadFailure, "a stale failure followed onto a good Map")
     }
 
     func testMalformedFileIsNotDestroyed() throws {

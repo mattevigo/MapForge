@@ -11,7 +11,7 @@ final class FogAutosaveTests: XCTestCase {
         var writes = 0
         let autosave = FogAutosave(delay: 0.05) { _ in writes += 1 }
         for i in 1...20 {
-            autosave.schedule(FogDocument(walls: [Wall(from: .zero, to: CGPoint(x: i, y: 0))]))
+            autosave.schedule(FogDocument(walls: [Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: CGFloat(i), y: 0))]))
         }
         XCTAssertEqual(writes, 0, "wrote during the burst")
 
@@ -23,8 +23,8 @@ final class FogAutosaveTests: XCTestCase {
         // A debounce that saved the first edit of a burst would persist a half-drawn Wall.
         var saved: FogDocument?
         let autosave = FogAutosave(delay: 0.05) { saved = $0 }
-        let first = FogDocument(walls: [Wall(from: .zero, to: CGPoint(x: 1, y: 0))])
-        let last = FogDocument(walls: [Wall(from: .zero, to: CGPoint(x: 99, y: 0))])
+        let first = FogDocument(walls: [Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 1, y: 0))])
+        let last = FogDocument(walls: [Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 99, y: 0))])
         autosave.schedule(first)
         autosave.schedule(last)
 
@@ -36,7 +36,7 @@ final class FogAutosaveTests: XCTestCase {
         // Quitting or switching Maps must not drop an edit still sitting in the debounce.
         var saved: FogDocument?
         let autosave = FogAutosave(delay: 60) { saved = $0 }
-        let document = FogDocument(walls: [Wall(from: .zero, to: CGPoint(x: 1, y: 0))])
+        let document = FogDocument(walls: [Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 1, y: 0))])
         autosave.schedule(document)
         autosave.flush()
         XCTAssertEqual(saved, document, "an edit was dropped")

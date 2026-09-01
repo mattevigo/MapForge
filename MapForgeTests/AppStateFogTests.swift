@@ -21,7 +21,7 @@ final class AppStateFogTests: XCTestCase {
 
     func testReopeningAMapRestoresItsFog() throws {
         let map = try makeMap(named: "dungeon")
-        let wall = Wall(from: CGPoint(x: 100, y: 200), to: CGPoint(x: 340, y: 200))
+        let wall = Wall(from: MapPoint(x: 100, y: 200), to: MapPoint(x: 340, y: 200))
         try FogStore().save(FogDocument(walls: [wall]), forMapAt: map.url)
 
         let appState = AppState(preferences: isolatedPreferences())
@@ -42,7 +42,7 @@ final class AppStateFogTests: XCTestCase {
         // on it — then saving them onto the wrong file.
         let dungeon = try makeMap(named: "dungeon")
         let tavern = try makeMap(named: "tavern")
-        try FogStore().save(FogDocument(walls: [Wall(from: .zero, to: CGPoint(x: 50, y: 0))]),
+        try FogStore().save(FogDocument(walls: [Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 50, y: 0))]),
                             forMapAt: dungeon.url)
 
         let appState = AppState(preferences: isolatedPreferences())
@@ -58,7 +58,7 @@ final class AppStateFogTests: XCTestCase {
         let appState = AppState(preferences: isolatedPreferences())
         appState.loadMap(image: map.image, at: map.url)
 
-        let wall = Wall(from: CGPoint(x: 10, y: 10), to: CGPoint(x: 90, y: 10))
+        let wall = Wall(from: MapPoint(x: 10, y: 10), to: MapPoint(x: 90, y: 10))
         appState.fog.walls = [wall]
         appState.flushPendingFogWrites()
 

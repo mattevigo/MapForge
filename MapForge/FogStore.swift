@@ -38,6 +38,9 @@ final class FogStore {
     /// Also nil when the file cannot be read; that leaves `lastLoadFailure` set and the
     /// file on disk untouched.
     func load(forMapAt mapURL: URL) -> FogDocument? {
+        // One store outlives many Maps, so each load starts clean: a failure left over
+        // from a corrupt Map would attach a stale error to the next good one.
+        lastLoadFailure = nil
         let url = Self.fogURL(forMapAt: mapURL)
         guard fileManager.fileExists(atPath: url.path) else { return nil }
         do {

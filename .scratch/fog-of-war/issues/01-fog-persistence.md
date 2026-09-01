@@ -1,6 +1,6 @@
 # 01 — Fog persistence file
 
-Status: ready-for-agent
+Status: ready-for-human
 
 Per-Map fog data persists to `<map>.fog.json` beside the image: the Walls, Lights and Pawns the DM authored. This is the first user-authored data MapForge has ever saved — `DisplayPreferences` (two `UserDefaults` strings) is the only persistence that exists today — so it lands first and everything else writes through it.
 
@@ -22,3 +22,11 @@ Acceptance: draw Walls and place a Light on a Map, quit, relaunch, reopen the sa
 ## Comments
 
 - 2026-09-01 (grilling session): designed via `/grill-with-docs`. Persistence choice was a live decision — reopening `map-presenter/03` (the Sidecar) was recommended and declined in favour of a fog-specific file.
+
+- 2026-09-01 (implemented): `FogDocument`, `FogStore` and `FogAutosave`, wired into `AppState` on both map-open paths. 20 unit tests.
+
+  Two shapes worth knowing. `MapPoint` wraps `CGPoint` purely so the file names its units — `CGPoint` encodes as an anonymous `[x, y]`, which would have left `"from": [100, 200]` for a reader to guess at while Walls are pixels and Light radii are squares. And debouncing lives in `FogAutosave`, apart from `FogStore`, so the store stays a seam tests call with no clock involved.
+
+  Deferred deliberately: implicit boundary Walls are specified here as "derived at load, never stored", but nothing derives them yet because nothing consumes Walls until issue 05. The document is the right place for that derivation when it lands.
+
+  Not verified: the `MapForgeUITests` target hangs in this environment — on `develop` as well as on this branch, so it is pre-existing and unrelated. Needs a human run on a real desktop session.
