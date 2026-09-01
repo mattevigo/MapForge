@@ -51,3 +51,23 @@ _Avoid_: config file, manifest
 **Blackout**:
 Instantly replacing the Player Display's content with a blank screen, hiding the Map from players.
 _Avoid_: curtain, screen off
+
+**Wall**:
+A two-sided line segment that blocks Light. Stored in the Map's image pixels, so it stays welded to the artwork when the Grid changes. Four implicit Walls at the image bounds are always present and cannot be edited.
+_Avoid_: barrier, occluder, edge, boundary
+
+**Light**:
+A point source that illuminates the Map out to a bright radius and a dim radius, measured in Grid squares. Blocked by Walls, and independently switchable on or off.
+_Avoid_: lamp, torch, emitter, light source
+
+**Pawn**:
+A token on the Map with a label and a colour, drawn for players whether or not the Fog Overlay is active. A Pawn is also a Light: its range of sight and its range of illumination are the same thing.
+_Avoid_: token, miniature, figure, character, marker
+
+**Visibility**:
+The three-valued result of tracing every Light against every Wall — each point of the Map is bright, dim, or unlit. Computed in Map space and unaffected by panning the Viewport.
+_Avoid_: light map, shadow map, fog data, mask
+
+**Fog Overlay**:
+The darkness drawn over the Map from its Visibility, hiding unlit regions from players. Players see it on the Player Display; the Control Window instead shows the Map fully lit with the same Visibility as a translucent tint, so the DM always sees everything. Switchable off entirely.
+_Avoid_: fog of war, darkness layer, shroud, mask
