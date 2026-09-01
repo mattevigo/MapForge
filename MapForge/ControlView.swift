@@ -3,7 +3,7 @@ import SwiftUI
 struct ControlView: View {
     @EnvironmentObject private var appState: AppState
 
-    private enum PreviewMode { case normal, gridFit, viewport }
+    private enum PreviewMode { case normal, gridFit, viewport, walls }
 
     @State private var mode: PreviewMode = .normal
     @State private var fitSquare: GridFitSquare?
@@ -12,6 +12,12 @@ struct ControlView: View {
     /// Grid Fit's preview zoom/pan. Mode-local view state, not part of the Map — it is
     /// reset to fit-to-window on entering the mode.
     @State private var gridFitTransform: PreviewTransform?
+    /// Wall drawing's preview zoom/pan. Mode-local like Grid Fit's, and reset to
+    /// fit-to-window on entering the mode.
+    @State private var wallTransform: PreviewTransform?
+    /// Walls as they were on entering the mode, so Cancel restores them wholesale —
+    /// the same revert Grid Fit does with `squaresWideBeforeFit`.
+    @State private var wallsBeforeEditing: [Wall] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -42,6 +48,11 @@ struct ControlView: View {
             }
             if mode == .viewport {
                 Text("Drag the rectangle to choose what the Player Display shows.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if mode == .walls {
+                Text("Click to place Wall corners, double-click to end a chain, Esc to cancel it. ⇧ frees the angle; click a Wall then ⌫ to delete. Scroll to zoom, ⌥-drag to pan.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -125,7 +136,9 @@ struct ControlView: View {
                 } else {
                     // Only Grid Fit carries a zoom; every other use of this branch is the
                     // plain aspect fit, which is that transform's floor.
-                    let transform = (mode == .gridFit ? gridFitTransform : nil)
+                    let modeTransform = mode == .gridFit ? gridFitTransform
+                                      : mode == .walls ? wallTransform : nil
+                    let transform = modeTransform
                         ?? PreviewTransform.fitted(imagePixelSize: image.pixelSize, container: geo.size)
                     let fitted = transform.imageRect
                     ZStack(alignment: .topLeading) {
@@ -142,6 +155,17 @@ struct ControlView: View {
                             GridFitOverlay(transform: transform,
                                            containerSize: geo.size,
                                            square: $fitSquare) { gridFitTransform = $0 }
+                        }
+                        if mode == .walls {
+                            WallOverlay(transform: transform,
+                                        containerSize: geo.size,
+                                        walls: appState.fog.walls,
+                                        gridPixels: gridPixels,
+                                        onCommit: { appState.fog.walls.append(contentsOf: $0) },
+                                        onDelete: { wall in
+                                            appState.fog.walls.removeAll { $0.id == wall.id }
+                                        },
+                                        onTransform: { wallTransform = $0 })
                         }
                         if mode == .viewport, let map = appState.mapScale, let viewport = resolvedViewport {
                             ViewportOverlay(fittedRect: fitted,
@@ -176,6 +200,8 @@ struct ControlView: View {
                 .disabled(appState.mapImage == nil)
             Button("Pan Viewport…") { startViewportPan() }
                 .disabled(!mapOverflowsViewport)
+            Button("Draw Walls…") { startWallEditing() }
+                .disabled(appState.mapImage == nil)
         case .gridFit:
             if fitSquare != nil, let snap = GridFit.snapSuggestion(for: appState.squaresWide) {
                 Button("Snap to \(snap)") { applySnap(snap) }
@@ -189,7 +215,34 @@ struct ControlView: View {
                 .keyboardShortcut(.cancelAction)
             Button("Done") { mode = .normal }
                 .keyboardShortcut(.defaultAction)
+        case .walls:
+            Text("\(appState.fog.walls.count) Walls")
+                .foregroundStyle(.secondary)
+            Button("Cancel") { cancelWallEditing() }
+            Button("Done") { mode = .normal }
+                .keyboardShortcut(.defaultAction)
         }
+    }
+
+    private func startWallEditing() {
+        wallsBeforeEditing = appState.fog.walls
+        // Open on the whole Map, as Grid Fit does: the zoomed-out view orients, and zoom
+        // is opt-in for the precision moment.
+        wallTransform = nil
+        mode = .walls
+    }
+
+    private func cancelWallEditing() {
+        appState.fog.walls = wallsBeforeEditing
+        mode = .normal
+    }
+
+    /// One Grid square in image pixels, or nil when no Grid has been declared — snapping
+    /// to a Grid that does not exist would scatter vertices.
+    private var gridPixels: CGFloat? {
+        guard let image = appState.mapImage, appState.squaresWide > 0 else { return nil }
+        return GridFit.squareSide(imageWidth: image.pixelSize.width,
+                                  squaresWide: appState.squaresWide)
     }
 
     private func startGridFit() {

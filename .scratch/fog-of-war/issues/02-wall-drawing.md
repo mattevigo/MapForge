@@ -1,6 +1,6 @@
 # 02 — Wall drawing and snapping
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 01
 
 Draw Walls on the Map in a new Control Window mode, beside the existing `normal`, `gridFit` and `viewport` modes in `ControlView`. A Wall is a two-sided segment; the DM draws chained polylines, but storage is flat segments (see `CONTEXT.md`).
@@ -25,3 +25,11 @@ Acceptance: on a real VTT map, tracing a room's walls produces a closed chain wi
 ## Comments
 
 - 2026-09-01 (grilling session): designed via `/grill-with-docs`. "Snap to edges" was ambiguous between grid/endpoint snapping and image edge detection; grid + endpoint chosen. Walls stored in image pixels so Grid Fit never moves them relative to the artwork.
+
+- 2026-09-01 (implemented): `WallSnap` and `WallChain` (pure, tested), `WallOverlay`, and a `walls` mode in `ControlView` beside `gridFit` and `viewport`. 20 unit tests plus 3 UI tests.
+
+  The acceptance criterion is tested the way it asks to be: `testATracedRoomIsWatertight` traces a room with deliberately sloppy clicks, lets snapping close it, then puts a torch inside and asserts through issue 05's Visibility that no Light escapes.
+
+  One design decision worth recording: the angle constraint *rotates* the span rather than projecting it onto the axis. Projecting shortens the Wall as the cursor drifts off the axis, so it visibly lags the pointer. Rotating keeps the length the DM dragged and corrects only the direction. Snapping then runs after the constraint, so a snap target always wins — closing a chain matters more than holding 45°.
+
+  Not verified: the three UI tests could not run here — the `MapForgeUITests` target hangs in this environment, on `develop` as well as on this branch. They parse and are written against the same `--test-map` harness the existing UI tests use, but they need a human run on a real desktop session. That is the main thing left before this can be closed.
