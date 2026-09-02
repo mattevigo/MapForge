@@ -102,6 +102,25 @@ final class FogShadingTests: XCTestCase {
         // on composite, so the overlap composites to the same value as a single region.
     }
 
+    func testSubtractingFromTransparencyRemovesNothing() {
+        // Why `FogCanvas` sets `.destinationOut` on the PARENT context rather than inside
+        // `drawLayer`. A fresh layer starts transparent, and `.destinationOut` is
+        // `dst * (1 - src)` — against dst = 0 that is 0, so every fill erased nothing and
+        // the layer then landed on the darkness with the default `.normal`. The fog never
+        // moved, on either surface, for any Light. No unit test can reach `Canvas`
+        // output, so this pins the arithmetic that made the mistake invisible.
+        let emptyLayer: CGFloat = 0
+        let alpha = FogShading.removalAlpha(from: FogShading.player(.unlit),
+                                            to: FogShading.player(.bright))
+        XCTAssertEqual(alpha, 1, accuracy: 1e-9, "precondition: bright removes everything")
+        XCTAssertEqual(emptyLayer * (1 - alpha), 0, accuracy: 1e-9,
+                       "subtracting inside an empty layer can never remove darkness")
+
+        // Applied to the darkness itself — what compositing the layer into the parent
+        // does — the same alpha clears it.
+        XCTAssertEqual(FogShading.player(.unlit) * (1 - alpha), 0, accuracy: 1e-9)
+    }
+
     func testRemovalAlphaIsClampedToSomethingDrawable() {
         // A target above the current darkness means nothing to remove.
         XCTAssertEqual(FogShading.removalAlpha(from: 0.5, to: 0.9), 0, accuracy: 1e-9)

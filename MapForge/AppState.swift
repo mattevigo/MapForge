@@ -8,9 +8,13 @@ final class AppState: ObservableObject {
     @Published var mapURL: URL?
     @Published var squaresWide: Double = 30 {
         didSet {
-            // Any change to the value is a declaration — typed, stepped, or derived by
-            // Grid Fit. The default 30 is a guess so the preview has something to show.
-            if squaresWide != oldValue { hasDeclaredGrid = true }
+            // Setting the value at all is a declaration — typed, stepped, or derived by
+            // Grid Fit. Deliberately NOT `squaresWide != oldValue`: a DM whose Map really
+            // is the default 30 squares wide types 30, the value never moves, and keying
+            // the declaration on a change left their Lights dark while the warning told
+            // them to do the one thing they had just done. Restoring a value the DM did
+            // not choose goes through `restoreGrid` instead.
+            hasDeclaredGrid = true
             presentIfPossible()
         }
     }
@@ -20,6 +24,13 @@ final class AppState: ObservableObject {
     /// scope section requires be visible rather than silent. Not persisted, because
     /// `squaresWide` is not either.
     @Published private(set) var hasDeclaredGrid = false
+
+    /// Put back a value the DM did not choose — cancelling Grid Fit restores what was
+    /// there before, which must not count as declaring a Grid they never asserted.
+    func restoreGrid(squaresWide squares: Double, wasDeclared: Bool) {
+        squaresWide = squares
+        hasDeclaredGrid = wasDeclared
+    }
     /// Viewport origin in map inches; nil = centered (the default on map load).
     @Published var viewportOrigin: CGPoint? {
         didSet { presentIfPossible() }
