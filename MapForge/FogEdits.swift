@@ -119,6 +119,12 @@ struct FogEdits {
         editPawn(id) { $0.isCreature = isCreature }
     }
 
+    /// Make a token 2×2, or 1×1 again. Undoable, like every other authoring decision
+    /// about what a token is.
+    mutating func setPawnIsBig(id: Pawn.ID, _ isBig: Bool) {
+        editPawn(id) { $0.isBig = isBig }
+    }
+
     mutating func setPawnColor(id: Pawn.ID, hex: String) {
         editPawn(id) { $0.colorHex = hex }
     }

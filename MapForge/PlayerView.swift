@@ -50,7 +50,7 @@ struct PlayerView: View {
                                                         hasVisibility: appState.hasDeclaredGrid)
                     }) { pawn in
                         let p = PlayerPlacement.viewPoint(pawn.at, map: map, frame: frame)
-                        PawnToken(pawn: pawn, diameter: side)
+                        PawnToken(pawn: pawn, squareSide: side)
                             .position(x: p.x, y: p.y)
                     }
                 }

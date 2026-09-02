@@ -178,6 +178,24 @@ struct Pawn: Codable, Equatable, Identifiable {
     /// the control. Still visible, de-emphasised, on the Control Window.
     var isHidden = false
 
+    /// **Big**: the token occupies 2×2 squares instead of 1×1 — an ogre, not a goblin.
+    ///
+    /// Purely visual. The radii stay measured from the Pawn's point, because a creature's
+    /// size does not change how far its torch reaches or how far it sees, in 5e or here.
+    /// The token is simply drawn twice as wide about the same centre, with no snapping:
+    /// Pawns have never snapped, and a Big Pawn that jumped to a lattice would be the
+    /// behaviour this app removed on purpose.
+    ///
+    /// Independent of `isCreature` — an ogre ally and a goblin are both meaningful.
+    var isBig = false
+
+    /// How many Grid squares a token spans. The one place the 2 lives, so every surface
+    /// that sizes a token agrees.
+    static func squaresAcross(isBig: Bool) -> CGFloat { isBig ? 2 : 1 }
+
+    /// This Pawn's own span, in Grid squares.
+    var squaresAcross: CGFloat { Self.squaresAcross(isBig: isBig) }
+
     var at: MapPoint {
         get { light.at }
         set { light.at = newValue }
@@ -185,16 +203,17 @@ struct Pawn: Codable, Equatable, Identifiable {
 
     init(id: UUID = UUID(), at: MapPoint, label: String, colorHex: String,
          brightSquares: CGFloat, dimSquares: CGFloat? = nil,
-         isCreature: Bool = false, isHidden: Bool = false) {
+         isCreature: Bool = false, isHidden: Bool = false, isBig: Bool = false) {
         self.id = id
         self.label = label
         self.colorHex = colorHex
         self.light = Light(at: at, brightSquares: brightSquares, dimSquares: dimSquares)
         self.isCreature = isCreature
         self.isHidden = isHidden
+        self.isBig = isBig
     }
 
-    /// Written by hand for the two flags only, which decode as false when absent.
+    /// Written by hand for the three flags, which decode as false when absent.
     ///
     /// A property default is not enough: Swift's synthesised `decode` requires every key
     /// unless the property is optional, so adding these flags to the synthesised
@@ -210,9 +229,10 @@ struct Pawn: Codable, Equatable, Identifiable {
         light = try container.decode(Light.self, forKey: .light)
         isCreature = try container.decodeIfPresent(Bool.self, forKey: .isCreature) ?? false
         isHidden = try container.decodeIfPresent(Bool.self, forKey: .isHidden) ?? false
+        isBig = try container.decodeIfPresent(Bool.self, forKey: .isBig) ?? false
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, label, colorHex, light, isCreature, isHidden
+        case id, label, colorHex, light, isCreature, isHidden, isBig
     }
 }

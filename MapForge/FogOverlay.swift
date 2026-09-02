@@ -205,7 +205,7 @@ struct FogOverlay: View {
     private var pawnMarkers: some View {
         ForEach(pawns) { pawn in
             let p = viewPoint(pawn.at)
-            PawnToken(pawn: pawn, diameter: pawnDiameter,
+            PawnToken(pawn: pawn, squareSide: pawnDiameter,
                       isSelected: pawn.id == selectedPawn)
                 .opacity(isDimmed(pawn) ? 0.4 : 1)
                 .position(x: p.x, y: p.y)
@@ -350,7 +350,8 @@ struct FogOverlay: View {
                                label: Pawn.nextLabel(after: pawns),
                                colorHex: previous?.colorHex ?? Pawn.defaultColorHex,
                                brightSquares: previous?.light.brightSquares ?? 6,
-                               isCreature: previous?.isCreature ?? false))
+                               isCreature: previous?.isCreature ?? false,
+                               isBig: previous?.isBig ?? false))
             onChange()
         case .lights:
             selectedLight = nil

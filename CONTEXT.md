@@ -68,6 +68,10 @@ _Avoid_: token, miniature, figure, character, marker
 A Pawn the players discover rather than one they carry: it emits no Light, and it is drawn under the Fog Overlay so darkness hides it from players. The DM always sees Creatures, and can hide one outright — a hidden Creature is invisible to players however well lit it is. A flag on Pawn, not a separate kind.
 _Avoid_: monster, enemy, NPC, mob
 
+**Big**:
+A Pawn whose token occupies 2×2 Grid squares instead of 1×1 — an ogre, not a goblin. Purely visual: its Light radii and its sight are still measured from its point, because a creature's size does not change how far it sees or how far its torch reaches.
+_Avoid_: large, size category, huge
+
 **Visibility**:
 The three-valued result of tracing every Light against every Wall — each point of the Map is bright, dim, or unlit. Computed in Map space and unaffected by panning the Viewport.
 _Avoid_: light map, shadow map, fog data, mask

@@ -8,10 +8,26 @@ import SwiftUI
 /// circle and the players must be looking at the same red circle.
 struct PawnToken: View {
     let pawn: Pawn
-    /// Diameter in the coordinate space of whichever surface is drawing it. Sized in Grid
-    /// squares by the caller, so a token reads as occupying its square.
-    let diameter: CGFloat
+    /// The side of ONE Grid square in the coordinate space of whichever surface is drawing
+    /// it — not the token's own width. A Big Pawn spans two of these, and the view works
+    /// that multiplication out itself.
+    ///
+    /// The distinction is load-bearing. Callers used to pre-multiply, which made "how big
+    /// is this token's footprint" and "how big is this view" the same number: a Big Pawn's
+    /// label then rendered at twice everyone else's point size, and its suppression floor
+    /// was effectively halved. The disc scales with the footprint; the text does not.
+    let squareSide: CGFloat
     var isSelected = false
+
+    /// Whether the disc grows for a Big Pawn. False on chrome that is not the Map — the
+    /// live row's tokens are fixed-size buttons, and doubling one there just makes that
+    /// row taller than its neighbours without conveying anything the inspector does not.
+    var scalesWithFootprint = true
+
+    /// The disc's width: one square, or two for a Big Pawn on a surface that shows Maps.
+    private var diameter: CGFloat {
+        squareSide * (scalesWithFootprint ? pawn.squaresAcross : 1)
+    }
 
     var body: some View {
         ZStack {
@@ -22,14 +38,16 @@ struct PawnToken: View {
             Circle()
                 .stroke(isSelected ? Color.accentColor : Color.black.opacity(0.6),
                         lineWidth: isSelected ? 3 : 1.5)
-            if Self.showsLabel(atDiameter: diameter) {
+            // Sized from ONE square, so an ogre's "3" is the same size as a goblin's and
+            // the legibility floor means the same thing for both.
+            if Self.showsLabel(atDiameter: squareSide) {
                 Text(pawn.label)
-                    .font(.system(size: diameter * 0.5, weight: .semibold))
+                    .font(.system(size: squareSide * 0.5, weight: .semibold))
                     .foregroundStyle(.white)
                     .shadow(radius: 1)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
-                    .padding(.horizontal, diameter * 0.1)
+                    .padding(.horizontal, squareSide * 0.1)
             }
         }
         .frame(width: diameter, height: diameter)

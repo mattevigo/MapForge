@@ -68,13 +68,36 @@ filling the undo stack with it would bury the DM's authoring work.
 Hidden beats lit. A hidden Creature is invisible on the Player Display even in bright
 light — that is the point of the control.
 
+## Big
+
+A separate, orthogonal flag on the same type: `isBig` draws the token across 2×2 squares
+rather than 1×1. All four combinations are meaningful — an ogre ally, a goblin, an ogre
+monster, a party member — so it is not folded into `isCreature`.
+
+**Purely visual.** The radii stay measured from the Pawn's point: a creature's size does
+not change how far it sees or how far its torch reaches, in 5e or here. A Big Creature is
+also revealed by its own point, not by its footprint, consistently with every other Pawn —
+the alternative is a token drawn half-lit at the edge of a torch's reach.
+
+**Centred on the click, and not snapped.** A 2×2 token's centre falls on a Grid
+intersection rather than a square centre, so the DM positions it by eye like everything
+else. Pawns have never snapped, and a Big Pawn that jumped to a lattice would be exactly
+the behaviour this app removed on purpose.
+
+`PawnToken` takes **one square's side** and works the span out itself. Pre-multiplying at
+the call sites conflated "how big is the footprint" with "how big is this view": an ogre's
+label rendered at twice its neighbours' point size, its legibility floor was halved, and
+the live row's fixed 14 pt chrome grew and misaligned the row. The disc scales with the
+footprint; text and chrome do not.
+
 ## Scope
 
 In: the two flags; suppressing a Creature's Light in `Visibility`; drawing Creatures under
 the Fog Overlay on the Player Display and de-emphasised on the Control Window; a live hide
 toggle; placing a Pawn as a Creature.
 
-Out: per-player line of sight; initiative, hit points or any stat block; Creature-specific
+Out: size categories beyond Big (no Huge or Gargantuan); per-player line of sight;
+initiative, hit points or any stat block; Creature-specific
 artwork or tokens beyond the existing coloured disc; automatic reveal on movement; a
 fourth tool in the fog mode.
 

@@ -28,7 +28,7 @@ struct PawnLayer: View {
             let side = PlayerPlacement.squareSidePoints(map: map, frame: frame)
             ForEach(pawns) { pawn in
                 let p = PlayerPlacement.viewPoint(pawn.at, map: map, frame: frame)
-                PawnToken(pawn: pawn, diameter: max(side, 12))
+                PawnToken(pawn: pawn, squareSide: max(side, 12))
                     .opacity(isDimmed(pawn) ? 0.4 : 1)
                     .position(x: p.x, y: p.y)
                     .gesture(drag(pawn))

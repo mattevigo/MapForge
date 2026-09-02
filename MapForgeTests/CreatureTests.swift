@@ -253,6 +253,100 @@ final class CreatureTests: XCTestCase {
                        "hiding did not survive to the fog file")
     }
 
+    // MARK: Big
+
+    func testAPawnIsOneSquareByDefault() {
+        XCTAssertFalse(makePawn().isBig)
+        XCTAssertEqual(Pawn.squaresAcross(isBig: false), 1)
+    }
+
+    func testABigPawnIsTwoSquaresAcross() {
+        XCTAssertEqual(Pawn.squaresAcross(isBig: true), 2)
+    }
+
+    func testBigSurvivesTheFogFile() throws {
+        var big = makePawn()
+        big.isBig = true
+        let document = FogDocument(pawns: [big])
+        XCTAssertEqual(try JSONDecoder().decode(FogDocument.self,
+                                                from: JSONEncoder().encode(document)),
+                       document)
+    }
+
+    func testAFileWithoutTheBigKeyLoadsPawnsAsOneSquare() throws {
+        // Same back-compat trap the Creature flags hit: a property default is not enough
+        // for Swift's synthesised decode, and every .fog.json already beside a Map lacks
+        // this key.
+        let json = Data("""
+        {
+          "version": 2, "walls": [], "lights": [],
+          "pawns": [{
+            "id": "\(UUID().uuidString)", "label": "Vex", "colorHex": "#C81E1E",
+            "light": {
+              "id": "\(UUID().uuidString)",
+              "at": {"imagePixels": {"x": 10, "y": 10}},
+              "brightSquares": 6, "dimSquares": 12, "isOn": true
+            }
+          }]
+        }
+        """.utf8)
+        let decoded = try JSONDecoder().decode(FogDocument.self, from: json)
+        XCTAssertFalse(decoded.pawns[0].isBig, "an existing Pawn became Big")
+    }
+
+    func testBigDoesNotChangeWhatAPawnLights() {
+        // Size is purely visual: an ogre's torch reaches as far as anyone's, and the radii
+        // are still measured from the Pawn's point. 5e agrees — creature size does not
+        // alter light or vision range.
+        //
+        // Both documents are built from ONE Pawn value so the light IDs match, and the
+        // whole region array is compared: minting a second Pawn would give a different
+        // UUID, and comparing only `first?.bright` would pass even if a Big Pawn's dim
+        // radius were scaled.
+        let small = makePawn()
+        var big = small
+        big.isBig = true
+
+        let asSmall = VisibilityCache().regions(for: FogDocument(pawns: [small]),
+                                                imagePixelSize: imageSize, pixelsPerSquare: 20)
+        let asBig = VisibilityCache().regions(for: FogDocument(pawns: [big]),
+                                              imagePixelSize: imageSize, pixelsPerSquare: 20)
+
+        XCTAssertFalse(asSmall.isEmpty, "precondition: the Pawn lit something")
+        XCTAssertEqual(asBig, asSmall, "being Big changed the light it casts")
+    }
+
+    func testABigPawnsLabelIsTheSameSizeAsASmallOnes() {
+        // The disc doubles; the text does not. Sizing the label from the doubled diameter
+        // rendered an ogre's "3" at twice its neighbours' point size and halved its
+        // legibility floor — both effects of conflating footprint with view size.
+        XCTAssertTrue(PawnToken.showsLabel(atDiameter: 10),
+                      "a 10 pt square should still carry a label")
+        XCTAssertFalse(PawnToken.showsLabel(atDiameter: 6),
+                       "the floor is per-square, not per-token")
+    }
+
+    func testABigCreatureIsRevealedByItsOwnPointNotItsFootprint() {
+        // The reveal rule reads the Pawn's position, as it does for every Pawn. A Big
+        // Creature whose disc overlaps a lit square but whose centre is dark stays hidden
+        // — consistent, and the alternative is a token half-drawn at the light's edge.
+        var big = creature(at: MapPoint(x: 900, y: 700))
+        big.isBig = true
+        XCTAssertFalse(PlayerVisibility.showsToPlayers(pawn: big, regions: litRoom(),
+                                                       isFogOverlayOn: true,
+                                                       hasVisibility: true))
+    }
+
+    func testBigIsIndependentOfCreature() {
+        // Four combinations, all meaningful: an ogre ally, a goblin, an ogre monster, a
+        // party member.
+        var bigCreature = makePawn()
+        bigCreature.isBig = true
+        bigCreature.isCreature = true
+        XCTAssertTrue(bigCreature.isBig)
+        XCTAssertTrue(bigCreature.isCreature)
+    }
+
     // MARK: Helpers
 
     private func makePawn() -> Pawn {

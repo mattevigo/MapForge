@@ -428,6 +428,12 @@ struct ControlView: View {
                 ))
                 .help("A Creature emits no Light and is hidden from players by darkness.")
 
+                Toggle("Big", isOn: Binding(
+                    get: { pawn.isBig },
+                    set: { fogEdits.setPawnIsBig(id: pawn.id, $0); applyFogEdits() }
+                ))
+                .help("Occupies 2×2 squares instead of 1×1. Visual only — its light and sight are unchanged.")
+
                 Text("Sight:")
                 TextField("range", value: Binding(
                     get: { Double(pawn.light.brightSquares) },
@@ -497,7 +503,7 @@ struct ControlView: View {
                 get: { pawn.light.isOn },
                 set: { appState.setPawnLight(id: pawn.id, isOn: $0) }
             )) {
-                PawnToken(pawn: pawn, diameter: 14)
+                PawnToken(pawn: pawn, squareSide: 14, scalesWithFootprint: false)
             }
             .toggleStyle(.button)
             .help(pawn.isCreature
