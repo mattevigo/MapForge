@@ -44,3 +44,13 @@ Acceptance: with a torch inside a traced room, players see the room lit, the doo
   **The range gradient was dead code.** `FogShading.falloffOpacity` was written, documented and tested — and nothing drew with it, so every torch ended in exactly the hard circle the issue forbids. Tests that exercise a pure function no renderer calls cannot fail when the rendering is wrong. `LitRegion` now carries the Light's origin so `FogCanvas` can shade each band with a radial gradient.
 
   **Overlapping regions double-subtracted.** `.destinationOut` multiplies, so two overlapping dim polygons filled at the same alpha left the overlap *brighter* than either alone — a visible seam precisely where two torches meet, the inverse of the failure issue 05's case list warned about. Each band now fills at full strength with the removal alpha applied once to the layer.
+
+- 2026-09-02 (found in real use): **the overlay never opened at all.** The DM placed a Pawn, toggled its light, and the darkness did not move.
+
+  Two defects stacked. First, `AppState.hasDeclaredGrid` flipped only when `squaresWide` *differed from its previous value*, so a DM whose Map really is the default 30 squares wide typed 30, nothing changed, `litRegions` stayed empty, and the warning told them to do the one thing they had just done. Grid Fit landing on exactly 30 failed identically. Setting the value is now the declaration; `restoreGrid` carries the prior claim back when Grid Fit is cancelled.
+
+  Second, and the reason the feature was inert even with a declared Grid: `drawLayer` opens a *fresh transparent layer*, and `blendMode` set inside it applied `.destinationOut` to that layer's own empty contents — `dst * (1 - src)` against `dst = 0` is 0, so every fill erased nothing, and the finished layer then composited onto the darkness with the default `.normal`. The mode belongs on the parent context, where it governs how the layer lands. The single-subtraction property is unchanged.
+
+  **What this says about the test suite.** The second defect made the whole feature do nothing, and it survived three review rounds, 203 green tests, and a direct reading of the function two messages before it was found — because no unit test can reach `Canvas` output, and reasoning about the blend algebra never asks *which context the mode applies to*. It was found by logging what the canvas received from the running app. `FogShadingTests` now pins the arithmetic, which is the most a unit test can do here.
+
+  That is the fourth defect in this render layer, after two gesture-composition bugs and the dead `PawnLayer`. Every one of them was invisible to the unit suite and would have been visible to a UI test. `MapForgeUITests` has still never run.

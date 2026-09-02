@@ -55,7 +55,9 @@ The `map-presenter` tracker is closed out. Issues 02–07 are `wontfix`: there i
 
 ## Status, 2026-09-02
 
-All six issues implemented and merged to `develop`. 203 unit tests.
+All six issues implemented and merged to `develop`. 209 unit tests.
+
+**The overlay was inert on first real use**, and two defects had to be fixed before any of it worked: the Grid was never declared when the typed value matched the default, and the lit regions were composited into an empty layer instead of into the darkness. Both are written up in issue 06. Neither was reachable by any unit test.
 
 **Not verified anywhere in this effort**: the `MapForgeUITests` target hangs in the environment the feature was built in, on `develop` as well as on every feature branch, so its ten UI tests have never run. That matters more here than the count suggests — three separate defects found during the work (two gesture-composition bugs and a hit-testing one that made a whole layer dead) lived in exactly the layer those tests cover and that no unit test can reach. Running them is the first thing worth doing.
 
