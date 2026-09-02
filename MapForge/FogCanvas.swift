@@ -48,9 +48,16 @@ struct FogCanvas: View {
                           to target: CGFloat, of unlit: CGFloat) {
         let removal = FogShading.removalAlpha(from: unlit, to: target)
         guard removal > 0 else { return }
+        // `.destinationOut` must be the mode the LAYER composites back with, so it is set
+        // on the parent context before `drawLayer`. Setting it *inside* the layer applies
+        // it to the layer's own empty contents — erasing nothing from transparency — and
+        // the layer then lands on the darkness with the default `.normal`, leaving the fog
+        // untouched. That is the bug this whole file existed to avoid and still had.
+        let previousBlendMode = context.blendMode
+        context.blendMode = .destinationOut
+        defer { context.blendMode = previousBlendMode }
         context.drawLayer { layer in
             layer.opacity = removal
-            layer.blendMode = .destinationOut
             for region in regions {
                 let polygon = region[keyPath: band]
                 guard !polygon.isEmpty else { continue }

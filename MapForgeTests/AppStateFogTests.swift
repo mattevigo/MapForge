@@ -159,6 +159,37 @@ final class AppStateFogTests: XCTestCase {
                        "cancelling Grid Fit left a Grid declaration behind")
     }
 
+    func testTogglingAPawnsLightChangesWhatIsLit() throws {
+        // The live panel's one job. If the toggle does not reach the engine the DM sees
+        // the token dim and the darkness unmoved, which is the report from the table.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        appState.squaresWide = 30
+        let pawn = Pawn(at: MapPoint(x: 20, y: 15), label: "1",
+                        colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        appState.fog.pawns = [pawn]
+        XCTAssertFalse(appState.litRegions.isEmpty, "precondition: the Pawn lit something")
+
+        appState.setPawnLight(id: pawn.id, isOn: false)
+        XCTAssertTrue(appState.litRegions.isEmpty,
+                      "dousing the Pawn's light left its region lit")
+    }
+
+    func testTogglingALightChangesWhatIsLit() throws {
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        appState.squaresWide = 30
+        let torch = Light(at: MapPoint(x: 20, y: 15), brightSquares: 4)
+        appState.fog.lights = [torch]
+        XCTAssertFalse(appState.litRegions.isEmpty, "precondition: the Light lit something")
+
+        appState.setLight(id: torch.id, isOn: false)
+        XCTAssertTrue(appState.litRegions.isEmpty,
+                      "dousing the Light left its region lit")
+    }
+
     // MARK: Live light toggling
 
     func testSettingALightStateIsIdempotent() throws {
