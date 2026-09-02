@@ -1,6 +1,6 @@
 # 03 — Lights
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 01
 
 Place Lights on a Map and toggle them on and off. A Light has a position, a bright radius, a dim radius, and an on/off state.
@@ -23,3 +23,27 @@ Acceptance: placing a torch (bright 20 ft / dim 40 ft) on a Map with a declared 
 ## Comments
 
 - 2026-09-01 (grilling session): designed via `/grill-with-docs`. The bright/dim pair was chosen over a single range: it matches how 5e states every light source and how DMs already think, costs one number and one rendering band, and turning the Visibility mask from boolean to three-valued later would have meant touching the engine, the file format and the editing UI at once.
+
+- 2026-09-01 (implemented): `FogEdits` (replacing issue 02's `WallEdits`), Lights in `FogOverlay`, a radii inspector and an always-visible live toggle row in `ControlView`. 24 unit tests.
+
+  Two shape decisions, both put to the user. Issue 02's walls-only mode became **one fog editing mode with a Walls/Lights tool picker** — the issue's own wording is "the fog editing mode", the Control Window's top row should not grow a button per fog concept, and a DM needs to see a torch against the room they traced to know the room works. All fog draws whatever the tool; the tool decides only what a click does. And the live toggles are an **always-visible row** rather than a popover: "one click, with players watching" cannot afford a click to open a panel first.
+
+  Undo is one history over the whole document, not one per kind — the DM thinks in actions, not in which collection an action touched. Toggling a Light is deliberately *not* undoable: it is a live performance action, and filling the stack with toggles would bury the authoring work behind them. A drag is one step, bracketed by `beginLightDrag`/`endLightDrag`, and a click that begins and ends a drag without moving anything leaves no step at all.
+
+  Lights snap to the Grid but not to Wall endpoints: a torch sits in a room, not on its wall.
+
+  Acceptance is tested through the engine: a 4-square torch lights exactly 4 squares bright and 8 dim, and switching it off empties the region. The "no perceptible delay" half is `VisibilityCache` doing the work — measured at ~14 ms for a far larger scene in issue 05.
+
+  Not verified: the four UI tests still could not run — `MapForgeUITests` hangs in this environment, on `develop` too.
+
+- 2026-09-01 (review): the reviews found the scope section's headline requirement unmet and several real defects.
+
+  **The no-Grid degradation was unreachable.** The scope section requires a Light to "degrade visibly rather than silently rendering at a wrong size" when the Grid is undeclared, and the warning existed — but `squaresWide` defaults to 30 and its stepper clamps at 1, so the nil case it was gated on could never occur. Exactly the silent failure the line forbids. `AppState.hasDeclaredGrid` now distinguishes a declared Grid from the default, it clears when a Map loads (the number carries over; the claim that it is right does not), and the warning sits beside the Lights rather than inside an inspector a DM might never open.
+
+  **Undo could double-push.** A delete landing mid-drag recorded a second history entry, so one action took two presses to undo. `record()` is now the single guarded chokepoint. A dangling drag no longer swallows every later edit's undo either.
+
+  **A select-click silently moved a Light.** `minimumDistance: 0` means `.onChanged` fires on mouse-down, and it wrote a *snapped* position — so merely clicking an unsnapped Light dragged it onto the Grid. A drag with zero translation now does nothing.
+
+  **The live toggle was reverted by the next fog edit**, since it wrote to `appState.fog` while the mode overwrote that wholesale from the edit buffer; in the mode it now routes through `FogEdits`. And `AppState.setLight` takes a value rather than toggling, because a SwiftUI binding writes the same value twice on a state resync.
+
+  Two process failures worth recording. Five wall-undo tests were deleted when `WallEdits` became `FogEdits` and only two were replaced — chain-grouped undo and the mode-local floor, both added by issue 02's own review, were left untested; all five are restored here. And the count in the comment above (24) was wrong.

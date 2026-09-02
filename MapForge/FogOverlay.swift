@@ -1,23 +1,55 @@
 import SwiftUI
 
-/// Wall drawing on the Control Window preview: click to place vertices, double-click or
-/// Esc to end the chain, click a Wall to select it for deletion.
+/// Which fog concept a click places.
+///
+/// One mode for all of them rather than a mode each: the DM needs to see a torch against
+/// the room they traced to know the room works, and the Control Window's top row should
+/// not grow a button per fog concept.
+enum FogTool: CaseIterable, Hashable {
+    case walls, lights
+
+    var label: String {
+        switch self {
+        case .walls: "Walls"
+        case .lights: "Lights"
+        }
+    }
+
+    var hint: String {
+        switch self {
+        case .walls:
+            "Click to place Wall corners, double-click to end a chain, Esc to cancel it. ⇧ frees the angle; click a Wall then ⌫ to delete. Scroll to zoom, ⌥-drag to pan."
+        case .lights:
+            "Click to place a Light, drag one to move it. Click a Light then ⌫ to delete; radii are set below. Scroll to zoom, ⌥-drag to pan."
+        }
+    }
+}
+
+/// Fog authoring on the Control Window preview: Walls traced as chains, Lights placed and
+/// dragged. All fog is drawn whatever the tool — the tool decides only what a click does.
 ///
 /// Zoom and pan come from `PreviewTransform`, exactly as Grid Fit uses them — precision is
 /// the point here, and one Grid square of a 3000 px Map is ~15 pt at fit-to-window.
-struct WallOverlay: View {
+struct FogOverlay: View {
     let transform: PreviewTransform
     let containerSize: CGSize
-    let walls: [Wall]
+    let tool: FogTool
     /// Grid square side in image pixels, or nil when no Grid has been declared.
     let gridPixels: CGFloat?
-    let onCommit: ([Wall]) -> Void
-    let onDelete: (Wall) -> Void
+    @Binding var edits: FogEdits
+    /// Bound out to the Control Window, which shows the selected Light's radii beside the
+    /// preview — there is no room for a numeric editor inside the overlay itself.
+    @Binding var selectedLight: Light.ID?
+    let onChange: () -> Void
     let onTransform: (PreviewTransform) -> Void
+
+    private var walls: [Wall] { edits.document.walls }
+    private var lights: [Light] { edits.document.lights }
 
     @State private var chain = WallChain()
     @State private var cursor: CGPoint?
-    @State private var selected: Wall.ID?
+    @State private var selectedWall: Wall.ID?
+    @State private var lightDragStart: MapPoint?
     @State private var panStart: PreviewTransform?
     @State private var pinchStart: PreviewTransform?
     /// Escapes the angle constraint, which is otherwise held: most Walls on a battle map
@@ -25,7 +57,7 @@ struct WallOverlay: View {
     @State private var freeAngle = false
     @FocusState private var focused: Bool
 
-    static let coordinateSpace = "wallOverlay"
+    static let coordinateSpace = "fogOverlay"
 
     /// Snap radius in preview points, converted to image pixels per zoom level — so it
     /// stays "a few points" under the cursor however far the DM has zoomed in.
@@ -60,6 +92,7 @@ struct WallOverlay: View {
                 }
 
             wallShapes
+            lightMarkers
             chainInProgress
             snapIndicator
         }
@@ -81,17 +114,69 @@ struct WallOverlay: View {
         ForEach(walls) { wall in
             let a = viewPoint(wall.from), b = viewPoint(wall.to)
             Path { $0.move(to: a); $0.addLine(to: b) }
-                .stroke(wall.id == selected ? Color.accentColor : Color.orange,
-                        style: StrokeStyle(lineWidth: wall.id == selected ? 4 : 2.5, lineCap: .round))
+                .stroke(wall.id == selectedWall ? Color.accentColor : Color.orange,
+                        style: StrokeStyle(lineWidth: wall.id == selectedWall ? 4 : 2.5,
+                                           lineCap: .round))
                 .contentShape(Path { path in
                     // A 2.5 pt line is far too thin to click. Widen the hit area only.
                     path.move(to: a); path.addLine(to: b)
                 }.strokedPath(StrokeStyle(lineWidth: 12)))
-                // Only selectable between chains: mid-trace, a click near an existing Wall
-                // means "place a vertex here", which is exactly where a DM joins onto one.
-                .onTapGesture { if !chain.isDrawing { selected = wall.id } }
-                .allowsHitTesting(!chain.isDrawing)
+                // A child gesture beats an ancestor's, so this would eat the base layer's
+                // double-click — and "close the room by finishing on an existing Wall" is
+                // exactly the motion that lands there. Hit-testing is therefore off during
+                // a chain, and off for the very first click too: selection is what the DM
+                // wants between chains, placement is what they want during one.
+                .gesture(TapGesture().onEnded { selectedWall = wall.id; selectedLight = nil })
+                .allowsHitTesting(tool == .walls && !chain.isDrawing)
         }
+    }
+
+    /// Every Light, whatever the tool — a DM tracing a room needs to see the torch in it.
+    /// Draggable only with the Light tool, so a Wall click near one is not stolen.
+    private var lightMarkers: some View {
+        ForEach(lights) { light in
+            let p = viewPoint(light.at)
+            ZStack {
+                Circle()
+                    .fill(light.isOn ? Color.yellow.opacity(0.9) : Color.gray.opacity(0.6))
+                Circle()
+                    .stroke(light.id == selectedLight ? Color.accentColor : Color.black.opacity(0.5),
+                            lineWidth: light.id == selectedLight ? 3 : 1.5)
+            }
+            .frame(width: 14, height: 14)
+            .position(x: p.x, y: p.y)
+            .gesture(lightDragGesture(light))
+            .allowsHitTesting(tool == .lights)
+        }
+    }
+
+    /// Drag to reposition. `beginLightDrag`/`endLightDrag` bracket it so the whole drag is
+    /// one undo step rather than one per frame.
+    private func lightDragGesture(_ light: Light) -> some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.coordinateSpace))
+            .onChanged { value in
+                if lightDragStart == nil {
+                    lightDragStart = light.at
+                    selectedLight = light.id
+                    selectedWall = nil
+                    edits.beginLightDrag()
+                }
+                guard let start = lightDragStart else { return }
+                // minimumDistance is 0 so a plain click selects, which means .onChanged
+                // fires on mouse-down with zero translation. Writing a snapped position
+                // there would silently move an unsnapped Light onto the Grid just for
+                // being clicked — so a drag that has not moved does nothing.
+                guard value.translation != .zero else { return }
+                let moved = MapPoint(x: start.x + value.translation.width / transform.scale,
+                                     y: start.y + value.translation.height / transform.scale)
+                edits.moveLight(id: light.id, to: snapped(moved))
+                onChange()
+            }
+            .onEnded { _ in
+                lightDragStart = nil
+                edits.endLightDrag()
+                onChange()
+            }
     }
 
     /// The chain placed so far, plus a rubber band to the cursor.
@@ -121,7 +206,7 @@ struct WallOverlay: View {
     /// Where a click would land, shown before it happens — snapping is visible, never silent.
     @ViewBuilder
     private var snapIndicator: some View {
-        if let cursor {
+        if let cursor, tool == .walls {
             let resolved = resolve(viewPoint: cursor)
             if resolved.target != .none {
                 let p = viewPoint(resolved.point)
@@ -140,6 +225,7 @@ struct WallOverlay: View {
     private var doubleTapGesture: some Gesture {
         SpatialTapGesture(count: 2, coordinateSpace: .named(Self.coordinateSpace))
             .onEnded { value in
+                guard tool == .walls else { return }
                 // The second click still places its vertex before committing — a DM who
                 // double-clicks the last corner means to include it.
                 place(at: value.location)
@@ -185,22 +271,51 @@ struct WallOverlay: View {
     // MARK: Actions
 
     private func place(at location: CGPoint) {
-        selected = nil
-        chain.place(resolve(viewPoint: location).point)
         focused = true
+        switch tool {
+        case .walls:
+            selectedWall = nil
+            chain.place(resolve(viewPoint: location).point)
+        case .lights:
+            selectedLight = nil
+            let point = MapPoint(transform.imagePoint(from: location))
+            // A new Light takes the radii of the last one placed: a DM lighting a dungeon
+            // is usually placing the same torch over and over.
+            let previous = lights.last
+            edits.addLight(Light(at: snapped(point),
+                                 brightSquares: previous?.brightSquares ?? 4,
+                                 dimSquares: previous?.dimSquares))
+            onChange()
+        }
+    }
+
+    /// Lights snap to the Grid but not to Wall endpoints — a torch sits in a room, not on
+    /// its wall, and pulling it onto a corner would be wrong more often than right.
+    private func snapped(_ point: MapPoint) -> MapPoint {
+        WallSnap.snap(point, to: [], gridPixels: gridPixels, tolerance: snapTolerance).point
     }
 
     private func finishChain() {
-        let walls = chain.finish()
-        guard !walls.isEmpty else { return }
-        onCommit(walls)
+        let newWalls = chain.finish()
+        guard !newWalls.isEmpty else { return }
+        edits.addWalls(newWalls)
+        onChange()
     }
 
     private func deleteSelected() -> KeyPress.Result {
-        guard let id = selected, let wall = walls.first(where: { $0.id == id }) else { return .ignored }
-        onDelete(wall)
-        selected = nil
-        return .handled
+        if let id = selectedWall {
+            edits.deleteWall(id: id)
+            selectedWall = nil
+            onChange()
+            return .handled
+        }
+        if let id = selectedLight {
+            edits.deleteLight(id: id)
+            selectedLight = nil
+            onChange()
+            return .handled
+        }
+        return .ignored
     }
 
     // MARK: Zoom and pan

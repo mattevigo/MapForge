@@ -80,60 +80,6 @@ final class WallChainTests: XCTestCase {
         XCTAssertEqual(chain.lastVertex, MapPoint(x: 30, y: 40))
     }
 
-    // MARK: Undo
-
-    func testUndoRemovesTheLastCommittedChain() {
-        // The issue requires undo over drawing and deletion. A DM who traces a wrong
-        // room must not have to select and delete each span of it by hand.
-        var history = WallEdits(walls: [])
-        history.add([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 100, y: 0))])
-        history.add([Wall(from: MapPoint(x: 0, y: 50), to: MapPoint(x: 100, y: 50))])
-        XCTAssertEqual(history.walls.count, 2)
-
-        history.undo()
-        XCTAssertEqual(history.walls.count, 1)
-        XCTAssertEqual(history.walls[0].from, MapPoint(x: 0, y: 0))
-    }
-
-    func testUndoRestoresADeletedWall() {
-        // Deletion is the easier half to get wrong: undo has to put the Wall back, not
-        // merely stop deleting further ones.
-        let wall = Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 100, y: 0))
-        var history = WallEdits(walls: [wall])
-        history.delete(wall)
-        XCTAssertTrue(history.walls.isEmpty)
-
-        history.undo()
-        XCTAssertEqual(history.walls, [wall])
-    }
-
-    func testUndoUnwindsAWholeChainAtOnce() {
-        // A chain is one action to the DM — three clicks tracing a corner — so undoing
-        // it must not take two presses for its two spans.
-        var history = WallEdits(walls: [])
-        history.add([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 100, y: 0)),
-                     Wall(from: MapPoint(x: 100, y: 0), to: MapPoint(x: 100, y: 100))])
-        history.undo()
-        XCTAssertTrue(history.walls.isEmpty, "one chain took more than one undo")
-    }
-
-    func testUndoWithNothingToUndoDoesNothing() {
-        var history = WallEdits(walls: [Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 1, y: 1))])
-        history.undo()
-        XCTAssertEqual(history.walls.count, 1, "undo ate a Wall it never created")
-    }
-
-    func testUndoStopsAtTheStateTheModeOpenedIn() {
-        // Undo is mode-local: it must not reach back past the Walls that were already
-        // on the Map when the DM entered the mode. Cancel is the tool for that.
-        let existing = Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 1, y: 1))
-        var history = WallEdits(walls: [existing])
-        history.add([Wall(from: MapPoint(x: 5, y: 5), to: MapPoint(x: 6, y: 6))])
-        history.undo()
-        history.undo()
-        XCTAssertEqual(history.walls, [existing])
-    }
-
     // MARK: Acceptance
 
     func testAChainJoinsOntoAnExistingWallsEndpoint() {

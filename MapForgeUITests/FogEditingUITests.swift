@@ -5,7 +5,7 @@
 import XCTest
 import AppKit
 
-final class WallDrawingUITests: XCTestCase {
+final class FogEditingUITests: XCTestCase {
 
     override func setUp() {
         continueAfterFailure = false
@@ -35,20 +35,20 @@ final class WallDrawingUITests: XCTestCase {
         return app
     }
 
-    func testDrawWallsButtonEntersTheMode() throws {
+    func testEditFogButtonEntersTheMode() throws {
         let app = try launchApp()
-        let draw = app.buttons["Draw Walls…"]
-        XCTAssertTrue(draw.waitForExistence(timeout: 5), "Draw Walls… button not found")
+        let draw = app.buttons["Edit Fog…"]
+        XCTAssertTrue(draw.waitForExistence(timeout: 5), "Edit Fog… button not found")
         draw.click()
 
         // The mode's own controls replace the entry buttons.
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2), "did not enter Wall mode")
-        XCTAssertTrue(app.staticTexts["0 Walls"].exists, "Wall count not shown")
+        XCTAssertTrue(app.staticTexts["0 Walls, 0 Lights"].exists, "fog summary not shown")
     }
 
     func testClickingPlacesVerticesAndDoubleClickCommitsTheChain() throws {
         let app = try launchApp()
-        app.buttons["Draw Walls…"].click()
+        app.buttons["Edit Fog…"].click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
         let window = app.windows.firstMatch
@@ -64,24 +64,70 @@ final class WallDrawingUITests: XCTestCase {
         third.doubleClick()
 
         // Three vertices make two Walls. The count label is the observable outcome.
-        XCTAssertTrue(app.staticTexts["2 Walls"].waitForExistence(timeout: 2),
+        XCTAssertTrue(app.staticTexts["2 Walls, 0 Lights"].waitForExistence(timeout: 2),
                       "clicks did not become Walls")
     }
 
     func testCancelRestoresTheWallsFromBeforeTheMode() throws {
         let app = try launchApp()
-        app.buttons["Draw Walls…"].click()
+        app.buttons["Edit Fog…"].click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
         let window = app.windows.firstMatch
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.7)).click()
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)).click()
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)).doubleClick()
-        XCTAssertTrue(app.staticTexts["1 Wall"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["1 Wall, 0 Lights"].waitForExistence(timeout: 2))
 
         app.buttons["Cancel"].click()
-        app.buttons["Draw Walls…"].click()
-        XCTAssertTrue(app.staticTexts["0 Walls"].waitForExistence(timeout: 2),
+        app.buttons["Edit Fog…"].click()
+        XCTAssertTrue(app.staticTexts["0 Walls, 0 Lights"].waitForExistence(timeout: 2),
                       "Cancel did not discard the Walls drawn in the mode")
+    }
+
+    func testPlacingALightWithTheLightToolAndTogglingItLive() throws {
+        let app = try launchApp()
+        app.buttons["Edit Fog…"].click()
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
+
+        // Switch the tool: a click then places a Light, not a Wall vertex.
+        app.buttons["Lights"].click()
+        let window = app.windows.firstMatch
+        window.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.7)).click()
+        XCTAssertTrue(app.staticTexts["0 Walls, 1 Light"].waitForExistence(timeout: 2),
+                      "the click did not place a Light")
+
+        // The live toggle row is available outside the editing mode.
+        app.buttons["Done"].click()
+        let toggle = app.buttons["1"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 2), "no live toggle for the Light")
+        toggle.click()
+    }
+
+    /// Regression test for the reported zoom bug: "no zoom limit, and it resets to zoomed
+    /// out when reached". The cause was a GeometryReader measuring an unconstrained ZStack
+    /// that sized itself to the zoomed Image, so the preview overflowed the window instead
+    /// of zooming and snapped back when layout resettled.
+    ///
+    /// This is the seam that catches it — no unit test can, because the defect is SwiftUI
+    /// layout behaviour, not arithmetic.
+    func testZoomingInKeepsThePreviewInsideTheWindow() throws {
+        let app = try launchApp()
+        app.buttons["Edit Fog…"].click()
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
+
+        let window = app.windows.firstMatch
+        let windowFrame = window.frame
+
+        // Scroll well past the point where the image exceeds the preview.
+        let centre = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
+        for _ in 1...40 { centre.scroll(byDeltaX: 0, deltaY: 10) }
+
+        // The window must not have been resized by its own content, and the controls must
+        // still be there — an overflowing preview drew straight over them.
+        XCTAssertEqual(window.frame, windowFrame, "the preview resized the window")
+        XCTAssertTrue(app.buttons["Done"].isHittable,
+                      "the zoomed preview covered the mode controls")
+        XCTAssertTrue(app.buttons["Cancel"].isHittable)
     }
 }

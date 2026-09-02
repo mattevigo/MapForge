@@ -7,8 +7,19 @@ final class AppState: ObservableObject {
     @Published var mapImage: NSImage?
     @Published var mapURL: URL?
     @Published var squaresWide: Double = 30 {
-        didSet { presentIfPossible() }
+        didSet {
+            // Any change to the value is a declaration — typed, stepped, or derived by
+            // Grid Fit. The default 30 is a guess so the preview has something to show.
+            if squaresWide != oldValue { hasDeclaredGrid = true }
+            presentIfPossible()
+        }
     }
+    /// Whether the DM has actually declared this Map's Grid, as opposed to the default
+    /// 30 the app starts with. Light radii are in Grid squares, so an undeclared Grid
+    /// renders every Light at a plausible-looking wrong size — the failure issue 03's
+    /// scope section requires be visible rather than silent. Not persisted, because
+    /// `squaresWide` is not either.
+    @Published private(set) var hasDeclaredGrid = false
     /// Viewport origin in map inches; nil = centered (the default on map load).
     @Published var viewportOrigin: CGPoint? {
         didSet { presentIfPossible() }
@@ -88,11 +99,13 @@ final class AppState: ObservableObject {
         guard let idx = args.firstIndex(of: "--test-map"), args.indices.contains(idx + 1) else { return }
         let url = URL(fileURLWithPath: args[idx + 1])
         guard let image = NSImage(contentsOf: url) else { return }
+        loadMap(image: image, at: url)
+        // After loadMap, which clears the declaration for the incoming Map: a test that
+        // passes --test-squares has declared this Map's Grid.
         if let sIdx = args.firstIndex(of: "--test-squares"), args.indices.contains(sIdx + 1),
            let squares = Double(args[sIdx + 1]) {
             squaresWide = squares
         }
-        loadMap(image: image, at: url)
     }
 
     /// Every connected screen, built-in included: presenting on the built-in is how the
@@ -130,6 +143,9 @@ final class AppState: ObservableObject {
         mapURL = url
         mapImage = image
         viewportOrigin = nil
+        // A new Map has not had its Grid declared: `squaresWide` carries over from the
+        // last one, which is a plausible-looking wrong number for this one.
+        hasDeclaredGrid = false
         fog = fogStore.load(forMapAt: url) ?? FogDocument()
         fogLoadFailure = fogStore.lastLoadFailure
         presentIfPossible()
@@ -144,6 +160,18 @@ final class AppState: ObservableObject {
         } catch {
             NSLog("MapForge: could not save fog for \(url.lastPathComponent): \(error)")
         }
+    }
+
+    /// Switch a Light on or off from the live panel, outside the fog editing mode.
+    /// Takes effect immediately on the Player Display: this is the action a DM performs
+    /// mid-session with players watching.
+    ///
+    /// Takes the value rather than toggling, so a SwiftUI binding that writes the same
+    /// state twice — which it does on a state resync — cannot flip the Light twice.
+    func setLight(id: Light.ID, isOn: Bool) {
+        guard let index = fog.lights.firstIndex(where: { $0.id == id }),
+              fog.lights[index].isOn != isOn else { return }
+        fog.lights[index].isOn = isOn
     }
 
     /// Flush any pending fog edit. Called as the app terminates.
