@@ -174,6 +174,20 @@ final class AppState: ObservableObject {
         fog.lights[index].isOn = isOn
     }
 
+    /// A Pawn's light, from the live panel. Same contract as `setLight`.
+    func setPawnLight(id: Pawn.ID, isOn: Bool) {
+        guard let index = fog.pawns.firstIndex(where: { $0.id == id }),
+              fog.pawns[index].light.isOn != isOn else { return }
+        fog.pawns[index].light.isOn = isOn
+    }
+
+    /// Move a Pawn outside the fog editing mode — the live table action, since the party
+    /// moves during play and not during prep.
+    func movePawn(id: Pawn.ID, to point: MapPoint) {
+        guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
+        fog.pawns[index].at = point
+    }
+
     /// Flush any pending fog edit. Called as the app terminates.
     func flushPendingFogWrites() {
         fogAutosave.flush()

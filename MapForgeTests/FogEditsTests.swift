@@ -156,6 +156,79 @@ final class FogEditsTests: XCTestCase {
         XCTAssertTrue(edits.document.walls.isEmpty, "a later edit was not undoable")
     }
 
+    // MARK: Pawns
+
+    private var vex: Pawn { Pawn(at: MapPoint(x: 100, y: 100), label: "Vex",
+                                 colorHex: "#C81E1E", brightSquares: 6) }
+
+    func testPlacingAPawn() {
+        var edits = FogEdits(document: FogDocument())
+        edits.addPawn(vex)
+        XCTAssertEqual(edits.document.pawns.count, 1)
+        XCTAssertEqual(edits.document.pawns[0].label, "Vex")
+    }
+
+    func testAPawnKeepsItsIdentityWhenMoved() {
+        // The party moves constantly. A Pawn that changed identity on every drag would
+        // lose its selection and its place in the live toggle row.
+        var edits = FogEdits(document: FogDocument(pawns: [vex]))
+        let id = edits.document.pawns[0].id
+        edits.movePawn(id: id, to: MapPoint(x: 400, y: 400))
+
+        XCTAssertEqual(edits.document.pawns[0].id, id)
+        XCTAssertEqual(edits.document.pawns[0].at, MapPoint(x: 400, y: 400))
+        XCTAssertEqual(edits.document.pawns[0].label, "Vex")
+    }
+
+    func testRenamingAndRecolouringAPawn() {
+        var edits = FogEdits(document: FogDocument(pawns: [vex]))
+        let id = edits.document.pawns[0].id
+        edits.setPawnLabel(id: id, "Grog")
+        edits.setPawnColor(id: id, hex: "#1E88C8")
+
+        XCTAssertEqual(edits.document.pawns[0].label, "Grog")
+        XCTAssertEqual(edits.document.pawns[0].colorHex, "#1E88C8")
+    }
+
+    func testDeletingAPawn() {
+        var edits = FogEdits(document: FogDocument(pawns: [vex]))
+        edits.deletePawn(id: edits.document.pawns[0].id)
+        XCTAssertTrue(edits.document.pawns.isEmpty)
+    }
+
+    func testAPawnsLightTogglesLikeAnyOther() {
+        // A character who puts out their torch keeps their token on the Map.
+        var edits = FogEdits(document: FogDocument(pawns: [vex]))
+        let id = edits.document.pawns[0].id
+        edits.togglePawnLight(id: id)
+
+        XCTAssertFalse(edits.document.pawns[0].light.isOn)
+        XCTAssertEqual(edits.document.pawns.count, 1, "the Pawn vanished with its light")
+    }
+
+    func testSettingAPawnsRange() {
+        var edits = FogEdits(document: FogDocument(pawns: [vex]))
+        let id = edits.document.pawns[0].id
+        edits.setPawnRange(id: id, brightSquares: 8, dimSquares: 12)
+        XCTAssertEqual(edits.document.pawns[0].light.brightSquares, 8)
+        XCTAssertEqual(edits.document.pawns[0].light.dimSquares, 12)
+    }
+
+    func testDraggingAPawnIsOneUndoStep() {
+        // Dragging is a live table action emitting a position per frame.
+        var edits = FogEdits(document: FogDocument(pawns: [vex]))
+        let id = edits.document.pawns[0].id
+        edits.beginPawnDrag()
+        for x in stride(from: 110.0, through: 400.0, by: 10.0) {
+            edits.movePawn(id: id, to: MapPoint(x: x, y: 100))
+        }
+        edits.endPawnDrag()
+
+        edits.undo()
+        XCTAssertEqual(edits.document.pawns[0].at, MapPoint(x: 100, y: 100),
+                       "a Pawn drag took more than one undo")
+    }
+
     // MARK: Wall undo — restored from WallChainTests when WallEdits became FogEdits
 
     func testUndoUnwindsAWholeChainAtOnce() {
@@ -199,6 +272,48 @@ final class FogEditsTests: XCTestCase {
     }
 
     // MARK: Acceptance
+
+    func testAPawnDraggedThroughADoorwayLightsTheNextRoomProgressively() {
+        // Issue 04's acceptance criterion. A Pawn approaches a doorway and the room beyond
+        // opens up as it goes: not all at once, and not only once it is through.
+        //
+        // Measured as lit *area* across the far room, not one point — a point on the
+        // doorway's centre line is visible from the very start (that is what a doorway is),
+        // so a single probe would say nothing about the wedge widening.
+        let walls = [Wall(from: MapPoint(x: -300, y: 0), to: MapPoint(x: -20, y: 0)),
+                     Wall(from: MapPoint(x: 20, y: 0), to: MapPoint(x: 300, y: 0))]
+        var pawn = Pawn(at: .init(x: 0, y: 0), label: "Vex", colorHex: "#C81E1E",
+                        brightSquares: 6)
+
+        /// How many probe points across the far room are lit from `y`.
+        func litCount(fromY y: CGFloat) -> Int {
+            pawn.at = MapPoint(x: 0, y: y)
+            let regions = Visibility.compute(walls: walls, lights: [pawn.light],
+                                             pixelsPerSquare: 30)
+            return stride(from: -250.0, through: 250.0, by: 10.0).count { x in
+                Visibility.level(at: MapPoint(x: x, y: 60), in: regions) != .unlit
+            }
+        }
+
+        let far = litCount(fromY: -150)
+        let atDoor = litCount(fromY: -30)
+        let through = litCount(fromY: 30)
+
+        XCTAssertGreaterThan(atDoor, far, "the wedge did not widen as the Pawn approached")
+        XCTAssertGreaterThan(through, atDoor, "the room did not open up once through the doorway")
+    }
+
+    func testAPawnStillExistsWhenItsLightIsOff() {
+        // "With the Fog Overlay off, the same Pawn is still visible to players as a
+        // labelled coloured token." The model half of that: the token is not the light.
+        var edits = FogEdits(document: FogDocument(pawns: [vex]))
+        edits.togglePawnLight(id: edits.document.pawns[0].id)
+
+        XCTAssertEqual(edits.document.pawns.count, 1)
+        XCTAssertEqual(edits.document.pawns[0].label, "Vex")
+        XCTAssertEqual(edits.document.pawns[0].colorHex, "#C81E1E")
+    }
+
 
     func testATorchLightsFourGridSquares() {
         // Issue 03's acceptance criterion: a torch at 20 ft bright is 4 Grid squares

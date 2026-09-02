@@ -6,12 +6,13 @@ import SwiftUI
 /// the room they traced to know the room works, and the Control Window's top row should
 /// not grow a button per fog concept.
 enum FogTool: CaseIterable, Hashable {
-    case walls, lights
+    case walls, lights, pawns
 
     var label: String {
         switch self {
         case .walls: "Walls"
         case .lights: "Lights"
+        case .pawns: "Pawns"
         }
     }
 
@@ -21,6 +22,8 @@ enum FogTool: CaseIterable, Hashable {
             "Click to place Wall corners, double-click to end a chain, Esc to cancel it. ⇧ frees the angle; click a Wall then ⌫ to delete. Scroll to zoom, ⌥-drag to pan."
         case .lights:
             "Click to place a Light, drag one to move it. Click a Light then ⌫ to delete; radii are set below. Scroll to zoom, ⌥-drag to pan."
+        case .pawns:
+            "Click to place a Pawn, drag one to move it — dragging works outside this mode too. Click a Pawn then ⌫ to delete; label, colour and range are set below."
         }
     }
 }
@@ -40,16 +43,19 @@ struct FogOverlay: View {
     /// Bound out to the Control Window, which shows the selected Light's radii beside the
     /// preview — there is no room for a numeric editor inside the overlay itself.
     @Binding var selectedLight: Light.ID?
+    @Binding var selectedPawn: Pawn.ID?
     let onChange: () -> Void
     let onTransform: (PreviewTransform) -> Void
 
     private var walls: [Wall] { edits.document.walls }
     private var lights: [Light] { edits.document.lights }
+    private var pawns: [Pawn] { edits.document.pawns }
 
     @State private var chain = WallChain()
     @State private var cursor: CGPoint?
     @State private var selectedWall: Wall.ID?
     @State private var lightDragStart: MapPoint?
+    @State private var pawnDragStart: MapPoint?
     @State private var panStart: PreviewTransform?
     @State private var pinchStart: PreviewTransform?
     /// Escapes the angle constraint, which is otherwise held: most Walls on a battle map
@@ -93,6 +99,7 @@ struct FogOverlay: View {
 
             wallShapes
             lightMarkers
+            pawnMarkers
             chainInProgress
             snapIndicator
         }
@@ -175,6 +182,50 @@ struct FogOverlay: View {
             .onEnded { _ in
                 lightDragStart = nil
                 edits.endLightDrag()
+                onChange()
+            }
+    }
+
+    /// Every Pawn, whatever the tool — a Pawn is a token first and a Light second, so it
+    /// is drawn even with the Fog Overlay off. Draggable only with the Pawn tool here;
+    /// `PawnLayer` handles dragging outside the mode, where the party actually moves.
+    private var pawnMarkers: some View {
+        ForEach(pawns) { pawn in
+            let p = viewPoint(pawn.at)
+            PawnToken(pawn: pawn, diameter: pawnDiameter,
+                      isSelected: pawn.id == selectedPawn)
+                .position(x: p.x, y: p.y)
+                .gesture(pawnDragGesture(pawn))
+                .allowsHitTesting(tool == .pawns)
+        }
+    }
+
+    /// A token reads as occupying its Grid square, so it is sized in squares — falling
+    /// back to a fixed size when no Grid has been declared.
+    private var pawnDiameter: CGFloat {
+        guard let grid = gridPixels else { return 18 }
+        return max(10, grid * transform.scale)
+    }
+
+    private func pawnDragGesture(_ pawn: Pawn) -> some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.coordinateSpace))
+            .onChanged { value in
+                if pawnDragStart == nil {
+                    pawnDragStart = pawn.at
+                    selectedPawn = pawn.id
+                    selectedLight = nil
+                    selectedWall = nil
+                    edits.beginPawnDrag()
+                }
+                guard let start = pawnDragStart, value.translation != .zero else { return }
+                edits.movePawn(id: pawn.id,
+                               to: MapPoint(x: start.x + value.translation.width / transform.scale,
+                                            y: start.y + value.translation.height / transform.scale))
+                onChange()
+            }
+            .onEnded { _ in
+                pawnDragStart = nil
+                edits.endPawnDrag()
                 onChange()
             }
     }
@@ -276,6 +327,16 @@ struct FogOverlay: View {
         case .walls:
             selectedWall = nil
             chain.place(resolve(viewPoint: location).point)
+        case .pawns:
+            selectedPawn = nil
+            // Free-form, not snapped: the issue says so explicitly.
+            let point = MapPoint(transform.imagePoint(from: location))
+            let previous = pawns.last
+            edits.addPawn(Pawn(at: point,
+                               label: "\(pawns.count + 1)",
+                               colorHex: previous?.colorHex ?? Pawn.defaultColorHex,
+                               brightSquares: previous?.light.brightSquares ?? 6))
+            onChange()
         case .lights:
             selectedLight = nil
             let point = MapPoint(transform.imagePoint(from: location))
@@ -312,6 +373,12 @@ struct FogOverlay: View {
         if let id = selectedLight {
             edits.deleteLight(id: id)
             selectedLight = nil
+            onChange()
+            return .handled
+        }
+        if let id = selectedPawn {
+            edits.deletePawn(id: id)
+            selectedPawn = nil
             onChange()
             return .handled
         }
