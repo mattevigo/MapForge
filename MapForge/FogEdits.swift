@@ -116,6 +116,18 @@ struct FogEdits {
         editPawn(id) { $0.colorHex = hex }
     }
 
+    /// Set a Pawn's sight, carrying its dim radius with it at the 5e ratio.
+    ///
+    /// The inspector offers one number, and a Pawn's two radii are derived from it —
+    /// `Pawn.init` defaults dim to twice bright for exactly that reason. Writing bright
+    /// alone left dim at twice whatever the Pawn was *first* created with, so the outer
+    /// circle sat there looking fixed and unrelated to the number being typed. Use
+    /// `setPawnRange` where the two are genuinely independent.
+    mutating func setPawnSight(id: Pawn.ID, squares: CGFloat) {
+        let bright = max(0, squares)
+        setPawnRange(id: id, brightSquares: bright, dimSquares: bright * 2)
+    }
+
     mutating func setPawnRange(id: Pawn.ID, brightSquares: CGFloat, dimSquares: CGFloat) {
         editPawn(id) {
             $0.light.brightSquares = max(0, brightSquares)

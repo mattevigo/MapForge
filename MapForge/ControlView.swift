@@ -409,14 +409,17 @@ struct ControlView: View {
                 TextField("range", value: Binding(
                     get: { Double(pawn.light.brightSquares) },
                     set: {
-                        fogEdits.setPawnRange(id: pawn.id, brightSquares: CGFloat($0),
-                                              dimSquares: pawn.light.dimSquares)
+                        fogEdits.setPawnSight(id: pawn.id, squares: CGFloat($0))
                         applyFogEdits()
                     }
                 ), format: .number)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 52)
-                Text("squares").foregroundStyle(.secondary)
+                // Naming the dim radius rather than leaving a second, larger circle on the
+                // Map with nothing in the UI to explain it — it looked fixed and unrelated
+                // to the number being typed.
+                Text("squares, dim to \(Int(pawn.light.dimSquares))")
+                    .foregroundStyle(.secondary)
             }
             .font(.callout)
         }
