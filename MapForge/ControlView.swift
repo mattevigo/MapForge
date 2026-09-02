@@ -8,6 +8,10 @@ struct ControlView: View {
     @State private var mode: PreviewMode = .normal
     @State private var fitSquare: GridFitSquare?
     @State private var squaresWideBeforeFit: Double = 0
+    /// Whether the Grid was already declared when Grid Fit started. Entering Grid Fit
+    /// declares one as a side effect of moving the value, so cancelling has to put back
+    /// the claim as well as the number.
+    @State private var hadDeclaredGridBeforeFit = false
     @State private var viewportOriginBeforePan: CGPoint?
     /// Grid Fit's preview zoom/pan. Mode-local view state, not part of the Map — it is
     /// reset to fit-to-window on entering the mode.
@@ -333,6 +337,7 @@ struct ControlView: View {
 
     private func startGridFit() {
         squaresWideBeforeFit = appState.squaresWide
+        hadDeclaredGridBeforeFit = appState.hasDeclaredGrid
         fitSquare = nil
         // Open on the whole map: the zoomed-out view is the orientation step, and zoom
         // is opt-in for the precision moment.
@@ -347,7 +352,8 @@ struct ControlView: View {
     }
 
     private func cancelGridFit() {
-        appState.squaresWide = squaresWideBeforeFit
+        appState.restoreGrid(squaresWide: squaresWideBeforeFit,
+                             wasDeclared: hadDeclaredGridBeforeFit)
         endGridFit()
     }
 

@@ -117,6 +117,48 @@ final class AppStateFogTests: XCTestCase {
         XCTAssertFalse(appState.hasDeclaredGrid, "the new Map inherited a Grid declaration")
     }
 
+    func testDeclaringAGridThatMatchesTheDefaultStillCounts() throws {
+        // The default is a guess, not a declaration — but a DM whose Map really is 30
+        // squares wide types 30, and the value never changes. Keying the declaration on
+        // `didSet` firing means their Lights stay dark and the warning never clears, with
+        // the app telling them to do the one thing they just did.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        appState.squaresWide = 30
+        XCTAssertTrue(appState.hasDeclaredGrid,
+                      "typing the default value did not declare the Grid")
+    }
+
+    func testALightLitsSomethingOnceTheGridMatchesTheDefault() throws {
+        // The symptom the DM reports: overlay on, Light placed, nothing illuminated.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        appState.fog.lights = [Light(at: MapPoint(x: 20, y: 15), brightSquares: 4)]
+        appState.squaresWide = 30
+
+        XCTAssertFalse(appState.litRegions.isEmpty,
+                       "a Light on a 30-square Map illuminated nothing")
+    }
+
+    func testRestoringAGridDoesNotDeclareOneTheDMNeverChose() throws {
+        // Cancelling Grid Fit puts back the number that was there before. Entering the
+        // mode moves the value, which declares — so cancel has to put back the claim too,
+        // or backing out of Grid Fit leaves the app asserting a Grid nobody set.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        XCTAssertFalse(appState.hasDeclaredGrid, "precondition: a fresh Map has no Grid")
+
+        appState.squaresWide = 42          // as Grid Fit does while dragging
+        appState.restoreGrid(squaresWide: 30, wasDeclared: false)
+
+        XCTAssertEqual(appState.squaresWide, 30)
+        XCTAssertFalse(appState.hasDeclaredGrid,
+                       "cancelling Grid Fit left a Grid declaration behind")
+    }
+
     // MARK: Live light toggling
 
     func testSettingALightStateIsIdempotent() throws {
