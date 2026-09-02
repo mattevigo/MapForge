@@ -1,6 +1,6 @@
 # MapForge v2 — Fog of War
 
-Status: ready-for-agent
+Status: implemented — needs a human pass on real hardware
 
 Walls, Lights and Pawns authored on a Map at prep time; a Fog Overlay on the Player Display showing the resulting darkness, toggled and adjusted live at the table.
 
@@ -52,3 +52,11 @@ Out: doors (a Wall that toggles passable — cheap to add later on this model), 
 ## Context
 
 The `map-presenter` tracker is closed out. Issues 02–07 are `wontfix`: there is no Library, no Calibration, no Blackout, no rotation, and no persistence beyond two `UserDefaults` strings. This feature is large relative to the app it lands on, and adds the first user-authored data the app has ever saved.
+
+## Status, 2026-09-02
+
+All six issues implemented and merged to `develop`. 203 unit tests.
+
+**Not verified anywhere in this effort**: the `MapForgeUITests` target hangs in the environment the feature was built in, on `develop` as well as on every feature branch, so its ten UI tests have never run. That matters more here than the count suggests — three separate defects found during the work (two gesture-composition bugs and a hit-testing one that made a whole layer dead) lived in exactly the layer those tests cover and that no unit test can reach. Running them is the first thing worth doing.
+
+Also unverified on real hardware: True Scale against a ruler with the overlay active, and whether the DM's tint is readable on an actual Control Window rather than in theory.

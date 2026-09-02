@@ -2,6 +2,8 @@
 
 Presents DnD Maps on an HDMI-attached Player Display at True Scale (1 map inch = 1 physical inch), controlled from a Control Window on the Mac's own display.
 
+Fog of War: trace Walls, place Lights and Pawns, and the Player Display shows the darkness they imply — while the Control Window keeps the whole Map visible to the DM.
+
 Vocabulary: [CONTEXT.md](CONTEXT.md) · Decisions: [docs/adr/](docs/adr/) · Specs: `.scratch/map-presenter/spec.md`, `.scratch/fog-of-war/spec.md`
 
 ## Building
