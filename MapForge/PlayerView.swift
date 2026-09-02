@@ -26,6 +26,14 @@ struct PlayerView: View {
                         .frame(width: frame.width, height: frame.height)
                         .position(x: frame.midX, y: frame.midY)
 
+                    // Darkness over the Map, under the Pawns: a token stays visible in an
+                    // unlit room, because turning fog on is not turning tokens off.
+                    if appState.isFogOverlayOn {
+                        FogCanvas(regions: appState.litRegions, map: map, frame: frame) {
+                            FogShading.player($0)
+                        }
+                    }
+
                     // Sized in Grid squares, so a token reads as occupying its square at
                     // True Scale — the same physical size as the miniature would be.
                     let side = PlayerPlacement.squareSidePoints(map: map, frame: frame)

@@ -42,6 +42,9 @@ final class AppState: ObservableObject {
     private let playerWindow = PlayerWindowController()
     private let preferences: DisplayPreferences
     private let fogStore: FogStore
+    /// Recomputes Visibility only when the fog actually changes — never on a Viewport pan,
+    /// which is drag-rate. See issue 05 and `VisibilityCache`.
+    private let visibilityCache = VisibilityCache()
     private var fogAutosave: FogAutosave!
     private var screenObserver: NSObjectProtocol?
     private var closeObserver: NSObjectProtocol?
@@ -172,6 +175,23 @@ final class AppState: ObservableObject {
         guard let index = fog.lights.firstIndex(where: { $0.id == id }),
               fog.lights[index].isOn != isOn else { return }
         fog.lights[index].isOn = isOn
+    }
+
+    /// Whether players see the Fog Overlay. Off leaves the Map fully visible — with the
+    /// Pawns still on it, because turning off fog is not turning off tokens.
+    @Published var isFogOverlayOn = true
+
+    /// The lit regions for the current Map, cached against the fog and the Grid.
+    ///
+    /// Returns nothing when no Grid has been declared: Light radii are in Grid squares, so
+    /// without one every region would be sized against a default that is almost certainly
+    /// wrong — and darkness in the wrong places is worse than no darkness. The Control
+    /// Window says so (see `undeclaredGridWarning`).
+    var litRegions: [LitRegion] {
+        guard hasDeclaredGrid, let image = mapImage, squaresWide > 0 else { return [] }
+        let pixelsPerSquare = image.pixelSize.width / CGFloat(squaresWide)
+        return visibilityCache.regions(for: fog, imagePixelSize: image.pixelSize,
+                                       pixelsPerSquare: pixelsPerSquare)
     }
 
     /// A Pawn's light, from the live panel. Same contract as `setLight`.

@@ -156,4 +156,21 @@ final class FogEditingUITests: XCTestCase {
         app.buttons["Edit Fog…"].click()
         XCTAssertTrue(app.staticTexts["0 Walls, 0 Lights, 1 Pawn"].waitForExistence(timeout: 2))
     }
+
+    func testTheFogOverlayHasAnAlwaysReachableOffSwitch() throws {
+        // "The off switch is a single control" — no mode to enter, nothing to open first.
+        let app = try launchApp()
+        app.buttons["Edit Fog…"].click()
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
+
+        // Place something so the fog row appears.
+        app.buttons["Lights"].click()
+        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.7)).click()
+        app.buttons["Done"].click()
+
+        let fog = app.switches["Fog"]
+        XCTAssertTrue(fog.waitForExistence(timeout: 2), "no Fog Overlay switch outside the mode")
+        fog.click()
+        XCTAssertTrue(fog.isHittable, "the switch vanished after being used")
+    }
 }

@@ -142,6 +142,19 @@ struct ControlView: View {
                     }
                     .frame(width: visible.width, height: visible.height)
                     .overlay {
+                        // The DM's view of the same Visibility: a tint they can read
+                        // through, over a Map that stays fully lit. Weaker than the
+                        // players' darkness by design — a DM as blind as the players
+                        // cannot run the game.
+                        FogCanvas(regions: appState.litRegions,
+                                  map: map,
+                                  frame: CGRect(x: frame.minX - visible.minX,
+                                                y: frame.minY - visible.minY,
+                                                width: frame.width, height: frame.height)) {
+                            FogShading.control($0, isOverlayOn: appState.isFogOverlayOn)
+                        }
+                    }
+                    .overlay {
                         // Dragging a Pawn is a LIVE action — the party moves during play,
                         // not during prep — so it works on the normal mirror, outside the
                         // fog editing mode entirely.
@@ -431,9 +444,15 @@ struct ControlView: View {
     /// it must be one click with nothing to open first.
     @ViewBuilder
     private var lightToggles: some View {
-        if !appState.fog.lights.isEmpty || !appState.fog.pawns.isEmpty {
+        if !appState.fog.walls.isEmpty || !appState.fog.lights.isEmpty
+            || !appState.fog.pawns.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
+                    // The off switch: one control, always reachable, no mode to enter.
+                    Toggle("Fog", isOn: $appState.isFogOverlayOn)
+                        .toggleStyle(.switch)
+                        .help("Hide or reveal the Fog Overlay on the Player Display. Pawns stay visible either way.")
+                    Divider().frame(height: 16)
                     Text("Lights:").foregroundStyle(.secondary)
                     ForEach(Array(appState.fog.lights.enumerated()), id: \.element.id) { index, light in
                         Toggle(isOn: Binding(
