@@ -32,6 +32,16 @@ enum FogShading {
         }
     }
 
+    /// The `.destinationOut` alpha that lifts darkness from `current` down to `target`.
+    ///
+    /// `.destinationOut` multiplies — `dst * (1 - alpha)` — so this is the fraction of the
+    /// existing darkness to remove, not an absolute level. Zero when there is nothing to
+    /// remove, so a target above the current darkness is a no-op rather than a brightening.
+    static func removalAlpha(from current: CGFloat, to target: CGFloat) -> CGFloat {
+        guard current > 0, target < current else { return 0 }
+        return (current - target) / current
+    }
+
     /// The gradient at a Light's range limit: full strength through the middle, reaching
     /// zero exactly at the rim, so a torch fades out instead of ending in a suspicious
     /// circle. Wall shadow edges stay hard — a visibility polygon has no penumbra, and

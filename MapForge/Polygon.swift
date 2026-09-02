@@ -29,6 +29,12 @@ struct Polygon: Equatable {
         })
     }
 
+    /// The furthest any vertex sits from `origin` — the Light's reach in this direction
+    /// set, which is where its range gradient must fade to nothing.
+    func radiusFrom(_ origin: MapPoint) -> CGFloat {
+        vertices.reduce(0) { max($0, hypot($1.x - origin.x, $1.y - origin.y)) }
+    }
+
     /// Whether `point` lies inside, by the even-odd ray-crossing rule.
     ///
     /// A point exactly on an edge is deliberately unspecified: callers ask about interiors,

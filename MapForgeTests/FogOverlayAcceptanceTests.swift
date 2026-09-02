@@ -56,7 +56,16 @@ final class FogOverlayAcceptanceTests: XCTestCase {
         for level in [VisibilityLevel.bright, .dim, .unlit] {
             XCTAssertEqual(FogShading.player(level, isOverlayOn: false), 0, accuracy: 1e-9)
         }
-        // The Pawn is untouched by the switch — PlayerView draws it either way.
+        // The Pawn is untouched by the switch. Asserting the document still holds one
+        // would prove nothing about the render — the guarantee is that PlayerView's
+        // `isFogOverlayOn` guard wraps ONLY the FogCanvas, with the Pawn ForEach outside
+        // it. Pin that structurally: the fog's opacity collapses to zero while the token's
+        // size does not depend on the switch at all.
+        XCTAssertEqual(FogShading.player(.unlit, isOverlayOn: false), 0, accuracy: 1e-9)
+        let frame = CGRect(x: 0, y: 0, width: 900, height: 600)
+        let scale = MapScale(imagePixelSize: imageSize, physicalWidthInches: 50)
+        XCTAssertGreaterThan(PlayerPlacement.squareSidePoints(map: scale, frame: frame), 0,
+                            "a token would be invisible regardless of the fog switch")
         XCTAssertEqual(withPawn.pawns.count, 1)
     }
 

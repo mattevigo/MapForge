@@ -36,7 +36,11 @@ struct PlayerView: View {
 
                     // Sized in Grid squares, so a token reads as occupying its square at
                     // True Scale — the same physical size as the miniature would be.
-                    let side = PlayerPlacement.squareSidePoints(map: map, frame: frame)
+                    // Floored, as both Control Window surfaces are: a Map with no declared
+                    // physical size yields a zero-width square, and an invisible token is
+                    // worse than an approximately-sized one — the Pawn must render
+                    // regardless of the fog's state.
+                    let side = max(PlayerPlacement.squareSidePoints(map: map, frame: frame), 12)
                     ForEach(appState.fog.pawns) { pawn in
                         let p = PlayerPlacement.viewPoint(pawn.at, map: map, frame: frame)
                         PawnToken(pawn: pawn, diameter: side)

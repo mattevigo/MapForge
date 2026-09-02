@@ -38,3 +38,9 @@ Acceptance: with a torch inside a traced room, players see the room lit, the doo
   Two of my acceptance assertions were wrong before the code was: one probed a point exactly on a Light's rim, where lit-or-not is a coin flip, and one rebuilt its `FogDocument` on every access so fresh UUIDs defeated the cache it was meant to be testing. Both are the same trap — asserting on a boundary — and both are noted in the tests now.
 
   Not verified: the UI tests still could not run here.
+
+- 2026-09-02 (review): two real rendering defects, both of which the reviews and I found independently.
+
+  **The range gradient was dead code.** `FogShading.falloffOpacity` was written, documented and tested — and nothing drew with it, so every torch ended in exactly the hard circle the issue forbids. Tests that exercise a pure function no renderer calls cannot fail when the rendering is wrong. `LitRegion` now carries the Light's origin so `FogCanvas` can shade each band with a radial gradient.
+
+  **Overlapping regions double-subtracted.** `.destinationOut` multiplies, so two overlapping dim polygons filled at the same alpha left the overlap *brighter* than either alone — a visible seam precisely where two torches meet, the inverse of the failure issue 05's case list warned about. Each band now fills at full strength with the removal alpha applied once to the layer.

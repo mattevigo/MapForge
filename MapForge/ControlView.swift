@@ -139,6 +139,13 @@ struct ControlView: View {
                             .resizable()
                             .frame(width: frame.width, height: frame.height)
                             .position(x: frame.midX - visible.minX, y: frame.midY - visible.minY)
+                            // .clipped() below masks drawing only: this Image still owns
+                            // its full, overflowing frame for hit-testing and would
+                            // swallow clicks on the controls above. Disabled HERE rather
+                            // than on the container, which would also disable the Pawn
+                            // dragging overlaid on it — that is the live table action and
+                            // the whole reason PawnLayer exists.
+                            .allowsHitTesting(false)
                     }
                     .frame(width: visible.width, height: visible.height)
                     .overlay {
@@ -167,11 +174,6 @@ struct ControlView: View {
                                   onCommit: { appState.flushPendingFogWrites() })
                     }
                     .clipped()
-                    // .clipped() masks drawing only: the overflowing Image still owns
-                    // its full frame for hit-testing and would swallow clicks on the
-                    // controls above. The mirror is pure display — take it out of
-                    // hit-testing entirely.
-                    .allowsHitTesting(false)
                     .position(x: visible.midX, y: visible.midY)
                 } else {
                     // Only Grid Fit carries a zoom; every other use of this branch is the

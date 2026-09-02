@@ -105,28 +105,30 @@ struct FogEdits {
     /// Move a Pawn, keeping its identity — the party moves constantly, and a Pawn that
     /// changed identity per drag would lose its selection and its row in the live panel.
     mutating func movePawn(id: Pawn.ID, to point: MapPoint) {
-        guard let index = document.pawns.firstIndex(where: { $0.id == id }) else { return }
-        record()
-        document.pawns[index].at = point
+        editPawn(id) { $0.at = point }
     }
 
     mutating func setPawnLabel(id: Pawn.ID, _ label: String) {
-        guard let index = document.pawns.firstIndex(where: { $0.id == id }) else { return }
-        record()
-        document.pawns[index].label = label
+        editPawn(id) { $0.label = label }
     }
 
     mutating func setPawnColor(id: Pawn.ID, hex: String) {
-        guard let index = document.pawns.firstIndex(where: { $0.id == id }) else { return }
-        record()
-        document.pawns[index].colorHex = hex
+        editPawn(id) { $0.colorHex = hex }
     }
 
     mutating func setPawnRange(id: Pawn.ID, brightSquares: CGFloat, dimSquares: CGFloat) {
+        editPawn(id) {
+            $0.light.brightSquares = max(0, brightSquares)
+            $0.light.dimSquares = max(0, dimSquares)
+        }
+    }
+
+    /// One undoable edit to one Pawn. Every mutation routes through here so the
+    /// find-record-mutate sequence exists once rather than per property.
+    private mutating func editPawn(_ id: Pawn.ID, _ change: (inout Pawn) -> Void) {
         guard let index = document.pawns.firstIndex(where: { $0.id == id }) else { return }
         record()
-        document.pawns[index].light.brightSquares = max(0, brightSquares)
-        document.pawns[index].light.dimSquares = max(0, dimSquares)
+        change(&document.pawns[index])
     }
 
     /// Not undoable, for the same reason a Light's toggle is not: it is a live

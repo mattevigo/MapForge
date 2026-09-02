@@ -30,27 +30,53 @@ struct FogCanvas: View {
             // Dim first, then bright over it: bright anywhere beats dim anywhere, matching
             // `Visibility.level`. Drawing them the other way round would leave a dim patch
             // where two torches overlap.
-            subtract(regions.map(\.dim), from: &context, to: opacity(.dim), of: unlit)
-            subtract(regions.map(\.bright), from: &context, to: opacity(.bright), of: unlit)
+            subtract(regions, band: \.dim, from: &context, to: opacity(.dim), of: unlit)
+            subtract(regions, band: \.bright, from: &context, to: opacity(.bright), of: unlit)
         }
         .allowsHitTesting(false)
     }
 
     /// Lift the darkness over `polygons` from `unlit` down to `target`.
     ///
-    /// `.destinationOut` removes rather than paints, so an alpha of 1 clears completely and
-    /// a partial alpha thins the darkness to exactly the level wanted — no second pass and
-    /// no double-darkening where polygons overlap.
-    private func subtract(_ polygons: [Polygon], from context: inout GraphicsContext,
+    /// The layer's polygons are filled at FULL strength and the removal alpha applied once,
+    /// to the layer as a whole. Filling each polygon at the alpha instead would subtract
+    /// twice wherever two overlapped — `.destinationOut` multiplies — leaving the overlap
+    /// *brighter* than either region alone. That is a visible seam exactly where two
+    /// torches meet, which is the case issue 05's list called out.
+    private func subtract(_ regions: [LitRegion], band: KeyPath<LitRegion, Polygon>,
+                          from context: inout GraphicsContext,
                           to target: CGFloat, of unlit: CGFloat) {
-        guard unlit > 0, target < unlit else { return }
-        let removal = (unlit - target) / unlit
+        let removal = FogShading.removalAlpha(from: unlit, to: target)
+        guard removal > 0 else { return }
         context.drawLayer { layer in
+            layer.opacity = removal
             layer.blendMode = .destinationOut
-            for polygon in polygons where !polygon.isEmpty {
-                layer.fill(path(polygon), with: .color(.black.opacity(removal)))
+            for region in regions {
+                let polygon = region[keyPath: band]
+                guard !polygon.isEmpty else { continue }
+                // A radial gradient across the polygon, opaque through the middle and
+                // fading to nothing at the rim, so a torch fades out instead of ending in
+                // a suspicious circle. The polygon's own edges stay hard — those are Wall
+                // shadows, and blurring them makes "can I see round that corner" ambiguous.
+                layer.fill(path(polygon), with: falloffShading(for: region, band: band))
             }
         }
+    }
+
+    /// Full strength through the middle of a Light, fading to clear exactly at its rim.
+    private func falloffShading(for region: LitRegion,
+                                band: KeyPath<LitRegion, Polygon>) -> GraphicsContext.Shading {
+        let centre = PlayerPlacement.viewPoint(region.origin, map: map, frame: frame)
+        let rim = region[keyPath: band].radiusFrom(region.origin)
+        let radius = rim / max(map.imagePixelSize.width, 1) * frame.width
+        guard radius > 0 else { return .color(.black) }
+
+        let stops = stride(from: 0.0, through: 1.0, by: 0.05).map { fraction in
+            Gradient.Stop(color: .black.opacity(FogShading.falloffOpacity(atFractionOfRadius: fraction)),
+                          location: fraction)
+        }
+        return .radialGradient(Gradient(stops: stops), center: centre,
+                               startRadius: 0, endRadius: radius)
     }
 
     /// One polygon, in image pixels, mapped onto this surface.

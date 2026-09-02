@@ -37,3 +37,7 @@ Acceptance: a Pawn with a 30 ft range, dragged across a doorway, lights the next
   The acceptance test measures lit *area* across the far room, not one point. My first attempt probed a single point on the doorway's centre line, which is visible from the very start — that is what a doorway is — so it failed against correct behaviour. The engine was right and the test was wrong.
 
   Not verified: the UI tests still could not run — `MapForgeUITests` hangs in this environment.
+
+- 2026-09-02 (review): the standards axis found `PawnLayer` **entirely dead**. Its two `.overlay{}` calls were applied above the mirror's existing `.allowsHitTesting(false)`, which propagates to the whole subtree — so the live drag, the one thing this layer exists for, could never receive an event. The disable now sits on the overflowing `Image` itself, which is what its comment was always describing; a test pins the invariant that makes that safe (the mirror's container never exceeds its preview, so it cannot swallow clicks on the controls above — the `map-presenter/09` regression).
+
+  Also: the Player Display's token had no size floor, so a Map with no declared physical size drew invisible Pawns; both Control Window surfaces already clamped. And `CONTEXT.md` now records that moving a Pawn during play is not undoable while moving one while authoring is — two deliberate write paths that were otherwise only visible in the code.

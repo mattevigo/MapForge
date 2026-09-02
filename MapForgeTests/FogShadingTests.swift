@@ -79,4 +79,33 @@ final class FogShadingTests: XCTestCase {
             previous = value
         }
     }
+
+    // MARK: Compositing
+
+    func testTwoOverlappingRegionsDoNotSubtractTwice() {
+        // `.destinationOut` multiplies: darkness * (1 - alpha) per fill. Two overlapping
+        // dim polygons at the same alpha would leave the overlap BRIGHTER than either
+        // alone — a visible seam where two torches meet, which is the inverse of the
+        // failure issue 05's case list warned about.
+        let unlit = FogShading.player(.unlit)
+        let dim = FogShading.player(.dim)
+        let alpha = FogShading.removalAlpha(from: unlit, to: dim)
+
+        let once = unlit * (1 - alpha)
+        XCTAssertEqual(once, dim, accuracy: 1e-9, "one region did not reach the dim level")
+
+        // Two overlapping fills at this alpha would land here instead — the seam.
+        let twice = once * (1 - alpha)
+        XCTAssertLessThan(twice, dim - 0.1,
+                          "precondition: per-fill subtraction is what must be avoided")
+        // FogCanvas therefore fills each layer at full strength and applies the alpha once
+        // on composite, so the overlap composites to the same value as a single region.
+    }
+
+    func testRemovalAlphaIsClampedToSomethingDrawable() {
+        // A target above the current darkness means nothing to remove.
+        XCTAssertEqual(FogShading.removalAlpha(from: 0.5, to: 0.9), 0, accuracy: 1e-9)
+        XCTAssertEqual(FogShading.removalAlpha(from: 0, to: 0), 0, accuracy: 1e-9)
+        XCTAssertEqual(FogShading.removalAlpha(from: 1, to: 0), 1, accuracy: 1e-9)
+    }
 }
