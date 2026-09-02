@@ -1,6 +1,6 @@
 # MapForge v3 — Table Ready
 
-Status: specced — not started
+Status: in progress — 01, 03, 04 done; 05 partly; 02 and 06 open
 
 Four things that stood between the DM and running an actual session, collected after the first real use of the Fog of War feature. The name is the acceptance bar: not "these four diffs landed" but "a game ran and nothing got in the way".
 
@@ -24,6 +24,10 @@ Two of the four are features that exist in the code but did not exist for the DM
 Wall selection is a child `TapGesture` inside a `ForEach`, competing with the parent's `exclusively` gesture chain, gated by `.allowsHitTesting` and by `@FocusState`. Four defects in this app have come from exactly that construct, every one invisible to the unit suite, all of them in a layer whose UI tests have never run.
 
 So a reported-missing feature is a bug report until proven otherwise. Issue 01 reproduces on the real app first; issues 02 and 05 build on what it finds. Building a new deletion affordance on top of a dead gesture would bury the defect rather than fix it.
+
+**This was right, and the reason was wrong.** Issue 01 found deletion dead — vindicating the whole approach — but not in the gesture. Selection worked. `FogOverlay` is a `ZStack` whose children are every one `.position()`-placed, so it has no hit-testable region for `.focusable()` to attach to and could never hold focus at all: `.onKeyPress(.delete)` never fired and ⌫ simply beeped. Fifth defect from this shape, the same one that stopped an `NSViewRepresentable` getting a frame in Grid Fit.
+
+Two lessons worth carrying forward. **The distinguishing evidence was a sound** — a beep means AppKit found no responder, which is a different fact from focus going elsewhere, and no amount of reading the code separates those two. **And the plausible fix was wrong**: making the selection gesture claim focus looks obviously correct and changes nothing, because the view it focuses cannot accept focus. In this layer, prefer the mechanism already proven to reach it — a local event monitor — over the idiomatic one.
 
 ## "Per screen" is Calibration, and Calibration is not in scope
 
@@ -83,5 +87,10 @@ Out: Calibration and the ruler flow; the `<map>.mapforge.json` Sidecar, rotation
 
 Recorded from the grilling session on 2026-09-02, where two questions could not be answered from memory. Correct these by editing rather than by conversation:
 
-- **What happened when a Wall was clicked for deletion is unknown** — no highlight, highlight but dead ⌫, never found the interaction, or wrong tool active. Issue 01 establishes it.
-- **How snapping misbehaved is unknown** — Grid snap, endpoint snap, or the 45° angle constraint. Issue 01 establishes it; issue 04 removes Grid snap regardless.
+- ~~**What happened when a Wall was clicked for deletion is unknown**~~ — **answered
+  2026-09-02**: it highlighted and ⌫ beeped. Not one of the four guesses. `FogOverlay`'s
+  `.position()`-based `ZStack` cannot hold focus at all, so `.onKeyPress(.delete)` never
+  fired. Fixed via a local event monitor. See issue 01's findings.
+- **How snapping misbehaved is still unknown** — the session went to deletion and never
+  exercised drawing. Grid snap is gone regardless (issue 04), so the remaining candidate is
+  the **45° angle constraint**. Needs a separate sitting at the app.

@@ -109,7 +109,14 @@ struct FogOverlay: View {
         .focused($focused)
         .onKeyPress(.escape) { chain.cancel(); return .handled }
         // `.delete` IS U+007F — backspace on macOS. One registration covers it.
+        //
+        // Kept, but not relied on. This ZStack's children are all `.position()`-placed, so
+        // it carries no focusable region of its own and `.onKeyPress` never fired for a
+        // selection made by clicking a Wall — ⌫ just beeped. `onDeleteKey` below is the
+        // one that actually works; if focus ever does land here, this consumes the event
+        // first and the monitor never sees it.
         .onKeyPress(.delete) { deleteSelected() }
+        .onDeleteKey(canHandle: { hasSelection }) { _ = deleteSelected() }
         .onModifierKeysChanged { _, new in freeAngle = new.contains(.shift) }
         .onAppear { focused = true }
         .onScrollWheel { delta, location in zoom(by: delta, at: location) }
@@ -134,7 +141,7 @@ struct FogOverlay: View {
                 // exactly the motion that lands there. Hit-testing is therefore off during
                 // a chain, and off for the very first click too: selection is what the DM
                 // wants between chains, placement is what they want during one.
-                .gesture(TapGesture().onEnded { selectedWall = wall.id; selectedLight = nil })
+                .gesture(TapGesture().onEnded { select(wall: wall.id) })
                 .allowsHitTesting(tool == .walls && !chain.isDrawing)
         }
     }
@@ -165,8 +172,7 @@ struct FogOverlay: View {
             .onChanged { value in
                 if lightDragStart == nil {
                     lightDragStart = light.at
-                    selectedLight = light.id
-                    selectedWall = nil
+                    select(light: light.id)
                     edits.beginLightDrag()
                 }
                 guard let start = lightDragStart else { return }
@@ -215,9 +221,7 @@ struct FogOverlay: View {
             .onChanged { value in
                 if pawnDragStart == nil {
                     pawnDragStart = pawn.at
-                    selectedPawn = pawn.id
-                    selectedLight = nil
-                    selectedWall = nil
+                    select(pawn: pawn.id)
                     edits.beginPawnDrag()
                 }
                 guard let start = pawnDragStart, value.translation != .zero else { return }
@@ -358,6 +362,45 @@ struct FogOverlay: View {
         guard !newWalls.isEmpty else { return }
         edits.addWalls(newWalls)
         onChange()
+    }
+
+    // MARK: Selection
+    //
+    // Every one of these takes keyboard focus back, and that is the whole point of their
+    // existing. `.onKeyPress(.delete)` only fires while the overlay is focused, and focus
+    // was previously claimed in just two places — `.onAppear` and `place()`. Selecting a
+    // Wall did not, so the sequence a DM actually performs — enter the mode, touch the
+    // "Grid squares wide" field beside the preview, come back and click a Wall — left
+    // focus in that text field. The Wall highlighted and ⌫ went to the text field, so
+    // deletion looked implemented and dead. Selecting is an act of "I am working in here";
+    // it has to move focus, or the keyboard half of every select-then-key interaction is
+    // unreachable.
+
+    private func select(wall id: Wall.ID) {
+        focused = true
+        selectedWall = id
+        selectedLight = nil
+        selectedPawn = nil
+    }
+
+    private func select(light id: Light.ID) {
+        focused = true
+        selectedLight = id
+        selectedWall = nil
+        selectedPawn = nil
+    }
+
+    private func select(pawn id: Pawn.ID) {
+        focused = true
+        selectedPawn = id
+        selectedWall = nil
+        selectedLight = nil
+    }
+
+    /// Whether ⌫ has anything to act on. Gates the event monitor, which is global to the
+    /// process — with nothing selected the key must pass through to whatever else wants it.
+    private var hasSelection: Bool {
+        selectedWall != nil || selectedLight != nil || selectedPawn != nil
     }
 
     private func deleteSelected() -> KeyPress.Result {

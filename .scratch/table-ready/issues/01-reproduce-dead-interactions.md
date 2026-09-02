@@ -1,6 +1,6 @@
 # 01 — Reproduce the dead interactions
 
-Status: ready-for-human
+Status: done
 
 Establish, by driving the real app, what actually happens when the DM tries to delete a Wall and when they draw one. Two of this feature's four reported items are for behaviour that is already implemented, so the first job is finding out whether the code is dead at runtime or merely unreachable.
 
@@ -32,6 +32,60 @@ Four defects in this app have come from that exact construct — two gesture-com
 ## Acceptance
 
 A `## Findings` section appended to this file recording, for each of the above, what was observed — enough that issue 02 knows whether it is fixing a bug or building an affordance, and issue 04 knows whether removing Grid snap is sufficient or whether the angle constraint is also implicated.
+
+## Findings (2026-09-02, on the real app)
+
+Driven on the Gnoll Lair map — 7 Walls, 1 Pawn, a Grid fitted at 31.97116 squares.
+
+**Wall deletion was dead, and the cause was not any of the four this issue guessed at.**
+
+- **Selection works.** Clicking a Wall with the Walls tool active highlights it: accent
+  colour, stroke width 4 against orange 2.5. The child `TapGesture` inside the `ForEach`
+  fires and sets `selectedWall`. The construct this issue was most suspicious of — the one
+  behind four previous defects — is healthy.
+- **⌫ did nothing, and produced the system beep.** That beep is the finding. It is AppKit
+  reporting that *no responder consumed the key*, which is a different fact from "the
+  overlay lost focus to something else". The overlay was never accepting focus at all.
+- **Cause: `FogOverlay` is a `ZStack` whose children are every one `.position()`-placed,**
+  so the stack has no hit-testable region of its own for `.focusable()`/`.focused()` to
+  attach to. `.onKeyPress(.delete)` therefore never fired for a selection made by clicking.
+  This is the same geometry that stopped an `NSViewRepresentable` ever getting a non-zero
+  frame in Grid Fit — recorded at `ScrollWheel.swift:6-8`, and the reason scroll-wheel
+  handling uses a local event monitor instead. **Fifth defect from this shape.**
+- **Lights and Pawns had the same failure** for the same reason — a shared cause, as this
+  issue predicted a shared failure would indicate, though it pointed at the key handler
+  rather than at focus never being acquired.
+
+A first wrong fix is worth recording, because it is the trap: making the selection gesture
+set `focused = true` looks obviously right and changes nothing, because the view it focuses
+cannot hold focus. The beep is what distinguishes the two hypotheses, and only a human at
+the app could report it.
+
+**Fix:** `DeleteKey.swift` — a local `NSEvent` monitor, the mechanism already proven to
+reach this layer. Guarded twice, because a monitor is process-global: it declines when
+nothing is selected, and never claims ⌫ while the first responder is an `NSText`/
+`NSTextView`, so typing in "Grid squares wide" or a Pawn label is untouched.
+`.onKeyPress(.delete)` is kept alongside — if focus ever does land there it consumes the
+event first. Confirmed working on the real app.
+
+**Wall drawing / snapping: not established.** The session went to deletion and the
+snapping question was not exercised. Issue 04 removed Grid snapping regardless, which was
+unconditional. Whether the 45° angle constraint is what the DM experienced as "walls will
+not go where I point" is **still open** — it is the remaining candidate now that Grid snap
+is gone, and it wants a separate sitting.
+
+### Consequences for other issues
+
+- **Issue 02 is a bug fix, not an affordance change** — and the bug is now fixed. What
+  remains of it is the discoverability half: de-emphasising inactive object kinds and
+  hover feedback on Walls. Both stand on their own merits.
+- **Issue 05's token-anchored popover** was gated on "if issue 01 finds the existing
+  gesture layer healthy". The *gesture* layer is healthy; the *focus* layer was not. A
+  popover does not need focus the way a key handler does, so this is not blocked — but the
+  caution that made the live-row `TextField` the chosen route is vindicated, not weakened.
+- **Issue 06 gains its sharpest evidence yet.** The unit suite was 243 tests and green
+  through every step of this, including while deletion was completely dead. Only driving
+  the real app found it, and only a human could report the beep that identified it.
 
 ## Comments
 

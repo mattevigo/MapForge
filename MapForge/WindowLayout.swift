@@ -14,8 +14,13 @@ enum WindowLayout {
                                         otherScreenFrames: [CGRect],
                                         mainScreenFrame: CGRect? = nil) -> CGRect? {
         guard controlFrame.intersects(playerScreenFrame) else { return nil }
+        // Matched by origin, not by whole-frame equality: the candidate list and the main
+        // screen come from separately-derived `NSScreen` reads, and a bitwise CGRect
+        // comparison that missed would silently fall back to the arbitrary first screen —
+        // the behaviour this preference exists to remove. Two screens cannot share an
+        // origin, so the origin identifies one.
         let preferred = mainScreenFrame.flatMap { main in
-            otherScreenFrames.contains(main) ? main : nil
+            otherScreenFrames.first { $0.origin == main.origin }
         }
         guard let home = preferred ?? otherScreenFrames.first else { return nil }
         let size = CGSize(width: min(controlFrame.width, home.width),

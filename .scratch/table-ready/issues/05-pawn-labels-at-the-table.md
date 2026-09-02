@@ -1,7 +1,6 @@
 # 05 — Pawn labels at the table
 
-Status: needs-info
-Blocked by: 01
+Status: ready-for-agent
 
 Make a Pawn's label editable during live play, and legible at the sizes it is actually rendered. The label already exists end to end — model, both render surfaces, an inspector field, undo — but it is unreachable when the DM needs it and invisible at typical zoom.
 
@@ -66,9 +65,12 @@ is genuinely gated on 01's findings.
 Covered by `MapForgeTests/PawnLabelTests.swift` (7 tests) and three live-rename tests in
 `AppStateFogTests`.
 
-**Not done, still blocked on 01:** the token-anchored popover the spec floats as a
-follow-up "if issue 01 finds the existing gesture layer healthy". Nothing was added to
-`PawnLayer`, per scope.
+**Not done:** the token-anchored popover the spec floats as a follow-up "if issue 01 finds
+the existing gesture layer healthy". Issue 01 found the gesture layer healthy — the defect
+was focus, not gesture composition — so this is no longer blocked. It remains out of scope
+for this pass, and the caution that chose the live-row `TextField` over a `PawnLayer`
+double-click is vindicated rather than weakened: that layer is where focus and gesture
+composition have now produced five defects. Nothing was added to `PawnLayer`, per scope.
 
 ## Comments
 

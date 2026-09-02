@@ -375,7 +375,8 @@ final class AppStateFogTests: XCTestCase {
         let appState = AppState(preferences: isolatedPreferences())
         appState.loadMap(image: map.image, at: map.url)
 
-        var edits = FogEdits(document: appState.fog)       // as the mode opens
+        appState.beginFogEditing()                         // as the mode opens
+        var edits = FogEdits(document: appState.fog)
         appState.squaresWide = 24                          // the DM declares a Grid
         edits.addWalls([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 50, y: 0))])
         appState.applyFogEdits(edits)                      // ...then draws a Wall
@@ -396,7 +397,8 @@ final class AppStateFogTests: XCTestCase {
                         colorHex: Pawn.defaultColorHex, brightSquares: 6)
         appState.fog.pawns = [pawn]
 
-        var edits = FogEdits(document: appState.fog)       // as the mode opens
+        appState.beginFogEditing()                         // as the mode opens
+        var edits = FogEdits(document: appState.fog)
         appState.setPawnLabel(id: pawn.id, "Goblin B")     // renamed from the live row
         edits.addWalls([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 50, y: 0))])
         appState.applyFogEdits(edits)                      // ...then a Wall is drawn
@@ -414,7 +416,8 @@ final class AppStateFogTests: XCTestCase {
         let appState = AppState(preferences: isolatedPreferences())
         appState.loadMap(image: map.image, at: map.url)
 
-        let edits = FogEdits(document: appState.fog)       // as the mode opens
+        appState.beginFogEditing()                         // as the mode opens
+        let edits = FogEdits(document: appState.fog)
         appState.squaresWide = 24                          // the DM declares a Grid
         appState.cancelFogEditing(edits)
 
@@ -428,6 +431,7 @@ final class AppStateFogTests: XCTestCase {
         let appState = AppState(preferences: isolatedPreferences())
         appState.loadMap(image: map.image, at: map.url)
 
+        appState.beginFogEditing()
         var edits = FogEdits(document: appState.fog)
         edits.addWalls([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 50, y: 0))])
         appState.applyFogEdits(edits)
@@ -436,6 +440,91 @@ final class AppStateFogTests: XCTestCase {
         appState.cancelFogEditing(edits)
 
         XCTAssertTrue(appState.fog.walls.isEmpty, "Cancel did not discard the Wall")
+    }
+
+    func testCancellingFogEditingDiscardsARenameMadeInsideTheMode() throws {
+        // The mirror of the live-rename case. A rename through the in-mode inspector goes
+        // through FogEdits and IS undoable, so Cancel must discard it like any other
+        // in-mode edit — pulling every label back out of `fog` would make the inspector's
+        // renames survive a Cancel that discarded everything else about the Pawn.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let pawn = Pawn(at: MapPoint(x: 20, y: 15), label: "3",
+                        colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        appState.fog.pawns = [pawn]
+
+        appState.beginFogEditing()                     // as the mode opens
+        var edits = FogEdits(document: appState.fog)
+        edits.setPawnLabel(id: pawn.id, "Inspector Name")
+        appState.applyFogEdits(edits)
+        XCTAssertEqual(appState.fog.pawns.first?.label, "Inspector Name",
+                       "precondition: the in-mode rename applied")
+
+        appState.cancelFogEditing(edits)
+
+        XCTAssertEqual(appState.fog.pawns.first?.label, "3",
+                       "Cancel kept a rename made inside the mode")
+    }
+
+    func testApplyingFogEditsKeepsALivePawnMoveAndTorchToggle() throws {
+        // Dragging a Pawn stays live during fog mode (PawnLayer), and `setPawnLight` has
+        // no in-mode special case, so both write straight to `fog`. An in-mode edit must
+        // not snap the token back to where the mode opened or relight a doused torch.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let pawn = Pawn(at: MapPoint(x: 20, y: 15), label: "3",
+                        colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        appState.fog.pawns = [pawn]
+
+        appState.beginFogEditing()                     // as the mode opens
+        var edits = FogEdits(document: appState.fog)
+        appState.movePawn(id: pawn.id, to: MapPoint(x: 80, y: 60))
+        appState.setPawnLight(id: pawn.id, isOn: false)
+        edits.addWalls([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 50, y: 0))])
+        appState.applyFogEdits(edits)
+
+        XCTAssertEqual(appState.fog.pawns.first?.at, MapPoint(x: 80, y: 60),
+                       "drawing a Wall snapped the Pawn back")
+        XCTAssertEqual(appState.fog.pawns.first?.light.isOn, false,
+                       "drawing a Wall relit a doused torch")
+    }
+
+    func testAnInModePawnMoveStillApplies() throws {
+        // The other side: dragging a Pawn with the Pawns tool inside the mode is an edit,
+        // and must not be overridden by the live value it is changing.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let pawn = Pawn(at: MapPoint(x: 20, y: 15), label: "3",
+                        colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        appState.fog.pawns = [pawn]
+
+        appState.beginFogEditing()
+        var edits = FogEdits(document: appState.fog)
+        edits.movePawn(id: pawn.id, to: MapPoint(x: 200, y: 150))
+        appState.applyFogEdits(edits)
+
+        XCTAssertEqual(appState.fog.pawns.first?.at, MapPoint(x: 200, y: 150),
+                       "an in-mode Pawn move was discarded")
+    }
+
+    func testRestoringAGridNeverPublishesTheCancelledValue() throws {
+        // `restoreGrid` assigns squaresWide first, whose didSet declares and publishes.
+        // Correct only because the debounce coalesces — and cancelGridFit flushes right
+        // after, so the window is real. The cancelled value must never reach `fog` at all.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+
+        appState.squaresWide = 42                       // as Grid Fit does while dragging
+        appState.restoreGrid(squaresWide: 30, wasDeclared: false)
+
+        XCTAssertNil(appState.fog.squaresWide)
+        appState.flushPendingFogWrites()
+        XCTAssertNil(FogStore().load(forMapAt: map.url)?.squaresWide,
+                     "a cancelled Grid Fit reached the file")
     }
 
     // MARK: Live light toggling

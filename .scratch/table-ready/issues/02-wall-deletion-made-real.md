@@ -1,7 +1,6 @@
 # 02 — Wall deletion, made real
 
-Status: needs-info
-Blocked by: 01
+Status: ready-for-agent
 
 Make deleting a placed Wall work, and make it evident. The model layer and the key handler already exist and are tested; what is unproven is whether the gesture reaches them, and what is certainly missing is any signal to the DM about why a click did nothing.
 
@@ -37,6 +36,25 @@ Two changes, both small:
 ## Acceptance
 
 On a real map: clicking a Wall with the Walls tool active highlights it, ⌫ removes it, Undo brings it back, and the change survives to `.fog.json`. With a different tool active, Walls are visibly de-emphasised rather than silently inert.
+
+## Progress (2026-09-02)
+
+**The gesture was dead and is now fixed** — see issue 01's findings. Not any of the three
+suspects this issue listed: selection worked all along, and `.onKeyPress(.delete)` never
+fired because `FogOverlay`'s `.position()`-based `ZStack` cannot hold focus at all. Fixed
+with a local event monitor in `DeleteKey.swift`. Verified on the real app: click a Wall,
+press ⌫, it goes; Undo brings it back.
+
+**Still open — the discoverability half.** Both changes this issue specified for the
+"working but unfindable" case stand on their own merits, and neither is built:
+
+- De-emphasise inactive object kinds, so a click on a Wall while the Pawns tool is active
+  does not look like a broken feature.
+- Hover feedback on Walls with the Walls tool active.
+
+Both are `ready-for-agent`. The UI test this issue promises ("whatever the cause, it gets a
+UI test under issue 06") is not written — issue 06's suite cannot currently open a window
+on this machine.
 
 ## Comments
 

@@ -294,6 +294,7 @@ struct ControlView: View {
     }
 
     private func startFogEditing() {
+        appState.beginFogEditing()
         fogEdits = FogEdits(document: appState.fog)
         // Open on the whole Map, as Grid Fit does: the zoomed-out view orients, and zoom
         // is opt-in for the precision moment.
