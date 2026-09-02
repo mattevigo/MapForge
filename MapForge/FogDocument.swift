@@ -59,25 +59,64 @@ struct MapPoint: Codable, Equatable {
     }
 }
 
-/// The fog data authored on one Map, as persisted in `<map>.fog.json`.
+/// The fog data authored on one Map — and the Map's Grid — as persisted in
+/// `<map>.fog.json`.
 ///
-/// Not the Sidecar. `CONTEXT.md` names `<map>.mapforge.json` as the home for per-Map
-/// metadata, but that issue is `wontfix`; fog was given its own file deliberately. The
-/// accepted consequence is that `squaresWide` is still in-memory only, so a relaunch
-/// returns a DM's Walls but not their Grid — and Light radii, being in squares, have no
-/// physical meaning until it is re-entered.
+/// The Grid lives here rather than in the `<map>.mapforge.json` Sidecar `CONTEXT.md`
+/// names, reversing an earlier decision recorded in this file. See
+/// [ADR 0003](../docs/adr/0003-grid-in-the-fog-file.md): a Light's radii and a Pawn's
+/// range are stored in **Grid squares**, so this file already carried a measurement whose
+/// unit it did not define, and a relaunch handed back Lights that meant nothing. Rejoining
+/// the two halves in one file makes the measurement whole. The name is now a misnomer —
+/// renaming would strand every file already written beside a Map.
 struct FogDocument: Codable, Equatable {
-    /// Somewhere for a later format change to branch on. Bump when the shape changes
-    /// incompatibly; a reader that does not recognise a version must not discard the file.
-    var version = 1
+    /// The format this document is written in. Always `current` on encode — see
+    /// `encode(to:)`. Carries what was *read* after a decode, so a reader can branch on it.
+    ///
+    /// 2 added the Grid; version 1 files decode with it absent.
+    var version = current
+
+    /// The version this app writes.
+    static let current = 2
+    /// The Map's Grid: its width in squares, or nil when the DM has never declared one.
+    ///
+    /// One optional rather than a value and a flag, which could contradict each other.
+    /// Optional is also what makes a version 1 file decode: the synthesised `Codable`
+    /// leaves an absent key nil rather than throwing.
+    var squaresWide: Double?
     var walls: [Wall] = []
     var lights: [Light] = []
     var pawns: [Pawn] = []
 
-    /// Whether this Map has any fog worth a file. Nothing is written for an empty
+    /// Whether this Map has anything worth a file. Nothing is written for an empty
     /// document: MapForge must not litter the user's map folder with files for Maps
     /// the DM never authored.
-    var isEmpty: Bool { walls.isEmpty && lights.isEmpty && pawns.isEmpty }
+    ///
+    /// A Grid alone is not empty. A DM who runs Grid Fit and stops there has authored
+    /// something — and that is the case on a fresh Map, where discarding it would mean
+    /// re-fitting on every launch, which is the complaint this feature exists to fix.
+    var isEmpty: Bool {
+        squaresWide == nil && walls.isEmpty && lights.isEmpty && pawns.isEmpty
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case version, squaresWide, walls, lights, pawns
+    }
+
+    /// Stamps the version being written rather than echoing the one that was read.
+    ///
+    /// `version` is a decoded property, so a version 1 file loaded and saved again would
+    /// go back to disk as `"version": 1` while carrying the version 2 `squaresWide` key —
+    /// a file that lies about its own format. Every `.fog.json` already beside a Map takes
+    /// exactly this path the first time its Grid is fitted.
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(Self.current, forKey: .version)
+        try container.encodeIfPresent(squaresWide, forKey: .squaresWide)
+        try container.encode(walls, forKey: .walls)
+        try container.encode(lights, forKey: .lights)
+        try container.encode(pawns, forKey: .pawns)
+    }
 }
 
 /// A Light: a point source illuminating out to a bright and a dim radius, blocked by Walls.

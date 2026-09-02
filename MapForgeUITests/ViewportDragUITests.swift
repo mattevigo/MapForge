@@ -34,9 +34,17 @@ final class ViewportDragUITests: XCTestCase {
         let map = try fixturePNG(pixelsWide: pixelsWide, pixelsHigh: pixelsHigh)
         let app = XCUIApplication()
         app.launchArguments = ["--test-map", map.path, "--test-squares", String(squares),
-                               "--test-player-screen", "auto"]
+                               "--test-player-screen", "auto",
+                               "--test-fresh-preferences"]
         app.launch()
         return app
+    }
+
+    /// The Control Window, by its identifier — `app.windows.firstMatch` resolves to the
+    /// borderless Player window, which sorts first, so the drag ran on the Player Display
+    /// instead of on the Viewport rectangle.
+    private func controlWindow(_ app: XCUIApplication) -> XCUIElement {
+        app.windows["control"]
     }
 
     /// Enter Viewport mode and drag the rectangle a short, deliberate distance in
@@ -50,7 +58,7 @@ final class ViewportDragUITests: XCTestCase {
         pan.click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 3), "did not enter Viewport mode")
 
-        let window = app.windows.firstMatch
+        let window = controlWindow(app)
         // The Viewport rectangle is centred in the preview on entry; the preview
         // occupies the lower part of the window.
         let start = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))

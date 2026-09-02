@@ -1,6 +1,6 @@
 # 04 — Remove Grid snapping
 
-Status: ready-for-agent
+Status: done
 
 Stop Walls and Lights snapping to Grid intersections. Keep endpoint snapping. Pawns already do not snap and are unchanged.
 

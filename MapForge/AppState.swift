@@ -15,28 +15,37 @@ final class AppState: ObservableObject {
             // them to do the one thing they had just done. Restoring a value the DM did
             // not choose goes through `restoreGrid` instead.
             hasDeclaredGrid = true
+            publishGridToFog()
             presentIfPossible()
         }
     }
     /// Whether the DM has actually declared this Map's Grid, as opposed to the default
     /// 30 the app starts with. Light radii are in Grid squares, so an undeclared Grid
-    /// renders every Light at a plausible-looking wrong size — the failure issue 03's
-    /// scope section requires be visible rather than silent. Not persisted, because
-    /// `squaresWide` is not either.
+    /// renders every Light at a plausible-looking wrong size — the failure the fog spec
+    /// requires be visible rather than silent.
+    ///
+    /// The in-memory half of `fog.squaresWide`, which is the persisted one: a declared
+    /// Grid is a non-nil value there. Kept as a separate property because `squaresWide`
+    /// always has a number to render and draw with, declared or not.
     @Published private(set) var hasDeclaredGrid = false
 
     /// Put back a value the DM did not choose — cancelling Grid Fit restores what was
-    /// there before, which must not count as declaring a Grid they never asserted.
+    /// there before, which must not count as declaring a Grid they never asserted, and
+    /// must not leave the cancelled value on disk.
     func restoreGrid(squaresWide squares: Double, wasDeclared: Bool) {
         squaresWide = squares
         hasDeclaredGrid = wasDeclared
+        publishGridToFog()
     }
+
     /// Viewport origin in map inches; nil = centered (the default on map load).
     @Published var viewportOrigin: CGPoint? {
         didSet { presentIfPossible() }
     }
-    /// The Walls, Lights and Pawns authored on the current Map. Edits are debounced to
-    /// disk; the Map's Grid, by contrast, is still in-memory only (see FogDocument).
+    /// The Walls, Lights and Pawns authored on the current Map, and its Grid. Edits are
+    /// debounced to disk. The Grid rides here rather than being persisted separately so
+    /// that Light radii — which are in Grid squares — travel with their unit (ADR 0003);
+    /// `squaresWide` mirrors into it through `publishGridToFog`.
     @Published var fog = FogDocument() {
         didSet {
             guard fog != oldValue, mapURL != nil else { return }
@@ -103,6 +112,9 @@ final class AppState: ObservableObject {
         // external. Prefer a screen the Control Window is NOT on — presenting onto it
         // would relocate it mid-test and every click would miss — and fall back to the
         // only screen there is, where the Map yields below the controls instead.
+        //
+        // This only decides the screen. What made the suite unrunnable was the *remembered*
+        // display leaking in from real use: see `DisplayPreferences.forThisLaunch`.
         if args.contains("--test-player-screen") {
             let controlScreen = NSApp.windows.first(where: {
                 $0.identifier?.rawValue.hasPrefix("control") == true
@@ -157,12 +169,28 @@ final class AppState: ObservableObject {
         mapURL = url
         mapImage = image
         viewportOrigin = nil
-        // A new Map has not had its Grid declared: `squaresWide` carries over from the
-        // last one, which is a plausible-looking wrong number for this one.
-        hasDeclaredGrid = false
-        fog = fogStore.load(forMapAt: url) ?? FogDocument()
+        let document = fogStore.load(forMapAt: url) ?? FogDocument()
+        // Assign the fog BEFORE restoring the Grid: `restoreGrid` writes back into `fog`,
+        // and doing it the other way round would push the outgoing Map's Grid into the
+        // incoming Map's document — then onto its file.
+        fog = document
+        // The Map's own Grid if it has one on disk, otherwise undeclared: `squaresWide`
+        // carries over from the last Map, which is a plausible-looking wrong number for
+        // this one. `restoreGrid`, not `squaresWide =`, because a value read from a file
+        // is not the DM declaring it now — the declaration is what the file records.
+        restoreGrid(squaresWide: document.squaresWide ?? squaresWide,
+                    wasDeclared: document.squaresWide != nil)
         fogLoadFailure = fogStore.lastLoadFailure
         presentIfPossible()
+    }
+
+    /// Mirror the Grid into `fog`, which is what the autosave watches. Only a *declared*
+    /// Grid is written: the default 30 is a guess, and persisting it would make every Map
+    /// claim a Grid nobody set — and light every one of them at a wrong size.
+    private func publishGridToFog() {
+        let declared = hasDeclaredGrid ? squaresWide : nil
+        guard fog.squaresWide != declared else { return }
+        fog.squaresWide = declared
     }
 
     /// Write fog for the Map it was authored on. A failed write must be visible: silently
@@ -217,6 +245,67 @@ final class AppState: ObservableObject {
     func movePawn(id: Pawn.ID, to point: MapPoint) {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
         fog.pawns[index].at = point
+    }
+
+    /// Rename a Pawn outside the fog editing mode — "3" becomes "Goblin B" in the middle
+    /// of a fight, without leaving the table for authoring mode.
+    ///
+    /// The one deliberate crossing of the authoring/play line, and it follows `movePawn`
+    /// exactly: **not undoable**. A label is not geometry, and renaming is the same kind of
+    /// live, small, immediate act as moving a token. The fog undo stack is mode-local and
+    /// cannot unwind past what the mode opened with, so a live edit has no stack to land in
+    /// anyway. The in-mode `pawnInspector` path stays undoable through `FogEdits` — two
+    /// paths with different undo semantics is the pattern here, not an inconsistency.
+    func setPawnLabel(id: Pawn.ID, _ label: String) {
+        guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
+        fog.pawns[index].label = label
+    }
+
+    /// Push the fog authored inside the editing mode onto the Map.
+    ///
+    /// Merges the mode's **geometry** rather than assigning its document wholesale. The
+    /// document `FogEdits` carries is a snapshot taken when the mode opened, and two kinds
+    /// of live state can change while the mode is open: the Grid, whose field and stepper
+    /// stay enabled, and a Pawn's label, renamed from the live row that also stays on
+    /// screen. Assigning the snapshot back reverted both — and for the Grid the stale value
+    /// is what reached the file, silently losing it on the next relaunch.
+    func applyFogEdits(_ edits: FogEdits) {
+        var merged = edits.document
+        merged.squaresWide = fog.squaresWide
+        merged.pawns = merged.pawns.map { pawn in
+            var pawn = pawn
+            // A rename from the live row is not part of what the mode is editing, so the
+            // live value wins. Everything else about the Pawn is the mode's to change.
+            if let live = fog.pawns.first(where: { $0.id == pawn.id }),
+               edits.original.pawns.first(where: { $0.id == pawn.id })?.label == pawn.label {
+                pawn.label = live.label
+            }
+            return pawn
+        }
+        fog = merged
+    }
+
+    /// Discard the fog authored in the editing mode, including anything the autosave
+    /// debounce already wrote: restoring the Walls re-triggers `fog`'s didSet, and the
+    /// explicit flush makes the file correct now rather than half a second from now, so a
+    /// quit in between cannot persist Walls the DM cancelled.
+    ///
+    /// The Grid and live Pawn labels survive Cancel for the same reason they survive an
+    /// edit: they are not what the mode was editing. Reverting the Grid here while
+    /// `squaresWide` and `hasDeclaredGrid` kept the new value left the two permanently
+    /// disagreeing — the UI asserting a Grid the file did not have.
+    func cancelFogEditing(_ edits: FogEdits) {
+        var restored = edits.original
+        restored.squaresWide = fog.squaresWide
+        restored.pawns = restored.pawns.map { pawn in
+            var pawn = pawn
+            if let live = fog.pawns.first(where: { $0.id == pawn.id }) {
+                pawn.label = live.label
+            }
+            return pawn
+        }
+        fog = restored
+        flushPendingFogWrites()
     }
 
     /// Flush any pending fog edit. Called as the app terminates.

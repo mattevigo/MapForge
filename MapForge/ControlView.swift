@@ -301,20 +301,17 @@ struct ControlView: View {
         mode = .fog
     }
 
-    /// Discard the whole session, including anything the autosave debounce already wrote:
-    /// restoring the Walls re-triggers `fog`'s didSet, and the explicit flush makes the
-    /// file correct now rather than half a second from now, so a quit in between cannot
-    /// persist Walls the DM cancelled.
+    /// Discard the whole session. `AppState` owns the merge — the Grid and any live Pawn
+    /// rename are not what this mode was editing and must survive Cancel.
     private func cancelFogEditing() {
-        appState.fog = fogEdits.original
-        appState.flushPendingFogWrites()
+        appState.cancelFogEditing(fogEdits)
         mode = .normal
     }
 
     /// Push the edited fog onto the Map. Called after every action so the Player Display
     /// and the fog file stay in step with what the DM sees.
     private func applyFogEdits() {
-        appState.fog = fogEdits.document
+        appState.applyFogEdits(fogEdits)
     }
 
     private var fogSummary: String {
@@ -326,8 +323,10 @@ struct ControlView: View {
              + "\(pawns) \(pawns == 1 ? "Pawn" : "Pawns")"
     }
 
-    /// One Grid square in image pixels, or nil when no Grid has been declared — snapping
-    /// to a Grid that does not exist would scatter vertices.
+    /// One Grid square in image pixels, or nil when no Grid has been declared. Nothing
+    /// snaps to it any more; it survives because a Pawn token is sized in Grid squares —
+    /// a token reads as occupying its square — and the Lights inspector uses its absence
+    /// to say that radii have no physical size yet.
     private var gridPixels: CGFloat? {
         guard appState.hasDeclaredGrid,
               let image = appState.mapImage, appState.squaresWide > 0 else { return nil }
@@ -351,9 +350,15 @@ struct ControlView: View {
         gridFitTransform = nil
     }
 
+    /// Discard the fit, including anything the autosave debounce already wrote — the Grid
+    /// Fit square writes on every drag tick, so a cancelled value is normally already
+    /// queued. The explicit flush makes the file correct now rather than half a second
+    /// from now, so a quit in between cannot persist a Grid the DM backed out of. Same
+    /// tool and same reason as `cancelFogEditing`.
     private func cancelGridFit() {
         appState.restoreGrid(squaresWide: squaresWideBeforeFit,
                              wasDeclared: hadDeclaredGridBeforeFit)
+        appState.flushPendingFogWrites()
         endGridFit()
     }
 
@@ -447,6 +452,36 @@ struct ControlView: View {
         }
     }
 
+    /// One Pawn in the live panel: its light toggle, and its label editable in place.
+    ///
+    /// Renaming lives here — beside the toggle, on the surface that is already the live
+    /// control surface — rather than on a double-click on the token in `PawnLayer`. That
+    /// layer owns the drag gesture, and gesture composition in this render layer has
+    /// produced four defects already; a competing double-click there is the risky option
+    /// for a marginal gain in directness.
+    ///
+    /// The write is `appState.setPawnLabel`, not `FogEdits`: a rename at the table is a
+    /// live action and is not undoable, exactly as moving a Pawn is not.
+    private func pawnLiveRow(_ pawn: Pawn) -> some View {
+        HStack(spacing: 4) {
+            Toggle(isOn: Binding(
+                get: { pawn.light.isOn },
+                set: { appState.setPawnLight(id: pawn.id, isOn: $0) }
+            )) {
+                PawnToken(pawn: pawn, diameter: 14)
+            }
+            .toggleStyle(.button)
+            .help("\(pawn.label): sight \(Int(pawn.light.brightSquares)) squares — the field renames it")
+
+            TextField("label", text: Binding(
+                get: { pawn.label },
+                set: { appState.setPawnLabel(id: pawn.id, $0) }
+            ))
+            .textFieldStyle(.roundedBorder)
+            .frame(width: 72)
+        }
+    }
+
     /// The live panel: on/off for every Light, always visible, never behind a mode.
     /// Toggling is the one fog action a DM performs mid-session with players watching, so
     /// it must be one click with nothing to open first.
@@ -473,16 +508,10 @@ struct ControlView: View {
                         .help("Light \(index + 1): bright \(Int(light.brightSquares)), dim \(Int(light.dimSquares)) squares")
                     }
                     // A Pawn's own light toggles here too: a character putting out their
-                    // torch is the same live action as dousing a brazier.
+                    // torch is the same live action as dousing a brazier — and its label
+                    // is renamed here, for the same reason.
                     ForEach(appState.fog.pawns) { pawn in
-                        Toggle(isOn: Binding(
-                            get: { pawn.light.isOn },
-                            set: { appState.setPawnLight(id: pawn.id, isOn: $0) }
-                        )) {
-                            Text(pawn.label)
-                        }
-                        .toggleStyle(.button)
-                        .help("\(pawn.label): sight \(Int(pawn.light.brightSquares)) squares")
+                        pawnLiveRow(pawn)
                     }
                 }
             }

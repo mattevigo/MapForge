@@ -22,9 +22,7 @@ struct PawnToken: View {
             Circle()
                 .stroke(isSelected ? Color.accentColor : Color.black.opacity(0.6),
                         lineWidth: isSelected ? 3 : 1.5)
-            if diameter >= 16 {
-                // Below this the label is unreadable and only muddies the disc's colour,
-                // which is the thing a player actually identifies a token by.
+            if Self.showsLabel(atDiameter: diameter) {
                 Text(pawn.label)
                     .font(.system(size: diameter * 0.5, weight: .semibold))
                     .foregroundStyle(.white)
@@ -36,6 +34,19 @@ struct PawnToken: View {
         }
         .frame(width: diameter, height: diameter)
     }
+
+    /// Whether a token this size gets its label drawn.
+    ///
+    /// The threshold used to be 16 pt, above every floor the three call sites apply
+    /// (10-12 pt) — so at low zoom, or with no Grid declared, Pawns rendered as
+    /// unlabelled coloured dots on the Player Display as well as the preview. That is the
+    /// real defect behind "Pawns should have editable labels": they had them and could not
+    /// be seen. The floor is now where a one- or two-character label stops being readable
+    /// at all rather than where it stops being comfortable — `minimumScaleFactor` lets the
+    /// text shrink into the disc instead of vanishing from it. Below 8 pt the glyph is a
+    /// couple of grey pixels that only muddy the disc's colour, which is what a player
+    /// identifies a token by.
+    static func showsLabel(atDiameter diameter: CGFloat) -> Bool { diameter >= 8 }
 }
 
 extension Color {
@@ -71,4 +82,18 @@ extension Color {
 extension Pawn {
     /// The colour a newly placed Pawn takes when there is no previous one to copy.
     static let defaultColorHex = "#C81E1E"
+
+    /// The label a newly placed Pawn takes: one past the highest number already in use.
+    ///
+    /// Derived from the labels rather than from `pawns.count`, which reuses a number after
+    /// a delete — place three, delete the second, and the next Pawn is "3" as well. Two
+    /// tokens with one name mid-fight is exactly the confusion a label exists to prevent.
+    /// Non-numeric labels are skipped, so renaming "2" to "Goblin B" frees the 2 rather
+    /// than blocking the count.
+    /// Saturates rather than trapping: the live rename field takes any text, so a DM can
+    /// set a label of `Int.max` and the next placement would crash the app on overflow.
+    static func nextLabel(after pawns: [Pawn]) -> String {
+        let highest = pawns.compactMap { Int($0.label) }.max() ?? 0
+        return "\(highest == Int.max ? highest : highest + 1)"
+    }
 }

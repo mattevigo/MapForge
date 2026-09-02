@@ -1,6 +1,6 @@
 # 03 — Persist the Grid in the fog file
 
-Status: ready-for-agent
+Status: done
 
 Store the Map's Grid alongside its fog, so a relaunch returns a DM's Grid Fit result instead of making them redo it. `<map>.fog.json` becomes version 2 and gains the Grid. See [ADR 0003](../../../docs/adr/0003-grid-in-the-fog-file.md).
 

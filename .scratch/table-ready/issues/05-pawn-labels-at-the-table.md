@@ -1,6 +1,6 @@
 # 05 — Pawn labels at the table
 
-Status: ready-for-agent
+Status: needs-info
 Blocked by: 01
 
 Make a Pawn's label editable during live play, and legible at the sizes it is actually rendered. The label already exists end to end — model, both render surfaces, an inspector field, undo — but it is unreachable when the DM needs it and invisible at typical zoom.
@@ -43,6 +43,32 @@ The existing in-mode `pawnInspector` path is untouched and stays undoable. Two p
 ## Acceptance
 
 Mid-session, without leaving the live map, the DM renames a Pawn from "3" to "Goblin B" and it updates on the Player Display immediately. The label is readable on both screens at the Pawn size a real map produces. Placing, deleting and placing again never yields two Pawns with the same label.
+
+## Landed (2026-09-02, implementation pass)
+
+The three parts the spec pins independently of issue 01 are built and tested. What remains
+is genuinely gated on 01's findings.
+
+- **Live editing, from the light-toggle row.** `ControlView.pawnLiveRow` replaces the bare
+  Pawn toggle with a `PawnToken` toggle plus an in-place `TextField`. Writes go to
+  `AppState.setPawnLabel`, a sibling of `movePawn`, **not undoable** — the crossing the
+  spec sanctions, for the reason it gives. The in-mode `pawnInspector` path is untouched
+  and stays undoable through `FogEdits`.
+- **Legibility.** `PawnToken.showsLabel(atDiameter:)` lowers the floor from 16 pt to 8 pt,
+  below every diameter the three call sites actually produce (10–12 pt), so a Pawn is no
+  longer an unlabelled dot at low zoom or with no Grid declared. `minimumScaleFactor(0.5)`
+  was already there and now does the work. The floor is a named, tested predicate rather
+  than a bare literal in the view.
+- **Unique labels.** `Pawn.nextLabel(after:)` counts from the highest existing *numeric*
+  label rather than `pawns.count`, so a delete cannot cause a collision and a renamed Pawn
+  does not block the numbering.
+
+Covered by `MapForgeTests/PawnLabelTests.swift` (7 tests) and three live-rename tests in
+`AppStateFogTests`.
+
+**Not done, still blocked on 01:** the token-anchored popover the spec floats as a
+follow-up "if issue 01 finds the existing gesture layer healthy". Nothing was added to
+`PawnLayer`, per scope.
 
 ## Comments
 

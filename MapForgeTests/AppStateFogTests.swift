@@ -190,6 +190,254 @@ final class AppStateFogTests: XCTestCase {
                       "dousing the Light left its region lit")
     }
 
+    // MARK: The Grid, persisted
+
+    func testReopeningAMapRestoresItsGrid() throws {
+        // The complaint that started the feature: re-fitting the Grid on every launch.
+        let map = try makeMap(named: "dungeon")
+        try FogStore().save(FogDocument(squaresWide: 24), forMapAt: map.url)
+
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+
+        XCTAssertEqual(appState.squaresWide, 24)
+        XCTAssertTrue(appState.hasDeclaredGrid, "a restored Grid did not count as declared")
+    }
+
+    func testAMapWithNoStoredGridStartsUndeclared() throws {
+        // A version 1 file, or a Map never fitted. The number carries over from the last
+        // Map, but the claim that it is right does not.
+        let map = try makeMap(named: "dungeon")
+        try FogStore().save(FogDocument(walls: [Wall(from: MapPoint(x: 0, y: 0),
+                                                     to: MapPoint(x: 50, y: 0))]),
+                            forMapAt: map.url)
+
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+
+        XCTAssertFalse(appState.hasDeclaredGrid)
+    }
+
+    func testARestoredGridLightsTheMapWithNoWarning() throws {
+        // The acceptance criterion, end to end: Lights render at their authored radii
+        // straight after a reopen, with no undeclared-Grid warning to clear first.
+        let map = try makeMap(named: "dungeon")
+        try FogStore().save(FogDocument(squaresWide: 30,
+                                        lights: [Light(at: MapPoint(x: 20, y: 15), brightSquares: 4)]),
+                            forMapAt: map.url)
+
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+
+        XCTAssertFalse(appState.litRegions.isEmpty,
+                       "a reopened Map's Lights lit nothing — the Grid did not come back")
+    }
+
+    func testDeclaringAGridReachesTheFogDocument() throws {
+        // squaresWide's didSet has to reach the autosave, which is driven by `fog`.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+
+        appState.squaresWide = 24
+
+        XCTAssertEqual(appState.fog.squaresWide, 24)
+    }
+
+    func testAGridSurvivesAQuitWithNoFogAuthored() throws {
+        // The case `isEmpty` decides: a DM who fits the Grid and stops. If the document
+        // still counts as empty the file is deleted and the Grid is silently discarded.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+
+        appState.squaresWide = 24
+        appState.flushPendingFogWrites()
+
+        XCTAssertEqual(FogStore().load(forMapAt: map.url)?.squaresWide, 24)
+    }
+
+    func testRestoringAGridDoesNotDeclareOneInTheDocumentEither() throws {
+        // Cancelling Grid Fit restores the previous value and the previous claim. With
+        // persistence the document must not keep the cancelled declaration, or the next
+        // launch asserts a Grid the DM backed out of.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+
+        appState.squaresWide = 42          // as Grid Fit does while dragging
+        appState.restoreGrid(squaresWide: 30, wasDeclared: false)
+
+        XCTAssertNil(appState.fog.squaresWide,
+                     "a cancelled Grid Fit left its value in the document")
+    }
+
+    func testRestoringADeclaredGridKeepsItInTheDocument() throws {
+        // The other half of Cancel: a DM who had already declared a Grid, entered Grid
+        // Fit and backed out must keep the Grid they had.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+
+        appState.squaresWide = 24
+        appState.squaresWide = 42          // as Grid Fit does while dragging
+        appState.restoreGrid(squaresWide: 24, wasDeclared: true)
+
+        XCTAssertEqual(appState.fog.squaresWide, 24)
+    }
+
+    func testADragOfTheGridFitSquareWritesOnce() {
+        // ControlView writes squaresWide on every drag tick of the Grid Fit square. The
+        // debounce absorbs the burst; this asserts it at the autosave seam, because fifty
+        // writes per drag would put a file write in the middle of every gesture.
+        var writes = 0
+        let autosave = FogAutosave { _ in writes += 1 }
+
+        for squares in stride(from: 20.0, through: 40.0, by: 1) {
+            autosave.schedule(FogDocument(squaresWide: squares))
+        }
+        autosave.flush()
+
+        XCTAssertEqual(writes, 1, "a drag produced \(writes) writes")
+    }
+
+    func testSwitchingMapsDoesNotCarryAGridDeclarationOntoTheNextFile() throws {
+        // The Grid now rides in `fog`, which is replaced wholesale on load — but the
+        // in-memory squaresWide carries over. The outgoing Map's number must not be
+        // written into the incoming Map's file as a declaration.
+        let dungeon = try makeMap(named: "dungeon")
+        let tavern = try makeMap(named: "tavern")
+        let appState = AppState(preferences: isolatedPreferences())
+
+        appState.loadMap(image: dungeon.image, at: dungeon.url)
+        appState.squaresWide = 24
+        appState.loadMap(image: tavern.image, at: tavern.url)
+        appState.flushPendingFogWrites()
+
+        XCTAssertNil(FogStore().load(forMapAt: tavern.url)?.squaresWide,
+                     "the tavern inherited the dungeon's Grid")
+    }
+
+    // MARK: Live Pawn renaming
+
+    func testRenamingAPawnDuringPlayReachesTheDocument() throws {
+        // The acceptance sentence: mid-session, without leaving the live map, the DM
+        // renames a Pawn from "3" to "Goblin B" and the Player Display follows — which it
+        // does by reading `fog`, so reaching `fog` is the whole guarantee.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let pawn = Pawn(at: MapPoint(x: 20, y: 15), label: "3",
+                        colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        appState.fog.pawns = [pawn]
+
+        appState.setPawnLabel(id: pawn.id, "Goblin B")
+
+        XCTAssertEqual(appState.fog.pawns.first?.label, "Goblin B")
+    }
+
+    func testARenameDuringPlayIsPersisted() throws {
+        // It rides `fog`'s debounce like every other live action — a rename made at the
+        // table is still there next session.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let pawn = Pawn(at: MapPoint(x: 20, y: 15), label: "3",
+                        colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        appState.fog.pawns = [pawn]
+
+        appState.setPawnLabel(id: pawn.id, "Goblin B")
+        appState.flushPendingFogWrites()
+
+        XCTAssertEqual(FogStore().load(forMapAt: map.url)?.pawns.first?.label, "Goblin B")
+    }
+
+    func testRenamingAPawnThatIsGoneDoesNothing() throws {
+        // The live row and the document can disagree for a frame after a delete.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+
+        appState.setPawnLabel(id: UUID(), "Goblin B")
+
+        XCTAssertTrue(appState.fog.pawns.isEmpty)
+    }
+
+    // MARK: Fog mode must not clobber live state
+
+    func testApplyingFogEditsKeepsAGridDeclaredDuringTheMode() throws {
+        // The Grid field and stepper stay live during fog mode, and `FogEdits` holds a
+        // snapshot taken when the mode opened. Pushing that snapshot back wholesale threw
+        // away a Grid declared since — and the stale value is what reaches the file, so
+        // the Grid was silently lost on relaunch: exactly the defect persistence exists to
+        // prevent.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+
+        var edits = FogEdits(document: appState.fog)       // as the mode opens
+        appState.squaresWide = 24                          // the DM declares a Grid
+        edits.addWalls([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 50, y: 0))])
+        appState.applyFogEdits(edits)                      // ...then draws a Wall
+
+        XCTAssertEqual(appState.fog.squaresWide, 24, "the Wall reverted the Grid")
+        XCTAssertEqual(appState.squaresWide, 24)
+        XCTAssertTrue(appState.hasDeclaredGrid)
+    }
+
+    func testApplyingFogEditsKeepsALiveRenameMadeDuringTheMode() throws {
+        // The live row renders during fog mode too, and a rename there writes straight to
+        // `fog`. The next edit inside the mode must not wipe it — non-undoable was the
+        // sanctioned trade-off; silently destroyed by an unrelated action was not.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let pawn = Pawn(at: MapPoint(x: 20, y: 15), label: "3",
+                        colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        appState.fog.pawns = [pawn]
+
+        var edits = FogEdits(document: appState.fog)       // as the mode opens
+        appState.setPawnLabel(id: pawn.id, "Goblin B")     // renamed from the live row
+        edits.addWalls([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 50, y: 0))])
+        appState.applyFogEdits(edits)                      // ...then a Wall is drawn
+
+        XCTAssertEqual(appState.fog.pawns.first?.label, "Goblin B",
+                       "drawing a Wall wiped a rename made at the table")
+    }
+
+    func testCancellingFogEditingKeepsAGridDeclaredDuringTheMode() throws {
+        // Cancel discards the fog authored in the mode. It must not discard the Grid: the
+        // Grid is not part of what the mode was editing, and reverting it while
+        // `squaresWide` and `hasDeclaredGrid` keep the new value desyncs them permanently
+        // — the UI says a Grid is declared and the file says none is.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+
+        let edits = FogEdits(document: appState.fog)       // as the mode opens
+        appState.squaresWide = 24                          // the DM declares a Grid
+        appState.cancelFogEditing(edits)
+
+        XCTAssertEqual(appState.fog.squaresWide, 24, "Cancel discarded the Grid")
+        XCTAssertTrue(appState.hasDeclaredGrid)
+    }
+
+    func testCancellingFogEditingStillDiscardsTheWalls() throws {
+        // The part of Cancel that must keep working.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+
+        var edits = FogEdits(document: appState.fog)
+        edits.addWalls([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 50, y: 0))])
+        appState.applyFogEdits(edits)
+        XCTAssertFalse(appState.fog.walls.isEmpty, "precondition: a Wall was drawn")
+
+        appState.cancelFogEditing(edits)
+
+        XCTAssertTrue(appState.fog.walls.isEmpty, "Cancel did not discard the Wall")
+    }
+
     // MARK: Live light toggling
 
     func testSettingALightStateIsIdempotent() throws {

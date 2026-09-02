@@ -90,7 +90,7 @@ final class WallChainTests: XCTestCase {
         let sloppyStart = MapPoint(x: 104, y: 3)
 
         let snapped = WallSnap.snap(sloppyStart, to: WallSnap.endpoints(of: existing),
-                                    gridPixels: nil, tolerance: 12)
+                                    tolerance: 12)
         XCTAssertEqual(snapped.target, .endpoint)
 
         var chain = WallChain()
@@ -104,11 +104,16 @@ final class WallChainTests: XCTestCase {
     }
 
     func testATracedRoomIsWatertight() {
-        // Issue 02's acceptance criterion, checked the way it asks to be checked: through
-        // issue 05's Visibility. A DM traces a room by clicking near-but-not-exactly on
-        // each corner; snapping is what closes it, and the proof is that a torch inside
-        // lights nothing outside.
-        let grid: CGFloat = 50
+        // The acceptance criterion for the whole Wall feature, checked through Visibility.
+        // A DM traces a room by clicking near-but-not-exactly on each corner; the proof is
+        // that a torch inside lights nothing outside.
+        //
+        // Through **endpoint snap alone** — there is no Grid here at all. That is the
+        // honest test of the property: a real room is traced over artwork that does not
+        // align to any lattice, so a room whose watertightness depended on grid
+        // quantisation was never watertight for the reason the test claimed. The corners
+        // stay where the DM clicked them, slightly out of square; only the closing click
+        // welds, back onto the first vertex.
         let sloppyClicks = [MapPoint(x: 98, y: 103), MapPoint(x: 297, y: 96),
                             MapPoint(x: 303, y: 302), MapPoint(x: 104, y: 298),
                             MapPoint(x: 101, y: 99)]
@@ -117,10 +122,12 @@ final class WallChainTests: XCTestCase {
         for click in sloppyClicks {
             // Exactly what the UI does per click: snap, then place.
             chain.place(WallSnap.snap(click, to: chain.vertices.first.map { [$0] } ?? [],
-                                      gridPixels: grid, tolerance: 12).point)
+                                      tolerance: 12).point)
         }
         let walls = chain.finish()
         XCTAssertEqual(walls.count, 4, "a traced room should be four Walls")
+        XCTAssertEqual(walls.last?.to, walls.first?.from,
+                       "the room did not close back onto its first corner")
 
         let torch = Light(at: MapPoint(x: 200, y: 200), brightSquares: 20, dimSquares: 20)
         let region = Visibility.compute(walls: walls, lights: [torch],

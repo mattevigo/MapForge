@@ -1,6 +1,6 @@
 # 06 — Get the UI tests running
 
-Status: ready-for-agent
+Status: ready-for-human
 
 Make `MapForgeUITests` execute. It currently hangs in the environment the Fog of War feature was built in, so its ten UI tests have never run — and that is the direct cause of defects reaching the DM three times over.
 
@@ -26,6 +26,69 @@ The known gap from `map-presenter` issue 11 stays a gap: XCUITest's `perform(wit
 ## Acceptance
 
 `MapForgeUITests` runs to completion on demand and in whatever CI exists, with no hang. A deliberately broken gesture — for instance reverting issue 02's fix — turns a test red.
+
+## Findings (2026-09-02, implementation pass)
+
+**The suite does not hang.** All 11 tests ran to completion in 84 seconds on the first
+attempt of this pass. The issue's premise — "it currently hangs in the environment the Fog
+of War feature was built in" — did not reproduce. What it does instead is *fail*, and the
+failures had three separate causes, two of them defects in the tests themselves:
+
+1. **`app.windows.firstMatch` is the Player window, not the Control Window.** The
+   borderless Player window sorts first, so every `window.coordinate(...)` click aimed at
+   the preview was landing on the Player Display. The controls still responded, so the
+   tests looked like they were driving the preview when they were not. Fixed: all three
+   test files now address `app.windows["control"]`.
+
+2. **The tool picker's segments are `RadioButton`s, not `Button`s.** A segmented `Picker`
+   publishes its segments as radio buttons, so `app.buttons["Lights"]` matched nothing —
+   the "no matches found" failures in three fog tests. Fixed with a `tool(_:_:)` helper
+   using `app.radioButtons`.
+
+3. **The developer's remembered Player Display leaks into every UI test run.** `defaults
+   read com.mattevigo.MapForge` showed `playerDisplayUUID = 456A5014-…` ("LG HDR 4K") from
+   real use. `AppState` was constructed with `.standard` preferences, so the app presented
+   onto whichever screen the DM last ran a session on — a screen the test never asked for.
+   `moveBuriedWindows` then relocated the Control Window out from under it, onto a third
+   display at x≈5000, where XCUITest reports every control as "not hittable". This is the
+   cause of the whole "not hittable" class, and it is a real defect in the test seam, not
+   an environment quirk: the suite must start from a machine that has never chosen a
+   display, exactly as the unit tests do. Fixed with `DisplayPreferences.forThisLaunch`
+   behind a new `--test-fresh-preferences` launch argument.
+
+Also fixed on its own merits: `WindowLayout.controlWindowRelocation` took "the first other
+screen", which on a three-display desk sends the Control Window to an arbitrary second
+external. It now prefers the Mac's own screen, which is what the Control Window is.
+
+After (1), (2) and (3), "not hittable" was gone and three previously-failing fog tests
+passed.
+
+### Still blocked — needs a human on the machine
+
+The suite is **not** green. Partway through this pass an experiment set
+`window.isRestorable = false` on the Control Window (an attempt to stop macOS restoring it
+onto the presenting screen). That experiment has been fully reverted, but the app now
+launches with **zero windows** under XCUITest, and **this reproduces on a completely
+unmodified checkout** — `git stash` the entire branch and `testFitGridClickableWithSmallMap`
+fails the same way. So it is persisted state on this machine, not code.
+
+Cleared without effect: `defaults delete com.mattevigo.MapForge` (the domain is now gone,
+which also removed the leaked `playerDisplayUUID`),
+`~/Library/Saved Application State/com.mattevigo.MapForge.savedState`, and
+`~/Library/Containers/com.mattevigo.MapForge`.
+
+The app is **not** broken: launched normally it opens its Control Window at (1440, 450)
+and behaves correctly. Only the XCUITest harness is affected. Next steps for a human:
+reboot, or clear the remaining XCUITest/accessibility state (Xcode's DerivedData for this
+project, and the accessibility permission granted to the test runner in System Settings →
+Privacy & Security → Accessibility). Once a window appears again, re-run the suite; the
+three fixes above should stand.
+
+The acceptance criterion — "runs to completion with no hang" — is met on the evidence of
+this pass's first run. "Turns red when a gesture is deliberately broken" is unverified,
+and the new coverage the issue asks for (Wall select-and-delete, an unsnapped vertex, a
+live label edit) is not written: issues 02 and 05's gesture work is still gated on issue
+01, and there is no point adding tests to a suite that cannot currently open a window.
 
 ## Comments
 

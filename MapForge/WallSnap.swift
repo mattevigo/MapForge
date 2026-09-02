@@ -7,10 +7,15 @@ import Foundation
 /// split `ScaleMath` and `ViewportMath` already make. Snapping decides whether a traced
 /// room is watertight, and a hairline gap at a corner leaks Light in a way that is
 /// invisible until a player asks why they can see through a wall.
+///
+/// Endpoint snapping only. Vertices used to round to Grid intersections as well; that was
+/// removed because it welded geometry to a lattice the DM had not asked to be welded to —
+/// a Wall would not go where they pointed. Endpoint snapping stayed: it is what closes a
+/// hand-traced room, and it is not "the Grid" in any sense a DM perceives.
 enum WallSnap {
     /// What a vertex snapped to, so the UI can show it. Snapping is visible, never silent.
     enum Target: Equatable {
-        case none, endpoint, grid
+        case none, endpoint
     }
 
     struct Result: Equatable {
@@ -18,23 +23,11 @@ enum WallSnap {
         let target: Target
     }
 
-    /// The nearest snap target to `point`, or `point` itself if nothing is in range.
-    ///
-    /// Existing endpoints win over Grid intersections: a vertex that lands on the Grid
-    /// instead of on the Wall beside it still leaves the gap endpoint snapping exists to
-    /// close. `gridPixels` is nil when no Grid has been declared — snapping to a Grid that
-    /// does not exist would scatter vertices.
-    static func snap(_ point: MapPoint, to candidates: [MapPoint], gridPixels: CGFloat?,
+    /// The nearest existing endpoint to `point`, or `point` itself if none is in range.
+    static func snap(_ point: MapPoint, to candidates: [MapPoint],
                      tolerance: CGFloat) -> Result {
         if let endpoint = nearest(to: point, among: candidates, within: tolerance) {
             return Result(point: endpoint, target: .endpoint)
-        }
-        if let grid = gridPixels, grid > 0 {
-            let candidate = MapPoint(x: (point.x / grid).rounded() * grid,
-                                     y: (point.y / grid).rounded() * grid)
-            if distance(point, candidate) <= tolerance {
-                return Result(point: candidate, target: .grid)
-            }
         }
         return Result(point: point, target: .none)
     }
