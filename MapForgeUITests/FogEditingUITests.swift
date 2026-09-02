@@ -103,4 +103,31 @@ final class FogEditingUITests: XCTestCase {
         XCTAssertTrue(toggle.waitForExistence(timeout: 2), "no live toggle for the Light")
         toggle.click()
     }
+
+    /// Regression test for the reported zoom bug: "no zoom limit, and it resets to zoomed
+    /// out when reached". The cause was a GeometryReader measuring an unconstrained ZStack
+    /// that sized itself to the zoomed Image, so the preview overflowed the window instead
+    /// of zooming and snapped back when layout resettled.
+    ///
+    /// This is the seam that catches it — no unit test can, because the defect is SwiftUI
+    /// layout behaviour, not arithmetic.
+    func testZoomingInKeepsThePreviewInsideTheWindow() throws {
+        let app = try launchApp()
+        app.buttons["Edit Fog…"].click()
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
+
+        let window = app.windows.firstMatch
+        let windowFrame = window.frame
+
+        // Scroll well past the point where the image exceeds the preview.
+        let centre = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
+        for _ in 1...40 { centre.scroll(byDeltaX: 0, deltaY: 10) }
+
+        // The window must not have been resized by its own content, and the controls must
+        // still be there — an overflowing preview drew straight over them.
+        XCTAssertEqual(window.frame, windowFrame, "the preview resized the window")
+        XCTAssertTrue(app.buttons["Done"].isHittable,
+                      "the zoomed preview covered the mode controls")
+        XCTAssertTrue(app.buttons["Cancel"].isHittable)
+    }
 }

@@ -150,8 +150,15 @@ struct ControlView: View {
                     // plain aspect fit, which is that transform's floor.
                     let modeTransform = mode == .gridFit ? gridFitTransform
                                       : mode == .fog ? fogTransform : nil
+                    // The container every transform is measured against. Captured once
+                    // from the GeometryReader and then FORCED onto the ZStack below: an
+                    // unconstrained ZStack grows to hold the zoomed Image, the reader
+                    // measures that overflow, and the container feeds back into the next
+                    // zoom — the preview spills out of the window instead of zooming, and
+                    // snaps back when layout resettles.
+                    let previewSize = geo.size
                     let transform = modeTransform
-                        ?? PreviewTransform.fitted(imagePixelSize: image.pixelSize, container: geo.size)
+                        ?? PreviewTransform.fitted(imagePixelSize: image.pixelSize, container: previewSize)
                     let fitted = transform.imageRect
                     ZStack(alignment: .topLeading) {
                         Image(nsImage: image)
@@ -165,12 +172,12 @@ struct ControlView: View {
                             .allowsHitTesting(false)
                         if mode == .gridFit {
                             GridFitOverlay(transform: transform,
-                                           containerSize: geo.size,
+                                           containerSize: previewSize,
                                            square: $fitSquare) { gridFitTransform = $0 }
                         }
                         if mode == .fog {
                             FogOverlay(transform: transform,
-                                       containerSize: geo.size,
+                                       containerSize: previewSize,
                                        tool: tool,
                                        gridPixels: gridPixels,
                                        edits: $fogEdits,
@@ -187,6 +194,13 @@ struct ControlView: View {
                             }
                         }
                     }
+                    // Pin to the preview and clip. Both are load-bearing: without the
+                    // frame the ZStack sizes itself to the zoomed Image and the reader
+                    // above measures that instead of the preview; without the clip the
+                    // zoomed Image draws over the controls. Together they make
+                    // `previewSize` a fixed point rather than a function of the zoom.
+                    .frame(width: previewSize.width, height: previewSize.height)
+                    .clipped()
                     // The Viewport drag measures itself here. Without this space the
                     // gesture falls back to the dragged rectangle's own coordinates,
                     // which move with it — see ViewportOverlay.dragGesture.
