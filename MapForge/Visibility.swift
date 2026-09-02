@@ -8,6 +8,8 @@ import Foundation
 /// fills these straight into a Canvas path.
 struct LitRegion: Equatable {
     let lightID: UUID
+    /// Where the Light stands, in image pixels — the centre the range gradient fades from.
+    let origin: MapPoint
     let bright: Polygon
     let dim: Polygon
 }
@@ -36,6 +38,7 @@ enum Visibility {
     static func compute(walls: [Wall], lights: [Light], pixelsPerSquare: CGFloat) -> [LitRegion] {
         lights.filter(\.isOn).map { light in
             LitRegion(lightID: light.id,
+                      origin: light.at,
                       bright: litPolygon(from: light.at, radius: light.brightSquares * pixelsPerSquare,
                                          walls: walls),
                       dim: litPolygon(from: light.at, radius: light.dimSquares * pixelsPerSquare,

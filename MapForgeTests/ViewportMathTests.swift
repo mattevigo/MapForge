@@ -96,4 +96,23 @@ final class ViewportMathTests: XCTestCase {
                                                   container: CGSize(width: 500, height: 300))
         XCTAssertEqual(frame, CGRect(x: -125, y: -75, width: 750, height: 500))
     }
+
+    func testTheMirrorContainerNeverExceedsThePreview() {
+        // The mirror's container is what now carries hit-testing, so that Pawns can be
+        // dragged on it (issue 04's live action). That is only safe because the container
+        // is exactly the visible rect — the overflowing Image inside it is separately
+        // disabled. If this rect could exceed its preview, clicks on the controls above
+        // would be swallowed again, which is the regression issue 09 fixed.
+        let container = CGSize(width: 450, height: 400)
+        for viewport in [CGRect(x: 0, y: 0, width: 3000, height: 2000),
+                         CGRect(x: 100, y: 50, width: 100, height: 80),
+                         CGRect(x: 0, y: 0, width: 10, height: 4000)] {
+            let visible = ViewportMath.mirrorViewportRect(viewportRect: viewport,
+                                                          container: container)
+            XCTAssertLessThanOrEqual(visible.width, container.width + 1e-9)
+            XCTAssertLessThanOrEqual(visible.height, container.height + 1e-9)
+            XCTAssertGreaterThanOrEqual(visible.minX, -1e-9)
+            XCTAssertGreaterThanOrEqual(visible.minY, -1e-9)
+        }
+    }
 }

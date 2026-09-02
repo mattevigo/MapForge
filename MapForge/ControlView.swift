@@ -25,6 +25,8 @@ struct ControlView: View {
     /// The Light whose radii the inspector edits. Owned here, not in the overlay, because
     /// the numeric editor lives beside the preview.
     @State private var selectedLight: Light.ID?
+    /// The Pawn whose label, colour and range the inspector edits.
+    @State private var selectedPawn: Pawn.ID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -63,6 +65,7 @@ struct ControlView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 lightInspector
+                pawnInspector
             }
 
             playerDisplayStatus
@@ -136,14 +139,41 @@ struct ControlView: View {
                             .resizable()
                             .frame(width: frame.width, height: frame.height)
                             .position(x: frame.midX - visible.minX, y: frame.midY - visible.minY)
+                            // .clipped() below masks drawing only: this Image still owns
+                            // its full, overflowing frame for hit-testing and would
+                            // swallow clicks on the controls above. Disabled HERE rather
+                            // than on the container, which would also disable the Pawn
+                            // dragging overlaid on it — that is the live table action and
+                            // the whole reason PawnLayer exists.
+                            .allowsHitTesting(false)
                     }
                     .frame(width: visible.width, height: visible.height)
+                    .overlay {
+                        // The DM's view of the same Visibility: a tint they can read
+                        // through, over a Map that stays fully lit. Weaker than the
+                        // players' darkness by design — a DM as blind as the players
+                        // cannot run the game.
+                        FogCanvas(regions: appState.litRegions,
+                                  map: map,
+                                  frame: CGRect(x: frame.minX - visible.minX,
+                                                y: frame.minY - visible.minY,
+                                                width: frame.width, height: frame.height)) {
+                            FogShading.control($0, isOverlayOn: appState.isFogOverlayOn)
+                        }
+                    }
+                    .overlay {
+                        // Dragging a Pawn is a LIVE action — the party moves during play,
+                        // not during prep — so it works on the normal mirror, outside the
+                        // fog editing mode entirely.
+                        PawnLayer(map: map,
+                                  frame: CGRect(x: frame.minX - visible.minX,
+                                                y: frame.minY - visible.minY,
+                                                width: frame.width, height: frame.height),
+                                  pawns: appState.fog.pawns,
+                                  onMove: { appState.movePawn(id: $0, to: $1) },
+                                  onCommit: { appState.flushPendingFogWrites() })
+                    }
                     .clipped()
-                    // .clipped() masks drawing only: the overflowing Image still owns
-                    // its full frame for hit-testing and would swallow clicks on the
-                    // controls above. The mirror is pure display — take it out of
-                    // hit-testing entirely.
-                    .allowsHitTesting(false)
                     .position(x: visible.midX, y: visible.midY)
                 } else {
                     // Only Grid Fit carries a zoom; every other use of this branch is the
@@ -182,6 +212,7 @@ struct ControlView: View {
                                        gridPixels: gridPixels,
                                        edits: $fogEdits,
                                        selectedLight: $selectedLight,
+                                       selectedPawn: $selectedPawn,
                                        onChange: { applyFogEdits() },
                                        onTransform: { fogTransform = $0 })
                         }
@@ -285,7 +316,10 @@ struct ControlView: View {
     private var fogSummary: String {
         let walls = appState.fog.walls.count
         let lights = appState.fog.lights.count
-        return "\(walls) \(walls == 1 ? "Wall" : "Walls"), \(lights) \(lights == 1 ? "Light" : "Lights")"
+        let pawns = appState.fog.pawns.count
+        return "\(walls) \(walls == 1 ? "Wall" : "Walls"), "
+             + "\(lights) \(lights == 1 ? "Light" : "Lights"), "
+             + "\(pawns) \(pawns == 1 ? "Pawn" : "Pawns")"
     }
 
     /// One Grid square in image pixels, or nil when no Grid has been declared — snapping
@@ -340,6 +374,42 @@ struct ControlView: View {
 
     // MARK: Fog
 
+    /// Label, colour and range for the Pawn selected in the fog mode.
+    @ViewBuilder
+    private var pawnInspector: some View {
+        if mode == .fog, tool == .pawns,
+           let pawn = appState.fog.pawns.first(where: { $0.id == selectedPawn }) {
+            HStack(spacing: 10) {
+                TextField("label", text: Binding(
+                    get: { pawn.label },
+                    set: { fogEdits.setPawnLabel(id: pawn.id, $0); applyFogEdits() }
+                ))
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 90)
+
+                ColorPicker("", selection: Binding(
+                    get: { Color(hex: pawn.colorHex) ?? .red },
+                    set: { fogEdits.setPawnColor(id: pawn.id, hex: $0.hexString); applyFogEdits() }
+                ), supportsOpacity: false)
+                .labelsHidden()
+
+                Text("Sight:")
+                TextField("range", value: Binding(
+                    get: { Double(pawn.light.brightSquares) },
+                    set: {
+                        fogEdits.setPawnRange(id: pawn.id, brightSquares: CGFloat($0),
+                                              dimSquares: pawn.light.dimSquares)
+                        applyFogEdits()
+                    }
+                ), format: .number)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 52)
+                Text("squares").foregroundStyle(.secondary)
+            }
+            .font(.callout)
+        }
+    }
+
     /// Set a Light's state, from the live row. In the fog mode the write has to go
     /// through `FogEdits`, or the next edit would overwrite `appState.fog` wholesale from
     /// the edit buffer and silently revert the toggle.
@@ -360,7 +430,7 @@ struct ControlView: View {
     /// otherwise get no signal at all, which is the silent failure issue 03 forbids.
     @ViewBuilder
     private var undeclaredGridWarning: some View {
-        if !appState.fog.lights.isEmpty, !appState.hasDeclaredGrid {
+        if !(appState.fog.lights.isEmpty && appState.fog.pawns.isEmpty), !appState.hasDeclaredGrid {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                 Text("This Map's Grid has not been declared, so Light radii have no real size — run Fit Grid, or set the squares-wide value.")
@@ -376,9 +446,15 @@ struct ControlView: View {
     /// it must be one click with nothing to open first.
     @ViewBuilder
     private var lightToggles: some View {
-        if !appState.fog.lights.isEmpty {
+        if !appState.fog.walls.isEmpty || !appState.fog.lights.isEmpty
+            || !appState.fog.pawns.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
+                    // The off switch: one control, always reachable, no mode to enter.
+                    Toggle("Fog", isOn: $appState.isFogOverlayOn)
+                        .toggleStyle(.switch)
+                        .help("Hide or reveal the Fog Overlay on the Player Display. Pawns stay visible either way.")
+                    Divider().frame(height: 16)
                     Text("Lights:").foregroundStyle(.secondary)
                     ForEach(Array(appState.fog.lights.enumerated()), id: \.element.id) { index, light in
                         Toggle(isOn: Binding(
@@ -389,6 +465,18 @@ struct ControlView: View {
                         }
                         .toggleStyle(.button)
                         .help("Light \(index + 1): bright \(Int(light.brightSquares)), dim \(Int(light.dimSquares)) squares")
+                    }
+                    // A Pawn's own light toggles here too: a character putting out their
+                    // torch is the same live action as dousing a brazier.
+                    ForEach(appState.fog.pawns) { pawn in
+                        Toggle(isOn: Binding(
+                            get: { pawn.light.isOn },
+                            set: { appState.setPawnLight(id: pawn.id, isOn: $0) }
+                        )) {
+                            Text(pawn.label)
+                        }
+                        .toggleStyle(.button)
+                        .help("\(pawn.label): sight \(Int(pawn.light.brightSquares)) squares")
                     }
                 }
             }

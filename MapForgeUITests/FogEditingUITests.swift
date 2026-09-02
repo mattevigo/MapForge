@@ -43,7 +43,7 @@ final class FogEditingUITests: XCTestCase {
 
         // The mode's own controls replace the entry buttons.
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2), "did not enter Wall mode")
-        XCTAssertTrue(app.staticTexts["0 Walls, 0 Lights"].exists, "fog summary not shown")
+        XCTAssertTrue(app.staticTexts["0 Walls, 0 Lights, 0 Pawns"].exists, "fog summary not shown")
     }
 
     func testClickingPlacesVerticesAndDoubleClickCommitsTheChain() throws {
@@ -64,7 +64,7 @@ final class FogEditingUITests: XCTestCase {
         third.doubleClick()
 
         // Three vertices make two Walls. The count label is the observable outcome.
-        XCTAssertTrue(app.staticTexts["2 Walls, 0 Lights"].waitForExistence(timeout: 2),
+        XCTAssertTrue(app.staticTexts["2 Walls, 0 Lights, 0 Pawns"].waitForExistence(timeout: 2),
                       "clicks did not become Walls")
     }
 
@@ -77,11 +77,11 @@ final class FogEditingUITests: XCTestCase {
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.7)).click()
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)).click()
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)).doubleClick()
-        XCTAssertTrue(app.staticTexts["1 Wall, 0 Lights"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["1 Wall, 0 Lights, 0 Pawns"].waitForExistence(timeout: 2))
 
         app.buttons["Cancel"].click()
         app.buttons["Edit Fog…"].click()
-        XCTAssertTrue(app.staticTexts["0 Walls, 0 Lights"].waitForExistence(timeout: 2),
+        XCTAssertTrue(app.staticTexts["0 Walls, 0 Lights, 0 Pawns"].waitForExistence(timeout: 2),
                       "Cancel did not discard the Walls drawn in the mode")
     }
 
@@ -94,7 +94,7 @@ final class FogEditingUITests: XCTestCase {
         app.buttons["Lights"].click()
         let window = app.windows.firstMatch
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.7)).click()
-        XCTAssertTrue(app.staticTexts["0 Walls, 1 Light"].waitForExistence(timeout: 2),
+        XCTAssertTrue(app.staticTexts["0 Walls, 1 Light, 0 Pawns"].waitForExistence(timeout: 2),
                       "the click did not place a Light")
 
         // The live toggle row is available outside the editing mode.
@@ -129,5 +129,48 @@ final class FogEditingUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Done"].isHittable,
                       "the zoomed preview covered the mode controls")
         XCTAssertTrue(app.buttons["Cancel"].isHittable)
+    }
+
+    func testPlacingAPawnAndDraggingItOutsideTheEditingMode() throws {
+        let app = try launchApp()
+        app.buttons["Edit Fog…"].click()
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
+
+        app.buttons["Pawns"].click()
+        let window = app.windows.firstMatch
+        window.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.7)).click()
+        XCTAssertTrue(app.staticTexts["0 Walls, 0 Lights, 1 Pawn"].waitForExistence(timeout: 2),
+                      "the click did not place a Pawn")
+
+        // Leaving the mode: the token stays, and its light toggle joins the live row.
+        app.buttons["Done"].click()
+        XCTAssertTrue(app.buttons["1"].waitForExistence(timeout: 2),
+                      "the Pawn lost its live toggle outside the editing mode")
+
+        // Dragging is a live action — it must work here, with no mode entered.
+        let from = window.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.7))
+        let to = window.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.7))
+        from.press(forDuration: 0.1, thenDragTo: to)
+
+        // The Pawn survived the drag rather than being duplicated or dropped.
+        app.buttons["Edit Fog…"].click()
+        XCTAssertTrue(app.staticTexts["0 Walls, 0 Lights, 1 Pawn"].waitForExistence(timeout: 2))
+    }
+
+    func testTheFogOverlayHasAnAlwaysReachableOffSwitch() throws {
+        // "The off switch is a single control" — no mode to enter, nothing to open first.
+        let app = try launchApp()
+        app.buttons["Edit Fog…"].click()
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
+
+        // Place something so the fog row appears.
+        app.buttons["Lights"].click()
+        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.7)).click()
+        app.buttons["Done"].click()
+
+        let fog = app.switches["Fog"]
+        XCTAssertTrue(fog.waitForExistence(timeout: 2), "no Fog Overlay switch outside the mode")
+        fog.click()
+        XCTAssertTrue(fog.isHittable, "the switch vanished after being used")
     }
 }

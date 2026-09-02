@@ -1,6 +1,6 @@
 # 04 — Pawns
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 01, 03
 
 A Pawn is a token on the Map with a label and a colour, drawn for players whether or not the Fog Overlay is active. A Pawn is also a Light: its range of sight and its range of illumination are the same number.
@@ -25,3 +25,19 @@ Acceptance: a Pawn with a 30 ft range, dragged across a doorway, lights the next
 ## Comments
 
 - 2026-09-01 (grilling session): designed via `/grill-with-docs`. Modelling Pawn as its own entity rather than a fog-internal one was a deliberate call, so tokens survive the Fog Overlay being switched off.
+
+- 2026-09-02 (implemented): Pawn editing in `FogEdits`, a Pawns tool in `FogOverlay`, `PawnToken`, `PlayerPlacement`, `PawnLayer`, and Pawns rendered on the Player Display. 28 unit tests.
+
+  `PawnToken` is one view shared by the Control Window and the Player Display, so a token cannot look like two different things on the two screens — the DM points at the red circle and the players must be looking at the same red circle.
+
+  Dragging outside the editing mode is `PawnLayer`, deliberately separate from `FogOverlay`: the party moves during play, not during prep, so moving a token must not require entering a mode. Its drag is measured in a named container space, never the token's own — a token placed with `.position()` moves as it is dragged, which is the feedback loop `map-presenter/09` already cost a round of work on.
+
+  `PlayerPlacement` is the one conversion everything Map-space needs: Pawns are stored in image pixels while the Map is drawn in points. Its inverse is tested against `viewPoint` directly, so a dragged token lands exactly under the cursor and forty small drags return to the origin.
+
+  The acceptance test measures lit *area* across the far room, not one point. My first attempt probed a single point on the doorway's centre line, which is visible from the very start — that is what a doorway is — so it failed against correct behaviour. The engine was right and the test was wrong.
+
+  Not verified: the UI tests still could not run — `MapForgeUITests` hangs in this environment.
+
+- 2026-09-02 (review): the standards axis found `PawnLayer` **entirely dead**. Its two `.overlay{}` calls were applied above the mirror's existing `.allowsHitTesting(false)`, which propagates to the whole subtree — so the live drag, the one thing this layer exists for, could never receive an event. The disable now sits on the overflowing `Image` itself, which is what its comment was always describing; a test pins the invariant that makes that safe (the mirror's container never exceeds its preview, so it cannot swallow clicks on the controls above — the `map-presenter/09` regression).
+
+  Also: the Player Display's token had no size floor, so a Map with no declared physical size drew invisible Pawns; both Control Window surfaces already clamped. And `CONTEXT.md` now records that moving a Pawn during play is not undoable while moving one while authoring is — two deliberate write paths that were otherwise only visible in the code.
