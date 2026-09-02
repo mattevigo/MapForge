@@ -1,6 +1,6 @@
 # 06 — Get the UI tests running
 
-Status: ready-for-human
+Status: wontfix
 
 Make `MapForgeUITests` execute. It currently hangs in the environment the Fog of War feature was built in, so its ten UI tests have never run — and that is the direct cause of defects reaching the DM three times over.
 
@@ -89,6 +89,26 @@ this pass's first run. "Turns red when a gesture is deliberately broken" is unve
 and the new coverage the issue asks for (Wall select-and-delete, an unsnapped vertex, a
 live label edit) is not written: issues 02 and 05's gesture work is still gated on issue
 01, and there is no point adding tests to a suite that cannot currently open a window.
+
+## Closed 2026-09-02 — wontfix, and this one is a real loss
+
+Three genuine defects in the suite were found and fixed: tests addressing the Player window
+instead of the Control Window, the tool picker's segments being radio buttons rather than
+buttons, and the developer's remembered Player Display leaking in from real use. The
+premise that the suite *hangs* was wrong — it ran to completion in 84 seconds.
+
+But it is not green, and it is closed unresolved rather than solved. The app opens no window
+under XCUITest on this machine, which reproduces on an unmodified checkout, so it is
+persisted state that survived clearing the defaults domain, the saved application state and
+the container. A reboot or clearing the runner's accessibility permission is the likely fix
+and needs a human.
+
+**This should be reopened rather than left closed.** The argument in this issue got stronger,
+not weaker, during the work: the deletion defect was the fifth from SwiftUI gesture, focus
+and hit-testing composition, and the unit suite was green at every count from 209 to 276
+while ⌫ did nothing at all. Every defect this feature found at the table was invisible to it
+by construction. Closing this is recording that the suite was not repaired, not that it
+stopped mattering.
 
 ## Comments
 

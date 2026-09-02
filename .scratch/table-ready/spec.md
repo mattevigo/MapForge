@@ -1,6 +1,6 @@
 # MapForge v3 — Table Ready
 
-Status: in progress — 01, 03, 04 done; 05 partly; 02 and 06 open
+Status: closed 2026-09-02 — 01, 03, 04 done; 05 substantially done; 02, 05's follow-up and 06 wontfix
 
 Four things that stood between the DM and running an actual session, collected after the first real use of the Fog of War feature. The name is the acceptance bar: not "these four diffs landed" but "a game ran and nothing got in the way".
 
@@ -82,6 +82,46 @@ Out: Calibration and the ruler flow; the `<map>.mapforge.json` Sidecar, rotation
 4. [04 — Remove Grid snapping](issues/04-remove-grid-snapping.md)
 5. [05 — Pawn labels at the table](issues/05-pawn-labels-at-the-table.md)
 6. [06 — Get the UI tests running](issues/06-ui-tests-running.md)
+
+## Closed 2026-09-02
+
+The acceptance bar was "not these four diffs landed, but a game ran and nothing got in the
+way". The four things that got in the way are fixed. What is left open is recorded as
+`wontfix` with reasoning, not forgotten.
+
+### What the four reports turned out to be
+
+The spec opened by claiming two of the four were already-built features the DM could not
+reach. That was half right, and the half it got wrong is the most useful thing here.
+
+| Reported | Spec's guess | What it actually was |
+|---|---|---|
+| delete already placed walls | built but undiscoverable | **built and broken.** `FogOverlay` could never hold keyboard focus, so ⌫ beeped and did nothing |
+| pawns should have editable labels | built but unreachable at the table | **right** — plus invisible below 16 pt, which no one had noticed |
+| grid fit should persist per screen | genuinely missing | **right**, and "per screen" was Calibration, correctly split out |
+| never snap to the grid | three mechanisms, only one goes | **right** — and grid snap turned out not to be load-bearing for watertightness after all |
+
+Two more defects surfaced that nobody reported: a Pawn's "Sight" field wrote only the bright
+radius, so the outer circle sat fixed at twice whatever the Pawn was first created with; and
+`isEmpty` would have deleted the fog file of a DM who fitted the Grid and stopped.
+
+### The lesson that generalises
+
+**Four separate reports of "please add X" were X existing but broken or unreachable.** The
+spec named this failure mode and still under-diagnosed it: it assumed discoverability where
+the truth was a runtime defect. "A reported-missing feature is a bug report until proven
+otherwise" was the right instinct and did not go far enough — *reproduce before deciding
+which kind of missing it is*, because the two have opposite fixes and feel identical from
+the DM's chair.
+
+**The distinguishing evidence was a sound.** A beep means AppKit found no responder; silence
+would have meant focus went elsewhere. No amount of reading the code separates those, and
+the first fix — making the selection gesture claim focus — was plausible, obvious and
+useless, because the view it focused could not accept focus.
+
+**The unit suite was green throughout**, 209 tests to 276, while wall deletion did not work
+at all. Every defect this feature found was found by a human at the app. That is issue 06's
+argument, and closing 06 unresolved is the one real loss here.
 
 ## Assumptions
 

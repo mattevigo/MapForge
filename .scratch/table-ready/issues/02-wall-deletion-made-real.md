@@ -1,6 +1,6 @@
 # 02 — Wall deletion, made real
 
-Status: ready-for-agent
+Status: wontfix
 
 Make deleting a placed Wall work, and make it evident. The model layer and the key handler already exist and are tested; what is unproven is whether the gesture reaches them, and what is certainly missing is any signal to the DM about why a click did nothing.
 
@@ -55,6 +55,22 @@ press ⌫, it goes; Undo brings it back.
 Both are `ready-for-agent`. The UI test this issue promises ("whatever the cause, it gets a
 UI test under issue 06") is not written — issue 06's suite cannot currently open a window
 on this machine.
+
+## Closed 2026-09-02 — wontfix
+
+The half that mattered is done: deletion was genuinely dead and now works. What remains —
+de-emphasising inactive object kinds, and hover feedback on Walls — is dropped.
+
+The reasoning that made them worth building was "the feature exists but the DM cannot find
+it". That premise turned out to be false. Deletion was not undiscoverable; it was broken.
+The hint text said "click a Wall then ⌫" and the DM followed it exactly — the highlight
+appeared and the key did nothing. Fixing the defect removed the actual obstacle, and
+building affordances for a problem that turned out not to exist would be guessing again.
+
+Worth reopening if the DM reports clicking a Wall with the wrong tool active and reading it
+as broken. That is a real gap in the design — all three object kinds are always drawn and
+only one is ever clickable — but it is a hypothesis, not an observation, and this feature
+has now been wrong about three of its four hypotheses.
 
 ## Comments
 

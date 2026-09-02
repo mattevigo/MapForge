@@ -1,6 +1,6 @@
 # MapForge — Creatures
 
-Status: built — awaiting a check at the table
+Status: closed 2026-09-02 — built, awaiting a check at the table
 
 A **Creature** is a Pawn the players discover rather than one they carry. It emits no
 light, it is drawn *under* the Fog Overlay so darkness hides it, and the DM can take it off
@@ -100,6 +100,27 @@ Out: size categories beyond Big (no Huge or Gargantuan); per-player line of sigh
 initiative, hit points or any stat block; Creature-specific
 artwork or tokens beyond the existing coloured disc; automatic reveal on movement; a
 fourth tool in the fog mode.
+
+## Closed 2026-09-02
+
+All three issues done, plus **Big** (2×2 tokens), which arrived mid-feature and is specced
+above. Two defects were caught by review rather than by testing, both worth recording:
+
+- **Adding flags to `Pawn` nearly broke every existing fog file.** Swift's synthesised
+  decode requires every key unless the property is optional, so a property default is not
+  enough — every `.fog.json` already beside a Map would have failed to load, and `FogStore`
+  would correctly have refused to overwrite what it could not read. A hand-written
+  `init(from:)` with `decodeIfPresent` fixes it; the test that decodes a file without the
+  keys is the one that must never be deleted.
+- **A hidden Pawn kept emitting light.** Its token left the Player Display while its torch
+  burned on, lighting a wall-shadowed region radiating from nothing — and that light is
+  exactly what reveals Creatures, so hiding a Pawn could have given away the ambush it was
+  hiding for.
+
+Not verified at the table. The reveal rule is unit-tested through `PlayerVisibility`, but
+whether it *reads* right on a real map during a real fight is a judgement only the DM can
+make — and the `table-ready` feature produced four cases where green tests and working
+software were different things.
 
 ## Issues
 

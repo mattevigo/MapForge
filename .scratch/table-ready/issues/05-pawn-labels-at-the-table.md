@@ -1,6 +1,6 @@
 # 05 — Pawn labels at the table
 
-Status: ready-for-agent
+Status: wontfix
 
 Make a Pawn's label editable during live play, and legible at the sizes it is actually rendered. The label already exists end to end — model, both render surfaces, an inspector field, undo — but it is unreachable when the DM needs it and invisible at typical zoom.
 
@@ -71,6 +71,18 @@ was focus, not gesture composition — so this is no longer blocked. It remains 
 for this pass, and the caution that chose the live-row `TextField` over a `PawnLayer`
 double-click is vindicated rather than weakened: that layer is where focus and gesture
 composition have now produced five defects. Nothing was added to `PawnLayer`, per scope.
+
+## Closed 2026-09-02 — wontfix
+
+Everything the issue specified is built: live renaming from the toggle row, the legibility
+floor, and unique auto-labels. Dropped is only the token-anchored popover the issue floated
+as a conditional follow-up.
+
+Issue 01 unblocked it — the gesture layer is healthy, the defect was focus — but the
+condition being met is not a reason to build it. The live-row field already solves the
+problem the popover would solve, and `PawnLayer` is where focus and gesture composition
+have now produced five defects. A second, competing gesture there buys directness the DM
+has not asked for at a risk this codebase has measured five times.
 
 ## Comments
 
