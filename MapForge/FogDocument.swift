@@ -160,16 +160,59 @@ struct Pawn: Codable, Equatable, Identifiable {
     var colorHex: String
     var light: Light
 
+    /// A **Creature**: a Pawn the players discover rather than one they carry.
+    ///
+    /// Inverts both halves of what a Pawn is. It emits no Light — a goblin waiting in the
+    /// dark must not illuminate the room it is hiding in — and it is drawn *under* the Fog
+    /// Overlay, so darkness hides it from players. The DM always sees it.
+    ///
+    /// A flag rather than a separate type: placement, dragging, labels, colour, selection,
+    /// deletion and undo are identical, and only lighting and render order branch. The
+    /// cost is that a Creature carries a `light` it does not emit — the same collapse this
+    /// type already makes in the other direction, and it means promoting a Creature to a
+    /// party member keeps its radii rather than needing them re-entered.
+    var isCreature = false
+
+    /// Taken off the Player Display by the DM without being deleted. Beats lighting: a
+    /// hidden Pawn is invisible to players however well lit it is, which is the point of
+    /// the control. Still visible, de-emphasised, on the Control Window.
+    var isHidden = false
+
     var at: MapPoint {
         get { light.at }
         set { light.at = newValue }
     }
 
     init(id: UUID = UUID(), at: MapPoint, label: String, colorHex: String,
-         brightSquares: CGFloat, dimSquares: CGFloat? = nil) {
+         brightSquares: CGFloat, dimSquares: CGFloat? = nil,
+         isCreature: Bool = false, isHidden: Bool = false) {
         self.id = id
         self.label = label
         self.colorHex = colorHex
         self.light = Light(at: at, brightSquares: brightSquares, dimSquares: dimSquares)
+        self.isCreature = isCreature
+        self.isHidden = isHidden
+    }
+
+    /// Written by hand for the two flags only, which decode as false when absent.
+    ///
+    /// A property default is not enough: Swift's synthesised `decode` requires every key
+    /// unless the property is optional, so adding these flags to the synthesised
+    /// conformance made every `.fog.json` written before Creatures existed fail to load
+    /// outright — a DM's authored fog, unreadable, with the store correctly refusing to
+    /// overwrite the file it could not read. Caught by a test that decodes a file with the
+    /// keys absent; keep that test.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        label = try container.decode(String.self, forKey: .label)
+        colorHex = try container.decode(String.self, forKey: .colorHex)
+        light = try container.decode(Light.self, forKey: .light)
+        isCreature = try container.decodeIfPresent(Bool.self, forKey: .isCreature) ?? false
+        isHidden = try container.decodeIfPresent(Bool.self, forKey: .isHidden) ?? false
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, label, colorHex, light, isCreature, isHidden
     }
 }

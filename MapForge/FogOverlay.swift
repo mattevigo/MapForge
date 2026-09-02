@@ -45,6 +45,10 @@ struct FogOverlay: View {
     /// preview — there is no room for a numeric editor inside the overlay itself.
     @Binding var selectedLight: Light.ID?
     @Binding var selectedPawn: Pawn.ID?
+    /// Whether a Pawn is currently invisible to players. Drawn faded rather than dropped:
+    /// this is the DM's surface, and it is while authoring an encounter that they most
+    /// need to see which Creatures the table can and cannot see.
+    let isDimmed: (Pawn) -> Bool
     let onChange: () -> Void
     let onTransform: (PreviewTransform) -> Void
 
@@ -203,6 +207,7 @@ struct FogOverlay: View {
             let p = viewPoint(pawn.at)
             PawnToken(pawn: pawn, diameter: pawnDiameter,
                       isSelected: pawn.id == selectedPawn)
+                .opacity(isDimmed(pawn) ? 0.4 : 1)
                 .position(x: p.x, y: p.y)
                 .gesture(pawnDragGesture(pawn))
                 .allowsHitTesting(tool == .pawns)
@@ -337,11 +342,15 @@ struct FogOverlay: View {
             selectedPawn = nil
             // Free-form. Pawns never snapped; Walls and Lights no longer do either.
             let point = MapPoint(transform.imagePoint(from: location))
+            // A new Pawn copies the last one placed, `isCreature` included: a DM
+            // populating an encounter places six goblins in a row, and toggling each one
+            // afterwards is six chances to miss one and light the room with it.
             let previous = pawns.last
             edits.addPawn(Pawn(at: point,
                                label: Pawn.nextLabel(after: pawns),
                                colorHex: previous?.colorHex ?? Pawn.defaultColorHex,
-                               brightSquares: previous?.light.brightSquares ?? 6))
+                               brightSquares: previous?.light.brightSquares ?? 6,
+                               isCreature: previous?.isCreature ?? false))
             onChange()
         case .lights:
             selectedLight = nil

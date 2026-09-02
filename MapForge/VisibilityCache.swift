@@ -39,7 +39,20 @@ final class VisibilityCache {
                  pixelsPerSquare: CGFloat) -> [LitRegion] {
         let next = Inputs(walls: document.walls,
                           lights: document.lights,
-                          pawnLights: document.pawns.map(\.light),
+                          // Creatures emit nothing, and neither does a Pawn the DM has
+                          // hidden — its token is off the Player Display, and a torch
+                          // still burning there would light a wall-shadowed region
+                          // radiating from nothing, and could reveal the very Creature the
+                          // hiding was setting up.
+                          //
+                          // Filtered here rather than inside `Visibility.compute`, which
+                          // takes a bare `[Light]` and stays a pure geometry seam that
+                          // knows nothing about Pawns — and because `Inputs` is the cache
+                          // key, so flipping either flag correctly invalidates instead of
+                          // serving a stale polygon.
+                          pawnLights: document.pawns
+                              .filter { !$0.isCreature && !$0.isHidden }
+                              .map(\.light),
                           imagePixelSize: imagePixelSize,
                           pixelsPerSquare: pixelsPerSquare)
         if next == inputs { return cached }

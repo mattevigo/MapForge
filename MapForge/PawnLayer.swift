@@ -11,6 +11,10 @@ struct PawnLayer: View {
     /// carries the Viewport pan.
     let frame: CGRect
     let pawns: [Pawn]
+    /// Whether each Pawn is currently invisible to players, so the DM can see at a glance
+    /// what the table can and cannot. Never used to hide one here: the Control Window
+    /// exists so the DM sees everything.
+    let isDimmed: (Pawn) -> Bool
     let onMove: (Pawn.ID, MapPoint) -> Void
     /// Called when a drag ends, so the move reaches disk without waiting out the debounce.
     let onCommit: () -> Void
@@ -25,6 +29,7 @@ struct PawnLayer: View {
             ForEach(pawns) { pawn in
                 let p = PlayerPlacement.viewPoint(pawn.at, map: map, frame: frame)
                 PawnToken(pawn: pawn, diameter: max(side, 12))
+                    .opacity(isDimmed(pawn) ? 0.4 : 1)
                     .position(x: p.x, y: p.y)
                     .gesture(drag(pawn))
             }

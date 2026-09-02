@@ -112,6 +112,13 @@ struct FogEdits {
         editPawn(id) { $0.label = label }
     }
 
+    /// Make a Pawn a Creature, or a Creature a party member. Undoable: unlike hiding,
+    /// which is a live act at the table, this is an authoring decision about what the
+    /// token *is*, and it changes the lighting of the whole Map.
+    mutating func setPawnIsCreature(id: Pawn.ID, _ isCreature: Bool) {
+        editPawn(id) { $0.isCreature = isCreature }
+    }
+
     mutating func setPawnColor(id: Pawn.ID, hex: String) {
         editPawn(id) { $0.colorHex = hex }
     }

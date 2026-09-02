@@ -305,6 +305,7 @@ final class AppState: ObservableObject {
         if touched.contains(.label) { pawn.label = live.label }
         if touched.contains(.position) { pawn.at = live.at }
         if touched.contains(.torch) { pawn.light.isOn = live.light.isOn }
+        if touched.contains(.hidden) { pawn.isHidden = live.isHidden }
         return pawn
     }
 
@@ -318,6 +319,7 @@ final class AppState: ObservableObject {
         static let label = LivePawnEdit(rawValue: 1 << 0)
         static let position = LivePawnEdit(rawValue: 1 << 1)
         static let torch = LivePawnEdit(rawValue: 1 << 2)
+        static let hidden = LivePawnEdit(rawValue: 1 << 3)
     }
 
     private var liveEdits: [Pawn.ID: LivePawnEdit] = [:]
@@ -350,6 +352,21 @@ final class AppState: ObservableObject {
         restored.pawns = restored.pawns.map { carryLiveState(onto: $0) }
         fog = restored
         flushPendingFogWrites()
+    }
+
+    /// Take a Pawn off the Player Display without deleting it, from the live row.
+    ///
+    /// Not undoable, exactly as `setPawnLight` is not and for the same stated reason: this
+    /// is a live performance action taken mid-session, and filling the undo stack with
+    /// toggles would bury the DM's authoring work behind a row of them.
+    ///
+    /// Takes the value rather than toggling, so a SwiftUI binding that writes the same
+    /// state twice — which it does on a state resync — cannot flip it back.
+    func setPawnHidden(id: Pawn.ID, isHidden: Bool) {
+        guard let index = fog.pawns.firstIndex(where: { $0.id == id }),
+              fog.pawns[index].isHidden != isHidden else { return }
+        fog.pawns[index].isHidden = isHidden
+        recordLiveEdit(.hidden, on: id)
     }
 
     /// Flush any pending fog edit. Called as the app terminates.

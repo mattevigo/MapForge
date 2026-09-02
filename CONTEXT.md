@@ -64,6 +64,10 @@ _Avoid_: lamp, torch, emitter, light source
 A token on the Map with a label and a colour, drawn for players whether or not the Fog Overlay is active. A Pawn is also a Light: its range of sight and its range of illumination are the same thing. Moving a Pawn during play is a live action and is not undoable; moving one while authoring fog is an edit and is.
 _Avoid_: token, miniature, figure, character, marker
 
+**Creature**:
+A Pawn the players discover rather than one they carry: it emits no Light, and it is drawn under the Fog Overlay so darkness hides it from players. The DM always sees Creatures, and can hide one outright — a hidden Creature is invisible to players however well lit it is. A flag on Pawn, not a separate kind.
+_Avoid_: monster, enemy, NPC, mob
+
 **Visibility**:
 The three-valued result of tracing every Light against every Wall — each point of the Map is bright, dim, or unlit. Computed in Map space and unaffected by panning the Viewport.
 _Avoid_: light map, shadow map, fog data, mask

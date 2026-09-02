@@ -174,6 +174,13 @@ struct ControlView: View {
                                                 y: frame.minY - visible.minY,
                                                 width: frame.width, height: frame.height),
                                   pawns: appState.fog.pawns,
+                                  // Hoisted, not read per Pawn: `litRegions` is computed,
+                                  // and rebuilding the cache key for every token every
+                                  // frame of a drag is exactly the drag-rate work this
+                                  // file's comments record a regression over.
+                                  isDimmed: { [regions = appState.litRegions] pawn in
+                                      isInvisibleToPlayers(pawn, regions: regions)
+                                  },
                                   onMove: { appState.movePawn(id: $0, to: $1) },
                                   onCommit: { appState.flushPendingFogWrites() })
                     }
@@ -210,6 +217,7 @@ struct ControlView: View {
                                            square: $fitSquare) { gridFitTransform = $0 }
                         }
                         if mode == .fog {
+                            let fogRegions = appState.litRegions
                             FogOverlay(transform: transform,
                                        containerSize: previewSize,
                                        tool: tool,
@@ -217,6 +225,7 @@ struct ControlView: View {
                                        edits: $fogEdits,
                                        selectedLight: $selectedLight,
                                        selectedPawn: $selectedPawn,
+                                       isDimmed: { isInvisibleToPlayers($0, regions: fogRegions) },
                                        onChange: { applyFogEdits() },
                                        onTransform: { fogTransform = $0 })
                         }
@@ -324,6 +333,14 @@ struct ControlView: View {
              + "\(pawns) \(pawns == 1 ? "Pawn" : "Pawns")"
     }
 
+    /// Whether players currently cannot see this Pawn — a hidden one, or a Creature
+    /// standing in the dark. The DM's surfaces draw it faded rather than dropping it.
+    private func isInvisibleToPlayers(_ pawn: Pawn, regions: [LitRegion]) -> Bool {
+        PlayerVisibility.isDimmedForDM(pawn: pawn, regions: regions,
+                                       isFogOverlayOn: appState.isFogOverlayOn,
+                                       hasVisibility: appState.hasDeclaredGrid)
+    }
+
     /// One Grid square in image pixels, or nil when no Grid has been declared. Nothing
     /// snaps to it any more; it survives because a Pawn token is sized in Grid squares —
     /// a token reads as occupying its square — and the Lights inspector uses its absence
@@ -405,6 +422,12 @@ struct ControlView: View {
                 ), supportsOpacity: false)
                 .labelsHidden()
 
+                Toggle("Creature", isOn: Binding(
+                    get: { pawn.isCreature },
+                    set: { fogEdits.setPawnIsCreature(id: pawn.id, $0); applyFogEdits() }
+                ))
+                .help("A Creature emits no Light and is hidden from players by darkness.")
+
                 Text("Sight:")
                 TextField("range", value: Binding(
                     get: { Double(pawn.light.brightSquares) },
@@ -418,7 +441,9 @@ struct ControlView: View {
                 // Naming the dim radius rather than leaving a second, larger circle on the
                 // Map with nothing in the UI to explain it — it looked fixed and unrelated
                 // to the number being typed.
-                Text("squares, dim to \(Int(pawn.light.dimSquares))")
+                Text(pawn.isCreature
+                     ? "squares — unused, a Creature emits no Light"
+                     : "squares, dim to \(Int(pawn.light.dimSquares))")
                     .foregroundStyle(.secondary)
             }
             .font(.callout)
@@ -475,7 +500,9 @@ struct ControlView: View {
                 PawnToken(pawn: pawn, diameter: 14)
             }
             .toggleStyle(.button)
-            .help("\(pawn.label): sight \(Int(pawn.light.brightSquares)) squares — the field renames it")
+            .help(pawn.isCreature
+                  ? "\(pawn.label): a Creature — emits no light, seen by players only where the light reaches it"
+                  : "\(pawn.label): sight \(Int(pawn.light.brightSquares)) squares — the field renames it")
 
             TextField("label", text: Binding(
                 get: { pawn.label },
@@ -483,6 +510,20 @@ struct ControlView: View {
             ))
             .textFieldStyle(.roundedBorder)
             .frame(width: 72)
+
+            // Take it off the Player Display without deleting it. The eye is filled when
+            // players can see it and slashed when they cannot, so the DM reads the state
+            // rather than the control.
+            Toggle(isOn: Binding(
+                get: { !pawn.isHidden },
+                set: { appState.setPawnHidden(id: pawn.id, isHidden: !$0) }
+            )) {
+                Image(systemName: pawn.isHidden ? "eye.slash" : "eye")
+            }
+            .toggleStyle(.button)
+            .help(pawn.isHidden
+                  ? "Hidden from players. Still here, and still yours to move."
+                  : "Visible to players where the light reaches. Click to hide.")
         }
     }
 
