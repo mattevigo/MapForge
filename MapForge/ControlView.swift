@@ -78,8 +78,23 @@ struct ControlView: View {
                 Text(tool.hint)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                lightInspector
-                pawnInspector
+                // The inspector row is ALWAYS here, empty or not.
+                //
+                // Both inspectors draw nothing until something is selected, so selecting a
+                // Pawn used to insert a row into this VStack, steal its height from the
+                // preview below, and shrink the GeometryReader the preview measures every
+                // transform against — `fitted(container:)` then recomputed to a different
+                // scale and the Map visibly jumped mid-click. That is the "the zoom changes
+                // while I select" report, and it is the same defect as the caption above:
+                // anything in this stack that appears or vanishes resizes the preview.
+                //
+                // Reserving the height unconditionally makes the container a constant
+                // across selection, which is the property the preview's arithmetic needs.
+                ZStack(alignment: .leading) {
+                    lightInspector
+                    pawnInspector
+                }
+                .frame(height: Self.fogInspectorRowHeight, alignment: .leading)
             }
 
             playerDisplayStatus
@@ -437,6 +452,26 @@ struct ControlView: View {
     }
 
     // MARK: Fog
+
+    /// The height the fog inspector row always claims, selected or not.
+    ///
+    /// A constant rather than an intrinsic height, because "however tall it happens to be"
+    /// is exactly what made the preview jump: the row has to cost the same whether it is
+    /// empty, showing a Light's two fields, or showing a Pawn's six controls. 24 pt is the
+    /// measured fitting height of the taller of the two (the Pawn inspector, whose
+    /// rounded-border text fields set the floor) at `.callout`.
+    static let fogInspectorRowHeight: CGFloat = 24
+
+    /// The container the fog preview measures its zoom and pan against.
+    ///
+    /// Deliberately ignores `hasInspectorSelection`. The inspector row above the preview is
+    /// reserved unconditionally, so the GeometryReader's size already excludes it and
+    /// selecting something cannot change what the preview is fitted into. Expressed as a
+    /// function taking the flag — rather than not taking it — so the rule is testable and
+    /// stated, instead of being an invariant that holds only by accident of the layout.
+    static func fogPreviewContainer(geometry: CGSize, hasInspectorSelection: Bool) -> CGSize {
+        geometry
+    }
 
     /// Label, colour and range for the Pawn selected in the fog mode.
     @ViewBuilder
