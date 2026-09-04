@@ -29,13 +29,30 @@ struct PawnToken: View {
         squareSide * (scalesWithFootprint ? pawn.squaresAcross : 1)
     }
 
+    /// The token's outline: a disc for anyone who acts, a rounded square for Treasure.
+    ///
+    /// Shape rather than colour, because colour is already spoken for — a DM assigns it per
+    /// token to tell one goblin from another, so it cannot also carry what a token *is*. A
+    /// square reads as an object rather than a figure at a glance, which is the distinction
+    /// that matters when the DM is pointing at the Map mid-fight.
+    ///
+    /// Rounded, not sharp: at the live row's 14 pt and at low map zoom a hard-cornered
+    /// square reads as a stray pixel block, and the radius scales with the token so it
+    /// stays the same shape at every size.
+    private var outline: AnyShape {
+        switch pawn.kind {
+        case .player, .creature: return AnyShape(Circle())
+        case .treasure: return AnyShape(RoundedRectangle(cornerRadius: diameter * 0.18))
+        }
+    }
+
     var body: some View {
         ZStack {
-            Circle()
+            outline
                 .fill(Color(hex: pawn.colorHex) ?? .red)
                 // A Pawn whose light is out is still on the Map — dimmed, not gone.
                 .opacity(pawn.light.isOn ? 1 : 0.55)
-            Circle()
+            outline
                 .stroke(isSelected ? Color.accentColor : Color.black.opacity(0.6),
                         lineWidth: isSelected ? 3 : 1.5)
             // Sized from ONE square, so an ogre's "3" is the same size as a goblin's and

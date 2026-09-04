@@ -112,11 +112,11 @@ struct FogEdits {
         editPawn(id) { $0.label = label }
     }
 
-    /// Make a Pawn a Creature, or a Creature a party member. Undoable: unlike hiding,
-    /// which is a live act at the table, this is an authoring decision about what the
-    /// token *is*, and it changes the lighting of the whole Map.
-    mutating func setPawnIsCreature(id: Pawn.ID, _ isCreature: Bool) {
-        editPawn(id) { $0.isCreature = isCreature }
+    /// Make a Pawn a Creature, a Treasure, or a party member again. Undoable: unlike
+    /// hiding, which is a live act at the table, this is an authoring decision about what
+    /// the token *is*, and it changes the lighting of the whole Map.
+    mutating func setPawnKind(id: Pawn.ID, _ kind: PawnKind) {
+        editPawn(id) { $0.kind = kind }
     }
 
     /// Make a token 2×2, or 1×1 again. Undoable, like every other authoring decision

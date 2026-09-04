@@ -2,8 +2,9 @@ import AppKit
 import XCTest
 @testable import MapForge
 
-/// A Creature: a Pawn the players discover. It emits no Light, it is hidden by darkness,
-/// and the DM can take it off the Player Display without deleting it.
+/// What a Pawn *is*: a party member, a Creature, or a Treasure. The two kinds the players
+/// discover emit no Light and are hidden by darkness; the DM can take any of them off the
+/// Player Display without deleting it.
 @MainActor
 final class CreatureTests: XCTestCase {
     private let imageSize = CGSize(width: 1000, height: 800)
@@ -13,13 +14,13 @@ final class CreatureTests: XCTestCase {
     func testAPawnIsNotACreatureByDefault() {
         // Every Pawn already authored is a party member, and every version 2 file decodes
         // without this key.
-        XCTAssertFalse(makePawn().isCreature)
+        XCTAssertEqual(makePawn().kind, .player)
         XCTAssertFalse(makePawn().isHidden)
     }
 
     func testTheFlagsSurviveTheFogFile() throws {
         var creature = makePawn()
-        creature.isCreature = true
+        creature.kind = .creature
         creature.isHidden = true
         let document = FogDocument(pawns: [creature])
         let decoded = try JSONDecoder().decode(FogDocument.self,
@@ -47,7 +48,7 @@ final class CreatureTests: XCTestCase {
         """.utf8)
         let decoded = try JSONDecoder().decode(FogDocument.self, from: json)
         XCTAssertEqual(decoded.pawns.count, 1)
-        XCTAssertFalse(decoded.pawns[0].isCreature, "an existing Pawn became a Creature")
+        XCTAssertEqual(decoded.pawns[0].kind, .player, "an existing Pawn became a Creature")
         XCTAssertFalse(decoded.pawns[0].isHidden)
     }
 
@@ -57,7 +58,7 @@ final class CreatureTests: XCTestCase {
         // The half of the inversion that is not about rendering: a goblin waiting in an
         // unlit room must not be lighting the room it is hiding in.
         var creature = makePawn()
-        creature.isCreature = true
+        creature.kind = .creature
         let document = FogDocument(pawns: [creature])
 
         let regions = VisibilityCache().regions(for: document, imagePixelSize: imageSize,
@@ -84,7 +85,7 @@ final class CreatureTests: XCTestCase {
         _ = cache.regions(for: FogDocument(pawns: [pawn]), imagePixelSize: imageSize,
                           pixelsPerSquare: 20)
         var creature = pawn
-        creature.isCreature = true
+        creature.kind = .creature
         let after = cache.regions(for: FogDocument(pawns: [creature]),
                                   imagePixelSize: imageSize, pixelsPerSquare: 20)
 
@@ -100,10 +101,10 @@ final class CreatureTests: XCTestCase {
         edits.addPawn(Pawn(at: MapPoint(x: 50, y: 50), label: "2",
                            colorHex: previous.colorHex,
                            brightSquares: previous.light.brightSquares,
-                           isCreature: previous.isCreature))
+                           kind: previous.kind))
 
-        XCTAssertTrue(edits.document.pawns.last!.isCreature,
-                      "the second goblin was placed as a party member")
+        XCTAssertEqual(edits.document.pawns.last!.kind, .creature,
+                       "the second goblin was placed as a party member")
     }
 
     func testMakingAPawnACreatureIsUndoable() {
@@ -111,12 +112,12 @@ final class CreatureTests: XCTestCase {
         // changes the lighting of the whole Map.
         let pawn = makePawn()
         var edits = FogEdits(document: FogDocument(pawns: [pawn]))
-        edits.setPawnIsCreature(id: pawn.id, true)
-        XCTAssertTrue(edits.document.pawns[0].isCreature)
+        edits.setPawnKind(id: pawn.id, .creature)
+        XCTAssertEqual(edits.document.pawns[0].kind, .creature)
 
         edits.undo()
 
-        XCTAssertFalse(edits.document.pawns[0].isCreature, "the change was not undoable")
+        XCTAssertEqual(edits.document.pawns[0].kind, .player, "the change was not undoable")
     }
 
     func testAHiddenPawnStopsLightingTheRoom() {
@@ -330,6 +331,41 @@ final class CreatureTests: XCTestCase {
         XCTAssertLessThan(midFade, 1, "the band is a hard ring rather than a fade")
     }
 
+    // MARK: The live panel's grouping
+
+    func testThePanelSeparatesPlayersFromCreatures() {
+        // The DM reasons about these separately: the party is who they run the world for,
+        // the Creatures are what they run at them. The split is on `isCreature` alone.
+        var goblin = makePawn()
+        goblin.kind = .creature
+        let pawns = [makePawn(), goblin, makePawn()]
+
+        XCTAssertEqual(pawns.filter { $0.kind == .player }.count, 2)
+        XCTAssertEqual(pawns.filter { $0.kind == .creature }.count, 1)
+    }
+
+    func testEveryPawnLandsInExactlyOneGroup() {
+        // Two hand-written filters over one array were only correct while they happened
+        // to partition it — and Treasure is the third category that broke that. Counting
+        // through `PawnKind.allCases` is what makes the panel total by construction: a
+        // token the DM cannot find in the list is one they cannot hide or rename
+        // mid-fight.
+        var goblin = makePawn()
+        goblin.kind = .creature
+        var hiddenBigOgre = makePawn()
+        hiddenBigOgre.kind = .creature
+        hiddenBigOgre.isBig = true
+        hiddenBigOgre.isHidden = true
+        var chest = makePawn()
+        chest.kind = .treasure
+        let pawns = [makePawn(), goblin, hiddenBigOgre, chest]
+
+        let listed = PawnKind.allCases
+            .map { kind in pawns.filter { $0.kind == kind }.count }
+            .reduce(0, +)
+        XCTAssertEqual(listed, pawns.count, "a Pawn was missing from the panel")
+    }
+
     // MARK: Big
 
     func testAPawnIsOneSquareByDefault() {
@@ -419,9 +455,105 @@ final class CreatureTests: XCTestCase {
         // party member.
         var bigCreature = makePawn()
         bigCreature.isBig = true
-        bigCreature.isCreature = true
+        bigCreature.kind = .creature
         XCTAssertTrue(bigCreature.isBig)
-        XCTAssertTrue(bigCreature.isCreature)
+        XCTAssertEqual(bigCreature.kind, .creature)
+    }
+
+    // MARK: Treasure
+
+    func testATreasureEmitsNoLight() {
+        // The half Treasure shares with a Creature: a chest is not a lamp, and a vault
+        // that lit itself would reveal the room the party has not entered yet.
+        let regions = VisibilityCache().regions(
+            for: FogDocument(pawns: [treasure(at: MapPoint(x: 300, y: 300))]),
+            imagePixelSize: imageSize, pixelsPerSquare: 20)
+
+        XCTAssertTrue(regions.isEmpty, "a Treasure lit the room it was sitting in")
+    }
+
+    func testATreasureInTheDarkIsNotShownToPlayers() {
+        // Players discover loot; they are not handed a map of it. Same rule as a Creature,
+        // and it comes from the same `isDiscovered` branch rather than a second one.
+        XCTAssertFalse(PlayerVisibility.showsToPlayers(pawn: treasure(at: MapPoint(x: 900, y: 700)),
+                                                       regions: litRoom(),
+                                                       isFogOverlayOn: true,
+                                                       hasVisibility: true))
+    }
+
+    func testATreasureInTheLightIsShownToPlayers() {
+        XCTAssertTrue(PlayerVisibility.showsToPlayers(pawn: treasure(at: MapPoint(x: 300, y: 300)),
+                                                      regions: litRoom(),
+                                                      isFogOverlayOn: true,
+                                                      hasVisibility: true))
+    }
+
+    func testATreasureCanBeHiddenLikeAnyOtherPawn() {
+        // Hidden still beats lit, for every kind: a chest the DM is not ready to reveal
+        // must not appear because someone lit a torch.
+        var hidden = treasure(at: MapPoint(x: 300, y: 300))
+        hidden.isHidden = true
+        XCTAssertFalse(PlayerVisibility.showsToPlayers(pawn: hidden, regions: litRoom(),
+                                                       isFogOverlayOn: true,
+                                                       hasVisibility: true))
+    }
+
+    func testATreasureIsOneSquareByDefaultAndCanStillBeBig() {
+        // Size stays orthogonal to kind, exactly as it is for a Creature — a 1x1 chest and
+        // a 2x2 hoard are both meaningful, so Treasure does not weld itself to a footprint.
+        var chest = treasure(at: MapPoint(x: 10, y: 10))
+        XCTAssertEqual(chest.squaresAcross, 1)
+        chest.isBig = true
+        XCTAssertEqual(chest.squaresAcross, 2)
+    }
+
+    func testTreasureSurvivesTheFogFile() throws {
+        let document = FogDocument(pawns: [treasure(at: MapPoint(x: 10, y: 10))])
+        let decoded = try JSONDecoder().decode(FogDocument.self,
+                                               from: JSONEncoder().encode(document))
+        XCTAssertEqual(decoded, document)
+        XCTAssertEqual(decoded.pawns[0].kind, .treasure)
+    }
+
+    func testAFileWrittenWithTheOldCreatureFlagStillLoadsAsACreature() throws {
+        // The migration that must never be deleted. Every .fog.json already beside a Map
+        // carries `isCreature`, not `kind`; a goblin that decoded as a party member would
+        // start lighting the room it is hiding in, which is the exact defect the Creature
+        // feature was built to prevent.
+        let json = Data("""
+        {
+          "version": 2, "walls": [], "lights": [],
+          "pawns": [{
+            "id": "\(UUID().uuidString)", "label": "G", "colorHex": "#C81E1E",
+            "isCreature": true, "isHidden": true, "isBig": true,
+            "light": {
+              "id": "\(UUID().uuidString)",
+              "at": {"imagePixels": {"x": 10, "y": 10}},
+              "brightSquares": 6, "dimSquares": 12, "isOn": true
+            }
+          }]
+        }
+        """.utf8)
+        let decoded = try JSONDecoder().decode(FogDocument.self, from: json)
+        XCTAssertEqual(decoded.pawns[0].kind, .creature, "a stored Creature became a party member")
+        XCTAssertTrue(decoded.pawns[0].isHidden, "the other flags stopped decoding")
+        XCTAssertTrue(decoded.pawns[0].isBig)
+    }
+
+    func testOnlyPartyPawnsEmitLight() {
+        // The rule stated once, over every case: adding a fourth kind without deciding
+        // which side of the fog it falls on should fail here.
+        for kind in PawnKind.allCases {
+            XCTAssertEqual(kind.isDiscovered, kind != .player,
+                           "\(kind) fell on the wrong side of the fog")
+        }
+    }
+
+    func testEveryKindHasItsOwnPanelHeading() {
+        // Two kinds sharing a heading would merge two groups into one list, and the DM
+        // would be hunting for a chest among the goblins.
+        XCTAssertEqual(Set(PawnKind.allCases.map(\.pluralTitle)).count, PawnKind.allCases.count)
+        XCTAssertEqual(Set(PawnKind.allCases.map(\.title)).count, PawnKind.allCases.count)
     }
 
     // MARK: Helpers
@@ -433,7 +565,12 @@ final class CreatureTests: XCTestCase {
 
     private func creature(at point: MapPoint) -> Pawn {
         Pawn(at: point, label: "G", colorHex: Pawn.defaultColorHex,
-             brightSquares: 6, isCreature: true)
+             brightSquares: 6, kind: .creature)
+    }
+
+    private func treasure(at point: MapPoint) -> Pawn {
+        Pawn(at: point, label: "T", colorHex: Pawn.defaultColorHex,
+             brightSquares: 6, kind: .treasure)
     }
 
     /// A room lit around (300, 300); (900, 700) is well outside it.

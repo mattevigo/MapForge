@@ -51,7 +51,7 @@ final class VisibilityCache {
                           // key, so flipping either flag correctly invalidates instead of
                           // serving a stale polygon.
                           pawnLights: document.pawns
-                              .filter { !$0.isCreature && !$0.isHidden }
+                              .filter { !$0.isDiscovered && !$0.isHidden }
                               .map(\.light),
                           imagePixelSize: imagePixelSize,
                           pixelsPerSquare: pixelsPerSquare)

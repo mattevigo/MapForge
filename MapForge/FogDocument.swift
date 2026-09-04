@@ -160,18 +160,26 @@ struct Pawn: Codable, Equatable, Identifiable {
     var colorHex: String
     var light: Light
 
-    /// A **Creature**: a Pawn the players discover rather than one they carry.
+    /// What this Pawn *is*: a party member, a Creature, or a Treasure.
     ///
-    /// Inverts both halves of what a Pawn is. It emits no Light — a goblin waiting in the
-    /// dark must not illuminate the room it is hiding in — and it is drawn *under* the Fog
-    /// Overlay, so darkness hides it from players. The DM always sees it.
+    /// An enum rather than the booleans this replaces, because the three are mutually
+    /// exclusive — a chest is not also a goblin — and a second flag beside `isCreature`
+    /// would make `isCreature && isTreasure` representable and meaningless. It also makes
+    /// the live panel's split a `switch` over every case rather than two filters that
+    /// happen to partition the array today.
     ///
-    /// A flag rather than a separate type: placement, dragging, labels, colour, selection,
-    /// deletion and undo are identical, and only lighting and render order branch. The
-    /// cost is that a Creature carries a `light` it does not emit — the same collapse this
-    /// type already makes in the other direction, and it means promoting a Creature to a
-    /// party member keeps its radii rather than needing them re-entered.
-    var isCreature = false
+    /// Still one type with a flag rather than three types: placement, dragging, labels,
+    /// colour, selection, deletion and undo are identical, and only lighting and render
+    /// order branch. The cost is that a non-emitting Pawn carries a `light` it does not
+    /// use — the same collapse this type already makes in the other direction, and it
+    /// means promoting one back to a party member keeps its radii rather than needing
+    /// them re-entered.
+    var kind: PawnKind = .player
+
+    /// Whether this Pawn emits no Light and hides in darkness — true of everything that
+    /// is not a party member. The one place that rule lives, so `Visibility` and
+    /// `PlayerVisibility` cannot disagree about it.
+    var isDiscovered: Bool { kind.isDiscovered }
 
     /// Taken off the Player Display by the DM without being deleted. Beats lighting: a
     /// hidden Pawn is invisible to players however well lit it is, which is the point of
@@ -186,7 +194,7 @@ struct Pawn: Codable, Equatable, Identifiable {
     /// Pawns have never snapped, and a Big Pawn that jumped to a lattice would be the
     /// behaviour this app removed on purpose.
     ///
-    /// Independent of `isCreature` — an ogre ally and a goblin are both meaningful.
+    /// Independent of `kind` — an ogre ally, a goblin and a big hoard are all meaningful.
     var isBig = false
 
     /// How many Grid squares a token spans. The one place the 2 lives, so every surface
@@ -222,13 +230,13 @@ struct Pawn: Codable, Equatable, Identifiable {
 
     init(id: UUID = UUID(), at: MapPoint, label: String, colorHex: String,
          brightSquares: CGFloat,
-         isCreature: Bool = false, isHidden: Bool = false, isBig: Bool = false) {
+         kind: PawnKind = .player, isHidden: Bool = false, isBig: Bool = false) {
         self.id = id
         self.label = label
         self.colorHex = colorHex
         self.light = Light(at: at, brightSquares: brightSquares,
                            dimSquares: Self.dimSquares(forSight: brightSquares))
-        self.isCreature = isCreature
+        self.kind = kind
         self.isHidden = isHidden
         self.isBig = isBig
     }
@@ -252,12 +260,96 @@ struct Pawn: Codable, Equatable, Identifiable {
         var decodedLight = try container.decode(Light.self, forKey: .light)
         decodedLight.dimSquares = Self.dimSquares(forSight: decodedLight.brightSquares)
         light = decodedLight
-        isCreature = try container.decodeIfPresent(Bool.self, forKey: .isCreature) ?? false
+        kind = try Self.decodeKind(from: container)
         isHidden = try container.decodeIfPresent(Bool.self, forKey: .isHidden) ?? false
         isBig = try container.decodeIfPresent(Bool.self, forKey: .isBig) ?? false
     }
 
+    /// Written by hand because `CodingKeys` carries the legacy `isCreature` key that has
+    /// no stored property behind it — which also blocks the synthesised `encode`.
+    ///
+    /// The legacy key is deliberately not written back. A file is rewritten whenever the
+    /// DM touches its Map at all, so echoing it would slowly duplicate the same fact in
+    /// two places that could then disagree; `kind` is the one the reader trusts, and a
+    /// file this app has written is never read by a version that predates it.
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(label, forKey: .label)
+        try container.encode(colorHex, forKey: .colorHex)
+        try container.encode(light, forKey: .light)
+        try container.encode(kind, forKey: .kind)
+        try container.encode(isHidden, forKey: .isHidden)
+        try container.encode(isBig, forKey: .isBig)
+    }
+
+    /// Reads `kind`, falling back to the `isCreature` boolean it replaces.
+    ///
+    /// Three generations of file have to land somewhere sensible: one written before
+    /// Creatures existed has neither key and is a party member; one written with the
+    /// boolean means `.creature` when it is true; one written since carries `kind`
+    /// outright. The old key is read forever and never written — rewriting it would
+    /// rewrite maps the DM has not touched, and dropping it would turn every goblin
+    /// already on disk back into a party member that lights the room it hides in.
+    private static func decodeKind(
+        from container: KeyedDecodingContainer<CodingKeys>
+    ) throws -> PawnKind {
+        if let kind = try container.decodeIfPresent(PawnKind.self, forKey: .kind) {
+            return kind
+        }
+        let wasCreature = try container.decodeIfPresent(Bool.self, forKey: .isCreature) ?? false
+        return wasCreature ? .creature : .player
+    }
+
     private enum CodingKeys: String, CodingKey {
-        case id, label, colorHex, light, isCreature, isHidden, isBig
+        case id, label, colorHex, light, kind, isCreature, isHidden, isBig
+    }
+}
+
+/// What a Pawn is: who the players carry, what they meet, and what they find.
+///
+/// The distinction is only ever about **light and discovery**. Everything else a Pawn does
+/// — moving, labelling, colouring, hiding, being Big — is identical across all three, which
+/// is why this is a property of `Pawn` rather than three types.
+enum PawnKind: String, Codable, CaseIterable, Equatable {
+    /// The party's own tokens: they emit Light, and they are drawn on the Player Display
+    /// whatever the fog does. A player's miniature must never vanish.
+    case player
+    /// A monster: emits no Light, and darkness hides it from players.
+    case creature
+    /// A chest, a hoard, a body — something the players find. Emits no Light and hides in
+    /// darkness exactly as a Creature does; it differs only in being drawn as a square and
+    /// in being listed apart, because a DM reasons about loot and monsters separately.
+    case treasure
+
+    /// Whether the players have to discover this, rather than carrying it.
+    ///
+    /// The single rule behind both branches that exist: a discovered Pawn emits no Light
+    /// (`VisibilityCache`) and draws under the Fog Overlay (`PlayerVisibility`). Written as
+    /// a `switch` with no `default`, so a fourth kind cannot be added without deciding
+    /// which side of the fog it falls on.
+    var isDiscovered: Bool {
+        switch self {
+        case .player: return false
+        case .creature, .treasure: return true
+        }
+    }
+
+    /// The heading this kind is listed under in the live panel.
+    var pluralTitle: String {
+        switch self {
+        case .player: return "Players"
+        case .creature: return "Creatures"
+        case .treasure: return "Treasure"
+        }
+    }
+
+    /// What the inspector calls this kind in its picker.
+    var title: String {
+        switch self {
+        case .player: return "Player"
+        case .creature: return "Creature"
+        case .treasure: return "Treasure"
+        }
     }
 }

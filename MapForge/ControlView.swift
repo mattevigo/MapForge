@@ -33,6 +33,9 @@ struct ControlView: View {
     @State private var selectedPawn: Pawn.ID?
 
     var body: some View {
+        // `alignment: .top` on the row below, plus the preview claiming the remaining
+        // height, keeps this stack's controls pinned to the top of the window whether or
+        // not a Map is open.
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Button("Open Map…") { appState.openMap() }
@@ -41,15 +44,22 @@ struct ControlView: View {
                 }
             }
 
+            // Two rows, always. A single row with a `Spacer()` between the two halves ran
+            // the mode buttons off the right edge — and they are the only way into every
+            // mode the app has, so losing the last of them with no scrollbar and nothing to
+            // say it was there is not a cosmetic problem.
+            //
+            // `ViewThatFits` cannot rescue that arrangement either: a `Spacer()` makes the
+            // wide branch claim to fit at any width, so it is always chosen and always
+            // clipped. Splitting them unconditionally is what actually keeps every button
+            // on screen.
             HStack {
-                Text("Grid squares wide:")
-                TextField("squares", value: $appState.squaresWide, format: .number)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 64)
-                Stepper("squares", value: $appState.squaresWide, in: 1...500)
-                    .labelsHidden()
+                gridSquaresField
                 Spacer()
+            }
+            HStack(spacing: 8) {
                 modeControls
+                Spacer()
             }
 
             // Shown for the whole mode, not just before the first drag: the caption
@@ -78,9 +88,12 @@ struct ControlView: View {
 
             undeclaredGridWarning
 
-            lightToggles
+            fogSwitch
 
-            preview
+            HStack(alignment: .top, spacing: 12) {
+                preview
+                livePanel
+            }
         }
         .padding()
         .frame(minWidth: 480, minHeight: 400)
@@ -102,6 +115,17 @@ struct ControlView: View {
                                                         squareSide: square.side) else { return }
             appState.squaresWide = Double(squaresWide)
         }
+    }
+
+    /// The Map's width in Grid squares — the one number that pins its physical size.
+    @ViewBuilder
+    private var gridSquaresField: some View {
+        Text("Grid squares wide:")
+        TextField("squares", value: $appState.squaresWide, format: .number)
+            .textFieldStyle(.roundedBorder)
+            .frame(width: 64)
+        Stepper("squares", value: $appState.squaresWide, in: 1...500)
+            .labelsHidden()
     }
 
     // MARK: Preview
@@ -255,7 +279,18 @@ struct ControlView: View {
             .clipped()
             .border(.separator)
         } else {
-            Spacer()
+            // With no Map open this used to be a bare `Spacer()`, which inside the
+            // preview's HStack pushed sideways instead of filling downwards — the controls
+            // above it got shoved around rather than staying put at the top of the window.
+            // An empty view that claims both axes keeps the header where it is and leaves
+            // the space below it blank, which is what "no Map yet" should look like.
+            VStack {
+                Spacer(minLength: 0)
+                Text("No Map open. Choose one with “Open Map…”.")
+                    .foregroundStyle(.tertiary)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
@@ -422,11 +457,19 @@ struct ControlView: View {
                 ), supportsOpacity: false)
                 .labelsHidden()
 
-                Toggle("Creature", isOn: Binding(
-                    get: { pawn.isCreature },
-                    set: { fogEdits.setPawnIsCreature(id: pawn.id, $0); applyFogEdits() }
-                ))
-                .help("A Creature emits no Light and is hidden from players by darkness.")
+                // A picker, not two toggles: the three kinds are mutually exclusive, and a
+                // pair of checkboxes would let a DM tick both and leave the token in a
+                // state the model cannot represent.
+                Picker("", selection: Binding(
+                    get: { pawn.kind },
+                    set: { fogEdits.setPawnKind(id: pawn.id, $0); applyFogEdits() }
+                )) {
+                    ForEach(PawnKind.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .frame(width: 104)
+                .help("A Creature or a Treasure emits no Light and is hidden from players by darkness.")
 
                 Toggle("Big", isOn: Binding(
                     get: { pawn.isBig },
@@ -447,8 +490,8 @@ struct ControlView: View {
                 // A Pawn has one radius. The extra square the region fades over is not a
                 // second number the DM sets — it is there so the edge is not a hard cut —
                 // so it is not offered as one.
-                Text(pawn.isCreature
-                     ? "squares — unused, a Creature emits no Light"
+                Text(pawn.isDiscovered
+                     ? "squares — unused, a \(pawn.kind.title) emits no Light"
                      : "squares")
                     .foregroundStyle(.secondary)
             }
@@ -498,7 +541,11 @@ struct ControlView: View {
     /// The write is `appState.setPawnLabel`, not `FogEdits`: a rename at the table is a
     /// live action and is not undoable, exactly as moving a Pawn is not.
     private func pawnLiveRow(_ pawn: Pawn) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
+            // The token, not a switch: it is how the DM finds this row, since it carries
+            // the same colour and label as the disc on the Map. Toggling its light is a
+            // secondary use of it, so it is the one thing in the row that looks like the
+            // Map rather than like a control.
             Toggle(isOn: Binding(
                 get: { pawn.light.isOn },
                 set: { appState.setPawnLight(id: pawn.id, isOn: $0) }
@@ -506,16 +553,18 @@ struct ControlView: View {
                 PawnToken(pawn: pawn, squareSide: 14, scalesWithFootprint: false)
             }
             .toggleStyle(.button)
-            .help(pawn.isCreature
-                  ? "\(pawn.label): a Creature — emits no light, seen by players only where the light reaches it"
-                  : "\(pawn.label): sight \(Int(pawn.light.brightSquares)) squares — the field renames it")
+            .help(pawn.isDiscovered
+                  ? "\(pawn.label): a \(pawn.kind.title) — emits no Light. Click to douse the light it does not cast."
+                  : "\(pawn.label): sight \(Int(pawn.light.brightSquares)) squares. Click to douse.")
 
+            // Fills the column rather than a fixed 72 pt: names like "Goblin B" need the
+            // room, and the panel has a known width to give them.
             TextField("label", text: Binding(
                 get: { pawn.label },
                 set: { appState.setPawnLabel(id: pawn.id, $0) }
             ))
             .textFieldStyle(.roundedBorder)
-            .frame(width: 72)
+            .frame(minWidth: 0)
 
             // Take it off the Player Display without deleting it. The eye is filled when
             // players can see it and slashed when they cannot, so the DM reads the state
@@ -525,6 +574,7 @@ struct ControlView: View {
                 set: { appState.setPawnHidden(id: pawn.id, isHidden: !$0) }
             )) {
                 Image(systemName: pawn.isHidden ? "eye.slash" : "eye")
+                    .frame(width: 16)
             }
             .toggleStyle(.button)
             .help(pawn.isHidden
@@ -533,39 +583,102 @@ struct ControlView: View {
         }
     }
 
-    /// The live panel: on/off for every Light, always visible, never behind a mode.
-    /// Toggling is the one fog action a DM performs mid-session with players watching, so
-    /// it must be one click with nothing to open first.
+    /// The Fog Overlay's off switch: one control, always reachable, no mode to enter.
+    /// It stays inline rather than joining the side panel because it governs the whole
+    /// Map rather than any one thing in the list.
     @ViewBuilder
-    private var lightToggles: some View {
+    private var fogSwitch: some View {
         if !appState.fog.walls.isEmpty || !appState.fog.lights.isEmpty
             || !appState.fog.pawns.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    // The off switch: one control, always reachable, no mode to enter.
-                    Toggle("Fog", isOn: $appState.isFogOverlayOn)
-                        .toggleStyle(.switch)
-                        .help("Hide or reveal the Fog Overlay on the Player Display. Pawns stay visible either way.")
-                    Divider().frame(height: 16)
-                    Text("Lights:").foregroundStyle(.secondary)
-                    ForEach(Array(appState.fog.lights.enumerated()), id: \.element.id) { index, light in
-                        Toggle(isOn: Binding(
-                            get: { light.isOn },
-                            set: { setLight(id: light.id, isOn: $0) }
-                        )) {
-                            Text("\(index + 1)")
+            Toggle("Fog", isOn: $appState.isFogOverlayOn)
+                .toggleStyle(.switch)
+                .help("Hide or reveal the Fog Overlay on the Player Display. Pawns stay visible either way.")
+        }
+    }
+
+    /// Everything on the Map that can be switched, listed down the side of the preview.
+    ///
+    /// Vertical and grouped, because the horizontal row this replaces did not survive
+    /// contact with a real encounter: a party of four plus a room of goblins ran off the
+    /// right-hand edge, and each entry carries a token, a name field and two toggles, so
+    /// they are wide. A vertical list gives every row the same shape, lets the names be
+    /// read down a column, and turns "which goblin is 3" into a glance.
+    ///
+    /// The kinds are separated because they are what the DM reasons about separately — the
+    /// party is who they are running the world *for*, the Creatures are what they run *at*
+    /// them, and the Treasure is what the room is worth. Lights lead because they are the
+    /// Map's own furniture rather than anyone's token.
+    @ViewBuilder
+    private var livePanel: some View {
+        if !appState.fog.lights.isEmpty || !appState.fog.pawns.isEmpty {
+            ScrollView(.vertical) {
+                VStack(alignment: .leading, spacing: 12) {
+                    if !appState.fog.lights.isEmpty {
+                        liveGroup("Lights", count: appState.fog.lights.count) {
+                            ForEach(Array(appState.fog.lights.enumerated()), id: \.element.id) { index, light in
+                                lightLiveRow(light, number: index + 1)
+                            }
                         }
-                        .toggleStyle(.button)
-                        .help("Light \(index + 1): bright \(Int(light.brightSquares)), dim \(Int(light.dimSquares)) squares")
                     }
-                    // A Pawn's own light toggles here too: a character putting out their
-                    // torch is the same live action as dousing a brazier — and its label
-                    // is renamed here, for the same reason.
-                    ForEach(appState.fog.pawns) { pawn in
-                        pawnLiveRow(pawn)
+                    // One group per kind, driven by the enum rather than by a filter per
+                    // group. Two hand-written filters only partition the array as long as
+                    // nobody adds a third kind — which is exactly what happened — and a
+                    // Pawn missing from this panel is one the DM cannot hide or rename
+                    // mid-fight.
+                    ForEach(PawnKind.allCases, id: \.self) { kind in
+                        let group = appState.fog.pawns.filter { $0.kind == kind }
+                        if !group.isEmpty {
+                            liveGroup(kind.pluralTitle, count: group.count) {
+                                ForEach(group) { pawnLiveRow($0) }
+                            }
+                        }
                     }
                 }
+                .padding(10)
             }
+            .frame(width: 236)
+            // `.controlBackgroundColor` is all but identical to the window's own, so the
+            // panel read as text floating beside the Map rather than as a surface. The
+            // preview next to it is bordered; this needs to look like its sibling.
+            .background(Color(nsColor: .textBackgroundColor),
+                        in: RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
+        }
+    }
+
+    /// One titled group in the side panel. The count is in the heading so the DM can see
+    /// "Creatures 6" without counting rows.
+    private func liveGroup<Content: View>(_ title: String, count: Int,
+                                          @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text(title).font(.caption.weight(.semibold))
+                Text("\(count)").font(.caption).foregroundStyle(.secondary)
+            }
+            content()
+        }
+    }
+
+    /// One Light in the side panel. A Light has no label of its own, so it is identified
+    /// by its position in the list, exactly as it was in the row this replaces.
+    private func lightLiveRow(_ light: Light, number: Int) -> some View {
+        HStack(spacing: 6) {
+            Toggle(isOn: Binding(
+                get: { light.isOn },
+                set: { setLight(id: light.id, isOn: $0) }
+            )) {
+                Image(systemName: light.isOn ? "flame.fill" : "flame")
+                    .frame(width: 16)
+            }
+            .toggleStyle(.button)
+
+            Text("Light \(number)")
+                .lineLimit(1)
+            Spacer(minLength: 0)
+            Text("\(Int(light.brightSquares))")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .help("Bright \(Int(light.brightSquares)), dim \(Int(light.dimSquares)) squares")
         }
     }
 

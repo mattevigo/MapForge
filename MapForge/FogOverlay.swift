@@ -342,15 +342,16 @@ struct FogOverlay: View {
             selectedPawn = nil
             // Free-form. Pawns never snapped; Walls and Lights no longer do either.
             let point = MapPoint(transform.imagePoint(from: location))
-            // A new Pawn copies the last one placed, `isCreature` included: a DM
-            // populating an encounter places six goblins in a row, and toggling each one
-            // afterwards is six chances to miss one and light the room with it.
+            // A new Pawn copies the last one placed, its `kind` included: a DM populating
+            // an encounter places six goblins in a row — or stocks a vault with chests —
+            // and toggling each one afterwards is six chances to miss one and light the
+            // room with it.
             let previous = pawns.last
             edits.addPawn(Pawn(at: point,
                                label: Pawn.nextLabel(after: pawns),
                                colorHex: previous?.colorHex ?? Pawn.defaultColorHex,
                                brightSquares: previous?.light.brightSquares ?? 6,
-                               isCreature: previous?.isCreature ?? false,
+                               kind: previous?.kind ?? .player,
                                isBig: previous?.isBig ?? false))
             onChange()
         case .lights:
