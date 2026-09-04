@@ -444,12 +444,12 @@ struct ControlView: View {
                 ), format: .number)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 52)
-                // Naming the dim radius rather than leaving a second, larger circle on the
-                // Map with nothing in the UI to explain it — it looked fixed and unrelated
-                // to the number being typed.
+                // A Pawn has one radius. The extra square the region fades over is not a
+                // second number the DM sets — it is there so the edge is not a hard cut —
+                // so it is not offered as one.
                 Text(pawn.isCreature
                      ? "squares — unused, a Creature emits no Light"
-                     : "squares, dim to \(Int(pawn.light.dimSquares))")
+                     : "squares")
                     .foregroundStyle(.secondary)
             }
             .font(.callout)

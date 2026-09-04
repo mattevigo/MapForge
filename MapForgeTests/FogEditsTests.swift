@@ -206,12 +206,13 @@ final class FogEditsTests: XCTestCase {
         XCTAssertEqual(edits.document.pawns.count, 1, "the Pawn vanished with its light")
     }
 
-    func testSettingAPawnsRange() {
+    func testSettingAPawnsSight() {
         var edits = FogEdits(document: FogDocument(pawns: [vex]))
         let id = edits.document.pawns[0].id
-        edits.setPawnRange(id: id, brightSquares: 8, dimSquares: 12)
+        edits.setPawnSight(id: id, squares: 8)
         XCTAssertEqual(edits.document.pawns[0].light.brightSquares, 8)
-        XCTAssertEqual(edits.document.pawns[0].light.dimSquares, 12)
+        // One square of cosmetic feathering, not a dim band — a Pawn has one radius.
+        XCTAssertEqual(edits.document.pawns[0].light.dimSquares, 9)
     }
 
     func testDraggingAPawnIsOneUndoStep() {
@@ -351,30 +352,20 @@ final class FogEditsTests: XCTestCase {
     // MARK: Pawn range
 
     func testChangingAPawnsSightMovesItsDimRadiusToo() {
-        // The defect from the table: the inspector offers one field, "Sight", and passes
-        // the existing dimSquares straight back. A Pawn placed with sight 6 has dim 12
-        // from `Pawn.init`'s 5e default; set sight to 3 and the outer circle stays at 12,
-        // so it reads as fixed and unrelated to the number being typed.
+        // The defect from the table, twice over. First the inspector's one "Sight" field
+        // passed the existing dim straight back, so the outer circle sat fixed at whatever
+        // the Pawn was first created with. Then coupling them at the 5e torch ratio drew a
+        // halo twice the size of a character's sight — a band DnD does not have at all.
+        // The edge now feathers by one square and follows the number being typed.
         let pawn = Pawn(at: MapPoint(x: 0, y: 0), label: "1",
                         colorHex: Pawn.defaultColorHex, brightSquares: 6)
-        XCTAssertEqual(pawn.light.dimSquares, 12, "precondition: dim defaults to twice bright")
+        XCTAssertEqual(pawn.light.dimSquares, 7, "precondition: one square past sight")
 
         var edits = FogEdits(document: FogDocument(pawns: [pawn]))
         edits.setPawnSight(id: pawn.id, squares: 3)
 
         XCTAssertEqual(edits.document.pawns[0].light.brightSquares, 3)
-        XCTAssertEqual(edits.document.pawns[0].light.dimSquares, 6,
-                       "the dim radius did not follow the sight it is derived from")
-    }
-
-    func testAPawnsDimRadiusCanStillBeSetIndependently() {
-        // The two-argument path stays, for a Pawn whose dim is deliberately not twice
-        // bright. Only the single-field "Sight" edit couples them.
-        let pawn = Pawn(at: MapPoint(x: 0, y: 0), label: "1",
-                        colorHex: Pawn.defaultColorHex, brightSquares: 6)
-        var edits = FogEdits(document: FogDocument(pawns: [pawn]))
-        edits.setPawnRange(id: pawn.id, brightSquares: 4, dimSquares: 30)
-
-        XCTAssertEqual(edits.document.pawns[0].light.dimSquares, 30)
+        XCTAssertEqual(edits.document.pawns[0].light.dimSquares, 4,
+                       "the feathered edge did not follow the sight it is derived from")
     }
 }

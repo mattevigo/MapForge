@@ -193,6 +193,25 @@ struct Pawn: Codable, Equatable, Identifiable {
     /// that sizes a token agrees.
     static func squaresAcross(isBig: Bool) -> CGFloat { isBig ? 2 : 1 }
 
+    /// How far past a Pawn's sight the visible region fades out, in Grid squares.
+    ///
+    /// **Cosmetic only.** A character's sight is not a light source, and DnD has no band of
+    /// "dim vision" — you see to your range or you do not. Without any falloff the edge of
+    /// what a Pawn reveals is a hard circular cut, which reads as a rendering artefact
+    /// rather than as darkness, so one square of feathering softens it.
+    ///
+    /// One square, not a ratio. The previous rule gave dim twice bright — the 5e convention
+    /// for *torches*, correct for a `Light` and wrong here: it drew a 12-square halo around
+    /// a character who can see 6.
+    static let sightFeatherSquares: CGFloat = 1
+
+    /// The dim radius a Pawn's sight implies. Derived, never stored — a stored copy is what
+    /// let the two drift apart, so that a Pawn kept the halo of whatever radius it was first
+    /// created with.
+    static func dimSquares(forSight sight: CGFloat) -> CGFloat {
+        max(0, sight) + sightFeatherSquares
+    }
+
     /// This Pawn's own span, in Grid squares.
     var squaresAcross: CGFloat { Self.squaresAcross(isBig: isBig) }
 
@@ -202,12 +221,13 @@ struct Pawn: Codable, Equatable, Identifiable {
     }
 
     init(id: UUID = UUID(), at: MapPoint, label: String, colorHex: String,
-         brightSquares: CGFloat, dimSquares: CGFloat? = nil,
+         brightSquares: CGFloat,
          isCreature: Bool = false, isHidden: Bool = false, isBig: Bool = false) {
         self.id = id
         self.label = label
         self.colorHex = colorHex
-        self.light = Light(at: at, brightSquares: brightSquares, dimSquares: dimSquares)
+        self.light = Light(at: at, brightSquares: brightSquares,
+                           dimSquares: Self.dimSquares(forSight: brightSquares))
         self.isCreature = isCreature
         self.isHidden = isHidden
         self.isBig = isBig
@@ -226,7 +246,12 @@ struct Pawn: Codable, Equatable, Identifiable {
         id = try container.decode(UUID.self, forKey: .id)
         label = try container.decode(String.self, forKey: .label)
         colorHex = try container.decode(String.self, forKey: .colorHex)
-        light = try container.decode(Light.self, forKey: .light)
+        // Derived from the decoded sight, not taken from the file: every Pawn written
+        // before this rule has dim at twice its sight, and re-deriving corrects it without
+        // rewriting anyone's map.
+        var decodedLight = try container.decode(Light.self, forKey: .light)
+        decodedLight.dimSquares = Self.dimSquares(forSight: decodedLight.brightSquares)
+        light = decodedLight
         isCreature = try container.decodeIfPresent(Bool.self, forKey: .isCreature) ?? false
         isHidden = try container.decodeIfPresent(Bool.self, forKey: .isHidden) ?? false
         isBig = try container.decodeIfPresent(Bool.self, forKey: .isBig) ?? false

@@ -253,6 +253,83 @@ final class CreatureTests: XCTestCase {
                        "hiding did not survive to the fog file")
     }
 
+    // MARK: Sight has no dim band
+
+    func testAPawnsDimRadiusIsOneSquarePastItsSight() {
+        // A character's sight is not a light source. DnD has no "dim vision" band, so the
+        // extra square is cosmetic only — it softens the edge of the visible region so the
+        // shadow does not read as a hard cut.
+        let pawn = Pawn(at: MapPoint(x: 0, y: 0), label: "1",
+                        colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        XCTAssertEqual(pawn.light.brightSquares, 6)
+        XCTAssertEqual(pawn.light.dimSquares, 7)
+    }
+
+    func testChangingSightMovesTheFeatheredEdgeWithIt() {
+        let pawn = Pawn(at: MapPoint(x: 0, y: 0), label: "1",
+                        colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        var edits = FogEdits(document: FogDocument(pawns: [pawn]))
+        edits.setPawnSight(id: pawn.id, squares: 3)
+
+        XCTAssertEqual(edits.document.pawns[0].light.brightSquares, 3)
+        XCTAssertEqual(edits.document.pawns[0].light.dimSquares, 4)
+    }
+
+    func testAPawnStoredWithTheOldDoubledDimIsCorrectedOnLoad() {
+        // Every Pawn authored before this change has dim at twice its sight — a 12-square
+        // halo for a 6-square sight. Derived rather than migrated: the file keeps whatever
+        // it says and the Pawn ignores it, so no map is silently rewritten and the two
+        // values can never drift apart again.
+        let json = Data("""
+        {
+          "version": 2, "walls": [], "lights": [],
+          "pawns": [{
+            "id": "\(UUID().uuidString)", "label": "Vex", "colorHex": "#C81E1E",
+            "light": {
+              "id": "\(UUID().uuidString)",
+              "at": {"imagePixels": {"x": 10, "y": 10}},
+              "brightSquares": 6, "dimSquares": 12, "isOn": true
+            }
+          }]
+        }
+        """.utf8)
+        let decoded = try! JSONDecoder().decode(FogDocument.self, from: json)
+        XCTAssertEqual(decoded.pawns[0].light.dimSquares, 7,
+                       "an old Pawn kept its oversized halo")
+    }
+
+    func testALightKeepsItsOwnIndependentDimRadius() {
+        // Unchanged, and the reason this is a Pawn rule rather than a Light rule: a torch
+        // really does have bright and dim bands, and every 5e stat block gives both.
+        let torch = Light(at: MapPoint(x: 0, y: 0), brightSquares: 4, dimSquares: 40)
+        XCTAssertEqual(torch.dimSquares, 40)
+    }
+
+    func testAPlacedPawnDoesNotInheritAPreviousPawnsDimRadius() {
+        // Placement copied the previous Pawn's radii wholesale, which is how a stale dim
+        // travelled from one token to the next.
+        let previous = Pawn(at: MapPoint(x: 0, y: 0), label: "1",
+                            colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        let placed = Pawn(at: MapPoint(x: 50, y: 50), label: "2",
+                          colorHex: previous.colorHex,
+                          brightSquares: previous.light.brightSquares)
+        XCTAssertEqual(placed.light.dimSquares, 7)
+    }
+
+    func testTheFeatheredEdgeActuallyFadesRatherThanFormingARing() {
+        // A one-square band shaded at a flat 0.55 would read as a grey ring, not a soft
+        // edge — 0.55 was chosen when dim was a real 5e band around a torch. The radial
+        // falloff is what saves it: it starts at 75% of the radius, so for sight 6 / dim 7
+        // the fade runs from 5.25 squares out to nothing at the rim.
+        XCTAssertEqual(FogShading.falloffOpacity(atFractionOfRadius: 1.0), 0, accuracy: 1e-9,
+                       "the edge did not reach zero at the rim")
+        XCTAssertEqual(FogShading.falloffOpacity(atFractionOfRadius: 0.5), 1, accuracy: 1e-9,
+                       "the middle of the region should be at full strength")
+        let midFade = FogShading.falloffOpacity(atFractionOfRadius: 0.875)
+        XCTAssertGreaterThan(midFade, 0, "no gradient across the feathered band")
+        XCTAssertLessThan(midFade, 1, "the band is a hard ring rather than a fade")
+    }
+
     // MARK: Big
 
     func testAPawnIsOneSquareByDefault() {

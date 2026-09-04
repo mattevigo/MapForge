@@ -61,7 +61,7 @@ A point source that illuminates the Map out to a bright radius and a dim radius,
 _Avoid_: lamp, torch, emitter, light source
 
 **Pawn**:
-A token on the Map with a label and a colour, drawn for players whether or not the Fog Overlay is active. A Pawn is also a Light: its range of sight and its range of illumination are the same thing. Moving a Pawn during play is a live action and is not undoable; moving one while authoring fog is an edit and is.
+A token on the Map with a label and a colour, drawn for players whether or not the Fog Overlay is active. A Pawn is also a Light: its range of sight and its range of illumination are the same thing. It has **one** radius — its sight — unlike a Light, which has a bright and a dim band; DnD gives a character a sight range, not a band of dim vision. The region fades out over one further square purely so its edge is not a hard cut. Moving a Pawn during play is a live action and is not undoable; moving one while authoring fog is an edit and is.
 _Avoid_: token, miniature, figure, character, marker
 
 **Creature**:
