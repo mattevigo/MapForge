@@ -65,6 +65,106 @@ final class AppStateFogTests: XCTestCase {
         XCTAssertEqual(FogStore().load(forMapAt: map.url)?.walls, [wall])
     }
 
+    // MARK: The reported bug
+
+    func testOpeningAMapWhileEditingFogDoesNotOverwriteItWithThePreviousMapsFog() throws {
+        // The DM's report: a Map is open in the fog editing mode, they open another Map,
+        // and the new Map is overwritten with the previous Map's fog.
+        let dungeon = try makeMap(named: "dungeon")
+        let tavern = try makeMap(named: "tavern")
+        let tavernWall = Wall(from: MapPoint(x: 5, y: 5), to: MapPoint(x: 35, y: 5))
+        try FogStore().save(FogDocument(walls: [tavernWall]), forMapAt: tavern.url)
+
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: dungeon.image, at: dungeon.url)
+
+        // Enter the fog editing mode on the dungeon and trace a Wall, exactly as
+        // ControlView.startFogEditing does.
+        appState.beginFogEditing()
+        var edits = FogEdits(document: appState.fog)
+        let dungeonWall = Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 40, y: 0))
+        edits.addWalls([dungeonWall])
+        appState.applyFogEdits(edits)
+
+        // Without leaving the mode, open another Map. `mode` is ControlView @State and
+        // stays .fog; `edits` stays the dungeon's snapshot.
+        appState.loadMap(image: tavern.image, at: tavern.url)
+        XCTAssertEqual(appState.fog.walls, [tavernWall], "precondition: the tavern's own fog loaded")
+
+        // The mode is still open, so the next in-mode action pushes the DUNGEON's
+        // document onto the tavern.
+        appState.applyFogEdits(edits)
+        appState.flushPendingFogWrites()
+
+        XCTAssertEqual(appState.fog.walls, [tavernWall],
+                       "the tavern's fog was replaced by the dungeon's")
+        XCTAssertEqual(FogStore().load(forMapAt: tavern.url)?.walls, [tavernWall],
+                       "the dungeon's Walls were written onto the tavern's fog file")
+    }
+
+    func testCancellingFogEditingAfterOpeningAnotherMapDoesNotOverwriteIt() throws {
+        // The same crossing through Cancel rather than an edit: Cancel restores the
+        // snapshot the mode opened with, which belongs to the OUTGOING Map.
+        let dungeon = try makeMap(named: "dungeon")
+        let tavern = try makeMap(named: "tavern")
+        let dungeonWall = Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 40, y: 0))
+        try FogStore().save(FogDocument(walls: [dungeonWall]), forMapAt: dungeon.url)
+        let tavernWall = Wall(from: MapPoint(x: 5, y: 5), to: MapPoint(x: 35, y: 5))
+        try FogStore().save(FogDocument(walls: [tavernWall]), forMapAt: tavern.url)
+
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: dungeon.image, at: dungeon.url)
+        appState.beginFogEditing()
+        let edits = FogEdits(document: appState.fog)
+
+        appState.loadMap(image: tavern.image, at: tavern.url)
+        appState.cancelFogEditing(edits)
+
+        XCTAssertEqual(appState.fog.walls, [tavernWall],
+                       "Cancel restored the dungeon's fog onto the tavern")
+        XCTAssertEqual(FogStore().load(forMapAt: tavern.url)?.walls, [tavernWall],
+                       "Cancel wrote the dungeon's Walls onto the tavern's fog file")
+    }
+
+    func testFogEditingStillAppliesOnTheMapItWasOpenedOn() throws {
+        // The guard above must refuse only the crossing, not the ordinary path: an edit
+        // on the Map the mode opened on still reaches the document and the file.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+
+        appState.beginFogEditing()
+        var edits = FogEdits(document: appState.fog)
+        let wall = Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 40, y: 0))
+        edits.addWalls([wall])
+        appState.applyFogEdits(edits)
+        appState.flushPendingFogWrites()
+
+        XCTAssertEqual(appState.fog.walls, [wall])
+        XCTAssertEqual(FogStore().load(forMapAt: map.url)?.walls, [wall])
+    }
+
+    func testTheModelGuardIsTheURLSoTheViewMustCloseTheModeOnAnyMapChange() throws {
+        // Records the limit of the model-side guard, so it is not mistaken for the whole
+        // fix. Re-opening the SAME Map is still a reload — `loadMap` re-reads the file and
+        // replaces `fog` — but the URL is unchanged, so the stamp still matches and the
+        // stale snapshot applies. What makes that safe is `ControlView` closing the mode
+        // on ANY `mapURL` change; the guard is the backstop for the cross-Map case.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+
+        appState.beginFogEditing()
+        var edits = FogEdits(document: appState.fog)
+        edits.addWalls([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 40, y: 0))])
+
+        // ControlView closes the mode on any mapURL change; the same Map re-opened does
+        // not change the URL, so the view keeps the mode and the model must still be
+        // correct on its own terms — the snapshot matches this Map, so it applies.
+        appState.applyFogEdits(edits)
+        XCTAssertEqual(appState.fog.walls.count, 1)
+    }
+
     // MARK: Helpers
 
     private func makeMap(named name: String) throws -> (url: URL, image: NSImage) {

@@ -124,6 +124,27 @@ struct ControlView: View {
             // Losing the Player Display mid-pan would strand the mode with no overlay.
             if mode == .viewport, screen == nil { mode = .normal }
         }
+        .onChange(of: appState.mapURL) { _, _ in
+            // Every mode is authored against the Map that was open when it started, and
+            // this @State survives the Map changing underneath it. Fog was the damaging
+            // one: `fogEdits` still held the outgoing Map's document, so the next edit or
+            // Cancel wrote it over the incoming Map's fog file. `AppState` refuses that
+            // document now; closing the modes here is what the DM actually sees, instead
+            // of a mode whose buttons have quietly stopped doing anything.
+            //
+            // `fogEdits` is deliberately NOT reset here. It is only ever read with the
+            // mode open, and the only way back in is `startFogEditing`, which re-seeds it
+            // from the incoming Map's `appState.fog` — after that Map's own fog has been
+            // loaded. Seeding an empty document here would just assert, one line above the
+            // code that overwrites it, that a Map's editing state starts empty.
+            appState.endFogEditing()
+            fitSquare = nil
+            gridFitTransform = nil
+            fogTransform = nil
+            selectedLight = nil
+            selectedPawn = nil
+            mode = .normal
+        }
         .onChange(of: fitSquare) { _, square in
             guard let square, let image = appState.mapImage,
                   let squaresWide = GridFit.squaresWide(imageWidth: image.pixelSize.width,
@@ -347,7 +368,7 @@ struct ControlView: View {
                 .disabled(!fogEdits.canUndo)
                 .keyboardShortcut("z", modifiers: .command)
             Button("Cancel") { cancelFogEditing() }
-            Button("Done") { mode = .normal }
+            Button("Done") { appState.endFogEditing(); mode = .normal }
                 .keyboardShortcut(.defaultAction)
         }
     }

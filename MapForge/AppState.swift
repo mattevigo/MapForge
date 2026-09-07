@@ -280,6 +280,10 @@ final class AppState: ObservableObject {
     /// screen. Assigning the snapshot back reverted both — and for the Grid the stale value
     /// is what reached the file, silently losing it on the next relaunch.
     func applyFogEdits(_ edits: FogEdits) {
+        // The mode's document belongs to the Map it opened on. If another Map has been
+        // opened since, this is the outgoing Map's fog and applying it would overwrite
+        // the incoming Map's — on screen and, through the autosave, on its file.
+        guard isFogEditingCurrentMap else { return }
         var merged = edits.document
         merged.squaresWide = fog.squaresWide
         merged.pawns = merged.pawns.map { carryLiveState(onto: $0) }
@@ -324,9 +328,31 @@ final class AppState: ObservableObject {
 
     private var liveEdits: [Pawn.ID: LivePawnEdit] = [:]
 
+    /// The Map the fog editing mode was opened on, or nil when the mode is closed.
+    ///
+    /// The mode's document is a snapshot taken when it opened, and `ControlView` holds it
+    /// in `@State` that no Map change reaches. Opening another Map mid-mode therefore left
+    /// a live `FogEdits` carrying the *outgoing* Map's fog, and the next in-mode action —
+    /// an edit, an Undo, or Cancel — pushed it onto the incoming Map and autosaved it over
+    /// that Map's fog file. Stamping the Map here lets both `applyFogEdits` and
+    /// `cancelFogEditing` refuse a document that belongs to a Map no longer open.
+    private(set) var fogEditingMapURL: URL?
+
     /// Called as the fog editing mode opens: from here, live edits are the ones to keep.
     func beginFogEditing() {
         liveEdits = [:]
+        fogEditingMapURL = mapURL
+    }
+
+    /// Called as the fog editing mode closes, by Done as well as Cancel.
+    func endFogEditing() {
+        fogEditingMapURL = nil
+    }
+
+    /// Whether a document authored in the fog mode still belongs to the Map that is open.
+    /// False once another Map has been opened underneath the mode.
+    private var isFogEditingCurrentMap: Bool {
+        fogEditingMapURL != nil && fogEditingMapURL == mapURL
     }
 
     private func recordLiveEdit(_ edit: LivePawnEdit, on id: Pawn.ID) {
@@ -343,6 +369,13 @@ final class AppState: ObservableObject {
     /// `squaresWide` and `hasDeclaredGrid` kept the new value left the two permanently
     /// disagreeing — the UI asserting a Grid the file did not have.
     func cancelFogEditing(_ edits: FogEdits) {
+        // Same crossing as `applyFogEdits`, and worse: `edits.original` is the outgoing
+        // Map's fog as it stood before any editing, so restoring it onto another Map
+        // replaces that Map's fog wholesale. Closing the mode is still correct.
+        guard isFogEditingCurrentMap else {
+            endFogEditing()
+            return
+        }
         var restored = edits.original
         restored.squaresWide = fog.squaresWide
         // Same reconciliation as an edit: the table's edits survive Cancel because they
@@ -352,6 +385,7 @@ final class AppState: ObservableObject {
         restored.pawns = restored.pawns.map { carryLiveState(onto: $0) }
         fog = restored
         flushPendingFogWrites()
+        endFogEditing()
     }
 
     /// Take a Pawn off the Player Display without deleting it, from the live row.
