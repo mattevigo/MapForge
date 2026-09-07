@@ -45,7 +45,15 @@ final class PlayerWindowController {
             guard w.frame.intersects(screen.frame) else { continue }
             if let rescue = WindowLayout.controlWindowRelocation(controlFrame: w.frame,
                                                                  playerScreenFrame: screen.frame,
-                                                                 otherScreenFrames: otherScreens) {
+                                                                 otherScreenFrames: otherScreens,
+                                                                 // NSScreen.screens.first is the
+                                                                 // built-in/primary display.
+                                                                 // NOT NSScreen.main, which is the
+                                                                 // screen holding the key window —
+                                                                 // normally the very window being
+                                                                 // rescued, so it names the player
+                                                                 // screen and never matches.
+                                                                 mainScreenFrame: NSScreen.screens.first?.frame) {
                 w.setFrame(rescue, display: true)
             } else {
                 stranded = true

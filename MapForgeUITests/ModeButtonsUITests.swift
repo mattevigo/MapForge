@@ -44,9 +44,17 @@ final class ModeButtonsUITests: XCTestCase {
         let map = try fixturePNG(pixelsWide: pixelsWide, pixelsHigh: pixelsHigh)
         let app = XCUIApplication()
         app.launchArguments = ["--test-map", map.path, "--test-squares", String(squares),
-                               "--test-player-screen", "auto"]
+                               "--test-player-screen", "auto",
+                               "--test-fresh-preferences"]
         app.launch()
         return app
+    }
+
+    /// The Control Window, by its identifier — `app.windows.firstMatch` resolves to the
+    /// borderless Player window, which sorts first, so a coordinate aimed at the preview
+    /// landed on the Player Display instead.
+    private func controlWindow(_ app: XCUIApplication) -> XCUIElement {
+        app.windows["control"]
     }
 
     /// A map that overflows the Player Display on both axes (60 squares = 60 in
@@ -86,7 +94,7 @@ final class ModeButtonsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 3),
                       "Fit Grid… click did not enter Grid Fit mode")
 
-        let window = app.windows.firstMatch
+        let window = controlWindow(app)
         let before = window.screenshot().pngRepresentation
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
             .scroll(byDeltaX: 0, deltaY: 200)

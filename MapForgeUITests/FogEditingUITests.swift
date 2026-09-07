@@ -30,9 +30,25 @@ final class FogEditingUITests: XCTestCase {
         let map = try fixturePNG(pixelsWide: 1200, pixelsHigh: 900)
         let app = XCUIApplication()
         app.launchArguments = ["--test-map", map.path, "--test-squares", "30",
-                               "--test-player-screen", "auto"]
+                               "--test-player-screen", "auto",
+                               "--test-fresh-preferences"]
         app.launch()
         return app
+    }
+
+    /// The Control Window, by its identifier — never `app.windows.firstMatch`, which
+    /// resolves to the borderless Player window: it sorts first, so every coordinate
+    /// click aimed at the preview landed on the Player Display instead. The controls
+    /// still responded, so the tests looked like they were driving the preview.
+    private func controlWindow(_ app: XCUIApplication) -> XCUIElement {
+        app.windows["control"]
+    }
+
+    /// The fog tool picker's segments. A segmented `Picker` publishes them as
+    /// **radio buttons**, not buttons — `app.buttons["Lights"]` matches nothing, which is
+    /// what made three of these tests fail as "no matches found".
+    private func tool(_ app: XCUIApplication, _ label: String) -> XCUIElement {
+        app.radioButtons[label]
     }
 
     func testEditFogButtonEntersTheMode() throws {
@@ -51,7 +67,7 @@ final class FogEditingUITests: XCTestCase {
         app.buttons["Edit Fog…"].click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
-        let window = app.windows.firstMatch
+        let window = controlWindow(app)
         // Three points across the lower half of the window, safely inside the preview
         // and clear of the controls above it.
         let first = window.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.7))
@@ -73,7 +89,7 @@ final class FogEditingUITests: XCTestCase {
         app.buttons["Edit Fog…"].click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
-        let window = app.windows.firstMatch
+        let window = controlWindow(app)
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.7)).click()
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)).click()
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)).doubleClick()
@@ -91,8 +107,8 @@ final class FogEditingUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
         // Switch the tool: a click then places a Light, not a Wall vertex.
-        app.buttons["Lights"].click()
-        let window = app.windows.firstMatch
+        tool(app, "Lights").click()
+        let window = controlWindow(app)
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.7)).click()
         XCTAssertTrue(app.staticTexts["0 Walls, 1 Light, 0 Pawns"].waitForExistence(timeout: 2),
                       "the click did not place a Light")
@@ -116,7 +132,7 @@ final class FogEditingUITests: XCTestCase {
         app.buttons["Edit Fog…"].click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
-        let window = app.windows.firstMatch
+        let window = controlWindow(app)
         let windowFrame = window.frame
 
         // Scroll well past the point where the image exceeds the preview.
@@ -136,8 +152,8 @@ final class FogEditingUITests: XCTestCase {
         app.buttons["Edit Fog…"].click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
-        app.buttons["Pawns"].click()
-        let window = app.windows.firstMatch
+        tool(app, "Pawns").click()
+        let window = controlWindow(app)
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.7)).click()
         XCTAssertTrue(app.staticTexts["0 Walls, 0 Lights, 1 Pawn"].waitForExistence(timeout: 2),
                       "the click did not place a Pawn")
@@ -164,8 +180,8 @@ final class FogEditingUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
         // Place something so the fog row appears.
-        app.buttons["Lights"].click()
-        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.7)).click()
+        tool(app, "Lights").click()
+        controlWindow(app).coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.7)).click()
         app.buttons["Done"].click()
 
         let fog = app.switches["Fog"]

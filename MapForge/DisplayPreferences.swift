@@ -17,6 +17,21 @@ final class DisplayPreferences {
         self.defaults = defaults
     }
 
+    /// The preferences this launch should use: the real ones, or a throwaway suite when
+    /// the UI tests are driving.
+    ///
+    /// A UI test that inherits the developer's remembered Player Display presents onto
+    /// whichever screen they last ran a session on — so a Player window appears over a
+    /// screen the test never asked for, the Control Window is relocated out from under it,
+    /// and every control reports as "not hittable". The suite has to start from a machine
+    /// that has never chosen a display, exactly as the unit tests do.
+    static var forThisLaunch: DisplayPreferences {
+        guard CommandLine.arguments.contains("--test-fresh-preferences"),
+              let suite = UserDefaults(suiteName: "MapForgeUITests.\(UUID().uuidString)")
+        else { return DisplayPreferences() }
+        return DisplayPreferences(defaults: suite)
+    }
+
     /// The Player Display chosen in an earlier session, if any. The name is a label
     /// only — matching is by UUID, so a renamed display still resolves.
     var rememberedPlayerDisplay: DisplayIdentity? {

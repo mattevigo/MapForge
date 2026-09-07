@@ -33,6 +33,9 @@ struct ControlView: View {
     @State private var selectedPawn: Pawn.ID?
 
     var body: some View {
+        // `alignment: .top` on the row below, plus the preview claiming the remaining
+        // height, keeps this stack's controls pinned to the top of the window whether or
+        // not a Map is open.
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Button("Open Map…") { appState.openMap() }
@@ -41,15 +44,22 @@ struct ControlView: View {
                 }
             }
 
+            // Two rows, always. A single row with a `Spacer()` between the two halves ran
+            // the mode buttons off the right edge — and they are the only way into every
+            // mode the app has, so losing the last of them with no scrollbar and nothing to
+            // say it was there is not a cosmetic problem.
+            //
+            // `ViewThatFits` cannot rescue that arrangement either: a `Spacer()` makes the
+            // wide branch claim to fit at any width, so it is always chosen and always
+            // clipped. Splitting them unconditionally is what actually keeps every button
+            // on screen.
             HStack {
-                Text("Grid squares wide:")
-                TextField("squares", value: $appState.squaresWide, format: .number)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 64)
-                Stepper("squares", value: $appState.squaresWide, in: 1...500)
-                    .labelsHidden()
+                gridSquaresField
                 Spacer()
+            }
+            HStack(spacing: 8) {
                 modeControls
+                Spacer()
             }
 
             // Shown for the whole mode, not just before the first drag: the caption
@@ -68,8 +78,23 @@ struct ControlView: View {
                 Text(tool.hint)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                lightInspector
-                pawnInspector
+                // The inspector row is ALWAYS here, empty or not.
+                //
+                // Both inspectors draw nothing until something is selected, so selecting a
+                // Pawn used to insert a row into this VStack, steal its height from the
+                // preview below, and shrink the GeometryReader the preview measures every
+                // transform against — `fitted(container:)` then recomputed to a different
+                // scale and the Map visibly jumped mid-click. That is the "the zoom changes
+                // while I select" report, and it is the same defect as the caption above:
+                // anything in this stack that appears or vanishes resizes the preview.
+                //
+                // Reserving the height unconditionally makes the container a constant
+                // across selection, which is the property the preview's arithmetic needs.
+                ZStack(alignment: .leading) {
+                    lightInspector
+                    pawnInspector
+                }
+                .frame(height: Self.fogInspectorRowHeight, alignment: .leading)
             }
 
             playerDisplayStatus
@@ -78,9 +103,12 @@ struct ControlView: View {
 
             undeclaredGridWarning
 
-            lightToggles
+            fogSwitch
 
-            preview
+            HStack(alignment: .top, spacing: 12) {
+                preview
+                livePanel
+            }
         }
         .padding()
         .frame(minWidth: 480, minHeight: 400)
@@ -96,12 +124,44 @@ struct ControlView: View {
             // Losing the Player Display mid-pan would strand the mode with no overlay.
             if mode == .viewport, screen == nil { mode = .normal }
         }
+        .onChange(of: appState.mapURL) { _, _ in
+            // Every mode is authored against the Map that was open when it started, and
+            // this @State survives the Map changing underneath it. Fog was the damaging
+            // one: `fogEdits` still held the outgoing Map's document, so the next edit or
+            // Cancel wrote it over the incoming Map's fog file. `AppState` refuses that
+            // document now; closing the modes here is what the DM actually sees, instead
+            // of a mode whose buttons have quietly stopped doing anything.
+            //
+            // `fogEdits` is deliberately NOT reset here. It is only ever read with the
+            // mode open, and the only way back in is `startFogEditing`, which re-seeds it
+            // from the incoming Map's `appState.fog` — after that Map's own fog has been
+            // loaded. Seeding an empty document here would just assert, one line above the
+            // code that overwrites it, that a Map's editing state starts empty.
+            appState.endFogEditing()
+            fitSquare = nil
+            gridFitTransform = nil
+            fogTransform = nil
+            selectedLight = nil
+            selectedPawn = nil
+            mode = .normal
+        }
         .onChange(of: fitSquare) { _, square in
             guard let square, let image = appState.mapImage,
                   let squaresWide = GridFit.squaresWide(imageWidth: image.pixelSize.width,
                                                         squareSide: square.side) else { return }
             appState.squaresWide = Double(squaresWide)
         }
+    }
+
+    /// The Map's width in Grid squares — the one number that pins its physical size.
+    @ViewBuilder
+    private var gridSquaresField: some View {
+        Text("Grid squares wide:")
+        TextField("squares", value: $appState.squaresWide, format: .number)
+            .textFieldStyle(.roundedBorder)
+            .frame(width: 64)
+        Stepper("squares", value: $appState.squaresWide, in: 1...500)
+            .labelsHidden()
     }
 
     // MARK: Preview
@@ -174,6 +234,13 @@ struct ControlView: View {
                                                 y: frame.minY - visible.minY,
                                                 width: frame.width, height: frame.height),
                                   pawns: appState.fog.pawns,
+                                  // Hoisted, not read per Pawn: `litRegions` is computed,
+                                  // and rebuilding the cache key for every token every
+                                  // frame of a drag is exactly the drag-rate work this
+                                  // file's comments record a regression over.
+                                  isDimmed: { [regions = appState.litRegions] pawn in
+                                      isInvisibleToPlayers(pawn, regions: regions)
+                                  },
                                   onMove: { appState.movePawn(id: $0, to: $1) },
                                   onCommit: { appState.flushPendingFogWrites() })
                     }
@@ -210,6 +277,7 @@ struct ControlView: View {
                                            square: $fitSquare) { gridFitTransform = $0 }
                         }
                         if mode == .fog {
+                            let fogRegions = appState.litRegions
                             FogOverlay(transform: transform,
                                        containerSize: previewSize,
                                        tool: tool,
@@ -217,6 +285,7 @@ struct ControlView: View {
                                        edits: $fogEdits,
                                        selectedLight: $selectedLight,
                                        selectedPawn: $selectedPawn,
+                                       isDimmed: { isInvisibleToPlayers($0, regions: fogRegions) },
                                        onChange: { applyFogEdits() },
                                        onTransform: { fogTransform = $0 })
                         }
@@ -246,7 +315,18 @@ struct ControlView: View {
             .clipped()
             .border(.separator)
         } else {
-            Spacer()
+            // With no Map open this used to be a bare `Spacer()`, which inside the
+            // preview's HStack pushed sideways instead of filling downwards — the controls
+            // above it got shoved around rather than staying put at the top of the window.
+            // An empty view that claims both axes keeps the header where it is and leaves
+            // the space below it blank, which is what "no Map yet" should look like.
+            VStack {
+                Spacer(minLength: 0)
+                Text("No Map open. Choose one with “Open Map…”.")
+                    .foregroundStyle(.tertiary)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
@@ -288,12 +368,13 @@ struct ControlView: View {
                 .disabled(!fogEdits.canUndo)
                 .keyboardShortcut("z", modifiers: .command)
             Button("Cancel") { cancelFogEditing() }
-            Button("Done") { mode = .normal }
+            Button("Done") { appState.endFogEditing(); mode = .normal }
                 .keyboardShortcut(.defaultAction)
         }
     }
 
     private func startFogEditing() {
+        appState.beginFogEditing()
         fogEdits = FogEdits(document: appState.fog)
         // Open on the whole Map, as Grid Fit does: the zoomed-out view orients, and zoom
         // is opt-in for the precision moment.
@@ -301,20 +382,17 @@ struct ControlView: View {
         mode = .fog
     }
 
-    /// Discard the whole session, including anything the autosave debounce already wrote:
-    /// restoring the Walls re-triggers `fog`'s didSet, and the explicit flush makes the
-    /// file correct now rather than half a second from now, so a quit in between cannot
-    /// persist Walls the DM cancelled.
+    /// Discard the whole session. `AppState` owns the merge — the Grid and any live Pawn
+    /// rename are not what this mode was editing and must survive Cancel.
     private func cancelFogEditing() {
-        appState.fog = fogEdits.original
-        appState.flushPendingFogWrites()
+        appState.cancelFogEditing(fogEdits)
         mode = .normal
     }
 
     /// Push the edited fog onto the Map. Called after every action so the Player Display
     /// and the fog file stay in step with what the DM sees.
     private func applyFogEdits() {
-        appState.fog = fogEdits.document
+        appState.applyFogEdits(fogEdits)
     }
 
     private var fogSummary: String {
@@ -326,8 +404,18 @@ struct ControlView: View {
              + "\(pawns) \(pawns == 1 ? "Pawn" : "Pawns")"
     }
 
-    /// One Grid square in image pixels, or nil when no Grid has been declared — snapping
-    /// to a Grid that does not exist would scatter vertices.
+    /// Whether players currently cannot see this Pawn — a hidden one, or a Creature
+    /// standing in the dark. The DM's surfaces draw it faded rather than dropping it.
+    private func isInvisibleToPlayers(_ pawn: Pawn, regions: [LitRegion]) -> Bool {
+        PlayerVisibility.isDimmedForDM(pawn: pawn, regions: regions,
+                                       isFogOverlayOn: appState.isFogOverlayOn,
+                                       hasVisibility: appState.hasDeclaredGrid)
+    }
+
+    /// One Grid square in image pixels, or nil when no Grid has been declared. Nothing
+    /// snaps to it any more; it survives because a Pawn token is sized in Grid squares —
+    /// a token reads as occupying its square — and the Lights inspector uses its absence
+    /// to say that radii have no physical size yet.
     private var gridPixels: CGFloat? {
         guard appState.hasDeclaredGrid,
               let image = appState.mapImage, appState.squaresWide > 0 else { return nil }
@@ -351,9 +439,15 @@ struct ControlView: View {
         gridFitTransform = nil
     }
 
+    /// Discard the fit, including anything the autosave debounce already wrote — the Grid
+    /// Fit square writes on every drag tick, so a cancelled value is normally already
+    /// queued. The explicit flush makes the file correct now rather than half a second
+    /// from now, so a quit in between cannot persist a Grid the DM backed out of. Same
+    /// tool and same reason as `cancelFogEditing`.
     private func cancelGridFit() {
         appState.restoreGrid(squaresWide: squaresWideBeforeFit,
                              wasDeclared: hadDeclaredGridBeforeFit)
+        appState.flushPendingFogWrites()
         endGridFit()
     }
 
@@ -380,6 +474,26 @@ struct ControlView: View {
 
     // MARK: Fog
 
+    /// The height the fog inspector row always claims, selected or not.
+    ///
+    /// A constant rather than an intrinsic height, because "however tall it happens to be"
+    /// is exactly what made the preview jump: the row has to cost the same whether it is
+    /// empty, showing a Light's two fields, or showing a Pawn's six controls. 24 pt is the
+    /// measured fitting height of the taller of the two (the Pawn inspector, whose
+    /// rounded-border text fields set the floor) at `.callout`.
+    static let fogInspectorRowHeight: CGFloat = 24
+
+    /// The container the fog preview measures its zoom and pan against.
+    ///
+    /// Deliberately ignores `hasInspectorSelection`. The inspector row above the preview is
+    /// reserved unconditionally, so the GeometryReader's size already excludes it and
+    /// selecting something cannot change what the preview is fitted into. Expressed as a
+    /// function taking the flag — rather than not taking it — so the rule is testable and
+    /// stated, instead of being an invariant that holds only by accident of the layout.
+    static func fogPreviewContainer(geometry: CGSize, hasInspectorSelection: Bool) -> CGSize {
+        geometry
+    }
+
     /// Label, colour and range for the Pawn selected in the fog mode.
     @ViewBuilder
     private var pawnInspector: some View {
@@ -399,18 +513,43 @@ struct ControlView: View {
                 ), supportsOpacity: false)
                 .labelsHidden()
 
+                // A picker, not two toggles: the three kinds are mutually exclusive, and a
+                // pair of checkboxes would let a DM tick both and leave the token in a
+                // state the model cannot represent.
+                Picker("", selection: Binding(
+                    get: { pawn.kind },
+                    set: { fogEdits.setPawnKind(id: pawn.id, $0); applyFogEdits() }
+                )) {
+                    ForEach(PawnKind.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .frame(width: 104)
+                .help("A Creature or a Treasure emits no Light and is hidden from players by darkness.")
+
+                Toggle("Big", isOn: Binding(
+                    get: { pawn.isBig },
+                    set: { fogEdits.setPawnIsBig(id: pawn.id, $0); applyFogEdits() }
+                ))
+                .help("Occupies 2×2 squares instead of 1×1. Visual only — its light and sight are unchanged.")
+
                 Text("Sight:")
                 TextField("range", value: Binding(
                     get: { Double(pawn.light.brightSquares) },
                     set: {
-                        fogEdits.setPawnRange(id: pawn.id, brightSquares: CGFloat($0),
-                                              dimSquares: pawn.light.dimSquares)
+                        fogEdits.setPawnSight(id: pawn.id, squares: CGFloat($0))
                         applyFogEdits()
                     }
                 ), format: .number)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 52)
-                Text("squares").foregroundStyle(.secondary)
+                // A Pawn has one radius. The extra square the region fades over is not a
+                // second number the DM sets — it is there so the edge is not a hard cut —
+                // so it is not offered as one.
+                Text(pawn.isDiscovered
+                     ? "squares — unused, a \(pawn.kind.title) emits no Light"
+                     : "squares")
+                    .foregroundStyle(.secondary)
             }
             .font(.callout)
         }
@@ -447,45 +586,155 @@ struct ControlView: View {
         }
     }
 
-    /// The live panel: on/off for every Light, always visible, never behind a mode.
-    /// Toggling is the one fog action a DM performs mid-session with players watching, so
-    /// it must be one click with nothing to open first.
+    /// One Pawn in the live panel: its light toggle, and its label editable in place.
+    ///
+    /// Renaming lives here — beside the toggle, on the surface that is already the live
+    /// control surface — rather than on a double-click on the token in `PawnLayer`. That
+    /// layer owns the drag gesture, and gesture composition in this render layer has
+    /// produced four defects already; a competing double-click there is the risky option
+    /// for a marginal gain in directness.
+    ///
+    /// The write is `appState.setPawnLabel`, not `FogEdits`: a rename at the table is a
+    /// live action and is not undoable, exactly as moving a Pawn is not.
+    private func pawnLiveRow(_ pawn: Pawn) -> some View {
+        HStack(spacing: 6) {
+            // The token, not a switch: it is how the DM finds this row, since it carries
+            // the same colour and label as the disc on the Map. Toggling its light is a
+            // secondary use of it, so it is the one thing in the row that looks like the
+            // Map rather than like a control.
+            Toggle(isOn: Binding(
+                get: { pawn.light.isOn },
+                set: { appState.setPawnLight(id: pawn.id, isOn: $0) }
+            )) {
+                PawnToken(pawn: pawn, squareSide: 14, scalesWithFootprint: false)
+            }
+            .toggleStyle(.button)
+            .help(pawn.isDiscovered
+                  ? "\(pawn.label): a \(pawn.kind.title) — emits no Light. Click to douse the light it does not cast."
+                  : "\(pawn.label): sight \(Int(pawn.light.brightSquares)) squares. Click to douse.")
+
+            // Fills the column rather than a fixed 72 pt: names like "Goblin B" need the
+            // room, and the panel has a known width to give them.
+            TextField("label", text: Binding(
+                get: { pawn.label },
+                set: { appState.setPawnLabel(id: pawn.id, $0) }
+            ))
+            .textFieldStyle(.roundedBorder)
+            .frame(minWidth: 0)
+
+            // Take it off the Player Display without deleting it. The eye is filled when
+            // players can see it and slashed when they cannot, so the DM reads the state
+            // rather than the control.
+            Toggle(isOn: Binding(
+                get: { !pawn.isHidden },
+                set: { appState.setPawnHidden(id: pawn.id, isHidden: !$0) }
+            )) {
+                Image(systemName: pawn.isHidden ? "eye.slash" : "eye")
+                    .frame(width: 16)
+            }
+            .toggleStyle(.button)
+            .help(pawn.isHidden
+                  ? "Hidden from players. Still here, and still yours to move."
+                  : "Visible to players where the light reaches. Click to hide.")
+        }
+    }
+
+    /// The Fog Overlay's off switch: one control, always reachable, no mode to enter.
+    /// It stays inline rather than joining the side panel because it governs the whole
+    /// Map rather than any one thing in the list.
     @ViewBuilder
-    private var lightToggles: some View {
+    private var fogSwitch: some View {
         if !appState.fog.walls.isEmpty || !appState.fog.lights.isEmpty
             || !appState.fog.pawns.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    // The off switch: one control, always reachable, no mode to enter.
-                    Toggle("Fog", isOn: $appState.isFogOverlayOn)
-                        .toggleStyle(.switch)
-                        .help("Hide or reveal the Fog Overlay on the Player Display. Pawns stay visible either way.")
-                    Divider().frame(height: 16)
-                    Text("Lights:").foregroundStyle(.secondary)
-                    ForEach(Array(appState.fog.lights.enumerated()), id: \.element.id) { index, light in
-                        Toggle(isOn: Binding(
-                            get: { light.isOn },
-                            set: { setLight(id: light.id, isOn: $0) }
-                        )) {
-                            Text("\(index + 1)")
+            Toggle("Fog", isOn: $appState.isFogOverlayOn)
+                .toggleStyle(.switch)
+                .help("Hide or reveal the Fog Overlay on the Player Display. Pawns stay visible either way.")
+        }
+    }
+
+    /// Everything on the Map that can be switched, listed down the side of the preview.
+    ///
+    /// Vertical and grouped, because the horizontal row this replaces did not survive
+    /// contact with a real encounter: a party of four plus a room of goblins ran off the
+    /// right-hand edge, and each entry carries a token, a name field and two toggles, so
+    /// they are wide. A vertical list gives every row the same shape, lets the names be
+    /// read down a column, and turns "which goblin is 3" into a glance.
+    ///
+    /// The kinds are separated because they are what the DM reasons about separately — the
+    /// party is who they are running the world *for*, the Creatures are what they run *at*
+    /// them, and the Treasure is what the room is worth. Lights lead because they are the
+    /// Map's own furniture rather than anyone's token.
+    @ViewBuilder
+    private var livePanel: some View {
+        if !appState.fog.lights.isEmpty || !appState.fog.pawns.isEmpty {
+            ScrollView(.vertical) {
+                VStack(alignment: .leading, spacing: 12) {
+                    if !appState.fog.lights.isEmpty {
+                        liveGroup("Lights", count: appState.fog.lights.count) {
+                            ForEach(Array(appState.fog.lights.enumerated()), id: \.element.id) { index, light in
+                                lightLiveRow(light, number: index + 1)
+                            }
                         }
-                        .toggleStyle(.button)
-                        .help("Light \(index + 1): bright \(Int(light.brightSquares)), dim \(Int(light.dimSquares)) squares")
                     }
-                    // A Pawn's own light toggles here too: a character putting out their
-                    // torch is the same live action as dousing a brazier.
-                    ForEach(appState.fog.pawns) { pawn in
-                        Toggle(isOn: Binding(
-                            get: { pawn.light.isOn },
-                            set: { appState.setPawnLight(id: pawn.id, isOn: $0) }
-                        )) {
-                            Text(pawn.label)
+                    // One group per kind, driven by the enum rather than by a filter per
+                    // group. Two hand-written filters only partition the array as long as
+                    // nobody adds a third kind — which is exactly what happened — and a
+                    // Pawn missing from this panel is one the DM cannot hide or rename
+                    // mid-fight.
+                    ForEach(PawnKind.allCases, id: \.self) { kind in
+                        let group = appState.fog.pawns.filter { $0.kind == kind }
+                        if !group.isEmpty {
+                            liveGroup(kind.pluralTitle, count: group.count) {
+                                ForEach(group) { pawnLiveRow($0) }
+                            }
                         }
-                        .toggleStyle(.button)
-                        .help("\(pawn.label): sight \(Int(pawn.light.brightSquares)) squares")
                     }
                 }
+                .padding(10)
             }
+            .frame(width: 236)
+            // `.controlBackgroundColor` is all but identical to the window's own, so the
+            // panel read as text floating beside the Map rather than as a surface. The
+            // preview next to it is bordered; this needs to look like its sibling.
+            .background(Color(nsColor: .textBackgroundColor),
+                        in: RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
+        }
+    }
+
+    /// One titled group in the side panel. The count is in the heading so the DM can see
+    /// "Creatures 6" without counting rows.
+    private func liveGroup<Content: View>(_ title: String, count: Int,
+                                          @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text(title).font(.caption.weight(.semibold))
+                Text("\(count)").font(.caption).foregroundStyle(.secondary)
+            }
+            content()
+        }
+    }
+
+    /// One Light in the side panel. A Light has no label of its own, so it is identified
+    /// by its position in the list, exactly as it was in the row this replaces.
+    private func lightLiveRow(_ light: Light, number: Int) -> some View {
+        HStack(spacing: 6) {
+            Toggle(isOn: Binding(
+                get: { light.isOn },
+                set: { setLight(id: light.id, isOn: $0) }
+            )) {
+                Image(systemName: light.isOn ? "flame.fill" : "flame")
+                    .frame(width: 16)
+            }
+            .toggleStyle(.button)
+
+            Text("Light \(number)")
+                .lineLimit(1)
+            Spacer(minLength: 0)
+            Text("\(Int(light.brightSquares))")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .help("Bright \(Int(light.brightSquares)), dim \(Int(light.dimSquares)) squares")
         }
     }
 

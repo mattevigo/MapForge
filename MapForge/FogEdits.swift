@@ -112,14 +112,33 @@ struct FogEdits {
         editPawn(id) { $0.label = label }
     }
 
+    /// Make a Pawn a Creature, a Treasure, or a party member again. Undoable: unlike
+    /// hiding, which is a live act at the table, this is an authoring decision about what
+    /// the token *is*, and it changes the lighting of the whole Map.
+    mutating func setPawnKind(id: Pawn.ID, _ kind: PawnKind) {
+        editPawn(id) { $0.kind = kind }
+    }
+
+    /// Make a token 2×2, or 1×1 again. Undoable, like every other authoring decision
+    /// about what a token is.
+    mutating func setPawnIsBig(id: Pawn.ID, _ isBig: Bool) {
+        editPawn(id) { $0.isBig = isBig }
+    }
+
     mutating func setPawnColor(id: Pawn.ID, hex: String) {
         editPawn(id) { $0.colorHex = hex }
     }
 
-    mutating func setPawnRange(id: Pawn.ID, brightSquares: CGFloat, dimSquares: CGFloat) {
+    /// Set how far a Pawn can see, in Grid squares.
+    ///
+    /// The one radius a Pawn has. Its dim value is the cosmetic feather from
+    /// `Pawn.dimSquares(forSight:)` and is never set independently — a character's sight is
+    /// not a light source, and there is no second number to enter. A `Light` still has two,
+    /// through `setLightRadii`, because a torch really does.
+    mutating func setPawnSight(id: Pawn.ID, squares: CGFloat) {
         editPawn(id) {
-            $0.light.brightSquares = max(0, brightSquares)
-            $0.light.dimSquares = max(0, dimSquares)
+            $0.light.brightSquares = max(0, squares)
+            $0.light.dimSquares = Pawn.dimSquares(forSight: squares)
         }
     }
 

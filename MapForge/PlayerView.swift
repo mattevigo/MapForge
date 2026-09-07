@@ -41,9 +41,16 @@ struct PlayerView: View {
                     // worse than an approximately-sized one — the Pawn must render
                     // regardless of the fog's state.
                     let side = max(PlayerPlacement.squareSidePoints(map: map, frame: frame), 12)
-                    ForEach(appState.fog.pawns) { pawn in
+                    let regions = appState.litRegions
+                    // A party Pawn always draws; a Creature only where the light reaches
+                    // it, and never when the DM has hidden it. See `PlayerVisibility`.
+                    ForEach(appState.fog.pawns.filter {
+                        PlayerVisibility.showsToPlayers(pawn: $0, regions: regions,
+                                                        isFogOverlayOn: appState.isFogOverlayOn,
+                                                        hasVisibility: appState.hasDeclaredGrid)
+                    }) { pawn in
                         let p = PlayerPlacement.viewPoint(pawn.at, map: map, frame: frame)
-                        PawnToken(pawn: pawn, diameter: side)
+                        PawnToken(pawn: pawn, squareSide: side)
                             .position(x: p.x, y: p.y)
                     }
                 }

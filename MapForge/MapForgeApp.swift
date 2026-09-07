@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct MapForgeApp: App {
-    @StateObject private var appState = AppState()
+    @StateObject private var appState = AppState(preferences: .forThisLaunch)
 
     var body: some Scene {
         Window("MapForge Control", id: "control") {

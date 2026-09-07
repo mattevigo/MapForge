@@ -61,8 +61,24 @@ A point source that illuminates the Map out to a bright radius and a dim radius,
 _Avoid_: lamp, torch, emitter, light source
 
 **Pawn**:
-A token on the Map with a label and a colour, drawn for players whether or not the Fog Overlay is active. A Pawn is also a Light: its range of sight and its range of illumination are the same thing. Moving a Pawn during play is a live action and is not undoable; moving one while authoring fog is an edit and is.
+A token on the Map with a label and a colour, drawn for players whether or not the Fog Overlay is active — unless its Pawn Kind is one the players must discover. A Pawn is also a Light: its range of sight and its range of illumination are the same thing. It has **one** radius — its sight — unlike a Light, which has a bright and a dim band; DnD gives a character a sight range, not a band of dim vision. The region fades out over one further square purely so its edge is not a hard cut. Moving a Pawn during play is a live action and is not undoable; moving one while authoring fog is an edit and is.
 _Avoid_: token, miniature, figure, character, marker
+
+**Pawn Kind**:
+What a Pawn is: a **Player**, a **Creature**, or a **Treasure**. The three are mutually exclusive, so one enum on Pawn rather than a boolean each. Only two things branch on it — whether the Pawn emits Light, and which side of the Fog Overlay it draws on — and both follow from whether the players *discover* it.
+_Avoid_: type, category, role
+
+**Creature**:
+A Pawn the players discover rather than one they carry: it emits no Light, and it is drawn under the Fog Overlay so darkness hides it from players. The DM always sees Creatures, and can hide one outright — a hidden Creature is invisible to players however well lit it is. A Pawn Kind, not a separate type.
+_Avoid_: monster, enemy, NPC, mob
+
+**Treasure**:
+A chest, a hoard, a body — something the players find rather than fight. Discovered exactly as a Creature is: no Light, hidden by darkness, revealed where the light reaches it. It differs only in being drawn as a rounded square rather than a disc, and in being listed in its own group, because a DM reasons about loot and monsters separately. Size stays orthogonal — a Treasure can be Big.
+_Avoid_: loot, chest, item, object
+
+**Big**:
+A Pawn whose token occupies 2×2 Grid squares instead of 1×1 — an ogre, not a goblin. Independent of Pawn Kind: a big hoard is as meaningful as a big monster. Purely visual: its Light radii and its sight are still measured from its point, because a creature's size does not change how far it sees or how far its torch reaches.
+_Avoid_: large, size category, huge
 
 **Visibility**:
 The three-valued result of tracing every Light against every Wall — each point of the Map is bright, dim, or unlit. Computed in Map space and unaffected by panning the Viewport.

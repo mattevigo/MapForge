@@ -8,34 +8,80 @@ import SwiftUI
 /// circle and the players must be looking at the same red circle.
 struct PawnToken: View {
     let pawn: Pawn
-    /// Diameter in the coordinate space of whichever surface is drawing it. Sized in Grid
-    /// squares by the caller, so a token reads as occupying its square.
-    let diameter: CGFloat
+    /// The side of ONE Grid square in the coordinate space of whichever surface is drawing
+    /// it — not the token's own width. A Big Pawn spans two of these, and the view works
+    /// that multiplication out itself.
+    ///
+    /// The distinction is load-bearing. Callers used to pre-multiply, which made "how big
+    /// is this token's footprint" and "how big is this view" the same number: a Big Pawn's
+    /// label then rendered at twice everyone else's point size, and its suppression floor
+    /// was effectively halved. The disc scales with the footprint; the text does not.
+    let squareSide: CGFloat
     var isSelected = false
+
+    /// Whether the disc grows for a Big Pawn. False on chrome that is not the Map — the
+    /// live row's tokens are fixed-size buttons, and doubling one there just makes that
+    /// row taller than its neighbours without conveying anything the inspector does not.
+    var scalesWithFootprint = true
+
+    /// The disc's width: one square, or two for a Big Pawn on a surface that shows Maps.
+    private var diameter: CGFloat {
+        squareSide * (scalesWithFootprint ? pawn.squaresAcross : 1)
+    }
+
+    /// The token's outline: a disc for anyone who acts, a rounded square for Treasure.
+    ///
+    /// Shape rather than colour, because colour is already spoken for — a DM assigns it per
+    /// token to tell one goblin from another, so it cannot also carry what a token *is*. A
+    /// square reads as an object rather than a figure at a glance, which is the distinction
+    /// that matters when the DM is pointing at the Map mid-fight.
+    ///
+    /// Rounded, not sharp: at the live row's 14 pt and at low map zoom a hard-cornered
+    /// square reads as a stray pixel block, and the radius scales with the token so it
+    /// stays the same shape at every size.
+    private var outline: AnyShape {
+        switch pawn.kind {
+        case .player, .creature: return AnyShape(Circle())
+        case .treasure: return AnyShape(RoundedRectangle(cornerRadius: diameter * 0.18))
+        }
+    }
 
     var body: some View {
         ZStack {
-            Circle()
+            outline
                 .fill(Color(hex: pawn.colorHex) ?? .red)
                 // A Pawn whose light is out is still on the Map — dimmed, not gone.
                 .opacity(pawn.light.isOn ? 1 : 0.55)
-            Circle()
+            outline
                 .stroke(isSelected ? Color.accentColor : Color.black.opacity(0.6),
                         lineWidth: isSelected ? 3 : 1.5)
-            if diameter >= 16 {
-                // Below this the label is unreadable and only muddies the disc's colour,
-                // which is the thing a player actually identifies a token by.
+            // Sized from ONE square, so an ogre's "3" is the same size as a goblin's and
+            // the legibility floor means the same thing for both.
+            if Self.showsLabel(atDiameter: squareSide) {
                 Text(pawn.label)
-                    .font(.system(size: diameter * 0.5, weight: .semibold))
+                    .font(.system(size: squareSide * 0.5, weight: .semibold))
                     .foregroundStyle(.white)
                     .shadow(radius: 1)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
-                    .padding(.horizontal, diameter * 0.1)
+                    .padding(.horizontal, squareSide * 0.1)
             }
         }
         .frame(width: diameter, height: diameter)
     }
+
+    /// Whether a token this size gets its label drawn.
+    ///
+    /// The threshold used to be 16 pt, above every floor the three call sites apply
+    /// (10-12 pt) — so at low zoom, or with no Grid declared, Pawns rendered as
+    /// unlabelled coloured dots on the Player Display as well as the preview. That is the
+    /// real defect behind "Pawns should have editable labels": they had them and could not
+    /// be seen. The floor is now where a one- or two-character label stops being readable
+    /// at all rather than where it stops being comfortable — `minimumScaleFactor` lets the
+    /// text shrink into the disc instead of vanishing from it. Below 8 pt the glyph is a
+    /// couple of grey pixels that only muddy the disc's colour, which is what a player
+    /// identifies a token by.
+    static func showsLabel(atDiameter diameter: CGFloat) -> Bool { diameter >= 8 }
 }
 
 extension Color {
@@ -71,4 +117,18 @@ extension Color {
 extension Pawn {
     /// The colour a newly placed Pawn takes when there is no previous one to copy.
     static let defaultColorHex = "#C81E1E"
+
+    /// The label a newly placed Pawn takes: one past the highest number already in use.
+    ///
+    /// Derived from the labels rather than from `pawns.count`, which reuses a number after
+    /// a delete — place three, delete the second, and the next Pawn is "3" as well. Two
+    /// tokens with one name mid-fight is exactly the confusion a label exists to prevent.
+    /// Non-numeric labels are skipped, so renaming "2" to "Goblin B" frees the 2 rather
+    /// than blocking the count.
+    /// Saturates rather than trapping: the live rename field takes any text, so a DM can
+    /// set a label of `Int.max` and the next placement would crash the app on overflow.
+    static func nextLabel(after pawns: [Pawn]) -> String {
+        let highest = pawns.compactMap { Int($0.label) }.max() ?? 0
+        return "\(highest == Int.max ? highest : highest + 1)"
+    }
 }

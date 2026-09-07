@@ -19,9 +19,9 @@ enum FogTool: CaseIterable, Hashable {
     var hint: String {
         switch self {
         case .walls:
-            "Click to place Wall corners, double-click to end a chain, Esc to cancel it. ⇧ frees the angle; click a Wall then ⌫ to delete. Scroll to zoom, ⌥-drag to pan."
+            "Click to place Wall corners, double-click to end a chain, Esc to cancel it. ⇧ frees the angle; corners weld to nearby Wall ends. Click a Wall then ⌫ to delete. Scroll to zoom, ⌥-drag to pan."
         case .lights:
-            "Click to place a Light, drag one to move it. Click a Light then ⌫ to delete; radii are set below. Scroll to zoom, ⌥-drag to pan."
+            "Click to place a Light exactly where you click, drag one to move it. Click a Light then ⌫ to delete; radii are set below. Scroll to zoom, ⌥-drag to pan."
         case .pawns:
             "Click to place a Pawn, drag one to move it — dragging works outside this mode too. Click a Pawn then ⌫ to delete; label, colour and range are set below."
         }
@@ -37,13 +37,18 @@ struct FogOverlay: View {
     let transform: PreviewTransform
     let containerSize: CGSize
     let tool: FogTool
-    /// Grid square side in image pixels, or nil when no Grid has been declared.
+    /// Grid square side in image pixels, or nil when no Grid has been declared. Sizes a
+    /// Pawn token, which reads as occupying its square — nothing snaps to it.
     let gridPixels: CGFloat?
     @Binding var edits: FogEdits
     /// Bound out to the Control Window, which shows the selected Light's radii beside the
     /// preview — there is no room for a numeric editor inside the overlay itself.
     @Binding var selectedLight: Light.ID?
     @Binding var selectedPawn: Pawn.ID?
+    /// Whether a Pawn is currently invisible to players. Drawn faded rather than dropped:
+    /// this is the DM's surface, and it is while authoring an encounter that they most
+    /// need to see which Creatures the table can and cannot see.
+    let isDimmed: (Pawn) -> Bool
     let onChange: () -> Void
     let onTransform: (PreviewTransform) -> Void
 
@@ -108,7 +113,14 @@ struct FogOverlay: View {
         .focused($focused)
         .onKeyPress(.escape) { chain.cancel(); return .handled }
         // `.delete` IS U+007F — backspace on macOS. One registration covers it.
+        //
+        // Kept, but not relied on. This ZStack's children are all `.position()`-placed, so
+        // it carries no focusable region of its own and `.onKeyPress` never fired for a
+        // selection made by clicking a Wall — ⌫ just beeped. `onDeleteKey` below is the
+        // one that actually works; if focus ever does land here, this consumes the event
+        // first and the monitor never sees it.
         .onKeyPress(.delete) { deleteSelected() }
+        .onDeleteKey(canHandle: { hasSelection }) { _ = deleteSelected() }
         .onModifierKeysChanged { _, new in freeAngle = new.contains(.shift) }
         .onAppear { focused = true }
         .onScrollWheel { delta, location in zoom(by: delta, at: location) }
@@ -133,7 +145,7 @@ struct FogOverlay: View {
                 // exactly the motion that lands there. Hit-testing is therefore off during
                 // a chain, and off for the very first click too: selection is what the DM
                 // wants between chains, placement is what they want during one.
-                .gesture(TapGesture().onEnded { selectedWall = wall.id; selectedLight = nil })
+                .gesture(TapGesture().onEnded { select(wall: wall.id) })
                 .allowsHitTesting(tool == .walls && !chain.isDrawing)
         }
     }
@@ -164,19 +176,20 @@ struct FogOverlay: View {
             .onChanged { value in
                 if lightDragStart == nil {
                     lightDragStart = light.at
-                    selectedLight = light.id
-                    selectedWall = nil
+                    select(light: light.id)
                     edits.beginLightDrag()
                 }
                 guard let start = lightDragStart else { return }
                 // minimumDistance is 0 so a plain click selects, which means .onChanged
-                // fires on mouse-down with zero translation. Writing a snapped position
-                // there would silently move an unsnapped Light onto the Grid just for
-                // being clicked — so a drag that has not moved does nothing.
+                // fires on mouse-down with zero translation. This guard originally stopped
+                // a select-click silently snapping an unsnapped Light onto the Grid; grid
+                // snapping is gone, so that bug cannot recur, but the guard still earns its
+                // place — without it selecting a Light writes a no-op move into the undo
+                // stack, and the DM presses undo on a click that changed nothing.
                 guard value.translation != .zero else { return }
                 let moved = MapPoint(x: start.x + value.translation.width / transform.scale,
                                      y: start.y + value.translation.height / transform.scale)
-                edits.moveLight(id: light.id, to: snapped(moved))
+                edits.moveLight(id: light.id, to: moved)
                 onChange()
             }
             .onEnded { _ in
@@ -192,8 +205,9 @@ struct FogOverlay: View {
     private var pawnMarkers: some View {
         ForEach(pawns) { pawn in
             let p = viewPoint(pawn.at)
-            PawnToken(pawn: pawn, diameter: pawnDiameter,
+            PawnToken(pawn: pawn, squareSide: pawnDiameter,
                       isSelected: pawn.id == selectedPawn)
+                .opacity(isDimmed(pawn) ? 0.4 : 1)
                 .position(x: p.x, y: p.y)
                 .gesture(pawnDragGesture(pawn))
                 .allowsHitTesting(tool == .pawns)
@@ -212,9 +226,7 @@ struct FogOverlay: View {
             .onChanged { value in
                 if pawnDragStart == nil {
                     pawnDragStart = pawn.at
-                    selectedPawn = pawn.id
-                    selectedLight = nil
-                    selectedWall = nil
+                    select(pawn: pawn.id)
                     edits.beginPawnDrag()
                 }
                 guard let start = pawnDragStart, value.translation != .zero else { return }
@@ -254,16 +266,16 @@ struct FogOverlay: View {
         }
     }
 
-    /// Where a click would land, shown before it happens — snapping is visible, never silent.
+    /// Where a click would land when it will not land under the cursor — the endpoint
+    /// weld is the only thing that moves a vertex now, and it stays visible, never silent.
     @ViewBuilder
     private var snapIndicator: some View {
         if let cursor, tool == .walls {
             let resolved = resolve(viewPoint: cursor)
-            if resolved.target != .none {
+            if resolved.target == .endpoint {
                 let p = viewPoint(resolved.point)
                 Circle()
-                    .stroke(resolved.target == .endpoint ? Color.green : Color.secondary,
-                            lineWidth: 2)
+                    .stroke(Color.green, lineWidth: 2)
                     .frame(width: 12, height: 12)
                     .position(x: p.x, y: p.y)
                     .allowsHitTesting(false)
@@ -296,15 +308,14 @@ struct FogOverlay: View {
     }
 
     /// Where a click at `viewPoint` lands: angle-constrained against the chain, then
-    /// snapped. Snapping runs last so a snap target always wins over the constraint —
-    /// closing the chain matters more than keeping it at 45°.
+    /// welded to a nearby endpoint. The weld runs last so it always wins over the
+    /// constraint — closing the chain matters more than keeping it at 45°.
     private func resolve(viewPoint: CGPoint) -> WallSnap.Result {
         let raw = MapPoint(transform.imagePoint(from: viewPoint))
         let constrained = (!freeAngle && chain.lastVertex != nil)
             ? WallSnap.constrainAngle(from: chain.lastVertex!, to: raw)
             : raw
-        return WallSnap.snap(constrained, to: snapCandidates,
-                             gridPixels: gridPixels, tolerance: snapTolerance)
+        return WallSnap.snap(constrained, to: snapCandidates, tolerance: snapTolerance)
     }
 
     /// Existing Wall endpoints, plus the chain's *first* vertex — that is how a DM closes
@@ -329,31 +340,32 @@ struct FogOverlay: View {
             chain.place(resolve(viewPoint: location).point)
         case .pawns:
             selectedPawn = nil
-            // Free-form, not snapped: the issue says so explicitly.
+            // Free-form. Pawns never snapped; Walls and Lights no longer do either.
             let point = MapPoint(transform.imagePoint(from: location))
+            // A new Pawn copies the last one placed, its `kind` included: a DM populating
+            // an encounter places six goblins in a row — or stocks a vault with chests —
+            // and toggling each one afterwards is six chances to miss one and light the
+            // room with it.
             let previous = pawns.last
             edits.addPawn(Pawn(at: point,
-                               label: "\(pawns.count + 1)",
+                               label: Pawn.nextLabel(after: pawns),
                                colorHex: previous?.colorHex ?? Pawn.defaultColorHex,
-                               brightSquares: previous?.light.brightSquares ?? 6))
+                               brightSquares: previous?.light.brightSquares ?? 6,
+                               kind: previous?.kind ?? .player,
+                               isBig: previous?.isBig ?? false))
             onChange()
         case .lights:
             selectedLight = nil
+            // Placed exactly where clicked. A new Light takes the radii of the last one
+            // placed: a DM lighting a dungeon is usually placing the same torch over and
+            // over.
             let point = MapPoint(transform.imagePoint(from: location))
-            // A new Light takes the radii of the last one placed: a DM lighting a dungeon
-            // is usually placing the same torch over and over.
             let previous = lights.last
-            edits.addLight(Light(at: snapped(point),
+            edits.addLight(Light(at: point,
                                  brightSquares: previous?.brightSquares ?? 4,
                                  dimSquares: previous?.dimSquares))
             onChange()
         }
-    }
-
-    /// Lights snap to the Grid but not to Wall endpoints — a torch sits in a room, not on
-    /// its wall, and pulling it onto a corner would be wrong more often than right.
-    private func snapped(_ point: MapPoint) -> MapPoint {
-        WallSnap.snap(point, to: [], gridPixels: gridPixels, tolerance: snapTolerance).point
     }
 
     private func finishChain() {
@@ -361,6 +373,45 @@ struct FogOverlay: View {
         guard !newWalls.isEmpty else { return }
         edits.addWalls(newWalls)
         onChange()
+    }
+
+    // MARK: Selection
+    //
+    // Every one of these takes keyboard focus back, and that is the whole point of their
+    // existing. `.onKeyPress(.delete)` only fires while the overlay is focused, and focus
+    // was previously claimed in just two places — `.onAppear` and `place()`. Selecting a
+    // Wall did not, so the sequence a DM actually performs — enter the mode, touch the
+    // "Grid squares wide" field beside the preview, come back and click a Wall — left
+    // focus in that text field. The Wall highlighted and ⌫ went to the text field, so
+    // deletion looked implemented and dead. Selecting is an act of "I am working in here";
+    // it has to move focus, or the keyboard half of every select-then-key interaction is
+    // unreachable.
+
+    private func select(wall id: Wall.ID) {
+        focused = true
+        selectedWall = id
+        selectedLight = nil
+        selectedPawn = nil
+    }
+
+    private func select(light id: Light.ID) {
+        focused = true
+        selectedLight = id
+        selectedWall = nil
+        selectedPawn = nil
+    }
+
+    private func select(pawn id: Pawn.ID) {
+        focused = true
+        selectedPawn = id
+        selectedWall = nil
+        selectedLight = nil
+    }
+
+    /// Whether ⌫ has anything to act on. Gates the event monitor, which is global to the
+    /// process — with nothing selected the key must pass through to whatever else wants it.
+    private var hasSelection: Bool {
+        selectedWall != nil || selectedLight != nil || selectedPawn != nil
     }
 
     private func deleteSelected() -> KeyPress.Result {
