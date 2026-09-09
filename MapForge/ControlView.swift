@@ -683,7 +683,11 @@ struct ControlView: View {
                 get: { isSolo },
                 set: { appState.setSoloSight(id: $0 ? pawn.id : nil) }
             )) {
-                Image(systemName: isSolo ? "person.fill.viewfinder" : "person.viewfinder")
+                // Both variants exist, unlike `person.viewfinder`, which does not: the
+                // inactive state rendered as an empty button until this was caught by eye.
+                // Filled when active and outline when not, so the DM reads the state rather
+                // than the control — the same way the eye beside it does.
+                Image(systemName: isSolo ? "binoculars.fill" : "binoculars")
                     .frame(width: 16)
             }
             .toggleStyle(.button)
