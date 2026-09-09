@@ -13,8 +13,11 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mattevigo.MapForge
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        INFOPLIST_KEY_NSHumanReadableCopyright: "© 2026 Matteo Vigoni"
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         SWIFT_VERSION: "5.0"
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGN_STYLE: Manual
