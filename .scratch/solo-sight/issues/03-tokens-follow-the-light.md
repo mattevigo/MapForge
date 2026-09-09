@@ -1,6 +1,6 @@
 # 03 — Tokens follow the light
 
-Status: ready-for-agent
+Status: done
 
 Blocked by: 02
 
@@ -54,3 +54,17 @@ its own flame off and no Map Light near it. A hidden Pawn stays off screen throu
 Control Window shows all of them, the invisible ones dimmed. Turning the mode off restores
 every token immediately. With no isolated Pawn, existing `PlayerVisibility` tests pass
 unchanged.
+
+## Comments
+
+**A stale ID had to be resolved at the caller, not in `PlayerVisibility`.** The first green
+run failed on exactly one test, and it was the important one: `showsToPlayers` sees a single
+Pawn at a time, so it cannot tell an ID that has gone stale from one belonging to a Pawn
+somewhere else on the Map. A non-nil stale ID therefore put *every* party Pawn through the
+discovery rule while matching nobody — and because `VisibilityCache` correctly falls back to
+lighting everything in that case, the result would have been the whole party vanishing from
+a fully lit Player Display. `AppState.resolvedSoloSightPawnID` resolves the ID against the
+document on every read, and every render path asks for that rather than the raw ID.
+
+`fog`'s `didSet` clears the ID when its Pawn goes, so the resolve is the belt to that
+braces — it covers the window between a mutation and its observer.

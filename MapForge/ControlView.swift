@@ -646,13 +646,26 @@ struct ControlView: View {
         // With one Pawn isolated, the rest of the party is switched out of the lighting,
         // and the panel should say so at a glance: a DM who forgets Solo Sight is on will
         // misread the Player Display, in front of players.
-        .opacity(isSwitchedOutBySoloSight(pawn) ? 0.5 : 1)
+        //
+        // Deliberately not `PawnLayer`'s 0.4. That one means "the players cannot see this
+        // Pawn", and it is already doing its job on the Map beside this panel — a row is
+        // dimmed here for the different reason that its *light* is switched out, which is
+        // true of a Pawn the table can still plainly see standing in a brazier's glow.
+        .opacity(isSwitchedOutBySoloSight(pawn) ? soloSightSwitchedOutOpacity : 1)
     }
+
+    /// How far a row is faded when Solo Sight has switched its Pawn out of the lighting.
+    /// Lighter than `PawnLayer`'s 0.4: this says "not lighting the Map", not "invisible".
+    private var soloSightSwitchedOutOpacity: Double { 0.5 }
 
     /// Whether this row is one of the Pawns Solo Sight has switched out.
     private func isSwitchedOutBySoloSight(_ pawn: Pawn) -> Bool {
         guard let isolated = appState.resolvedSoloSightPawnID else { return false }
-        return pawn.id != isolated && !pawn.isDiscovered
+        // A hidden Pawn was already off the table's screen and already out of the lighting
+        // before the mode started, and its slashed eye says so. Dimming its row too would
+        // blame Solo Sight for something the DM did themselves, in the one readout that is
+        // meant to tell them exactly who the mode is costing them.
+        return pawn.id != isolated && !pawn.isDiscovered && !pawn.isHidden
     }
 
     /// See the Map as one character alone lights it: every other Pawn's Light goes out, and

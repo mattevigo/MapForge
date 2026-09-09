@@ -2,8 +2,8 @@ import Foundation
 
 /// Whether the Solo Sight control is offered for a Pawn, and why not when it is not.
 ///
-/// Pure, and separate from `ControlView`, for the reason `FogInspectorRowHeight` is: a rule
-/// the DM meets mid-session should be provable without driving a window. Every unavailable
+/// Pure, and separate from `ControlView`, for the reason `ControlView.fogInspectorRowHeight`
+/// is: a rule the DM meets mid-session should be provable without driving a window. Every unavailable
 /// state carries a reason — a control that is merely inert teaches the DM nothing, and they
 /// are reading it in front of players.
 enum SoloSightControl {

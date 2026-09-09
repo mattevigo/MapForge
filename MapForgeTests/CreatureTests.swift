@@ -62,7 +62,7 @@ final class CreatureTests: XCTestCase {
         let document = FogDocument(pawns: [creature])
 
         let regions = VisibilityCache().regions(for: document, imagePixelSize: imageSize,
-                                                pixelsPerSquare: 20)
+                                                pixelsPerSquare: 20, soloSightPawnID: nil)
 
         XCTAssertTrue(regions.isEmpty, "a Creature lit the room it was hiding in")
     }
@@ -71,7 +71,7 @@ final class CreatureTests: XCTestCase {
         // The control case, so the filter cannot be a blanket one.
         let document = FogDocument(pawns: [makePawn()])
         XCTAssertFalse(VisibilityCache().regions(for: document, imagePixelSize: imageSize,
-                                                 pixelsPerSquare: 20).isEmpty)
+                                                 pixelsPerSquare: 20, soloSightPawnID: nil).isEmpty)
     }
 
     func testTurningAPawnIntoACreatureRecomputesTheFog() {
@@ -83,11 +83,11 @@ final class CreatureTests: XCTestCase {
         let cache = VisibilityCache { computations += 1 }
 
         _ = cache.regions(for: FogDocument(pawns: [pawn]), imagePixelSize: imageSize,
-                          pixelsPerSquare: 20)
+                          pixelsPerSquare: 20, soloSightPawnID: nil)
         var creature = pawn
         creature.kind = .creature
         let after = cache.regions(for: FogDocument(pawns: [creature]),
-                                  imagePixelSize: imageSize, pixelsPerSquare: 20)
+                                  imagePixelSize: imageSize, pixelsPerSquare: 20, soloSightPawnID: nil)
 
         XCTAssertEqual(computations, 2, "the flag did not invalidate the cache")
         XCTAssertTrue(after.isEmpty, "the Creature was still lighting the room")
@@ -129,7 +129,7 @@ final class CreatureTests: XCTestCase {
         hidden.isHidden = true
 
         let regions = VisibilityCache().regions(for: FogDocument(pawns: [hidden]),
-                                                imagePixelSize: imageSize, pixelsPerSquare: 20)
+                                                imagePixelSize: imageSize, pixelsPerSquare: 20, soloSightPawnID: nil)
 
         XCTAssertTrue(regions.isEmpty, "a hidden Pawn was still lighting the room")
     }
@@ -142,14 +142,14 @@ final class CreatureTests: XCTestCase {
         XCTAssertFalse(PlayerVisibility.showsToPlayers(pawn: creature(at: MapPoint(x: 900, y: 700)),
                                                        regions: litRoom(),
                                                        isFogOverlayOn: true,
-                                                       hasVisibility: true))
+                                                       hasVisibility: true, soloSightPawnID: nil))
     }
 
     func testACreatureInBrightLightIsShownToPlayers() {
         XCTAssertTrue(PlayerVisibility.showsToPlayers(pawn: creature(at: MapPoint(x: 300, y: 300)),
                                                       regions: litRoom(),
                                                       isFogOverlayOn: true,
-                                                      hasVisibility: true))
+                                                      hasVisibility: true, soloSightPawnID: nil))
     }
 
     func testDimLightRevealsACreature() {
@@ -163,7 +163,7 @@ final class CreatureTests: XCTestCase {
         XCTAssertTrue(PlayerVisibility.showsToPlayers(pawn: creature(at: MapPoint(x: 50, y: 50)),
                                                       regions: regions,
                                                       isFogOverlayOn: true,
-                                                      hasVisibility: true))
+                                                      hasVisibility: true, soloSightPawnID: nil))
     }
 
     func testAPartyPawnInTheDarkIsStillShown() {
@@ -173,7 +173,7 @@ final class CreatureTests: XCTestCase {
         pawn.at = MapPoint(x: 900, y: 700)
         XCTAssertTrue(PlayerVisibility.showsToPlayers(pawn: pawn, regions: litRoom(),
                                                       isFogOverlayOn: true,
-                                                      hasVisibility: true))
+                                                      hasVisibility: true, soloSightPawnID: nil))
     }
 
     func testSwitchingTheFogOverlayOffRevealsCreatures() {
@@ -182,7 +182,7 @@ final class CreatureTests: XCTestCase {
         XCTAssertTrue(PlayerVisibility.showsToPlayers(pawn: creature(at: MapPoint(x: 900, y: 700)),
                                                       regions: litRoom(),
                                                       isFogOverlayOn: false,
-                                                      hasVisibility: true))
+                                                      hasVisibility: true, soloSightPawnID: nil))
     }
 
     func testNoDeclaredGridShowsCreaturesRatherThanHidingThemAll() {
@@ -192,7 +192,7 @@ final class CreatureTests: XCTestCase {
         XCTAssertTrue(PlayerVisibility.showsToPlayers(pawn: creature(at: MapPoint(x: 900, y: 700)),
                                                       regions: [],
                                                       isFogOverlayOn: true,
-                                                      hasVisibility: false))
+                                                      hasVisibility: false, soloSightPawnID: nil))
     }
 
     // MARK: Hiding
@@ -204,7 +204,7 @@ final class CreatureTests: XCTestCase {
         hidden.isHidden = true
         XCTAssertFalse(PlayerVisibility.showsToPlayers(pawn: hidden, regions: litRoom(),
                                                        isFogOverlayOn: true,
-                                                       hasVisibility: true))
+                                                       hasVisibility: true, soloSightPawnID: nil))
     }
 
     func testAHiddenPawnIsNotShownWithTheFogOverlayOff() {
@@ -213,7 +213,7 @@ final class CreatureTests: XCTestCase {
         hidden.isHidden = true
         XCTAssertFalse(PlayerVisibility.showsToPlayers(pawn: hidden, regions: litRoom(),
                                                        isFogOverlayOn: false,
-                                                       hasVisibility: true))
+                                                       hasVisibility: true, soloSightPawnID: nil))
     }
 
     func testHidingIsAvailableToAPartyPawnToo() {
@@ -222,7 +222,7 @@ final class CreatureTests: XCTestCase {
         hidden.isHidden = true
         XCTAssertFalse(PlayerVisibility.showsToPlayers(pawn: hidden, regions: litRoom(),
                                                        isFogOverlayOn: true,
-                                                       hasVisibility: true))
+                                                       hasVisibility: true, soloSightPawnID: nil))
     }
 
     func testHidingIsNotUndoable() throws {
@@ -421,9 +421,9 @@ final class CreatureTests: XCTestCase {
         big.isBig = true
 
         let asSmall = VisibilityCache().regions(for: FogDocument(pawns: [small]),
-                                                imagePixelSize: imageSize, pixelsPerSquare: 20)
+                                                imagePixelSize: imageSize, pixelsPerSquare: 20, soloSightPawnID: nil)
         let asBig = VisibilityCache().regions(for: FogDocument(pawns: [big]),
-                                              imagePixelSize: imageSize, pixelsPerSquare: 20)
+                                              imagePixelSize: imageSize, pixelsPerSquare: 20, soloSightPawnID: nil)
 
         XCTAssertFalse(asSmall.isEmpty, "precondition: the Pawn lit something")
         XCTAssertEqual(asBig, asSmall, "being Big changed the light it casts")
@@ -447,7 +447,7 @@ final class CreatureTests: XCTestCase {
         big.isBig = true
         XCTAssertFalse(PlayerVisibility.showsToPlayers(pawn: big, regions: litRoom(),
                                                        isFogOverlayOn: true,
-                                                       hasVisibility: true))
+                                                       hasVisibility: true, soloSightPawnID: nil))
     }
 
     func testBigIsIndependentOfCreature() {
@@ -467,7 +467,7 @@ final class CreatureTests: XCTestCase {
         // that lit itself would reveal the room the party has not entered yet.
         let regions = VisibilityCache().regions(
             for: FogDocument(pawns: [treasure(at: MapPoint(x: 300, y: 300))]),
-            imagePixelSize: imageSize, pixelsPerSquare: 20)
+            imagePixelSize: imageSize, pixelsPerSquare: 20, soloSightPawnID: nil)
 
         XCTAssertTrue(regions.isEmpty, "a Treasure lit the room it was sitting in")
     }
@@ -478,14 +478,14 @@ final class CreatureTests: XCTestCase {
         XCTAssertFalse(PlayerVisibility.showsToPlayers(pawn: treasure(at: MapPoint(x: 900, y: 700)),
                                                        regions: litRoom(),
                                                        isFogOverlayOn: true,
-                                                       hasVisibility: true))
+                                                       hasVisibility: true, soloSightPawnID: nil))
     }
 
     func testATreasureInTheLightIsShownToPlayers() {
         XCTAssertTrue(PlayerVisibility.showsToPlayers(pawn: treasure(at: MapPoint(x: 300, y: 300)),
                                                       regions: litRoom(),
                                                       isFogOverlayOn: true,
-                                                      hasVisibility: true))
+                                                      hasVisibility: true, soloSightPawnID: nil))
     }
 
     func testATreasureCanBeHiddenLikeAnyOtherPawn() {
@@ -495,7 +495,7 @@ final class CreatureTests: XCTestCase {
         hidden.isHidden = true
         XCTAssertFalse(PlayerVisibility.showsToPlayers(pawn: hidden, regions: litRoom(),
                                                        isFogOverlayOn: true,
-                                                       hasVisibility: true))
+                                                       hasVisibility: true, soloSightPawnID: nil))
     }
 
     func testATreasureIsOneSquareByDefaultAndCanStillBeBig() {
@@ -578,6 +578,6 @@ final class CreatureTests: XCTestCase {
         VisibilityCache().regions(
             for: FogDocument(lights: [Light(at: MapPoint(x: 300, y: 300),
                                             brightSquares: 5, dimSquares: 5)]),
-            imagePixelSize: imageSize, pixelsPerSquare: 20)
+            imagePixelSize: imageSize, pixelsPerSquare: 20, soloSightPawnID: nil)
     }
 }

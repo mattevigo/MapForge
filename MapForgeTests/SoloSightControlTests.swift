@@ -3,8 +3,8 @@ import XCTest
 
 /// Whether the Solo Sight control is offered, and the reason when it is not.
 ///
-/// Pure, like `FogInspectorRowHeight`, so a rule the DM meets mid-session is provable
-/// without driving a window. Every disabled state must carry a reason: a control that is
+/// Pure, like `ControlView.fogInspectorRowHeight` and its tests, so a rule the DM meets
+/// mid-session is provable without driving a window. Every disabled state must carry a reason: a control that is
 /// simply inert teaches the DM nothing, and they are reading it in front of players.
 final class SoloSightControlTests: XCTestCase {
     private func pawn(kind: PawnKind = .player, isHidden: Bool = false) -> Pawn {

@@ -1,6 +1,6 @@
 # 04 — The Solo Sight control
 
-Status: ready-for-agent
+Status: done
 
 Blocked by: 01
 

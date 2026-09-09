@@ -29,9 +29,12 @@ enum PlayerVisibility {
     ///    reveals: 5e treats it as lightly obscured, not as blindness, and a Creature — or
     ///    a chest — on floor the players can plainly see would otherwise be invisible for
     ///    no reason they could infer.
+    /// `soloSightPawnID` has no default on purpose: a call site that forgot it would
+    /// compile and silently render the pre-Solo-Sight rules, which is the second answer to
+    /// "what do players see" that this type exists to prevent. Make the compiler ask.
     static func showsToPlayers(pawn: Pawn, regions: [LitRegion],
                                isFogOverlayOn: Bool, hasVisibility: Bool,
-                               soloSightPawnID: Pawn.ID? = nil) -> Bool {
+                               soloSightPawnID: Pawn.ID?) -> Bool {
         if pawn.isHidden { return false }
         if soloSightPawnID == pawn.id { return true }
         if !pawn.isDiscovered, soloSightPawnID == nil { return true }
@@ -47,7 +50,7 @@ enum PlayerVisibility {
     /// tells the DM at a glance what the table can and cannot see.
     static func isDimmedForDM(pawn: Pawn, regions: [LitRegion],
                               isFogOverlayOn: Bool, hasVisibility: Bool,
-                              soloSightPawnID: Pawn.ID? = nil) -> Bool {
+                              soloSightPawnID: Pawn.ID?) -> Bool {
         !showsToPlayers(pawn: pawn, regions: regions,
                         isFogOverlayOn: isFogOverlayOn, hasVisibility: hasVisibility,
                         soloSightPawnID: soloSightPawnID)

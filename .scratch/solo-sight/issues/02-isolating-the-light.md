@@ -1,6 +1,6 @@
 # 02 — Isolating the light
 
-Status: ready-for-agent
+Status: done
 
 Blocked by: 01
 
@@ -43,3 +43,11 @@ had its flame off — and Map Lights are unaffected, verifiable by isolating a P
 brazier and confirming the brazier's room stays lit. Panning still does not recompute.
 Toggling the mode on and off returns the exact region set that was there before. With *P*'s
 own flame off, only the Map Lights contribute.
+
+## Comments
+
+**Built without adding a field to `Inputs`.** The issue asked for the isolated ID to join
+the cache key. It did not need to: `pawnLights` is *derived* from the ID, so isolating a
+Pawn already changes the key — adding the ID as well would have been a second copy of the
+same fact, and a chance for the two to disagree. `testEnteringAndLeavingSoloSightRecomputes`
+and `testSoloSightIsStillMemoised` are what hold the invalidation rule down.

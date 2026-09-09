@@ -37,7 +37,7 @@ final class VisibilityCache {
     /// correctly invalidates.
     func regions(for document: FogDocument, imagePixelSize: CGSize,
                  pixelsPerSquare: CGFloat,
-                 soloSightPawnID: Pawn.ID? = nil) -> [LitRegion] {
+                 soloSightPawnID: Pawn.ID?) -> [LitRegion] {
         let next = Inputs(walls: document.walls,
                           lights: document.lights,
                           // Creatures emit nothing, and neither does a Pawn the DM has

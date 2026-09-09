@@ -182,6 +182,11 @@ final class AppState: ObservableObject {
     /// belongs to the *outgoing* Map, so it is flushed before `mapURL` moves on.
     func loadMap(image: NSImage, at url: URL) {
         fogAutosave.flush()
+        // Explicitly, before the document changes underneath it. `fog`'s didSet would also
+        // drop the ID, but only because Pawn IDs are UUIDs and the incoming Map's will not
+        // match — an accident of uniqueness rather than a rule, and it says nothing about a
+        // Map opened without a fog reassignment. The mode belongs to the Map it was set on.
+        soloSightPawnID = nil
         mapURL = url
         mapImage = image
         viewportOrigin = nil
@@ -452,6 +457,13 @@ final class AppState: ObservableObject {
               fog.pawns[index].isHidden != isHidden else { return }
         fog.pawns[index].isHidden = isHidden
         recordLiveEdit(.hidden, on: id)
+        // The eye takes a Pawn out of the lighting, so hiding the isolated one strands Solo
+        // Sight on a Pawn that emits nothing: the fog falls back to lighting the Map with
+        // every torch while the token rule keeps the rest of the party under the discovery
+        // test, and the table sees a lit Map with most of the party missing from it. The
+        // control is disabled on a hidden Pawn, so the DM cannot click their way back out
+        // either. Hiding the subject ends the mode instead.
+        if isHidden, soloSightPawnID == id { soloSightPawnID = nil }
     }
 
     /// Flush any pending fog edit. Called as the app terminates.
