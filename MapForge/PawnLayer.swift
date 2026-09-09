@@ -11,10 +11,15 @@ struct PawnLayer: View {
     /// carries the Viewport pan.
     let frame: CGRect
     let pawns: [Pawn]
+    /// The Map's own Lights, drawn as markers beneath the tokens. Not a Pawn's light: a
+    /// Pawn already draws a token at exactly that point.
+    let lights: [Light]
     /// Whether each Pawn is currently invisible to players, so the DM can see at a glance
     /// what the table can and cannot. Never used to hide one here: the Control Window
     /// exists so the DM sees everything.
     let isDimmed: (Pawn) -> Bool
+    /// The same question for a Light Marker, and the same answer: faded, never absent.
+    let isLightDimmed: (Light) -> Bool
     let onMove: (Pawn.ID, MapPoint) -> Void
     /// Called when a drag ends, so the move reaches disk without waiting out the debounce.
     let onCommit: () -> Void
@@ -26,6 +31,15 @@ struct PawnLayer: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             let side = PlayerPlacement.squareSidePoints(map: map, frame: frame)
+            // Under the tokens: a Pawn standing on a brazier must not be hidden by it.
+            ForEach(lights) { light in
+                let p = PlayerPlacement.viewPoint(light.at, map: map, frame: frame)
+                LightMarker(squareSide: max(side, 12))
+                    // The same 0.4 a Pawn the players cannot see gets, because it is the
+                    // same statement: the table cannot see this.
+                    .opacity(isLightDimmed(light) ? 0.4 : 1)
+                    .position(x: p.x, y: p.y)
+            }
             ForEach(pawns) { pawn in
                 let p = PlayerPlacement.viewPoint(pawn.at, map: map, frame: frame)
                 PawnToken(pawn: pawn, squareSide: max(side, 12))

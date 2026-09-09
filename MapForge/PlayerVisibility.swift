@@ -42,6 +42,39 @@ enum PlayerVisibility {
         return Visibility.level(at: pawn.at, in: regions) != .unlit
     }
 
+    /// Whether a **Light Marker** is drawn on the Player Display.
+    ///
+    /// The same shape as the Pawn rules, and deliberately so: a marker is the only thing
+    /// besides a Pawn the table's screen draws over the Map, and it should not get a second
+    /// idea of what "visible" means.
+    ///
+    /// 1. **A doused Light shows nothing.** This is the eye's role here — the DM's "not
+    ///    yet". A lantern placed for later, or a brazier the party is meant to find unlit,
+    ///    would otherwise telegraph exactly where the DM intends light to appear. The same
+    ///    class of giveaway as a hidden Pawn's torch, which `VisibilityCache` already fixed
+    ///    once.
+    /// 2. **With no fog being drawn, every burning Light shows.** No Overlay, or no Grid, so
+    ///    there is no darkness to hide behind and a marker that vanished reads as a bug.
+    /// 3. **Otherwise drawn only where the light reaches it**, bright or dim, exactly as a
+    ///    Creature is. A burning Light nearly always lights its own point, so this rarely
+    ///    bites — but a zero-radius Light must not become the one thing on the Player
+    ///    Display that ignores the fog.
+    static func showsLightMarkerToPlayers(light: Light, regions: [LitRegion],
+                                          isFogOverlayOn: Bool, hasVisibility: Bool) -> Bool {
+        if !light.isOn { return false }
+        guard isFogOverlayOn, hasVisibility else { return true }
+        return Visibility.level(at: light.at, in: regions) != .unlit
+    }
+
+    /// Whether the DM's own surfaces draw this Light Marker faded. The same standing rule
+    /// as for a Pawn: never absent, only de-emphasised, because a DM who cannot find their
+    /// own torches cannot run the fight.
+    static func isLightMarkerDimmedForDM(light: Light, regions: [LitRegion],
+                                         isFogOverlayOn: Bool, hasVisibility: Bool) -> Bool {
+        !showsLightMarkerToPlayers(light: light, regions: regions,
+                                   isFogOverlayOn: isFogOverlayOn, hasVisibility: hasVisibility)
+    }
+
     /// Whether the DM's own surfaces draw this Pawn faded.
     ///
     /// The Control Window shows the Map fully lit with Visibility as a tint precisely so

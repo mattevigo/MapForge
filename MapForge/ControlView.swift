@@ -234,12 +234,19 @@ struct ControlView: View {
                                                 y: frame.minY - visible.minY,
                                                 width: frame.width, height: frame.height),
                                   pawns: appState.fog.pawns,
+                                  lights: appState.fog.lights,
                                   // Hoisted, not read per Pawn: `litRegions` is computed,
                                   // and rebuilding the cache key for every token every
                                   // frame of a drag is exactly the drag-rate work this
                                   // file's comments record a regression over.
                                   isDimmed: { [regions = appState.litRegions] pawn in
                                       isInvisibleToPlayers(pawn, regions: regions)
+                                  },
+                                  isLightDimmed: { [regions = appState.litRegions] light in
+                                      PlayerVisibility.isLightMarkerDimmedForDM(
+                                          light: light, regions: regions,
+                                          isFogOverlayOn: appState.isFogOverlayOn,
+                                          hasVisibility: appState.hasDeclaredGrid)
                                   },
                                   onMove: { appState.movePawn(id: $0, to: $1) },
                                   onCommit: { appState.flushPendingFogWrites() })

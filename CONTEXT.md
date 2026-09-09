@@ -57,7 +57,7 @@ A two-sided line segment that blocks Light. Stored in the Map's image pixels, so
 _Avoid_: barrier, occluder, edge, boundary
 
 **Light**:
-A point source that illuminates the Map out to a bright radius and a dim radius, measured in Grid squares. Blocked by Walls, and independently switchable on or off.
+A point source that illuminates the Map out to a bright radius and a dim radius, measured in Grid squares. Blocked by Walls, and independently switchable on or off. Drawn as a Light Marker where players can see it.
 _Avoid_: lamp, torch, emitter, light source
 
 **Pawn**:
@@ -91,3 +91,7 @@ _Avoid_: fog of war, darkness layer, shroud, mask
 **Solo Sight**:
 Isolating one Pawn so the table sees the Map as that character alone lights it: every *other* Pawn stops emitting Light, and each Pawn is then drawn only where the light that remains reaches it, exactly as a Creature is. The Map's own Lights keep burning — a brazier is the room, not another character's influence. At most one Pawn is isolated at a time. A live performance action, shown on both screens, never persisted: the Control Window keeps its readable tint and still draws every Pawn, dimming the ones the table has lost.
 _Avoid_: field of view, line of sight, per-player fog, spotlight, focus mode
+
+**Light Marker**:
+The dot drawn where a Light stands, so the source of a lit region can be seen rather than inferred. On both screens, and the only thing besides a Pawn that the Player Display draws over the Map. Players see one only where the Light is burning *and* the spot is already lit — the rule a Creature follows — so an unlit fixture never gives away a room the party has not reached. The DM sees every Light, doused ones included, because a DM who cannot find their own torches cannot run the fight.
+_Avoid_: light source, torch icon, lamp, emitter dot
