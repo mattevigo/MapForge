@@ -43,11 +43,14 @@ struct PlayerView: View {
                     let side = max(PlayerPlacement.squareSidePoints(map: map, frame: frame), 12)
                     let regions = appState.litRegions
                     // A party Pawn always draws; a Creature only where the light reaches
-                    // it, and never when the DM has hidden it. See `PlayerVisibility`.
+                    // it, and never when the DM has hidden it. Under Solo Sight the party
+                    // draws by that same discovery rule, all but the isolated Pawn itself.
+                    // See `PlayerVisibility`.
                     ForEach(appState.fog.pawns.filter {
                         PlayerVisibility.showsToPlayers(pawn: $0, regions: regions,
                                                         isFogOverlayOn: appState.isFogOverlayOn,
-                                                        hasVisibility: appState.hasDeclaredGrid)
+                                                        hasVisibility: appState.hasDeclaredGrid,
+                                                        soloSightPawnID: appState.resolvedSoloSightPawnID)
                     }) { pawn in
                         let p = PlayerPlacement.viewPoint(pawn.at, map: map, frame: frame)
                         PawnToken(pawn: pawn, squareSide: side)

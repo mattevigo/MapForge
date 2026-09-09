@@ -55,6 +55,15 @@ final class AppState: ObservableObject {
     /// `squaresWide` mirrors into it through `publishGridToFog`.
     @Published var fog = FogDocument() {
         didSet {
+            // Solo Sight holds a Pawn ID, and this is every way a document can lose one:
+            // a deletion, a Cancel that restores a snapshot from before the Pawn existed,
+            // and the wholesale replacement `loadMap` does when another Map opens. Clearing
+            // it here rather than at each call site is why the mode cannot outlive its
+            // subject — the `be14e58` bug class, whose lesson was that a reference into a
+            // document needs the document to be the thing that invalidates it.
+            if let id = soloSightPawnID, !fog.pawns.contains(where: { $0.id == id }) {
+                soloSightPawnID = nil
+            }
             guard fog != oldValue, mapURL != nil else { return }
             fogAutosave.schedule(fog)
         }
@@ -227,6 +236,44 @@ final class AppState: ObservableObject {
     /// Pawns still on it, because turning off fog is not turning off tokens.
     @Published var isFogOverlayOn = true
 
+    /// The Pawn under **Solo Sight**, or nil when the table is seeing the Map normally.
+    ///
+    /// One optional ID, not a set: at most one Pawn is isolated at a time, and `Pawn.ID?`
+    /// is a strict subset of `Set<Pawn.ID>` if isolating a scouting pair is ever wanted.
+    ///
+    /// Not persisted, like `isFogOverlayOn` and unlike the eye — nobody wants to reopen a
+    /// Map tomorrow and find the table still looking through one character's eyes. See
+    /// ADR 0004 for why the mode is derived and mutates no Pawn.
+    @Published private(set) var soloSightPawnID: Pawn.ID?
+
+    /// Isolate a Pawn, or pass nil to end Solo Sight.
+    ///
+    /// Not undoable, exactly as `setPawnHidden` and `setPawnLight` are not, and for the
+    /// same stated reason: a live performance action taken mid-session does not belong in
+    /// the DM's authoring undo stack. It records no live edit either, because it changes no
+    /// Pawn — there is nothing for `carryLiveState` to carry.
+    func setSoloSight(id: Pawn.ID?) {
+        guard soloSightPawnID != id else { return }
+        soloSightPawnID = id
+    }
+
+    /// The isolated Pawn's ID, but only while that Pawn is actually on the Map.
+    ///
+    /// Every render path asks for this rather than `soloSightPawnID`, because an ID that
+    /// matches no Pawn is worse than no mode at all: the fog falls back to lighting
+    /// everything while the token rule puts the whole party through a discovery test
+    /// against a Pawn that is not there, and the table watches the party disappear from a
+    /// fully lit Map. Resolving it once here is what makes a stale ID inert instead.
+    ///
+    /// `fog`'s `didSet` already clears the ID when its Pawn goes, so this is the belt to
+    /// that braces — the states it covers are the ones between a mutation and its
+    /// observer.
+    var resolvedSoloSightPawnID: Pawn.ID? {
+        guard let id = soloSightPawnID,
+              fog.pawns.contains(where: { $0.id == id }) else { return nil }
+        return id
+    }
+
     /// The lit regions for the current Map, cached against the fog and the Grid.
     ///
     /// Returns nothing when no Grid has been declared: Light radii are in Grid squares, so
@@ -237,7 +284,8 @@ final class AppState: ObservableObject {
         guard hasDeclaredGrid, let image = mapImage, squaresWide > 0 else { return [] }
         let pixelsPerSquare = image.pixelSize.width / CGFloat(squaresWide)
         return visibilityCache.regions(for: fog, imagePixelSize: image.pixelSize,
-                                       pixelsPerSquare: pixelsPerSquare)
+                                       pixelsPerSquare: pixelsPerSquare,
+                                       soloSightPawnID: resolvedSoloSightPawnID)
     }
 
     /// A Pawn's light, from the live panel. Same contract as `setLight`.
@@ -342,6 +390,9 @@ final class AppState: ObservableObject {
     func beginFogEditing() {
         liveEdits = [:]
         fogEditingMapURL = mapURL
+        // Fog authoring needs the whole Map lit, and an isolated view would fight the
+        // inspector it is being authored through.
+        soloSightPawnID = nil
     }
 
     /// Called as the fog editing mode closes, by Done as well as Cancel.

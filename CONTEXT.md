@@ -61,7 +61,7 @@ A point source that illuminates the Map out to a bright radius and a dim radius,
 _Avoid_: lamp, torch, emitter, light source
 
 **Pawn**:
-A token on the Map with a label and a colour, drawn for players whether or not the Fog Overlay is active — unless its Pawn Kind is one the players must discover. A Pawn is also a Light: its range of sight and its range of illumination are the same thing. It has **one** radius — its sight — unlike a Light, which has a bright and a dim band; DnD gives a character a sight range, not a band of dim vision. The region fades out over one further square purely so its edge is not a hard cut. Moving a Pawn during play is a live action and is not undoable; moving one while authoring fog is an edit and is.
+A token on the Map with a label and a colour, drawn for players whether or not the Fog Overlay is active — unless its Pawn Kind is one the players must discover, or Solo Sight is on. A Pawn is also a Light: its range of sight and its range of illumination are the same thing, except under Solo Sight, where one Pawn's sight decides what the whole table can see. It has **one** radius — its sight — unlike a Light, which has a bright and a dim band; DnD gives a character a sight range, not a band of dim vision. The region fades out over one further square purely so its edge is not a hard cut. Moving a Pawn during play is a live action and is not undoable; moving one while authoring fog is an edit and is.
 _Avoid_: token, miniature, figure, character, marker
 
 **Pawn Kind**:
@@ -87,3 +87,7 @@ _Avoid_: light map, shadow map, fog data, mask
 **Fog Overlay**:
 The darkness drawn over the Map from its Visibility, hiding unlit regions from players. Players see it on the Player Display; the Control Window instead shows the Map fully lit with the same Visibility as a translucent tint, so the DM always sees everything. Switchable off entirely.
 _Avoid_: fog of war, darkness layer, shroud, mask
+
+**Solo Sight**:
+Isolating one Pawn so the table sees the Map as that character alone lights it: every *other* Pawn stops emitting Light, and each Pawn is then drawn only where the light that remains reaches it, exactly as a Creature is. The Map's own Lights keep burning — a brazier is the room, not another character's influence. At most one Pawn is isolated at a time. A live performance action, shown on both screens, never persisted: the Control Window keeps its readable tint and still draws every Pawn, dimming the ones the table has lost.
+_Avoid_: field of view, line of sight, per-player fog, spotlight, focus mode

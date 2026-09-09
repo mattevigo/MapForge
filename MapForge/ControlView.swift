@@ -404,12 +404,16 @@ struct ControlView: View {
              + "\(pawns) \(pawns == 1 ? "Pawn" : "Pawns")"
     }
 
-    /// Whether players currently cannot see this Pawn — a hidden one, or a Creature
-    /// standing in the dark. The DM's surfaces draw it faded rather than dropping it.
+    /// Whether players currently cannot see this Pawn — a hidden one, a Creature standing
+    /// in the dark, or, under Solo Sight, a party member the isolated Pawn's light does not
+    /// reach. The DM's surfaces draw it faded rather than dropping it, which is what turns
+    /// this mode into a readout: the DM sees Bardo standing just outside Ilyana's reach and
+    /// knows the table cannot.
     private func isInvisibleToPlayers(_ pawn: Pawn, regions: [LitRegion]) -> Bool {
         PlayerVisibility.isDimmedForDM(pawn: pawn, regions: regions,
                                        isFogOverlayOn: appState.isFogOverlayOn,
-                                       hasVisibility: appState.hasDeclaredGrid)
+                                       hasVisibility: appState.hasDeclaredGrid,
+                                       soloSightPawnID: appState.resolvedSoloSightPawnID)
     }
 
     /// One Grid square in image pixels, or nil when no Grid has been declared. Nothing
@@ -636,7 +640,51 @@ struct ControlView: View {
             .help(pawn.isHidden
                   ? "Hidden from players. Still here, and still yours to move."
                   : "Visible to players where the light reaches. Click to hide.")
+
+            soloSightToggle(pawn)
         }
+        // With one Pawn isolated, the rest of the party is switched out of the lighting,
+        // and the panel should say so at a glance: a DM who forgets Solo Sight is on will
+        // misread the Player Display, in front of players.
+        .opacity(isSwitchedOutBySoloSight(pawn) ? 0.5 : 1)
+    }
+
+    /// Whether this row is one of the Pawns Solo Sight has switched out.
+    private func isSwitchedOutBySoloSight(_ pawn: Pawn) -> Bool {
+        guard let isolated = appState.resolvedSoloSightPawnID else { return false }
+        return pawn.id != isolated && !pawn.isDiscovered
+    }
+
+    /// See the Map as one character alone lights it: every other Pawn's Light goes out, and
+    /// the table sees it too. Radio-button semantics — clicking another Pawn's control moves
+    /// the isolation, clicking the active one ends it.
+    @ViewBuilder
+    private func soloSightToggle(_ pawn: Pawn) -> some View {
+        let availability = SoloSightControl.availability(
+            for: pawn,
+            isFogOverlayOn: appState.isFogOverlayOn,
+            hasDeclaredGrid: appState.hasDeclaredGrid)
+        if availability != .absent {
+            let isSolo = appState.resolvedSoloSightPawnID == pawn.id
+            Toggle(isOn: Binding(
+                get: { isSolo },
+                set: { appState.setSoloSight(id: $0 ? pawn.id : nil) }
+            )) {
+                Image(systemName: isSolo ? "person.fill.viewfinder" : "person.viewfinder")
+                    .frame(width: 16)
+            }
+            .toggleStyle(.button)
+            .disabled(availability != .available)
+            .help(soloSightHelp(pawn, availability: availability, isSolo: isSolo))
+        }
+    }
+
+    private func soloSightHelp(_ pawn: Pawn, availability: SoloSightControl.Availability,
+                               isSolo: Bool) -> String {
+        if case .disabled(let reason) = availability { return reason.explanation }
+        return isSolo
+            ? "Solo Sight. The table sees only what \(pawn.label)\'s own light reaches. Click to end."
+            : "Solo Sight: show the Map as \(pawn.label) alone lights it."
     }
 
     /// The Fog Overlay's off switch: one control, always reachable, no mode to enter.
