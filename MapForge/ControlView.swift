@@ -35,6 +35,9 @@ struct ControlView: View {
     /// the same spell repeatedly through a fight is one right-click and one move rather
     /// than a menu every time. Session-local, like the Measurement itself.
     @State private var measurementShape: MeasurementShape = .circle
+    /// Digits typed towards an exact distance. Empty except between the first digit and
+    /// Return, which is also the only window in which the key monitor claims anything.
+    @State private var typedDistance = MeasurementTyping.Buffer()
 
     var body: some View {
         // `alignment: .top` on the row below, plus the preview claiming the remaining
@@ -201,6 +204,13 @@ struct ControlView: View {
                                                               container: geo.size)
                     let visible = ViewportMath.mirrorViewportRect(viewportRect: viewportPx,
                                                                   container: geo.size)
+                    // The image frame rebased into the clipped container's coordinates.
+                    // Every overlay on this mirror needs exactly this rect, and each one
+                    // spelling it out again is how one of them ends up subtly offset from
+                    // the Pawn it is drawn against.
+                    let mirrorFrame = CGRect(x: frame.minX - visible.minX,
+                                             y: frame.minY - visible.minY,
+                                             width: frame.width, height: frame.height)
                     ZStack {
                         Color.black
                         Image(nsImage: image)
@@ -223,9 +233,7 @@ struct ControlView: View {
                         // cannot run the game.
                         FogCanvas(regions: appState.litRegions,
                                   map: map,
-                                  frame: CGRect(x: frame.minX - visible.minX,
-                                                y: frame.minY - visible.minY,
-                                                width: frame.width, height: frame.height)) {
+                                  frame: mirrorFrame) {
                             FogShading.control($0, isOverlayOn: appState.isFogOverlayOn)
                         }
                     }
@@ -234,9 +242,7 @@ struct ControlView: View {
                         // not during prep — so it works on the normal mirror, outside the
                         // fog editing mode entirely.
                         PawnLayer(map: map,
-                                  frame: CGRect(x: frame.minX - visible.minX,
-                                                y: frame.minY - visible.minY,
-                                                width: frame.width, height: frame.height),
+                                  frame: mirrorFrame,
                                   pawns: appState.fog.pawns,
                                   lights: appState.fog.lights,
                                   // Hoisted, not read per Pawn: `litRegions` is computed,
@@ -258,9 +264,6 @@ struct ControlView: View {
                     .overlay {
                         // Above the tokens: a Measurement is what the DM is pointing at,
                         // and a cone half-hidden behind the party is unreadable.
-                        let mirrorFrame = CGRect(x: frame.minX - visible.minX,
-                                                 y: frame.minY - visible.minY,
-                                                 width: frame.width, height: frame.height)
                         if let measurement = appState.resolvedMeasurement,
                            let origin = appState.measurementOriginPoint,
                            let pixelsPerSquare = appState.pixelsPerSquare {
@@ -275,23 +278,20 @@ struct ControlView: View {
                     // than behind an editing mode — beside dragging a Pawn, not beside
                     // authoring Walls.
                     .onRightClick { point in
-                        rightClickToMeasure(at: point, map: map,
-                                            frame: CGRect(x: frame.minX - visible.minX,
-                                                          y: frame.minY - visible.minY,
-                                                          width: frame.width, height: frame.height),
-                                            container: visible)
+                        rightClickToMeasure(at: point, map: map, frame: mirrorFrame)
                     }
                     .onContinuousHover { phase in
                         switch phase {
                         case .active(let location):
-                            aim(at: location, map: map,
-                                frame: CGRect(x: frame.minX - visible.minX,
-                                              y: frame.minY - visible.minY,
-                                              width: frame.width, height: frame.height),
-                                container: visible)
+                            aim(at: location, map: map, frame: mirrorFrame)
                         case .ended:
                             break
                         }
+                    }
+                    // Digits are claimed only while a Measurement is armed, the cursor is
+                    // over the Map, and no text field has focus. See MeasurementTyping.
+                    .onMeasurementKeys(isArmed: appState.measurement != nil) {
+                        handleMeasurementKey($0)
                     }
                 } else {
                     // Only Grid Fit carries a zoom; every other use of this branch is the
@@ -518,9 +518,13 @@ struct ControlView: View {
     /// gesture attached to the token: `PawnLayer` already owns a drag, child gestures beat
     /// ancestor ones, and this render layer has four defects on record from composing them.
     private func rightClickToMeasure(at point: CGPoint, map: MapScale,
-                                     frame: CGRect, container: CGRect) {
+                                     frame: CGRect) {
         guard appState.measurementAvailability == .available,
               let pixelsPerSquare = appState.pixelsPerSquare else { return }
+
+        // A part-typed distance belongs to the Measurement being dismissed, and to the one
+        // being started: either way the buffer starts empty.
+        typedDistance.clear()
 
         if appState.measurement != nil {
             appState.setMeasurement(nil)
@@ -540,16 +544,56 @@ struct ControlView: View {
     /// Follow the cursor: an armed Measurement rubber-bands as the mouse moves, so the
     /// shape is live before it is committed. Distance snaps to whole squares — every DnD
     /// distance is a multiple of one, and nobody reads "8.7 m" off a screen.
-    private func aim(at point: CGPoint, map: MapScale, frame: CGRect, container: CGRect) {
-        guard var measurement = appState.resolvedMeasurement,
+    private func aim(at point: CGPoint, map: MapScale, frame: CGRect) {
+        guard let measurement = appState.resolvedMeasurement,
               let origin = appState.measurementOriginPoint,
               let pixelsPerSquare = appState.pixelsPerSquare, pixelsPerSquare > 0 else { return }
 
         let cursor = PlayerPlacement.mapPoint(point, map: map, frame: frame)
-        measurement.direction = MeasurementControl.direction(from: origin, to: cursor)
-        let squares = hypot(cursor.x - origin.x, cursor.y - origin.y) / pixelsPerSquare
-        measurement.distance = Measurement.snap(squares: squares)
-        appState.setMeasurement(measurement)
+        // `aimed` keeps a typed distance and follows the cursor with the aim either way.
+        appState.setMeasurement(measurement.aimed(at: cursor, from: origin,
+                                                  pixelsPerSquare: pixelsPerSquare))
+    }
+
+    /// A keystroke the Map claimed while a Measurement is armed. Which keystrokes those
+    /// are is decided by `MeasurementTyping.decide`, not here.
+    private func handleMeasurementKey(_ decision: MeasurementTyping.Decision) {
+        guard var measurement = appState.resolvedMeasurement else { return }
+        switch decision {
+        case .passThrough:
+            return
+        case .digit(let digit):
+            typedDistance.append(digit)
+        case .backspace:
+            typedDistance.backspace()
+            // Back to an empty buffer is back to a dragged Measurement, so the next mouse
+            // move sizes it again rather than leaving it frozen at the typed value.
+            if typedDistance.isEmpty {
+                measurement.isDistanceTyped = false
+                measurement.distance = 0
+                appState.setMeasurement(measurement)
+            }
+            return
+        case .commit:
+            guard let squares = typedDistance.squares(in: DistanceUnit.current) else { return }
+            measurement.distance = squares
+            measurement.isDistanceTyped = true
+            appState.setMeasurement(measurement)
+            typedDistance.clear()
+            return
+        case .abandon:
+            typedDistance.clear()
+            appState.setMeasurement(nil)
+            return
+        }
+
+        // Show the buffer as it is typed, so a mis-key is visible before Return rather
+        // than after the shape jumps.
+        if let squares = typedDistance.squares(in: DistanceUnit.current) {
+            measurement.distance = squares
+            measurement.isDistanceTyped = true
+            appState.setMeasurement(measurement)
+        }
     }
 
     private func startGridFit() {
