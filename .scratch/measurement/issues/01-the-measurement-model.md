@@ -1,6 +1,6 @@
 # 01 — The Measurement model and the metres conversion
 
-Status: ready-for-agent
+Status: ready-for-human
 
 The pure, testable core: what a Measurement *is*, what shape it projects, and how a distance
 in Grid squares becomes "9 m". No views, no gestures.

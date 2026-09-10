@@ -1,6 +1,6 @@
 # 04 — The Measurement Shape picker in the Control chrome
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 02
 
 Choosing between Cone, Square, Circle and Line.

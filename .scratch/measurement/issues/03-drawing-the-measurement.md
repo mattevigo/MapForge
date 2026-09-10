@@ -1,6 +1,6 @@
 # 03 — Drawing the shape and the readout on both screens
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 01, 02
 
 Green translucent fill, solid green border, a distance readout — on the Control mirror and

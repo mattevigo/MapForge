@@ -6,6 +6,25 @@ panel reads them from the built app.
 
 ## Unreleased
 
+### Measurement
+
+- Measure distances on the Map mid-play: right-click to start, move the mouse to aim and
+  size the shape, right-click again to dismiss. Cone, Square, Circle and Line, picked from
+  the Control Window and sticky between Measurements, so measuring the same spell twice
+  through a fight is one right-click and one move.
+- Right-clicking a Pawn measures from that Pawn: the shape follows it as it is dragged, and
+  ends when the Pawn does.
+- Type an exact distance instead of hunting for the pixel that happens to be 9 m away — the
+  number holds while the aim keeps following the cursor.
+- Distances read in metres, at 1.5 m to the Grid square. Dragged distances snap to whole
+  squares; a typed one does not.
+- The table sees the shape *and* its distance, so a measurement settles the range argument
+  rather than moving it — the first thing on the Player Display that is instrumentation
+  rather than world, and a deliberate one:
+  [ADR 0005](docs/adr/0005-the-player-display-shows-the-measurement.md).
+- A Cone is as wide at its mouth as it is long (5e's rule), and a Square is a side length
+  rather than a radius, because a spell card says "a 20-foot cube".
+
 ### Solo Sight
 
 - See the Map as one character alone lights it: isolating a Pawn puts out every other

@@ -1,6 +1,6 @@
 # 02 — Right-click to start and dismiss, with the Pawn-anchored Origin
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 01
 
 The interaction. Right-click on the normal-mode mirror starts a Measurement at that point;

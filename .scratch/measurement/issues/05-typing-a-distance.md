@@ -1,6 +1,6 @@
 # 05 — Typing a distance
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 03, 04
 
 With a Measurement armed, type `9` and press Return: a 9 m projection in the direction of the
