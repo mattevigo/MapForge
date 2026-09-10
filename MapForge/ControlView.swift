@@ -38,9 +38,9 @@ struct ControlView: View {
     /// it starts. Nil except between those two moments.
     ///
     /// The menu chooses *what* to measure; the click that follows chooses *where*. Taking
-    /// the origin from the right-click itself was the first design and it conflated the
-    /// two, so the DM had to open the menu at exactly the point they meant to measure
-    /// from — a menu is not a precise instrument.
+    /// the Origin from the right-click itself conflated the two, so the DM had to open the
+    /// menu at exactly the point they meant to measure from — a menu is not a precise
+    /// instrument.
     @State private var armedShape: MeasurementShape?
     /// Where the cursor last was on the mirror, in the mirror's own coordinates.
     ///
@@ -298,7 +298,7 @@ struct ControlView: View {
                         // would place an Origin looks like a click that does nothing.
                         // DM-only: the table has no use for a crosshair hunting a point.
                         if armedShape != nil, let cursor = mirrorCursor {
-                            MeasurementCrosshair().position(cursor)
+                            MeasurementCursor().position(cursor)
                         }
                     }
                     // Measuring is a live play action, so it lives on the mirror rather

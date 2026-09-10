@@ -66,16 +66,27 @@ struct MeasurementLayer: View {
             .position(readoutPoint)
     }
 
-    /// Beside the shape's far edge for an aimed shape, above a radius shape — and always
-    /// pulled back inside the frame, because a cone aimed off the edge of the Player
-    /// Display would otherwise take its number with it.
+    /// Just past the shape's far edge, so the number *marks* where the measurement ends
+    /// rather than sitting on top of it.
+    ///
+    /// Centred exactly on the edge, the capsule straddles it and hides the boundary the DM
+    /// is trying to read — which is the one part of the shape that answers the question.
+    /// The nudge is in view points, not Map pixels: it keeps the capsule clear of the
+    /// stroke by a constant amount at any zoom, the way the capsule itself is a constant
+    /// size.
+    ///
+    /// Always pulled back inside the frame, because a cone aimed off the edge of the
+    /// Player Display would otherwise take its number with it.
     private var readoutPoint: CGPoint {
         let anchor = viewPoint(labelAnchor)
+        let nudged = CGPoint(x: anchor.x + nudge.dx, y: anchor.y + nudge.dy)
         let inset: CGFloat = 28
-        return CGPoint(x: min(max(anchor.x, inset), max(inset, frame.width - inset)),
-                       y: min(max(anchor.y, inset), max(inset, frame.height - inset)))
+        return CGPoint(x: min(max(nudged.x, inset), max(inset, frame.width - inset)),
+                       y: min(max(nudged.y, inset), max(inset, frame.height - inset)))
     }
 
+    /// The point on the shape the readout labels: the far end of an aimed shape, the top
+    /// of a radius one.
     private var labelAnchor: MapPoint {
         let reach = measurement.distance * pixelsPerSquare
         switch measurement.shape {
@@ -85,7 +96,23 @@ struct MeasurementLayer: View {
         case .circle:
             return MapPoint(x: origin.x, y: origin.y - reach)
         case .square:
+            // Half the side, because a Square's distance is its width and not its radius.
             return MapPoint(x: origin.x, y: origin.y - reach / 2)
+        }
+    }
+
+    /// How far past the edge the capsule sits, in view points. Enough to clear the 2pt
+    /// stroke and the capsule's own half-height without drifting far from what it labels.
+    private var nudge: CGVector {
+        let gap: CGFloat = 16
+        switch measurement.shape {
+        case .cone, .line:
+            // Along the aim, so the number trails the far end wherever it is pointed.
+            return CGVector(dx: cos(measurement.direction) * gap,
+                            dy: sin(measurement.direction) * gap)
+        case .circle, .square:
+            // Straight up off the top edge: a radius shape has no direction to trail.
+            return CGVector(dx: 0, dy: -gap)
         }
     }
 
