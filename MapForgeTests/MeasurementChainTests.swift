@@ -70,9 +70,54 @@ final class MeasurementChainTests: XCTestCase {
         // Right-click finishes: the cursor is freed and the chain stops following it, but
         // wherever the pointer happened to be is NOT a vertex the DM asked for.
         let m = line([MapPoint(x: 30, y: 0)])
-        let finished = m.finished()
+        let finished = m.finished(origin: MapPoint(x: 0, y: 0),
+                                  pixelsPerSquare: pixelsPerSquare)
         XCTAssertEqual(finished.chain, [MapPoint(x: 30, y: 0)])
         XCTAssertTrue(finished.isDistanceSettled)
+    }
+
+    func testFinishingDropsTheLiveSegmentFromTheTotal() {
+        // While drawing, the total includes the rubber-band out to the cursor. Finishing
+        // says the chain ends at its last placed vertex, so that stretch goes.
+        var m = line([MapPoint(x: 30, y: 0)])
+        m.distance = 9   // 3 squares placed plus a 6-square live segment
+        let finished = m.finished(origin: MapPoint(x: 0, y: 0),
+                                  pixelsPerSquare: pixelsPerSquare)
+        XCTAssertEqual(finished.distance, 3, accuracy: 1e-9)
+    }
+
+    func testAFinishedChainStopsFollowingTheCursorEntirely() {
+        // The reported bug: the readout offsets perpendicular to `direction`, and
+        // `direction` went on tracking the mouse after the chain was finished — so the
+        // number swung around the last vertex as the DM moved away. A finished chain is
+        // finished, unlike a settled Cone, which still swings to be pointed.
+        let origin = MapPoint(x: 0, y: 0)
+        var m = line([MapPoint(x: 30, y: 0), MapPoint(x: 30, y: 40)])
+        m.distance = 7
+        let finished = m.finished(origin: origin, pixelsPerSquare: pixelsPerSquare)
+
+        let moved = finished.aimed(at: MapPoint(x: -500, y: -500), from: origin,
+                                   pixelsPerSquare: pixelsPerSquare)
+        XCTAssertEqual(moved.direction, finished.direction, accuracy: 1e-9)
+        XCTAssertEqual(moved.distance, finished.distance, accuracy: 1e-9)
+    }
+
+    func testAFinishedChainPointsAlongItsOwnLastSegment() {
+        // So the readout sits beside the path it labels rather than at whatever angle the
+        // cursor happened to leave behind.
+        let origin = MapPoint(x: 0, y: 0)
+        var m = line([MapPoint(x: 30, y: 0), MapPoint(x: 30, y: 40)])
+        m.direction = .pi   // pointing back the way it came, from a stray cursor
+        let finished = m.finished(origin: origin, pixelsPerSquare: pixelsPerSquare)
+        // The last segment runs straight down: +y is a quarter turn in screen convention.
+        XCTAssertEqual(finished.direction, .pi / 2, accuracy: 1e-9)
+    }
+
+    func testAFinishedSingleSegmentChainPointsFromTheOrigin() {
+        let origin = MapPoint(x: 0, y: 0)
+        let m = line([MapPoint(x: 0, y: 40)])
+        let finished = m.finished(origin: origin, pixelsPerSquare: pixelsPerSquare)
+        XCTAssertEqual(finished.direction, .pi / 2, accuracy: 1e-9)
     }
 
     // MARK: Aiming

@@ -125,9 +125,20 @@ struct Measurement: Equatable {
     ///
     /// Deliberately adds no vertex: wherever the pointer happened to be when the DM
     /// finished is not a point they asked for.
-    func finished() -> Measurement {
+    ///
+    /// The direction is re-pointed along the chain's own last segment. It was left aiming
+    /// at wherever the cursor was, and the readout offsets perpendicular to it — so a
+    /// finished chain's number would sit at an angle unrelated to the path it labels.
+    func finished(origin: MapPoint, pixelsPerSquare: CGFloat) -> Measurement {
         var next = self
         next.isDistanceSettled = true
+        // Drop the live segment from the total: it was the rubber-band out to the cursor,
+        // and the DM has just said the chain ends at its last placed vertex.
+        next.distance = chainSquares(from: origin, pixelsPerSquare: pixelsPerSquare)
+        if let last = chain.last {
+            let previous = chain.count >= 2 ? chain[chain.count - 2] : origin
+            next.direction = MeasurementControl.direction(from: previous, to: last)
+        }
         return next
     }
 
@@ -156,6 +167,13 @@ struct Measurement: Equatable {
     func aimed(at cursor: MapPoint, from origin: MapPoint,
                pixelsPerSquare: CGFloat) -> Measurement {
         var next = self
+
+        // A finished chain is finished: it stops following the cursor entirely, unlike a
+        // settled Cone, which keeps swinging so an exact range can be pointed wherever it
+        // is asked about. A chain has already been pointed — at every vertex the DM
+        // placed — so re-aiming it would only swing its readout around the last one.
+        guard !(shape == .line && isDistanceSettled) else { return next }
+
         let anchor = shape == .line ? chainAnchor(origin: origin) : origin
         next.direction = MeasurementControl.direction(from: anchor, to: cursor)
         guard !isDistanceSettled, pixelsPerSquare > 0 else { return next }

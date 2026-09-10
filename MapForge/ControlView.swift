@@ -623,7 +623,10 @@ struct ControlView: View {
         if let measurement = appState.resolvedMeasurement, measurement.isChaining {
             // Frees the cursor: the chain stops following it and stays on screen until the
             // next click, so the DM can read the total and point at the route.
-            appState.setMeasurement(measurement.finished())
+            guard let origin = appState.measurementOriginPoint,
+                  let pixelsPerSquare = appState.pixelsPerSquare else { return }
+            appState.setMeasurement(measurement.finished(origin: origin,
+                                                         pixelsPerSquare: pixelsPerSquare))
             typedDistance.clear()
             return
         }
