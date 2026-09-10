@@ -79,12 +79,12 @@ struct PlayerView: View {
                     //
                     // Above the tokens, and not gated on the Fog Overlay: the DM drew this
                     // to be seen, and darkness hiding it would defeat the point.
-                    if let measurement = appState.resolvedMeasurement,
-                       let origin = appState.measurementOriginPoint,
-                       let pixelsPerSquare = appState.pixelsPerSquare {
-                        MeasurementLayer(measurement: measurement, origin: origin,
-                                         map: map, frame: frame,
-                                         pixelsPerSquare: pixelsPerSquare)
+                    if let pixelsPerSquare = appState.pixelsPerSquare {
+                        ForEach(appState.drawableMeasurements, id: \.measurement.id) {
+                            MeasurementLayer(measurement: $0.measurement, origin: $0.origin,
+                                             map: map, frame: frame,
+                                             pixelsPerSquare: pixelsPerSquare)
+                        }
                     }
                 }
             }

@@ -13,6 +13,11 @@ panel reads them from the built app.
   settle it so it stops following the cursor, and click once more to clear it. Each click
   advances one step, and the menu opens on the shape you used last. Esc backs out of a
   measurement you have not placed yet.
+- Pin a measurement to keep it on screen: right-click on the shape itself and the menu
+  offers Pin instead of the list of shapes. Pinned measurements stay until you unpin them —
+  right-click the shape again — so two spell areas can sit side by side, or a route already
+  walked can stay up while you measure what is left. The table sees them exactly as it sees
+  the live one.
 - A Line is a polygonal chain: keep clicking to add points and the running total follows
   the whole path, so a route around a table answers "can I get there this turn" rather
   than just how far away the far wall is. Right-click finishes it and frees the cursor,

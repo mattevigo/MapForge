@@ -11,6 +11,13 @@ See `CONTEXT.md` for **Measurement**, **Measurement Shape**, **Measurement Origi
 
 Settled in a grilling session; the reasoning is here so the issues don't re-litigate it.
 
+**Pinning retires the one-at-a-time rule.** A settled Measurement can be pinned — right-click
+*on* the shape, where the menu offers pin or unpin instead of the shape list — and stays
+until unpinned rather than being cleared by the next click. Any number can be pinned
+alongside the one being taken. See ADR-0005 for why the table sees them and
+[ADR-0006](../../docs/adr/0006-measurements-can-be-pinned.md) for why the rule below no
+longer holds as written.
+
 **One at a time, never persisted.** `AppState` holds an optional Measurement beside
 `isFogOverlayOn` and `soloSightPawnID` (`AppState.swift:242-252`) — the template for
 transient both-screens state. One optional rather than a set, following ADR-0004's reasoning

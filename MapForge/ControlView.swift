@@ -283,13 +283,15 @@ struct ControlView: View {
                     }
                     .overlay {
                         // Above the tokens: a Measurement is what the DM is pointing at,
-                        // and a cone half-hidden behind the party is unreadable.
-                        if let measurement = appState.resolvedMeasurement,
-                           let origin = appState.measurementOriginPoint,
-                           let pixelsPerSquare = appState.pixelsPerSquare {
-                            MeasurementLayer(measurement: measurement, origin: origin,
-                                             map: map, frame: mirrorFrame,
-                                             pixelsPerSquare: pixelsPerSquare)
+                        // and a cone half-hidden behind the party is unreadable. Pinned
+                        // ones first, the live one over them.
+                        if let pixelsPerSquare = appState.pixelsPerSquare {
+                            ForEach(appState.drawableMeasurements, id: \.measurement.id) {
+                                MeasurementLayer(measurement: $0.measurement,
+                                                 origin: $0.origin,
+                                                 map: map, frame: mirrorFrame,
+                                                 pixelsPerSquare: pixelsPerSquare)
+                            }
                         }
                     }
                     .overlay {
@@ -315,7 +317,7 @@ struct ControlView: View {
                     // While a chain is being drawn right-click FINISHES it rather than
                     // offering the menu, so the menu is withheld for that one state — a
                     // menu appearing over the chain the DM just completed would bury it.
-                    .contextMenu { if !isChaining { measurementMenu } }
+                    .contextMenu { if !isChaining { measurementMenu(map: map, frame: mirrorFrame) } }
                     // Live only while the tool is armed or a Measurement is up, and lower
                     // priority than the Pawn drag underneath: dragging a token is the
                     // other live action on this surface, and a tap that swallowed it would
@@ -591,9 +593,19 @@ struct ControlView: View {
     /// the DM is already pointing, not at the top of the window, and a menu keeps the whole
     /// interaction on the Map. `.contextMenu` is a modifier rather than a composed gesture,
     /// so it does not run into the composition defects this render layer has a record of.
+    /// Right-clicking *on* a Measurement offers to pin or unpin that one instead — the
+    /// menu is about whatever is under the cursor, and over a shape that is the shape
+    /// rather than the Map.
     @ViewBuilder
-    private var measurementMenu: some View {
-        if appState.measurementAvailability == .available {
+    private func measurementMenu(map: MapScale, frame: CGRect) -> some View {
+        if let hit = measurementUnderCursor(map: map, frame: frame) {
+            switch hit {
+            case .pinned(let id):
+                Button("Unpin Measurement") { appState.unpinMeasurement(id: id) }
+            case .live:
+                Button("Pin Measurement") { appState.pinMeasurement() }
+            }
+        } else if appState.measurementAvailability == .available {
             ForEach(MeasurementShape.allCases, id: \.self) { shape in
                 Button(shape.label) { startMeasurement(shape) }
             }
@@ -602,6 +614,36 @@ struct ControlView: View {
             // in front of players.
             Text(reason.explanation)
         }
+    }
+
+    /// Which Measurement the cursor is over, if any. Pinned ones are checked first: they
+    /// are drawn underneath, but they are also the ones the DM is reaching for — the live
+    /// shape is still under the pointer by other means.
+    private func measurementUnderCursor(map: MapScale, frame: CGRect) -> MeasurementHit? {
+        guard let cursor = mirrorCursor,
+              let pixelsPerSquare = appState.pixelsPerSquare else { return nil }
+        let point = PlayerPlacement.mapPoint(cursor, map: map, frame: frame)
+
+        for pinned in appState.pinnedMeasurements.reversed() {
+            guard let origin = pinned.originPoint(pawnAt: { id in
+                appState.fog.pawns.first(where: { $0.id == id })?.at
+            }) else { continue }
+            if pinned.contains(point, origin: origin, pixelsPerSquare: pixelsPerSquare) {
+                return .pinned(pinned.id)
+            }
+        }
+
+        if let live = appState.resolvedMeasurement,
+           let origin = appState.measurementOriginPoint,
+           live.contains(point, origin: origin, pixelsPerSquare: pixelsPerSquare) {
+            return .live
+        }
+        return nil
+    }
+
+    private enum MeasurementHit {
+        case live
+        case pinned(Measurement.ID)
     }
 
     /// Arm the tool with a shape and wait for the click that places it.

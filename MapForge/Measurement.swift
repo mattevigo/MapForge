@@ -44,7 +44,17 @@ enum MeasurementOrigin: Equatable {
 ///
 /// Never persisted. See `CONTEXT.md`'s **Measurement** and, for why the table sees it,
 /// [ADR 0005](../docs/adr/0005-the-player-display-shows-the-measurement.md).
-struct Measurement: Equatable {
+struct Measurement: Equatable, Identifiable {
+    /// Identity, so a pinned Measurement can be unpinned without being compared by value —
+    /// two pins of the same shape and distance from the same Origin are a real thing to
+    /// have on the Map, and would otherwise be indistinguishable.
+    ///
+    /// Deliberately **excluded from `==`** (see the explicit implementation below): the
+    /// equality that matters here is "has this Measurement changed", which every
+    /// `setMeasurement` guard and SwiftUI diff asks. Including the id would make every
+    /// copy unequal to itself and defeat both.
+    let id = UUID()
+
     var origin: MeasurementOrigin
     var shape: MeasurementShape
 
@@ -202,6 +212,65 @@ struct Measurement: Equatable {
         let squares = hypot(cursor.x - origin.x, cursor.y - origin.y) / pixelsPerSquare
         next.distance = Self.snap(squares: squares)
         return next
+    }
+
+    /// Value equality, identity excluded — see `id`. What every caller asks is "has this
+    /// Measurement changed", not "is it the same object".
+    static func == (lhs: Measurement, rhs: Measurement) -> Bool {
+        lhs.origin == rhs.origin
+            && lhs.shape == rhs.shape
+            && lhs.distance == rhs.distance
+            && lhs.direction == rhs.direction
+            && lhs.isDistanceSettled == rhs.isDistanceSettled
+            && lhs.isDistanceTyped == rhs.isDistanceTyped
+            && lhs.chain == rhs.chain
+    }
+
+    /// Whether `point` lands on this Measurement — the hit-test behind pinning.
+    ///
+    /// Only a settled Measurement answers true: one still following the cursor is under
+    /// the pointer by definition, so hit-testing it would offer to pin whatever the DM
+    /// happens to be dragging.
+    ///
+    /// The area shapes use their own drawn outline. A Line has no area, so it gets a
+    /// tolerance band along each segment — a DM cannot be asked to click a 2pt stroke
+    /// exactly, and `FogOverlay` widens a Wall's hit area for the same reason.
+    func contains(_ point: MapPoint, origin: MapPoint, pixelsPerSquare: CGFloat) -> Bool {
+        guard isDistanceSettled, pixelsPerSquare > 0, distance > 0 || !chain.isEmpty else {
+            return false
+        }
+
+        if shape == .line {
+            let tolerance = Self.lineHitTolerance
+            var previous = origin
+            for vertex in chain {
+                if Self.distance(from: point, toSegment: previous, vertex) <= tolerance {
+                    return true
+                }
+                previous = vertex
+            }
+            return false
+        }
+
+        return project(pixelsPerSquare: pixelsPerSquare) { _ in origin }.contains(point)
+    }
+
+    /// How near a click has to land to count as on a Line, in image pixels.
+    ///
+    /// A constant in Map space rather than view points: it is compared against Map
+    /// coordinates, and a zoom-dependent tolerance would need the transform passed in for
+    /// a difference the DM would not notice.
+    static let lineHitTolerance: CGFloat = 8
+
+    /// Shortest distance from a point to a line segment, clamped to the segment's ends so
+    /// the band does not extend past them into open Map.
+    private static func distance(from point: MapPoint,
+                                 toSegment a: MapPoint, _ b: MapPoint) -> CGFloat {
+        let dx = b.x - a.x, dy = b.y - a.y
+        let lengthSquared = dx * dx + dy * dy
+        guard lengthSquared > 0 else { return hypot(point.x - a.x, point.y - a.y) }
+        let t = max(0, min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / lengthSquared))
+        return hypot(point.x - (a.x + t * dx), point.y - (a.y + t * dy))
     }
 
     /// The distance as the DM would say it.

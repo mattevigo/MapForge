@@ -97,8 +97,12 @@ The dot drawn where a Light stands, so the source of a lit region can be seen ra
 _Avoid_: light source, torch icon, lamp, emitter dot
 
 **Measurement**:
-A distance the DM asks about mid-play, drawn on the Map as a shape from an Origin and labelled with its length. At most one exists at a time, and it is never persisted — a question asked during a turn and dismissed after it, like Solo Sight rather than like a Wall.
+A distance the DM asks about mid-play, drawn on the Map as a shape from an Origin and labelled with its length. One is being taken at a time; any number can be **Pinned** alongside it. Never persisted — a question asked during a turn, like Solo Sight rather than like a Wall.
 _Avoid_: measure, ruler, template, marker
+
+**Pinned**:
+A settled Measurement parked on the Map, which stays until it is unpinned instead of being cleared by the next click. Pinning is what lets a DM hold one answer on screen — a spell area, a route already walked — while measuring the next thing. Shown to the table exactly as the live Measurement is, and cleared with the Map it was taken on.
+_Avoid_: locked, saved, sticky, kept
 
 **Measurement Shape**:
 Which shape a Measurement takes: a **Cone**, a **Square**, a **Circle** or a **Line**. Circle is drawn around the Origin as a radius; Square is drawn around the Origin as a *side length*, because that is how a spell describes a cube. Cone is a length from the Origin towards the cursor. The readout names which it is — "6 m radius" against "6 m across" — so the distinction is read rather than assumed.
