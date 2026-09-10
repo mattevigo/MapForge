@@ -42,12 +42,29 @@ struct PlayerView: View {
                     // regardless of the fog's state.
                     let side = max(PlayerPlacement.squareSidePoints(map: map, frame: frame), 12)
                     let regions = appState.litRegions
+                    // Light Markers under the Pawns: a token is the game piece and must
+                    // never be obscured by the furniture. Only the Map's own Lights — a
+                    // Pawn already draws a token at exactly its own light's point.
+                    ForEach(appState.fog.lights.filter {
+                        PlayerVisibility.showsLightMarkerToPlayers(
+                            light: $0, regions: regions,
+                            isFogOverlayOn: appState.isFogOverlayOn,
+                            hasVisibility: appState.hasDeclaredGrid)
+                    }) { light in
+                        let p = PlayerPlacement.viewPoint(light.at, map: map, frame: frame)
+                        LightMarker(squareSide: side)
+                            .position(x: p.x, y: p.y)
+                    }
+
                     // A party Pawn always draws; a Creature only where the light reaches
-                    // it, and never when the DM has hidden it. See `PlayerVisibility`.
+                    // it, and never when the DM has hidden it. Under Solo Sight the party
+                    // draws by that same discovery rule, all but the isolated Pawn itself.
+                    // See `PlayerVisibility`.
                     ForEach(appState.fog.pawns.filter {
                         PlayerVisibility.showsToPlayers(pawn: $0, regions: regions,
                                                         isFogOverlayOn: appState.isFogOverlayOn,
-                                                        hasVisibility: appState.hasDeclaredGrid)
+                                                        hasVisibility: appState.hasDeclaredGrid,
+                                                        soloSightPawnID: appState.resolvedSoloSightPawnID)
                     }) { pawn in
                         let p = PlayerPlacement.viewPoint(pawn.at, map: map, frame: frame)
                         PawnToken(pawn: pawn, squareSide: side)

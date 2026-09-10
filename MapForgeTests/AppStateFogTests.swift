@@ -642,4 +642,157 @@ final class AppStateFogTests: XCTestCase {
         appState.setLight(id: torch.id, isOn: false)
         XCTAssertFalse(appState.fog.lights[0].isOn, "the repeated write flipped it back on")
     }
+
+    // MARK: - Solo Sight
+
+    func testIsolatingAPawnRecordsIt() throws {
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let pawn = Pawn(at: MapPoint(x: 10, y: 10), label: "Ilyana",
+                        colorHex: "#FF0000", brightSquares: 6)
+        appState.fog.pawns = [pawn]
+
+        appState.setSoloSight(id: pawn.id)
+
+        XCTAssertEqual(appState.soloSightPawnID, pawn.id)
+    }
+
+    func testSwitchingMapsEndsSoloSight() throws {
+        // The `be14e58` bug class: the ID is a reference into a document that just changed
+        // underneath it, and the next render would isolate a Pawn from the outgoing Map.
+        let dungeon = try makeMap(named: "dungeon")
+        let tavern = try makeMap(named: "tavern")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: dungeon.image, at: dungeon.url)
+        let pawn = Pawn(at: MapPoint(x: 10, y: 10), label: "Ilyana",
+                        colorHex: "#FF0000", brightSquares: 6)
+        appState.fog.pawns = [pawn]
+        appState.setSoloSight(id: pawn.id)
+
+        appState.loadMap(image: tavern.image, at: tavern.url)
+
+        XCTAssertNil(appState.soloSightPawnID, "Solo Sight outlived the Map it was set on")
+    }
+
+    func testDeletingTheIsolatedPawnEndsSoloSight() throws {
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let pawn = Pawn(at: MapPoint(x: 10, y: 10), label: "Ilyana",
+                        colorHex: "#FF0000", brightSquares: 6)
+        appState.fog.pawns = [pawn]
+        appState.setSoloSight(id: pawn.id)
+
+        appState.fog.pawns = []
+
+        XCTAssertNil(appState.soloSightPawnID, "Solo Sight survived the Pawn it was isolating")
+    }
+
+    func testBeginningFogEditingEndsSoloSight() throws {
+        // Fog authoring needs the whole Map lit, and the mode would fight the inspector.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let pawn = Pawn(at: MapPoint(x: 10, y: 10), label: "Ilyana",
+                        colorHex: "#FF0000", brightSquares: 6)
+        appState.fog.pawns = [pawn]
+        appState.setSoloSight(id: pawn.id)
+
+        appState.beginFogEditing()
+
+        XCTAssertNil(appState.soloSightPawnID)
+    }
+
+    func testAStaleSoloSightIDResolvesToNothing() throws {
+        // The mode must go inert rather than hiding the whole party behind a Pawn that is
+        // no longer there. `showsToPlayers` sees one Pawn at a time and cannot tell a stale
+        // ID from a Pawn that is simply somewhere else, so an unresolved stale ID would
+        // empty the Player Display of the entire party while the fog stayed lit — the worst
+        // failure this mode has. Resolving at the caller is what prevents it.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let ilyana = Pawn(at: MapPoint(x: 10, y: 10), label: "Ilyana",
+                          colorHex: "#FF0000", brightSquares: 6)
+        let bardo = Pawn(at: MapPoint(x: 90, y: 90), label: "Bardo",
+                         colorHex: "#00FF00", brightSquares: 6)
+        appState.fog.pawns = [ilyana, bardo]
+        appState.setSoloSight(id: ilyana.id)
+
+        appState.fog.pawns = [bardo]
+
+        XCTAssertNil(appState.resolvedSoloSightPawnID)
+    }
+
+    func testHidingTheIsolatedPawnEndsSoloSight() throws {
+        // Found by review. The eye takes a Pawn out of the lighting, so hiding the isolated
+        // one left the mode pointing at a Pawn that emits nothing: the fog fell back to
+        // lighting the Map with every torch, while the token rule kept the rest of the
+        // party under the discovery test. The table would have seen a fully lit Map with
+        // most of the party missing from it — and the control is disabled on a hidden Pawn,
+        // so the DM could not click their way back out.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let ilyana = Pawn(at: MapPoint(x: 10, y: 10), label: "Ilyana",
+                          colorHex: "#FF0000", brightSquares: 6)
+        appState.fog.pawns = [ilyana]
+        appState.setSoloSight(id: ilyana.id)
+
+        appState.setPawnHidden(id: ilyana.id, isHidden: true)
+
+        XCTAssertNil(appState.soloSightPawnID)
+    }
+
+    func testHidingAnotherPawnLeavesSoloSightAlone() throws {
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let ilyana = Pawn(at: MapPoint(x: 10, y: 10), label: "Ilyana",
+                          colorHex: "#FF0000", brightSquares: 6)
+        let bardo = Pawn(at: MapPoint(x: 90, y: 90), label: "Bardo",
+                         colorHex: "#00FF00", brightSquares: 6)
+        appState.fog.pawns = [ilyana, bardo]
+        appState.setSoloSight(id: ilyana.id)
+
+        appState.setPawnHidden(id: bardo.id, isHidden: true)
+
+        XCTAssertEqual(appState.soloSightPawnID, ilyana.id)
+    }
+
+    func testSoloSightWritesNoFogFile() throws {
+        // Derived, never persisted: reopening this Map tomorrow must not find the table
+        // still looking through one character's eyes.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let ilyana = Pawn(at: MapPoint(x: 10, y: 10), label: "Ilyana",
+                          colorHex: "#FF0000", brightSquares: 6)
+        appState.fog.pawns = [ilyana]
+        appState.flushPendingFogWrites()
+        let onDisk = try? Data(contentsOf: FogStore.fogURL(forMapAt: map.url))
+
+        appState.setSoloSight(id: ilyana.id)
+        appState.flushPendingFogWrites()
+
+        XCTAssertEqual(try? Data(contentsOf: FogStore.fogURL(forMapAt: map.url)), onDisk,
+                       "Solo Sight reached the fog file")
+    }
+
+    func testSoloSightIsNotUndoable() throws {
+        // A live performance action, exactly as hiding is: it must not bury the DM's
+        // authoring work under a row of toggles, and it must not write a fog file.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let pawn = Pawn(at: MapPoint(x: 10, y: 10), label: "Ilyana",
+                        colorHex: "#FF0000", brightSquares: 6)
+        appState.fog.pawns = [pawn]
+        let before = appState.fog
+
+        appState.setSoloSight(id: pawn.id)
+
+        XCTAssertEqual(appState.fog, before, "Solo Sight mutated the document")
+    }
 }

@@ -36,7 +36,8 @@ final class VisibilityCache {
     /// pixels Walls live in — so re-declaring the Grid changes every Light's reach and
     /// correctly invalidates.
     func regions(for document: FogDocument, imagePixelSize: CGSize,
-                 pixelsPerSquare: CGFloat) -> [LitRegion] {
+                 pixelsPerSquare: CGFloat,
+                 soloSightPawnID: Pawn.ID?) -> [LitRegion] {
         let next = Inputs(walls: document.walls,
                           lights: document.lights,
                           // Creatures emit nothing, and neither does a Pawn the DM has
@@ -50,9 +51,16 @@ final class VisibilityCache {
                           // knows nothing about Pawns — and because `Inputs` is the cache
                           // key, so flipping either flag correctly invalidates instead of
                           // serving a stale polygon.
-                          pawnLights: document.pawns
-                              .filter { !$0.isDiscovered && !$0.isHidden }
-                              .map(\.light),
+                          //
+                          // Solo Sight narrows the same filter to one Pawn: the DM is
+                          // asking what the Map looks like lit by that character alone, so
+                          // every other carried light goes out. `document.lights` — the
+                          // Map's own braziers and sconces — are deliberately untouched: a
+                          // wall sconce is the room, not another character's influence
+                          // (ADR 0004). A stale ID matches nothing and would black out the
+                          // Map on the table, so it falls back to lighting everything.
+                          pawnLights: Self.pawnLights(of: document,
+                                                      isolating: soloSightPawnID),
                           imagePixelSize: imagePixelSize,
                           pixelsPerSquare: pixelsPerSquare)
         if next == inputs { return cached }
@@ -66,5 +74,18 @@ final class VisibilityCache {
             lights: next.lights + next.pawnLights,
             pixelsPerSquare: pixelsPerSquare)
         return cached
+    }
+
+    /// Which Pawns light the Map: everything that emits, narrowed to one under Solo Sight.
+    ///
+    /// The isolated Pawn goes through the same `!isDiscovered && !isHidden` gate as any
+    /// other — a Creature emits nothing however it is selected, and the eye still beats
+    /// lighting.
+    private static func pawnLights(of document: FogDocument,
+                                   isolating soloSightPawnID: Pawn.ID?) -> [Light] {
+        let emitting = document.pawns.filter { !$0.isDiscovered && !$0.isHidden }
+        guard let id = soloSightPawnID,
+              emitting.contains(where: { $0.id == id }) else { return emitting.map(\.light) }
+        return emitting.filter { $0.id == id }.map(\.light)
     }
 }
