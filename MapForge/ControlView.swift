@@ -679,7 +679,7 @@ struct ControlView: View {
             // Back to an empty buffer is back to a dragged Measurement, so the next mouse
             // move sizes it again rather than leaving it frozen at the typed value.
             if typedDistance.isEmpty {
-                measurement.isDistanceSettled = false
+                measurement.isDistanceTyped = false
                 measurement.distance = 0
                 appState.setMeasurement(measurement)
             }
@@ -687,7 +687,7 @@ struct ControlView: View {
         case .commit:
             guard let squares = typedDistance.squares(in: DistanceUnit.current) else { return }
             measurement.distance = squares
-            measurement.isDistanceSettled = true
+            measurement.isDistanceTyped = true
             appState.setMeasurement(measurement)
             typedDistance.clear()
             return
@@ -698,7 +698,7 @@ struct ControlView: View {
             let hadDigits = !typedDistance.isEmpty
             typedDistance.clear()
             guard hadDigits else { return }
-            measurement.isDistanceSettled = false
+            measurement.isDistanceTyped = false
             measurement.distance = 0
             appState.setMeasurement(measurement)
             return
@@ -708,7 +708,7 @@ struct ControlView: View {
         // than after the shape jumps.
         if let squares = typedDistance.squares(in: DistanceUnit.current) {
             measurement.distance = squares
-            measurement.isDistanceSettled = true
+            measurement.isDistanceTyped = true
             appState.setMeasurement(measurement)
         }
     }

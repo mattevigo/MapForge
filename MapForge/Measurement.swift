@@ -56,17 +56,26 @@ struct Measurement: Equatable {
     /// Ignored by the radius shapes.
     var direction: CGFloat
 
-    /// Whether the distance is settled, so the mouse no longer resizes it.
+    /// Whether the Measurement has stopped following the cursor.
     ///
-    /// Set by left-clicking to commit a dragged Measurement, and by typing one. Until then
-    /// the shape rubber-bands with the cursor, which is how the DM finds the distance in
-    /// the first place; after it, the number holds still long enough to be read and argued
-    /// over. A Measurement that never settles is the failure ADR 0005 rejected under
-    /// another name — evidence that vanishes the moment the table wants to discuss it.
+    /// Set by the left-click that commits it. Until then the shape rubber-bands, which is
+    /// how the DM finds the distance in the first place; after it, the shape holds still
+    /// long enough to be read and argued over. A Measurement that never settles is the
+    /// failure ADR 0005 rejected under another name — evidence that vanishes the moment
+    /// the table wants to discuss it.
     ///
-    /// The *aim* keeps following the cursor either way: an exact range, pointed wherever
-    /// it is being asked about.
+    /// Settled freezes the **aim** as well as the distance. A shape that went on swinging
+    /// could not be read: it moved out from under the DM as they took their hand off the
+    /// mouse. Pointing is what the first click is for; the second is for stopping.
     var isDistanceSettled = false
+
+    /// Whether the distance was typed, so the mouse may re-aim the shape but never resize
+    /// it.
+    ///
+    /// The one case where aim and distance come apart, and the point of typing one: an
+    /// exact range — 9 m, off the spell card — swung wherever the DM is asking about.
+    /// A left-click settles it like any other, which is how it stops.
+    var isDistanceTyped = false
 
     /// The vertices a `.line` runs through after its Origin, in image pixels.
     ///
@@ -157,26 +166,30 @@ struct Measurement: Equatable {
         return next
     }
 
-    /// Re-aimed at the cursor, and resized to reach it — unless the distance has settled,
-    /// in which case the aim follows and the distance holds.
+    /// Re-aimed at the cursor and resized to reach it, until the Measurement settles —
+    /// after which the mouse does nothing to it at all.
     ///
-    /// The rule lives here rather than in the view so it can be tested: a settled distance
-    /// silently overwritten by the next mouse move is the failure this feature would be
-    /// most likely to ship with, since it only shows up between reading a number and
+    /// **Settled means settled**, aim included. A Cone that went on swinging after its
+    /// second click could not be read: the shape moved out from under the DM as they took
+    /// their hand off the mouse, and its readout orbited the point it labels. The earlier
+    /// rule kept the aim live so an exact range could be pointed wherever it was asked
+    /// about, but that is what the *first* click is for — pointing — and the second is for
+    /// stopping.
+    ///
+    /// The rule lives here rather than in the view so it can be tested: a settled
+    /// Measurement silently moved by the next mouse move is the failure this feature would
+    /// be most likely to ship with, since it only shows up between reading a number and
     /// moving the mouse.
     func aimed(at cursor: MapPoint, from origin: MapPoint,
                pixelsPerSquare: CGFloat) -> Measurement {
+        guard !isDistanceSettled, pixelsPerSquare > 0 else { return self }
+
         var next = self
-
-        // A finished chain is finished: it stops following the cursor entirely, unlike a
-        // settled Cone, which keeps swinging so an exact range can be pointed wherever it
-        // is asked about. A chain has already been pointed — at every vertex the DM
-        // placed — so re-aiming it would only swing its readout around the last one.
-        guard !(shape == .line && isDistanceSettled) else { return next }
-
         let anchor = shape == .line ? chainAnchor(origin: origin) : origin
         next.direction = MeasurementControl.direction(from: anchor, to: cursor)
-        guard !isDistanceSettled, pixelsPerSquare > 0 else { return next }
+
+        // A typed distance is exact and the mouse must not resize it — only re-aim it.
+        guard !isDistanceTyped else { return next }
 
         if shape == .line {
             // The running total: everything already placed, plus the live segment. Exact,

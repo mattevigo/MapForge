@@ -116,13 +116,42 @@ final class MeasurementTypingTests: XCTestCase {
         // name — evidence that vanishes the moment the table wants to discuss it — so a
         // dragged Measurement must be committable, not only a typed one.
         let origin = MapPoint(x: 0, y: 0)
+        var typed = MapForge.Measurement(origin: .point(origin), shape: .cone,
+                                         distance: 6, direction: 0)
+        typed.isDistanceTyped = true
+
+        let aimed = typed.aimed(at: MapPoint(x: 0, y: 500), from: origin, pixelsPerSquare: 10)
+        XCTAssertEqual(aimed.distance, 6, "a typed distance holds")
+        XCTAssertEqual(aimed.direction, .pi / 2, accuracy: 1e-9,
+                       "but a typed one still swings, which is the point of typing it")
+    }
+
+    func testASettledConeStopsSwinging() {
+        // Reported: a Cone kept turning after its second click, so the shape moved out
+        // from under the DM as they took their hand off the mouse. Settled now means
+        // settled — aim included — for every shape alike. Pointing is the first click's
+        // job; the second is for stopping.
+        let origin = MapPoint(x: 0, y: 0)
         var settled = MapForge.Measurement(origin: .point(origin), shape: .cone,
                                            distance: 6, direction: 0)
         settled.isDistanceSettled = true
 
-        let aimed = settled.aimed(at: MapPoint(x: 500, y: 0), from: origin, pixelsPerSquare: 10)
-        XCTAssertEqual(aimed.distance, 6, "a settled distance holds")
-        XCTAssertEqual(aimed.direction, 0, accuracy: 1e-9, "but the aim still follows")
+        let aimed = settled.aimed(at: MapPoint(x: 0, y: 500), from: origin, pixelsPerSquare: 10)
+        XCTAssertEqual(aimed.direction, 0, accuracy: 1e-9, "the aim holds too")
+        XCTAssertEqual(aimed.distance, 6)
+    }
+
+    func testEveryShapeHoldsStillOnceSettled() {
+        // The rule is uniform now: no shape follows the cursor after its second click.
+        let origin = MapPoint(x: 0, y: 0)
+        for shape in MeasurementShape.allCases {
+            var settled = MapForge.Measurement(origin: .point(origin), shape: shape,
+                                               distance: 6, direction: 0)
+            settled.isDistanceSettled = true
+            let aimed = settled.aimed(at: MapPoint(x: 300, y: 400), from: origin,
+                                      pixelsPerSquare: 10)
+            XCTAssertEqual(aimed, settled, "\(shape) should be inert once settled")
+        }
     }
 
     func testASettledMeasurementSurvivesRepeatedMouseMovement() {
