@@ -39,17 +39,38 @@ struct MeasurementLayer: View {
         if measurement.shape == .line {
             // The one shape with no area: stroked end to end rather than filled.
             let (from, to) = measurement.segment(pixelsPerSquare: pixelsPerSquare) { _ in origin }
+            let start = viewPoint(from), end = viewPoint(to)
             Path { path in
-                path.move(to: viewPoint(from))
-                path.addLine(to: viewPoint(to))
+                path.move(to: start)
+                path.addLine(to: end)
             }
             .stroke(stroke, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            // Caps on both ends. A bare stroke fades into the artwork and simply stops
+            // somewhere, so the DM cannot see where the measurement actually ends — the
+            // one thing a Line has to communicate. The other three shapes are closed and
+            // carry their own boundary; a Line has to be given one.
+            endCap.position(start)
+            endCap.position(end)
         } else {
             let polygon = measurement.project(pixelsPerSquare: pixelsPerSquare) { _ in origin }
             path(polygon)
                 .fill(fill)
                 .overlay { path(polygon).stroke(stroke, lineWidth: 2) }
         }
+    }
+
+    /// The dot terminating each end of a Line.
+    ///
+    /// Fixed size, like the readout capsule: it marks a point rather than covering an area,
+    /// so it must stay legible at any zoom and on the Player Display's True Scale alike.
+    /// White-ringed because a green dot on green terrain — or on the party's own tokens —
+    /// disappears, and this is the thing being pointed at.
+    private var endCap: some View {
+        Circle()
+            .fill(stroke)
+            .frame(width: 7, height: 7)
+            .overlay(Circle().stroke(.white, lineWidth: 1.5))
+            .shadow(color: .black.opacity(0.5), radius: 1)
     }
 
     /// Fixed-size chrome, following `GridFitOverlay`'s readout rather than `PawnToken`'s
@@ -101,17 +122,27 @@ struct MeasurementLayer: View {
         }
     }
 
-    /// How far past the edge the capsule sits, in view points. Enough to clear the 2pt
-    /// stroke and the capsule's own half-height without drifting far from what it labels.
+    /// How far off the edge the capsule sits, in view points. Enough to clear the stroke
+    /// and the end cap without drifting away from what it labels.
+    ///
+    /// Pushed *sideways* for an aimed shape, not along the aim. Continuing along the
+    /// direction reads as the measurement carrying on past its end — the capsule floats
+    /// out in open space with nothing connecting it to the line — whereas offsetting
+    /// perpendicular keeps it beside the end it names. Always to the upper side, so the
+    /// number sits above a horizontal measurement rather than under the DM's cursor.
     private var nudge: CGVector {
-        let gap: CGFloat = 16
+        // 22, not less: at 14 the capsule's own half-height overlapped the end cap and
+        // partly hid the marker it exists to point at. Checked by rendering the layer at
+        // four angles rather than by eye.
+        let gap: CGFloat = 22
         switch measurement.shape {
         case .cone, .line:
-            // Along the aim, so the number trails the far end wherever it is pointed.
-            return CGVector(dx: cos(measurement.direction) * gap,
-                            dy: sin(measurement.direction) * gap)
+            let normal = CGVector(dx: -sin(measurement.direction),
+                                  dy: cos(measurement.direction))
+            let side: CGFloat = normal.dy > 0 ? -1 : 1
+            return CGVector(dx: normal.dx * gap * side, dy: normal.dy * gap * side)
         case .circle, .square:
-            // Straight up off the top edge: a radius shape has no direction to trail.
+            // Straight up off the top edge: a radius shape has no direction to sit beside.
             return CGVector(dx: 0, dy: -gap)
         }
     }
