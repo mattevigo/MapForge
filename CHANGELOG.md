@@ -8,12 +8,13 @@ panel reads them from the built app.
 
 ### Measurement
 
-- Measure distances on the Map mid-play: right-click where you want to measure from and
-  pick Cone, Square, Circle or Line from the menu, move the mouse to aim and size the
-  shape, left-click to settle it so it stops following the cursor, and left-click again to
-  clear it. The menu opens on the shape you used last.
-- Right-clicking a Pawn measures from that Pawn — the shape follows it as it is dragged,
-  and ends when the Pawn does. Anywhere else measures from exactly the point clicked; the
+- Measure distances on the Map mid-play: right-click to pick Cone, Square, Circle or Line,
+  click where the measurement starts, move the mouse to aim and size it, click again to
+  settle it so it stops following the cursor, and click once more to clear it. Each click
+  advances one step, and the menu opens on the shape you used last. Esc backs out of a
+  measurement you have not placed yet.
+- Clicking a Pawn measures from that Pawn — the shape follows it as it is dragged, and
+  ends when the Pawn does. Anywhere else measures from exactly the point clicked; the
   token's own outline is the whole of its hit area, and nothing snaps to the Grid.
 - Type an exact distance instead of hunting for the pixel that happens to be 9 m away — the
   number holds while the aim keeps following the cursor.

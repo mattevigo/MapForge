@@ -34,9 +34,14 @@ struct ControlView: View {
     /// Which shape the last Measurement took, so the right-click menu opens on it.
     /// Session-local, like the Measurement itself.
     @State private var measurementShape: MeasurementShape = .circle
-    /// The Origin resolved by the right-click that opened the shape menu, waiting for a
-    /// shape to be picked. Nil except between those two moments.
-    @State private var pendingOrigin: MeasurementOrigin?
+    /// The shape picked from the right-click menu, waiting for a left-click to say where
+    /// it starts. Nil except between those two moments.
+    ///
+    /// The menu chooses *what* to measure; the click that follows chooses *where*. Taking
+    /// the origin from the right-click itself was the first design and it conflated the
+    /// two, so the DM had to open the menu at exactly the point they meant to measure
+    /// from — a menu is not a precise instrument.
+    @State private var armedShape: MeasurementShape?
     /// Where the cursor last was on the mirror, in the mirror's own coordinates.
     ///
     /// SwiftUI reports this; an `NSEvent`'s `locationInWindow` is NOT convertible into it.
@@ -161,6 +166,10 @@ struct ControlView: View {
             fogTransform = nil
             selectedLight = nil
             selectedPawn = nil
+            // `AppState` drops the Measurement itself; the armed tool is view state, and a
+            // crosshair left hunting on a Map the DM has closed is the same staleness.
+            armedShape = nil
+            typedDistance.clear()
             mode = .normal
         }
         .onChange(of: fitSquare) { _, square in
@@ -283,39 +292,40 @@ struct ControlView: View {
                                              pixelsPerSquare: pixelsPerSquare)
                         }
                     }
+                    .overlay {
+                        // An armed tool has nothing on the Map yet, so without this the
+                        // DM cannot tell it apart from an idle one — and the click that
+                        // would place an Origin looks like a click that does nothing.
+                        // DM-only: the table has no use for a crosshair hunting a point.
+                        if armedShape != nil, let cursor = mirrorCursor {
+                            MeasurementCrosshair().position(cursor)
+                        }
+                    }
                     // Measuring is a live play action, so it lives on the mirror rather
                     // than behind an editing mode — beside dragging a Pawn, not beside
                     // authoring Walls.
                     //
-                    // These input modifiers MUST stay above the `.position()` below. That
-                    // modifier re-parents this view into the outer GeometryReader, so
-                    // anything attached after it reports coordinates in the OUTER
-                    // container — while `mirrorFrame` is expressed in this clipped
-                    // container's space. Attached below, every click came in offset by the
-                    // letterbox margin (`visible.minX/minY`), and a Measurement started
-                    // somewhere other than where the DM pointed.
+                    // Every point these handlers use comes from `mirrorCursor`, never from
+                    // an event's own location: an `NSEvent` position cannot be converted
+                    // into the space `mirrorFrame` is expressed in. See `mirrorCursor`.
                     //
-                    // The right-click resolves the Origin; the menu that follows picks the
-                    // shape and starts the Measurement there.
-                    // The click's own location is unusable here — see `mirrorCursor` — so
-                    // the last hovered point stands in for it. They are the same point:
-                    // the cursor cannot right-click somewhere it is not.
-                    .onRightClick {
-                        armMeasurementOrigin(map: map, frame: mirrorFrame)
-                    }
+                    // Right-click only opens the menu — picking a shape arms the tool, and
+                    // the left-click after that says where the Measurement starts.
+                    .onRightClick { disarmMeasurement() }
                     .contextMenu { measurementMenu }
-                    // Only while a Measurement is armed, and lower priority than the Pawn
-                    // drag underneath: dragging a token is the other live action on this
-                    // surface, and a tap that swallowed it would break the more common one.
+                    // Live only while the tool is armed or a Measurement is up, and lower
+                    // priority than the Pawn drag underneath: dragging a token is the
+                    // other live action on this surface, and a tap that swallowed it would
+                    // break the more common one.
                     .simultaneousGesture(
-                        TapGesture().onEnded { leftClickToSettle() },
-                        including: appState.measurement != nil ? .all : .subviews
+                        TapGesture().onEnded { leftClick(map: map, frame: mirrorFrame) },
+                        including: isMeasuring ? .all : .subviews
                     )
                     .onContinuousHover { phase in
                         switch phase {
                         case .active(let location):
-                            // Kept for the right-click, which cannot learn its own
-                            // location in this coordinate space.
+                            // The only reliable cursor position on this surface — every
+                            // measuring handler reads it rather than an event's own.
                             mirrorCursor = location
                             aim(at: location, map: map, frame: mirrorFrame)
                         case .ended:
@@ -324,7 +334,7 @@ struct ControlView: View {
                     }
                     // Digits are claimed only while a Measurement is armed, the cursor is
                     // over the Map, and no text field has focus. See MeasurementTyping.
-                    .onMeasurementKeys(isArmed: appState.measurement != nil,
+                    .onMeasurementKeys(isArmed: isMeasuring,
                                        isOverMap: mirrorCursor != nil) {
                         handleMeasurementKey($0)
                     }
@@ -459,6 +469,10 @@ struct ControlView: View {
 
     private func startFogEditing() {
         appState.beginFogEditing()
+        // `beginFogEditing` drops the Measurement; the armed tool is view state and has to
+        // be dropped alongside it, or the crosshair follows the DM into authoring.
+        armedShape = nil
+        typedDistance.clear()
         fogEdits = FogEdits(document: appState.fog)
         // Open on the whole Map, as Grid Fit does: the zoomed-out view orients, and zoom
         // is opt-in for the precision moment.
@@ -525,33 +539,40 @@ struct ControlView: View {
     /// A left-click on a settled Measurement dismisses it, because right-click now opens
     /// the shape menu and can no longer double as the dismissal.
     ///
-    /// So one button drives the whole life of a Measurement: click to settle the distance,
-    /// click again to clear it. Two clicks in the same place, and the DM never has to
-    /// remember which button does which.
-    private func leftClickToSettle() {
+    /// So one button drives the whole life of a Measurement, each click advancing it one
+    /// step: place the Origin, settle the distance, clear it. The DM never has to remember
+    /// which button does which.
+    private func leftClick(map: MapScale, frame: CGRect) {
+        // An armed tool is waiting for its Origin, and that comes first: until one is
+        // placed there is no Measurement to settle.
+        if let shape = armedShape {
+            placeOrigin(shape: shape, map: map, frame: frame)
+            return
+        }
         guard let measurement = appState.resolvedMeasurement else { return }
         typedDistance.clear()
         appState.setMeasurement(measurement.clicked())
     }
 
-    /// Where the right-click that opened the shape menu landed, in image pixels.
+    /// The left-click that says where an armed Measurement starts.
     ///
-    /// The menu is what starts a Measurement, and by the time a shape is picked the click
-    /// is long gone — so the Origin is resolved at right-click time and parked here. It is
-    /// a Pawn-or-point already, because which one it is depends on where the click landed
-    /// and not on which shape was chosen afterwards.
-    private func armMeasurementOrigin(map: MapScale, frame: CGRect) {
-        guard appState.measurementAvailability == .available,
-              let pixelsPerSquare = appState.pixelsPerSquare,
+    /// Hit-tests the Pawns itself: a click on a token measures from that token, anything
+    /// else from exactly the point clicked.
+    private func placeOrigin(shape: MeasurementShape, map: MapScale, frame: CGRect) {
+        guard let pixelsPerSquare = appState.pixelsPerSquare,
               let point = mirrorCursor else { return }
         let mapPoint = PlayerPlacement.mapPoint(point, map: map, frame: frame)
-        pendingOrigin = MeasurementControl.origin(forClickAt: mapPoint,
-                                                  pawns: appState.fog.pawns,
-                                                  pixelsPerSquare: pixelsPerSquare)
+        let origin = MeasurementControl.origin(forClickAt: mapPoint,
+                                               pawns: appState.fog.pawns,
+                                               pixelsPerSquare: pixelsPerSquare)
+        armedShape = nil
+        typedDistance.clear()
+        appState.setMeasurement(Measurement(origin: origin, shape: shape,
+                                            distance: 0, direction: 0))
     }
 
-    /// The shapes offered by the right-click menu. Picking one starts a Measurement at the
-    /// point that opened the menu.
+    /// The shapes offered by the right-click menu. Picking one arms the tool; the next
+    /// left-click says where the Measurement starts.
     ///
     /// The menu replaced a picker in the window chrome: choosing the shape belongs where
     /// the DM is already pointing, not at the top of the window, and a menu keeps the whole
@@ -570,13 +591,29 @@ struct ControlView: View {
         }
     }
 
+    /// Arm the tool with a shape and wait for the click that places it.
+    ///
+    /// Any Measurement already on screen goes now rather than when the Origin is placed:
+    /// the DM has said they are measuring something else, and leaving the old shape up
+    /// while a crosshair hunts for a new one puts two answers on the table's screen.
     private func startMeasurement(_ shape: MeasurementShape) {
-        guard let origin = pendingOrigin else { return }
         // Sticky, so the menu opens on the shape the DM last used.
         measurementShape = shape
+        armedShape = shape
         typedDistance.clear()
-        appState.setMeasurement(Measurement(origin: origin, shape: shape,
-                                            distance: 0, direction: 0))
+        appState.setMeasurement(nil)
+    }
+
+    /// Back out of an armed tool without placing anything.
+    private func disarmMeasurement() {
+        armedShape = nil
+    }
+
+    /// Whether the DM is in the middle of measuring — either waiting to place an Origin,
+    /// or with a Measurement on screen. The gate for the click and key handlers, which
+    /// must stay inert the rest of the time.
+    private var isMeasuring: Bool {
+        armedShape != nil || appState.measurement != nil
     }
 
     /// Follow the cursor: an armed Measurement rubber-bands as the mouse moves, so the
@@ -596,6 +633,12 @@ struct ControlView: View {
     /// A keystroke the Map claimed while a Measurement is armed. Which keystrokes those
     /// are is decided by `MeasurementTyping.decide`, not here.
     private func handleMeasurementKey(_ decision: MeasurementTyping.Decision) {
+        // An armed tool has no Measurement yet, and the only key that means anything to it
+        // is the one that backs out.
+        if armedShape != nil, appState.measurement == nil {
+            if decision == .abandon { disarmMeasurement() }
+            return
+        }
         guard var measurement = appState.resolvedMeasurement else { return }
         switch decision {
         case .passThrough:

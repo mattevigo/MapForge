@@ -31,16 +31,23 @@ that could never be read without holding the mouse still. That is the option ADR
 rejected under another name: evidence that vanishes the moment the table wants to discuss
 it. Typing a distance settles it too. The *aim* keeps following the cursor either way.
 
-**Right-click opens a shape menu on the Map; left-click settles and dismisses.** The first
-design put the shape picker in the window chrome, reasoning from the four gesture-composition
-defects `ControlView.swift` records — but `.contextMenu` is a modifier, not a composed
-gesture, so that reasoning did not apply. Choosing the shape belongs where the DM is already
-pointing. Right-click resolves the Origin and opens the menu; picking a shape starts the
-Measurement there; the last-used shape is sticky so the menu opens on it.
+**Right-click chooses the shape; left-click drives everything else.** The first design put
+the shape picker in the window chrome, reasoning from the four gesture-composition defects
+`ControlView.swift` records — but `.contextMenu` is a modifier, not a composed gesture, so
+that reasoning did not apply. Choosing the shape belongs where the DM is already pointing.
 
-Because right-click now opens a menu it can no longer double as the dismissal, so one button
-drives the whole life of a Measurement: left-click settles the distance, left-click again
-clears it. Two clicks in the same place, and no rule about which button does which.
+The menu says *what* to measure and the click after it says *where*. Taking the Origin from
+the right-click itself was the second design and it conflated the two, forcing the DM to
+open the menu at exactly the point they meant to measure from — a menu is not a precise
+instrument. So: right-click, pick a shape, and the tool is armed with a crosshair under the
+cursor; left-click places the Origin; move to aim and size; left-click again settles the
+distance; left-click once more clears it. Each click advances one step, and the last-used
+shape is sticky so the menu opens on it.
+
+Esc backs out of an armed tool, and right-click reopens the menu. The crosshair is the
+Control Window's alone — an armed tool draws nothing on the Map, so without it the DM
+cannot tell a live tool from an idle one, while the table has no use for watching a
+crosshair hunt for a point.
 
 **Metres now, feet later — so the unit is a parameter from day one.** Distances are stored
 in Grid squares, as `Light` and `Pawn` already store them, and converted at the rendering
