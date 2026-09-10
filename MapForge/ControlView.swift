@@ -274,11 +274,18 @@ struct ControlView: View {
                                              pixelsPerSquare: pixelsPerSquare)
                         }
                     }
-                    .clipped()
-                    .position(x: visible.midX, y: visible.midY)
                     // Measuring is a live play action, so it lives on the mirror rather
                     // than behind an editing mode — beside dragging a Pawn, not beside
                     // authoring Walls.
+                    //
+                    // These input modifiers MUST stay above the `.position()` below. That
+                    // modifier re-parents this view into the outer GeometryReader, so
+                    // anything attached after it reports coordinates in the OUTER
+                    // container — while `mirrorFrame` is expressed in this clipped
+                    // container's space. Attached below, every click came in offset by the
+                    // letterbox margin (`visible.minX/minY`), and a Measurement started
+                    // somewhere other than where the DM pointed.
+                    //
                     // The right-click resolves the Origin; the menu that follows picks the
                     // shape and starts the Measurement there.
                     .onRightClick { point in
@@ -305,6 +312,8 @@ struct ControlView: View {
                     .onMeasurementKeys(isArmed: appState.measurement != nil) {
                         handleMeasurementKey($0)
                     }
+                    .clipped()
+                    .position(x: visible.midX, y: visible.midY)
                 } else {
                     // Only Grid Fit carries a zoom; every other use of this branch is the
                     // plain aspect fit, which is that transform's floor.

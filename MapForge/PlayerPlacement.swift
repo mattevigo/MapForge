@@ -25,6 +25,14 @@ enum PlayerPlacement {
     /// The mirror had no absolute inverse until measuring needed one — `PawnLayer` only
     /// ever open-coded a *delta* conversion inside its drag, which cannot answer "where
     /// did this click land". Kept beside the forward direction so the pair stays honest.
+    ///
+    /// **`frame` and the click must be in the same coordinate space**, and that is the one
+    /// thing this function cannot check. In the Control mirror the frame is rebased into
+    /// the *clipped* container, so an input modifier attached after `.position()` — which
+    /// re-parents the view into the outer GeometryReader — reports clicks in the wrong
+    /// space and every result comes back offset by the letterbox margin. The arithmetic
+    /// stays correct while the answer is wrong, which is why no test caught it: attach
+    /// input above `.position()`, alongside the overlays that draw with the same frame.
     static func mapPoint(_ viewPoint: CGPoint, map: MapScale, frame: CGRect) -> MapPoint {
         guard frame.width > 0, frame.height > 0 else { return MapPoint(x: 0, y: 0) }
         return MapPoint(x: (viewPoint.x - frame.minX) / frame.width * map.imagePixelSize.width,

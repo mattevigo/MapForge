@@ -62,6 +62,35 @@ final class MeasurementControlTests: XCTestCase {
         XCTAssertEqual(back.y, 125, accuracy: 1e-6)
     }
 
+    func testAClickIsReadInTheSameSpaceTheOverlaysAreDrawnIn() {
+        // The bug this pins: the input modifiers were attached BELOW `.position()`, which
+        // re-parents the mirror into the outer container. They therefore reported clicks
+        // in the outer space while `mirrorFrame` describes the clipped one, so every
+        // Measurement started offset by the letterbox margin.
+        //
+        // Expressed as the property that failed: a click on the view point where a Pawn is
+        // DRAWN must resolve back to that Pawn's own map point. Both directions use the
+        // same frame, so they agree only if the caller passes the frame the drawing used.
+        let map = MapScale.grid(squaresWide: 20,
+                                imagePixelSize: CGSize(width: 1000, height: 800))
+        // A letterboxed mirror: the image sits inset within the clipped container, so the
+        // outer and inner spaces genuinely differ.
+        let mirrorFrame = CGRect(x: -200, y: -150, width: 2000, height: 1600)
+        let pawnAt = MapPoint(x: 640, y: 480)
+
+        let drawnAt = PlayerPlacement.viewPoint(pawnAt, map: map, frame: mirrorFrame)
+        let clicked = PlayerPlacement.mapPoint(drawnAt, map: map, frame: mirrorFrame)
+
+        XCTAssertEqual(clicked.x, pawnAt.x, accuracy: 1e-6)
+        XCTAssertEqual(clicked.y, pawnAt.y, accuracy: 1e-6)
+
+        // And the Origin that click yields is that Pawn, not a bare point beside it.
+        let pawn = Pawn(at: pawnAt, label: "A", colorHex: "#ff0000", brightSquares: 4)
+        XCTAssertEqual(MeasurementControl.origin(forClickAt: clicked, pawns: [pawn],
+                                                 pixelsPerSquare: 50),
+                       .pawn(pawn.id))
+    }
+
     func testADegenerateFrameDoesNotDivideByZero() {
         let back = PlayerPlacement.mapPoint(CGPoint(x: 10, y: 10), map: map, frame: .zero)
         XCTAssertEqual(back, MapPoint(x: 0, y: 0))
