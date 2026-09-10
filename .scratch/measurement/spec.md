@@ -54,6 +54,12 @@ in Grid squares, as `Light` and `Pawn` already store them, and converted at the 
 edge by a `DistanceUnit`. Shipping with a hardcoded `.metres` is fine; a `* 1.5` scattered
 across call sites is not, because that is what makes the feet switch a hunt-and-peck.
 
+**A Line is a polygonal chain, and the one shape that does not snap.** Clicking adds a
+vertex rather than ending the measurement; right-click finishes the chain and frees the
+cursor; the finished chain stays up until the next click. The readout is the running total
+of the whole path. Each vertex lands exactly where clicked — rounding every one would
+compound the error along a long path — while the radius shapes still snap to whole squares.
+
 **Walls do not block a Measurement.** 5e range is measured through obstacles, and reusing
 `Visibility.compute` would put a Measurement into `VisibilityCache.Inputs`
 (`VisibilityCache.swift:16-22`) and invalidate lighting on every mouse move.

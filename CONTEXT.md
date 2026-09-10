@@ -101,8 +101,12 @@ A distance the DM asks about mid-play, drawn on the Map as a shape from an Origi
 _Avoid_: measure, ruler, template, marker
 
 **Measurement Shape**:
-Which shape a Measurement takes: a **Cone**, a **Square**, a **Circle** or a **Line**. Circle is drawn around the Origin as a radius; Square is drawn around the Origin as a *side length*, because that is how a spell describes a cube. Cone and Line are lengths, drawn from the Origin towards the cursor. The readout names which it is — "6 m radius" against "6 m across" — so the distinction is read rather than assumed.
+Which shape a Measurement takes: a **Cone**, a **Square**, a **Circle** or a **Line**. Circle is drawn around the Origin as a radius; Square is drawn around the Origin as a *side length*, because that is how a spell describes a cube. Cone is a length from the Origin towards the cursor. The readout names which it is — "6 m radius" against "6 m across" — so the distinction is read rather than assumed.
 _Avoid_: measure type, tool, template shape
+
+**Line**:
+The one Measurement Shape that is a **polygonal chain** rather than a region: a run of points from the Origin, whose readout is the length of the whole path. It answers the movement question — can I get there this turn, going round the table rather than through it — where the other three answer straight-line range. Alone among the shapes it does not snap to whole squares, because rounding every vertex would compound the error along a long path.
+_Avoid_: linear, ruler, path, polyline
 
 **Measurement Origin**:
 Where a Measurement starts: either a point on the Map, or a Pawn — in which case it starts at that Pawn's centre and follows it as the Pawn moves. A Measurement anchored to a Pawn ends when that Pawn does.

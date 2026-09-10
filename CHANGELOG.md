@@ -13,6 +13,11 @@ panel reads them from the built app.
   settle it so it stops following the cursor, and click once more to clear it. Each click
   advances one step, and the menu opens on the shape you used last. Esc backs out of a
   measurement you have not placed yet.
+- A Line is a polygonal chain: keep clicking to add points and the running total follows
+  the whole path, so a route around a table answers "can I get there this turn" rather
+  than just how far away the far wall is. Right-click finishes it and frees the cursor,
+  and the finished chain stays up until the next click. It is the one shape that does not
+  round to whole squares — each point lands exactly where you put it.
 - Clicking a Pawn measures from that Pawn — the shape follows it as it is dragged, and
   ends when the Pawn does. Anywhere else measures from exactly the point clicked; the
   token's own outline is the whole of its hit area, and nothing snaps to the Grid.
