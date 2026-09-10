@@ -4,6 +4,34 @@ Versions follow [Semantic Versioning](https://semver.org). `MARKETING_VERSION` a
 `CURRENT_PROJECT_VERSION` in `project.yml` are the single source of truth; the About
 panel reads them from the built app.
 
+## Unreleased
+
+### Solo Sight
+
+- See the Map as one character alone lights it: isolating a Pawn puts out every other
+  Pawn's Light, and the rest of the party is then drawn only where the light that remains
+  reaches it — a party member around a corner is genuinely absent from the Player Display.
+  The Map's own Lights keep burning, because a brazier is the room rather than another
+  character's influence.
+- Shown to the table, not only to the DM: a scout goes ahead and the players see what the
+  scout's own light finds. The Control Window keeps its readable tint and still draws every
+  Pawn, dimming the ones the table has lost, so the DM can see who the mode is costing them.
+- One click in the live row beside the eye. At most one Pawn is isolated at a time; the
+  mode is never persisted, never undoable, and ends itself on a Map switch, on its Pawn
+  being deleted or hidden, and on entering the Fog editing mode.
+- The first per-observer rule in the app, and the first thing to make a Pawn's sight and its
+  illumination distinguishable — see
+  [ADR 0004](docs/adr/0004-solo-sight-is-a-per-observer-view.md).
+
+### Light Markers
+
+- A Light is no longer invisible: a warm dot marks where each of the Map's own Lights
+  stands, so the source of a lit region can be seen rather than inferred — on both screens,
+  and without opening the Fog editing mode mid-session.
+- Players see a marker only where the Light is burning *and* the spot is already lit, the
+  same rule a Creature follows, so a doused lantern placed for later never gives away a room
+  the party has not reached. The DM sees every Light, doused ones faded.
+
 ## 1.0.0 — 2026-09-09
 
 First official build. Everything a DM needs to run a session from a Mac with one HDMI
