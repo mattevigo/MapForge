@@ -136,14 +136,29 @@ final class MeasurementTests: XCTestCase {
     // MARK: Line
 
     func testALineRunsFromTheOriginToItsDistance() {
+        // With no vertices placed yet, a Line's live end is its whole length from the
+        // Origin — the first segment of a chain that has not been extended.
         let origin = MapPoint(x: 100, y: 100)
         let measurement = MapForge.Measurement(origin: .point(origin), shape: .line,
                                       distance: DistanceUnit.metres.squares(fromDisplay: 9),
                                       direction: 0)
-        let (from, to) = measurement.segment(pixelsPerSquare: pixelsPerSquare)
-        XCTAssertEqual(from, origin)
+        let to = measurement.liveEnd(origin: origin, pixelsPerSquare: pixelsPerSquare)
         XCTAssertEqual(hypot(to.x - origin.x, to.y - origin.y),
                        9 / 1.5 * pixelsPerSquare, accuracy: 1e-6)
+    }
+
+    func testTheLiveEndOfAChainMeasuresOnlyItsOwnSegment() {
+        // The trap `liveEnd` exists to avoid: `distance` is the running total, so
+        // projecting it from the last vertex would shoot the rubber-band past the cursor
+        // by everything already placed.
+        let origin = MapPoint(x: 0, y: 0)
+        var measurement = MapForge.Measurement(origin: .point(origin), shape: .line,
+                                               distance: 0, direction: 0)
+        measurement.chain = [MapPoint(x: 30, y: 0)]   // 3 squares placed
+        measurement.distance = 5                      // plus a 2-square live segment
+        let to = measurement.liveEnd(origin: origin, pixelsPerSquare: pixelsPerSquare)
+        XCTAssertEqual(to.x, 50, accuracy: 1e-6)
+        XCTAssertEqual(to.y, 0, accuracy: 1e-6)
     }
 
     // MARK: Readout

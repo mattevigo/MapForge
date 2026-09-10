@@ -37,26 +37,43 @@ struct MeasurementLayer: View {
     @ViewBuilder
     private var shape: some View {
         if measurement.shape == .line {
-            // The one shape with no area: stroked end to end rather than filled.
-            let (from, to) = measurement.segment(pixelsPerSquare: pixelsPerSquare) { _ in origin }
-            let start = viewPoint(from), end = viewPoint(to)
+            // A polygonal chain: Origin, every placed vertex, and — while still being
+            // drawn — the live segment out to the cursor.
+            let points = chainPoints
             Path { path in
-                path.move(to: start)
-                path.addLine(to: end)
+                path.move(to: points[0])
+                for point in points.dropFirst() { path.addLine(to: point) }
             }
-            .stroke(stroke, style: StrokeStyle(lineWidth: 2, lineCap: .round))
-            // Caps on both ends. A bare stroke fades into the artwork and simply stops
-            // somewhere, so the DM cannot see where the measurement actually ends — the
-            // one thing a Line has to communicate. The other three shapes are closed and
-            // carry their own boundary; a Line has to be given one.
-            endCap.position(start)
-            endCap.position(end)
+            .stroke(stroke, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+            // A cap at every vertex. A bare stroke fades into the artwork and simply stops
+            // somewhere, so the DM cannot see where the measurement ends — the one thing a
+            // Line has to communicate. The other three shapes are closed and carry their
+            // own boundary; a Line has to be given one. Every corner gets one too, so a
+            // path around an obstacle reads as the points the DM actually chose.
+            ForEach(Array(points.enumerated()), id: \.offset) { _, point in
+                endCap.position(point)
+            }
         } else {
             let polygon = measurement.project(pixelsPerSquare: pixelsPerSquare) { _ in origin }
             path(polygon)
                 .fill(fill)
                 .overlay { path(polygon).stroke(stroke, lineWidth: 2) }
         }
+    }
+
+    /// Every point the chain runs through, in view coordinates: the Origin, each placed
+    /// vertex, and the live end at the cursor while the chain is still being drawn.
+    ///
+    /// A finished chain stops at its last placed vertex — the pointer's position when the
+    /// DM right-clicked is not a point they asked for.
+    private var chainPoints: [CGPoint] {
+        var points = [viewPoint(origin)]
+        points += measurement.chain.map(viewPoint)
+        if measurement.isChaining {
+            points.append(viewPoint(measurement.liveEnd(origin: origin,
+                                                        pixelsPerSquare: pixelsPerSquare)))
+        }
+        return points
     }
 
     /// The dot terminating each end of a Line.
@@ -111,7 +128,14 @@ struct MeasurementLayer: View {
     private var labelAnchor: MapPoint {
         let reach = measurement.distance * pixelsPerSquare
         switch measurement.shape {
-        case .cone, .line:
+        case .line:
+            // The far end of the chain, which is the live end while it is being drawn and
+            // the last placed vertex once it is finished — never a projection from the
+            // Origin, since a chain has corners.
+            return measurement.isChaining
+                ? measurement.liveEnd(origin: origin, pixelsPerSquare: pixelsPerSquare)
+                : (measurement.chain.last ?? origin)
+        case .cone:
             return MapPoint(x: origin.x + cos(measurement.direction) * reach,
                             y: origin.y + sin(measurement.direction) * reach)
         case .circle:

@@ -148,13 +148,24 @@ final class MeasurementTypingTests: XCTestCase {
         XCTAssertEqual(aimed.distance, 50, "50 squares to the cursor")
     }
 
-    func testAnAimedDistanceSnapsButATypedOneDoesNot() {
+    func testAnAimedRadiusShapeSnapsButATypedOneDoesNot() {
         let origin = MapPoint(x: 0, y: 0)
-        let dragged = MapForge.Measurement(origin: .point(origin), shape: .line,
+        let dragged = MapForge.Measurement(origin: .point(origin), shape: .circle,
                                            distance: 0, direction: 0)
         // 43 pixels at 10 to the square is 4.3 squares, which must land on 4.
         let aimed = dragged.aimed(at: MapPoint(x: 43, y: 0), from: origin, pixelsPerSquare: 10)
         XCTAssertEqual(aimed.distance, 4)
+    }
+
+    func testALineDoesNotSnap() {
+        // A Line is a chain of points the DM placed deliberately, and rounding each vertex
+        // would compound the error along a long path. Deliberately unlike the radius
+        // shapes, which round to whole squares.
+        let origin = MapPoint(x: 0, y: 0)
+        let dragged = MapForge.Measurement(origin: .point(origin), shape: .line,
+                                           distance: 0, direction: 0)
+        let aimed = dragged.aimed(at: MapPoint(x: 43, y: 0), from: origin, pixelsPerSquare: 10)
+        XCTAssertEqual(aimed.distance, 4.3, accuracy: 1e-9)
     }
 
     func testACommittedDistanceReadsBackAsTyped() {

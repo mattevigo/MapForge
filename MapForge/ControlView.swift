@@ -311,8 +311,11 @@ struct ControlView: View {
                     //
                     // Right-click only opens the menu — picking a shape arms the tool, and
                     // the left-click after that says where the Measurement starts.
-                    .onRightClick { disarmMeasurement() }
-                    .contextMenu { measurementMenu }
+                    .onRightClick { rightClick() }
+                    // While a chain is being drawn right-click FINISHES it rather than
+                    // offering the menu, so the menu is withheld for that one state — a
+                    // menu appearing over the chain the DM just completed would bury it.
+                    .contextMenu { if !isChaining { measurementMenu } }
                     // Live only while the tool is armed or a Measurement is up, and lower
                     // priority than the Pawn drag underneath: dragging a token is the
                     // other live action on this surface, and a tap that swallowed it would
@@ -551,6 +554,16 @@ struct ControlView: View {
         }
         guard let measurement = appState.resolvedMeasurement else { return }
         typedDistance.clear()
+
+        // A Line being drawn takes another vertex instead of settling: the whole point of
+        // a chain is that clicking does not end it. Right-click finishes it.
+        if measurement.isChaining {
+            guard let cursor = mirrorCursor else { return }
+            let point = PlayerPlacement.mapPoint(cursor, map: map, frame: frame)
+            appState.setMeasurement(measurement.extended(to: point))
+            return
+        }
+
         appState.setMeasurement(measurement.clicked())
     }
 
@@ -604,9 +617,22 @@ struct ControlView: View {
         appState.setMeasurement(nil)
     }
 
-    /// Back out of an armed tool without placing anything.
-    private func disarmMeasurement() {
+    /// Right-click: finish a chain if one is being drawn, otherwise back out of an armed
+    /// tool and let the shape menu open.
+    private func rightClick() {
+        if let measurement = appState.resolvedMeasurement, measurement.isChaining {
+            // Frees the cursor: the chain stops following it and stays on screen until the
+            // next click, so the DM can read the total and point at the route.
+            appState.setMeasurement(measurement.finished())
+            typedDistance.clear()
+            return
+        }
         armedShape = nil
+    }
+
+    /// Whether a Line is mid-chain, which changes what both buttons mean.
+    private var isChaining: Bool {
+        appState.resolvedMeasurement?.isChaining ?? false
     }
 
     /// Whether the DM is in the middle of measuring — either waiting to place an Origin,
@@ -636,7 +662,7 @@ struct ControlView: View {
         // An armed tool has no Measurement yet, and the only key that means anything to it
         // is the one that backs out.
         if armedShape != nil, appState.measurement == nil {
-            if decision == .abandon { disarmMeasurement() }
+            if decision == .abandon { armedShape = nil }
             return
         }
         guard var measurement = appState.resolvedMeasurement else { return }
