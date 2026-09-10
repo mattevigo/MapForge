@@ -86,7 +86,11 @@ struct DeleteKeyModifier: ViewModifier {
 
 /// Reports the `NSWindow` hosting a SwiftUI view, so an event monitor can tell this
 /// window's keystrokes from every other window's.
-private struct WindowReader: NSViewRepresentable {
+///
+/// Shared by every local-monitor modifier that needs to scope by window — the Player
+/// window is borderless, fullscreen and perfectly capable of being key, so "which window
+/// was this?" is a question each of them has to answer.
+struct WindowReader: NSViewRepresentable {
     let onWindow: (NSWindow?) -> Void
 
     func makeNSView(context: Context) -> NSView {

@@ -43,7 +43,7 @@ struct MeasurementKeysModifier: ViewModifier {
                         .onChange(of: geo.frame(in: .global)) { _, new in handler.frame = new }
                 }
             )
-            .background(MeasurementWindowReader { handler.window = $0 })
+            .background(WindowReader { handler.window = $0 })
             .onAppear { start() }
             .onDisappear { stop() }
     }
@@ -59,14 +59,15 @@ struct MeasurementKeysModifier: ViewModifier {
             }
             guard let window = handler.window, event.window === window else { return event }
 
-            // Gate two: the cursor is over the Map. The monitor is global to the process
-            // and the window is full of other controls.
+            // Where the cursor is, in this view's coordinates — the input to the
+            // is-over-the-Map gate, which `MeasurementTyping.decide` applies below.
             let inWindow = window.mouseLocationOutsideOfEventStream
             let flipped = CGPoint(x: inWindow.x, y: window.contentLayoutRect.height - inWindow.y)
 
-            // Gate three: nothing is taking text input. Tested through `NSTextInputClient`
+            // Whether something is taking text input. Tested through `NSTextInputClient`
             // and the field editor rather than `NSText`/`NSTextView`, because a SwiftUI
-            // `TextField` is neither — the distinction `DeleteKey` records.
+            // `TextField` is neither — the distinction `DeleteKey` records, and the reason
+            // it records it is that a Wall got deleted mid-word.
             let responder = window.firstResponder
             let isEditingText = responder is NSTextInputClient
                 || (responder != nil && responder === window.fieldEditor(false, for: nil))
@@ -83,23 +84,6 @@ struct MeasurementKeysModifier: ViewModifier {
     private func stop() {
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
-    }
-}
-
-/// Reports the `NSWindow` hosting a SwiftUI view, so the monitor can tell this window's
-/// keystrokes from the Player window's — which is borderless, fullscreen and perfectly
-/// capable of being key.
-private struct MeasurementWindowReader: NSViewRepresentable {
-    let onWindow: (NSWindow?) -> Void
-
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView(frame: .zero)
-        DispatchQueue.main.async { onWindow(view.window) }
-        return view
-    }
-
-    func updateNSView(_ view: NSView, context: Context) {
-        DispatchQueue.main.async { onWindow(view.window) }
     }
 }
 

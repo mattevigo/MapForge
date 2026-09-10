@@ -280,6 +280,13 @@ struct ControlView: View {
                     .onRightClick { point in
                         rightClickToMeasure(at: point, map: map, frame: mirrorFrame)
                     }
+                    // Only while a Measurement is armed, and lower priority than the Pawn
+                    // drag underneath: dragging a token is the other live action on this
+                    // surface, and a tap that swallowed it would break the more common one.
+                    .simultaneousGesture(
+                        TapGesture().onEnded { leftClickToSettle() },
+                        including: appState.measurement != nil ? .all : .subviews
+                    )
                     .onContinuousHover { phase in
                         switch phase {
                         case .active(let location):
@@ -511,6 +518,26 @@ struct ControlView: View {
         }())
     }
 
+    /// Left-click on the mirror: settle the Measurement at the distance now shown, so it
+    /// stops following the mouse.
+    ///
+    /// The original requirement — "left click on a point in the screen to see the amount"
+    /// — and it is not optional polish. Without it a Measurement rubber-bands forever, so
+    /// the DM has to hold the mouse perfectly still to read the number and destroys it by
+    /// moving to point at the shape. That is the failure ADR 0005 rejected under another
+    /// name: evidence that vanishes the moment the table wants to discuss it.
+    ///
+    /// A second left-click un-settles it, so one Measurement can be re-taken without
+    /// dismissing and restarting from the same Origin.
+    private func leftClickToSettle() {
+        guard var measurement = appState.resolvedMeasurement else { return }
+        measurement.isDistanceSettled.toggle()
+        // A settled Measurement owns its distance; a part-typed buffer would fight it on
+        // the next keystroke.
+        typedDistance.clear()
+        appState.setMeasurement(measurement)
+    }
+
     /// Right-click on the mirror: start a Measurement, or dismiss the one on screen.
     ///
     /// Modal and unambiguous — there is only ever one Measurement, so "dismiss" needs no
@@ -569,7 +596,7 @@ struct ControlView: View {
             // Back to an empty buffer is back to a dragged Measurement, so the next mouse
             // move sizes it again rather than leaving it frozen at the typed value.
             if typedDistance.isEmpty {
-                measurement.isDistanceTyped = false
+                measurement.isDistanceSettled = false
                 measurement.distance = 0
                 appState.setMeasurement(measurement)
             }
@@ -577,13 +604,20 @@ struct ControlView: View {
         case .commit:
             guard let squares = typedDistance.squares(in: DistanceUnit.current) else { return }
             measurement.distance = squares
-            measurement.isDistanceTyped = true
+            measurement.isDistanceSettled = true
             appState.setMeasurement(measurement)
             typedDistance.clear()
             return
         case .abandon:
+            // Esc abandons the digits, not the Measurement. Right-click is the one way to
+            // dismiss one, and a second dismissal mechanism is what ADR 0005 objected to —
+            // a DM who mistypes should not lose the Origin they picked.
+            let hadDigits = !typedDistance.isEmpty
             typedDistance.clear()
-            appState.setMeasurement(nil)
+            guard hadDigits else { return }
+            measurement.isDistanceSettled = false
+            measurement.distance = 0
+            appState.setMeasurement(measurement)
             return
         }
 
@@ -591,7 +625,7 @@ struct ControlView: View {
         // than after the shape jumps.
         if let squares = typedDistance.squares(in: DistanceUnit.current) {
             measurement.distance = squares
-            measurement.isDistanceTyped = true
+            measurement.isDistanceSettled = true
             appState.setMeasurement(measurement)
         }
     }

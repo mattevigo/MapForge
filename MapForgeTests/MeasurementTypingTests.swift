@@ -107,18 +107,37 @@ final class MeasurementTypingTests: XCTestCase {
         XCTAssertNotEqual(squares!, Measurement.snap(squares: squares!))
     }
 
-    func testTheMouseCannotOverwriteATypedDistance() {
+    func testTheMouseCannotOverwriteASettledDistance() {
         // The failure this feature would most likely ship with, because it only shows up
-        // between typing a distance and looking at it: the next hover tick resizes the
-        // shape from the cursor and the exact number is gone.
+        // between reading a distance and moving the mouse: the next hover tick resizes the
+        // shape from the cursor and the number is gone.
+        //
+        // A Measurement that never settles is the option ADR 0005 rejected under another
+        // name — evidence that vanishes the moment the table wants to discuss it — so a
+        // dragged Measurement must be committable, not only a typed one.
         let origin = MapPoint(x: 0, y: 0)
-        var typed = MapForge.Measurement(origin: .point(origin), shape: .cone,
-                                         distance: 6, direction: 0)
-        typed.isDistanceTyped = true
+        var settled = MapForge.Measurement(origin: .point(origin), shape: .cone,
+                                           distance: 6, direction: 0)
+        settled.isDistanceSettled = true
 
-        let aimed = typed.aimed(at: MapPoint(x: 500, y: 0), from: origin, pixelsPerSquare: 10)
-        XCTAssertEqual(aimed.distance, 6, "a typed distance holds")
+        let aimed = settled.aimed(at: MapPoint(x: 500, y: 0), from: origin, pixelsPerSquare: 10)
+        XCTAssertEqual(aimed.distance, 6, "a settled distance holds")
         XCTAssertEqual(aimed.direction, 0, accuracy: 1e-9, "but the aim still follows")
+    }
+
+    func testASettledMeasurementSurvivesRepeatedMouseMovement() {
+        // The DM reads "9 m", then moves the mouse to point at the shape. The number must
+        // still say 9 m when they get there.
+        let origin = MapPoint(x: 0, y: 0)
+        var settled = MapForge.Measurement(origin: .point(origin), shape: .circle,
+                                           distance: 6, direction: 0)
+        settled.isDistanceSettled = true
+
+        var current = settled
+        for x in stride(from: CGFloat(10), through: 500, by: 10) {
+            current = current.aimed(at: MapPoint(x: x, y: x), from: origin, pixelsPerSquare: 10)
+        }
+        XCTAssertEqual(current.distance, 6)
     }
 
     func testADraggedDistanceDoesFollowTheMouse() {

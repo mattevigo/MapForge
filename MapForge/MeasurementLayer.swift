@@ -18,8 +18,6 @@ struct MeasurementLayer: View {
     let map: MapScale
     let frame: CGRect
     let pixelsPerSquare: CGFloat
-    /// Shown beside the shape. Off for the fog authoring preview, which has no readout.
-    var showsReadout = true
 
     /// Green, per the feature's spec. Translucent fill, solid border — the pairing
     /// `GridFitOverlay` and `ViewportOverlay` already use for "a region under discussion".
@@ -29,7 +27,7 @@ struct MeasurementLayer: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             shape
-            if showsReadout { readout }
+            readout
         }
         // A Measurement is drawn over the Map but is not part of it: it must never eat the
         // right-click that dismisses it, nor the Pawn drag underneath.

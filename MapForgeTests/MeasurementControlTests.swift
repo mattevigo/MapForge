@@ -197,6 +197,21 @@ final class MeasurementLifecycleTests: XCTestCase {
         XCTAssertEqual(state.measurementOriginPoint, MapPoint(x: 600, y: 500))
     }
 
+    func testTheShapeCanChangeWithoutLosingTheOriginOrDistance() {
+        // How a DM compares a cone against a circle from the same Pawn: changing the shape
+        // re-projects in place rather than starting again.
+        let state = state()
+        state.setMeasurement(Measurement(origin: .point(MapPoint(x: 10, y: 10)),
+                                         shape: .circle, distance: 4, direction: 1))
+        var changed = state.measurement!
+        changed.shape = .cone
+        state.setMeasurement(changed)
+
+        XCTAssertEqual(state.measurement?.shape, .cone)
+        XCTAssertEqual(state.measurement?.origin, .point(MapPoint(x: 10, y: 10)))
+        XCTAssertEqual(state.measurement?.distance, 4)
+    }
+
     func testEnteringFogEditingClearsTheMeasurement() {
         // Measuring is a play action; fog editing is authoring. The same boundary Solo
         // Sight observes.

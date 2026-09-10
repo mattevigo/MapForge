@@ -9,9 +9,10 @@ panel reads them from the built app.
 ### Measurement
 
 - Measure distances on the Map mid-play: right-click to start, move the mouse to aim and
-  size the shape, right-click again to dismiss. Cone, Square, Circle and Line, picked from
-  the Control Window and sticky between Measurements, so measuring the same spell twice
-  through a fight is one right-click and one move.
+  size the shape, left-click to settle it so it stops following the cursor, right-click
+  again to dismiss. Cone, Square, Circle and Line, picked from the Control Window and
+  sticky between Measurements, so measuring the same spell twice through a fight is one
+  right-click and one move.
 - Right-clicking a Pawn measures from that Pawn: the shape follows it as it is dragged, and
   ends when the Pawn does.
 - Type an exact distance instead of hunting for the pixel that happens to be 9 m away — the

@@ -23,6 +23,14 @@ accepted: the normal-mode mirror has no absolute view→map inverse today — `P
 open-codes only a *delta* conversion — and no hover tracking at all. Both are built here
 rather than moving the feature to a mode that already has them.
 
+**A Measurement rubber-bands until it is settled.** Moving the mouse aims and sizes it;
+left-clicking settles the distance so it stops following, and a second left-click un-settles
+it. This was missed on the first pass — the design replaced the original "left click to see
+the amount" with a live preview and dropped the commit step with it, leaving a Measurement
+that could never be read without holding the mouse still. That is the option ADR-0005
+rejected under another name: evidence that vanishes the moment the table wants to discuss
+it. Typing a distance settles it too. The *aim* keeps following the cursor either way.
+
 **Right-click starts and dismisses; the shape is chosen in the Control chrome.** Not a
 context menu: `ControlView.swift:604-609` records four defects from gesture composition in
 this render layer, and every other object setting (pawn kind, light radii) already lives in

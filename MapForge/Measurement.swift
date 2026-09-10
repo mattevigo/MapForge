@@ -56,12 +56,17 @@ struct Measurement: Equatable {
     /// Ignored by the radius shapes.
     var direction: CGFloat
 
-    /// Whether the distance was typed rather than dragged.
+    /// Whether the distance is settled, so the mouse no longer resizes it.
     ///
-    /// A typed distance is exact and the mouse must not overwrite it as the DM keeps
-    /// moving — while the *aim* goes on following the cursor, which is the whole point of
-    /// typing one: an exact range, pointed wherever it is asked about.
-    var isDistanceTyped = false
+    /// Set by left-clicking to commit a dragged Measurement, and by typing one. Until then
+    /// the shape rubber-bands with the cursor, which is how the DM finds the distance in
+    /// the first place; after it, the number holds still long enough to be read and argued
+    /// over. A Measurement that never settles is the failure ADR 0005 rejected under
+    /// another name — evidence that vanishes the moment the table wants to discuss it.
+    ///
+    /// The *aim* keeps following the cursor either way: an exact range, pointed wherever
+    /// it is being asked about.
+    var isDistanceSettled = false
 
     /// The 5e cone: as wide at its end as it is long, which makes the half-angle
     /// `atan(0.5)` and the total `2·atan(0.5)` ≈ 53.13°.
@@ -76,17 +81,18 @@ struct Measurement: Equatable {
     /// Typed distances deliberately bypass this: you typed it, you meant it.
     static func snap(squares: CGFloat) -> CGFloat { max(0, squares.rounded()) }
 
-    /// Re-aimed at the cursor, and resized to reach it — unless the distance was typed, in
-    /// which case the aim follows and the distance holds.
+    /// Re-aimed at the cursor, and resized to reach it — unless the distance has settled,
+    /// in which case the aim follows and the distance holds.
     ///
-    /// The rule lives here rather than in the view so it can be tested: a typed distance
+    /// The rule lives here rather than in the view so it can be tested: a settled distance
     /// silently overwritten by the next mouse move is the failure this feature would be
-    /// most likely to ship with, since it only shows up between typing and looking.
+    /// most likely to ship with, since it only shows up between reading a number and
+    /// moving the mouse.
     func aimed(at cursor: MapPoint, from origin: MapPoint,
                pixelsPerSquare: CGFloat) -> Measurement {
         var next = self
         next.direction = MeasurementControl.direction(from: origin, to: cursor)
-        guard !isDistanceTyped, pixelsPerSquare > 0 else { return next }
+        guard !isDistanceSettled, pixelsPerSquare > 0 else { return next }
         let squares = hypot(cursor.x - origin.x, cursor.y - origin.y) / pixelsPerSquare
         next.distance = Self.snap(squares: squares)
         return next
