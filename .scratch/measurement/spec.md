@@ -31,11 +31,16 @@ that could never be read without holding the mouse still. That is the option ADR
 rejected under another name: evidence that vanishes the moment the table wants to discuss
 it. Typing a distance settles it too. The *aim* keeps following the cursor either way.
 
-**Right-click starts and dismisses; the shape is chosen in the Control chrome.** Not a
-context menu: `ControlView.swift:604-609` records four defects from gesture composition in
-this render layer, and every other object setting (pawn kind, light radii) already lives in
-an inspector row beside the preview. The last-used shape is sticky, so measuring is one
-right-click and one move.
+**Right-click opens a shape menu on the Map; left-click settles and dismisses.** The first
+design put the shape picker in the window chrome, reasoning from the four gesture-composition
+defects `ControlView.swift` records — but `.contextMenu` is a modifier, not a composed
+gesture, so that reasoning did not apply. Choosing the shape belongs where the DM is already
+pointing. Right-click resolves the Origin and opens the menu; picking a shape starts the
+Measurement there; the last-used shape is sticky so the menu opens on it.
+
+Because right-click now opens a menu it can no longer double as the dismissal, so one button
+drives the whole life of a Measurement: left-click settles the distance, left-click again
+clears it. Two clicks in the same place, and no rule about which button does which.
 
 **Metres now, feet later — so the unit is a parameter from day one.** Distances are stored
 in Grid squares, as `Light` and `Pawn` already store them, and converted at the rendering

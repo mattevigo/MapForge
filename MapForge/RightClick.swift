@@ -9,11 +9,12 @@ import AppKit
 /// reference the body refreshes each render, because a monitor installed once in
 /// `onAppear` otherwise captures the closure — and the frame — it had at install time.
 ///
-/// A `.contextMenu` would be the obvious alternative and is deliberately not used: this
-/// render layer has produced four defects from gesture composition, and right-click here
-/// means "start a Measurement", not "offer a menu".
+/// Pairs with `.contextMenu` rather than replacing it: SwiftUI opens the menu but never
+/// says *where* it was opened, and a Measurement has to start at the point the DM clicked.
+/// This reports the location; the menu picks the shape.
 struct RightClickModifier: ViewModifier {
-    /// The click, in the modified view's own coordinates.
+    /// The click, in the modified view's own coordinates. Reported before the context menu
+    /// opens, and the event carries on to open it.
     let onRightClick: (CGPoint) -> Void
 
     private final class Handler {
@@ -50,7 +51,10 @@ struct RightClickModifier: ViewModifier {
             guard handler.frame.contains(flipped) else { return event }
             handler.onRightClick(CGPoint(x: flipped.x - handler.frame.minX,
                                          y: flipped.y - handler.frame.minY))
-            return nil
+            // The event is REPORTED, not consumed. A `.contextMenu` on the same view has
+            // to receive this same click to open — swallowing it here would report the
+            // location to a menu that then never appeared.
+            return event
         }
     }
 

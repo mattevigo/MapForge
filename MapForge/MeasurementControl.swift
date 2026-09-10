@@ -54,7 +54,11 @@ enum MeasurementControl {
             .map { pawn -> (Pawn, CGFloat) in
                 (pawn, hypot(pawn.at.x - point.x, pawn.at.y - point.y))
             }
-            // Half the token's own footprint, so a Big Pawn is hit across its whole 2x2.
+            // Exactly the token as drawn, no wider: `PawnToken` draws a disc of
+            // `squareSide * squaresAcross`, so half that is its edge. A click one pixel
+            // outside the disc is a click on the Map, and it must measure from precisely
+            // where it landed — a Measurement that quietly starts somewhere other than
+            // where the DM pointed is a confident wrong answer.
             .filter { $0.1 <= $0.0.squaresAcross * pixelsPerSquare / 2 }
             .min { $0.1 < $1.1 }
 

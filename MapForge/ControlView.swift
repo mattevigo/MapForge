@@ -31,10 +31,12 @@ struct ControlView: View {
     @State private var selectedLight: Light.ID?
     /// The Pawn whose label, colour and range the inspector edits.
     @State private var selectedPawn: Pawn.ID?
-    /// Which shape the next Measurement takes. Sticky across Measurements, so measuring
-    /// the same spell repeatedly through a fight is one right-click and one move rather
-    /// than a menu every time. Session-local, like the Measurement itself.
+    /// Which shape the last Measurement took, so the right-click menu opens on it.
+    /// Session-local, like the Measurement itself.
     @State private var measurementShape: MeasurementShape = .circle
+    /// The Origin resolved by the right-click that opened the shape menu, waiting for a
+    /// shape to be picked. Nil except between those two moments.
+    @State private var pendingOrigin: MeasurementOrigin?
     /// Digits typed towards an exact distance. Empty except between the first digit and
     /// Return, which is also the only window in which the key monitor claims anything.
     @State private var typedDistance = MeasurementTyping.Buffer()
@@ -277,9 +279,12 @@ struct ControlView: View {
                     // Measuring is a live play action, so it lives on the mirror rather
                     // than behind an editing mode — beside dragging a Pawn, not beside
                     // authoring Walls.
+                    // The right-click resolves the Origin; the menu that follows picks the
+                    // shape and starts the Measurement there.
                     .onRightClick { point in
-                        rightClickToMeasure(at: point, map: map, frame: mirrorFrame)
+                        armMeasurementOrigin(at: point, map: map, frame: mirrorFrame)
                     }
+                    .contextMenu { measurementMenu }
                     // Only while a Measurement is armed, and lower priority than the Pawn
                     // drag underneath: dragging a token is the other live action on this
                     // surface, and a tap that swallowed it would break the more common one.
@@ -396,7 +401,6 @@ struct ControlView: View {
                 .disabled(!mapOverflowsViewport)
             Button("Edit Fog…") { startFogEditing() }
                 .disabled(appState.mapImage == nil)
-            measurementPicker
         case .gridFit:
             if fitSquare != nil, let snap = GridFit.snapSuggestion(for: appState.squaresWide) {
                 Button("Snap to \(snap)") { applySnap(snap) }
@@ -484,40 +488,6 @@ struct ControlView: View {
 
     // MARK: Measuring
 
-    /// The Measurement Shape the next right-click will draw.
-    ///
-    /// In the chrome rather than in a context menu on the Map: every other object setting
-    /// already lives beside the preview, and a sticky shape makes the common case — the
-    /// same spell measured repeatedly through a fight — one right-click and one move.
-    ///
-    /// Changing it re-projects a Measurement already on screen, keeping its Origin and
-    /// distance, which is how a DM compares a cone against a circle from the same Pawn.
-    @ViewBuilder
-    private var measurementPicker: some View {
-        let availability = appState.measurementAvailability
-        Picker("Measure", selection: Binding(
-            get: { measurementShape },
-            set: { shape in
-                measurementShape = shape
-                if var measurement = appState.measurement {
-                    measurement.shape = shape
-                    appState.setMeasurement(measurement)
-                }
-            })) {
-            ForEach(MeasurementShape.allCases, id: \.self) { Text($0.label).tag($0) }
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .frame(width: 220)
-        .disabled(availability != .available)
-        // A control that is merely inert teaches the DM nothing, and they are reading it
-        // in front of players.
-        .help({
-            if case .disabled(let reason) = availability { return reason.explanation }
-            return "Right-click the Map to measure; right-click again to dismiss."
-        }())
-    }
-
     /// Left-click on the mirror: settle the Measurement at the distance now shown, so it
     /// stops following the mouse.
     ///
@@ -527,44 +497,59 @@ struct ControlView: View {
     /// moving to point at the shape. That is the failure ADR 0005 rejected under another
     /// name: evidence that vanishes the moment the table wants to discuss it.
     ///
-    /// A second left-click un-settles it, so one Measurement can be re-taken without
-    /// dismissing and restarting from the same Origin.
+    /// A left-click on a settled Measurement dismisses it, because right-click now opens
+    /// the shape menu and can no longer double as the dismissal.
+    ///
+    /// So one button drives the whole life of a Measurement: click to settle the distance,
+    /// click again to clear it. Two clicks in the same place, and the DM never has to
+    /// remember which button does which.
     private func leftClickToSettle() {
-        guard var measurement = appState.resolvedMeasurement else { return }
-        measurement.isDistanceSettled.toggle()
-        // A settled Measurement owns its distance; a part-typed buffer would fight it on
-        // the next keystroke.
+        guard let measurement = appState.resolvedMeasurement else { return }
         typedDistance.clear()
-        appState.setMeasurement(measurement)
+        appState.setMeasurement(measurement.clicked())
     }
 
-    /// Right-click on the mirror: start a Measurement, or dismiss the one on screen.
+    /// Where the right-click that opened the shape menu landed, in image pixels.
     ///
-    /// Modal and unambiguous — there is only ever one Measurement, so "dismiss" needs no
-    /// target. A click that starts one hit-tests the Pawns itself rather than relying on a
-    /// gesture attached to the token: `PawnLayer` already owns a drag, child gestures beat
-    /// ancestor ones, and this render layer has four defects on record from composing them.
-    private func rightClickToMeasure(at point: CGPoint, map: MapScale,
-                                     frame: CGRect) {
+    /// The menu is what starts a Measurement, and by the time a shape is picked the click
+    /// is long gone — so the Origin is resolved at right-click time and parked here. It is
+    /// a Pawn-or-point already, because which one it is depends on where the click landed
+    /// and not on which shape was chosen afterwards.
+    private func armMeasurementOrigin(at point: CGPoint, map: MapScale, frame: CGRect) {
         guard appState.measurementAvailability == .available,
               let pixelsPerSquare = appState.pixelsPerSquare else { return }
-
-        // A part-typed distance belongs to the Measurement being dismissed, and to the one
-        // being started: either way the buffer starts empty.
-        typedDistance.clear()
-
-        if appState.measurement != nil {
-            appState.setMeasurement(nil)
-            return
-        }
-
-        // The modifier reports in its own coordinates; the mirror's frame is expressed in
-        // the clipped container's, so the two agree already.
         let mapPoint = PlayerPlacement.mapPoint(point, map: map, frame: frame)
-        let origin = MeasurementControl.origin(forClickAt: mapPoint,
-                                               pawns: appState.fog.pawns,
-                                               pixelsPerSquare: pixelsPerSquare)
-        appState.setMeasurement(Measurement(origin: origin, shape: measurementShape,
+        pendingOrigin = MeasurementControl.origin(forClickAt: mapPoint,
+                                                  pawns: appState.fog.pawns,
+                                                  pixelsPerSquare: pixelsPerSquare)
+    }
+
+    /// The shapes offered by the right-click menu. Picking one starts a Measurement at the
+    /// point that opened the menu.
+    ///
+    /// The menu replaced a picker in the window chrome: choosing the shape belongs where
+    /// the DM is already pointing, not at the top of the window, and a menu keeps the whole
+    /// interaction on the Map. `.contextMenu` is a modifier rather than a composed gesture,
+    /// so it does not run into the composition defects this render layer has a record of.
+    @ViewBuilder
+    private var measurementMenu: some View {
+        if appState.measurementAvailability == .available {
+            ForEach(MeasurementShape.allCases, id: \.self) { shape in
+                Button(shape.label) { startMeasurement(shape) }
+            }
+        } else if case .disabled(let reason) = appState.measurementAvailability {
+            // A menu that is merely empty teaches the DM nothing, and they are reading it
+            // in front of players.
+            Text(reason.explanation)
+        }
+    }
+
+    private func startMeasurement(_ shape: MeasurementShape) {
+        guard let origin = pendingOrigin else { return }
+        // Sticky, so the menu opens on the shape the DM last used.
+        measurementShape = shape
+        typedDistance.clear()
+        appState.setMeasurement(Measurement(origin: origin, shape: shape,
                                             distance: 0, direction: 0))
     }
 

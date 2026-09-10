@@ -98,6 +98,27 @@ final class MeasurementControlTests: XCTestCase {
                        .pawn(near.id))
     }
 
+    func testAClickJustOutsideTheTokenIsAnExactPoint() {
+        // The hit area is the token as drawn and not a pixel wider. `PawnToken` draws a
+        // disc of `squareSide * squaresAcross`, so at 50 pixels to the square a 1x1 token
+        // ends 25 pixels out — 26 is Map, and must measure from exactly there.
+        let pawn = Pawn(at: MapPoint(x: 500, y: 400), label: "A", colorHex: "#ff0000",
+                        brightSquares: 4)
+        let click = MapPoint(x: 526, y: 400)
+        XCTAssertEqual(MeasurementControl.origin(forClickAt: click, pawns: [pawn],
+                                                 pixelsPerSquare: 50),
+                       .point(click))
+    }
+
+    func testTheOriginIsTheClickPointExactlyAndIsNotSnapped() {
+        // Nothing rounds a free Origin to the Grid: the DM measures from where they
+        // pointed, which is rarely a lattice intersection.
+        let click = MapPoint(x: 517.4, y: 383.9)
+        XCTAssertEqual(MeasurementControl.origin(forClickAt: click, pawns: [],
+                                                 pixelsPerSquare: 50),
+                       .point(click))
+    }
+
     func testABigPawnIsHitOverItsWholeFootprint() {
         // A Big Pawn spans 2x2, so a click inside its token that is more than half a
         // square from its centre still belongs to it.
@@ -197,19 +218,20 @@ final class MeasurementLifecycleTests: XCTestCase {
         XCTAssertEqual(state.measurementOriginPoint, MapPoint(x: 600, y: 500))
     }
 
-    func testTheShapeCanChangeWithoutLosingTheOriginOrDistance() {
-        // How a DM compares a cone against a circle from the same Pawn: changing the shape
-        // re-projects in place rather than starting again.
-        let state = state()
-        state.setMeasurement(Measurement(origin: .point(MapPoint(x: 10, y: 10)),
-                                         shape: .circle, distance: 4, direction: 1))
-        var changed = state.measurement!
-        changed.shape = .cone
-        state.setMeasurement(changed)
+    func testTheFirstClickSettlesAndTheSecondDismisses() {
+        // Right-click now opens the shape menu, so it can no longer double as the
+        // dismissal: one button drives the whole life of a Measurement — click to settle
+        // the distance, click again to clear it.
+        let measurement = MapForge.Measurement(origin: .point(MapPoint(x: 10, y: 10)),
+                                               shape: .circle, distance: 4, direction: 0)
+        XCTAssertFalse(measurement.isDistanceSettled)
 
-        XCTAssertEqual(state.measurement?.shape, .cone)
-        XCTAssertEqual(state.measurement?.origin, .point(MapPoint(x: 10, y: 10)))
-        XCTAssertEqual(state.measurement?.distance, 4)
+        let settled = measurement.clicked()
+        XCTAssertEqual(settled?.isDistanceSettled, true)
+        XCTAssertEqual(settled?.distance, 4, "settling keeps the distance it was showing")
+        XCTAssertEqual(settled?.origin, .point(MapPoint(x: 10, y: 10)))
+
+        XCTAssertNil(settled?.clicked(), "a settled Measurement is dismissed")
     }
 
     func testEnteringFogEditingClearsTheMeasurement() {

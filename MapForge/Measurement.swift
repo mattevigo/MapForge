@@ -81,6 +81,21 @@ struct Measurement: Equatable {
     /// Typed distances deliberately bypass this: you typed it, you meant it.
     static func snap(squares: CGFloat) -> CGFloat { max(0, squares.rounded()) }
 
+    /// What a left-click on the Map does to this Measurement: settle it at the distance
+    /// now shown, or — if it is already settled — dismiss it, which `nil` says.
+    ///
+    /// One button drives the whole life of a Measurement, because right-click opens the
+    /// shape menu and can no longer double as the dismissal. Two clicks in the same place,
+    /// so the DM never has to remember which button does which.
+    ///
+    /// Here rather than in the view so it can be tested, like `aimed(at:from:)`.
+    func clicked() -> Measurement? {
+        guard !isDistanceSettled else { return nil }
+        var next = self
+        next.isDistanceSettled = true
+        return next
+    }
+
     /// Re-aimed at the cursor, and resized to reach it — unless the distance has settled,
     /// in which case the aim follows and the distance holds.
     ///
