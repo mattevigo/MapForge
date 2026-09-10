@@ -37,6 +37,15 @@ struct ControlView: View {
     /// The Origin resolved by the right-click that opened the shape menu, waiting for a
     /// shape to be picked. Nil except between those two moments.
     @State private var pendingOrigin: MeasurementOrigin?
+    /// Where the cursor last was on the mirror, in the mirror's own coordinates.
+    ///
+    /// SwiftUI reports this; an `NSEvent`'s `locationInWindow` is NOT convertible into it.
+    /// `.global` is neither the window's nor the content view's space — measured on a
+    /// plain window, a `GeometryReader` under 80pt of chrome reports its origin at y=120
+    /// and its height 88pt short, so converting an AppKit point through the content view
+    /// lands hundreds of points out. Right-click therefore reads the *hovered* point
+    /// rather than the event's, which is the only figure in the right space.
+    @State private var mirrorCursor: CGPoint?
     /// Digits typed towards an exact distance. Empty except between the first digit and
     /// Return, which is also the only window in which the key monitor claims anything.
     @State private var typedDistance = MeasurementTyping.Buffer()
@@ -288,8 +297,11 @@ struct ControlView: View {
                     //
                     // The right-click resolves the Origin; the menu that follows picks the
                     // shape and starts the Measurement there.
-                    .onRightClick { point in
-                        armMeasurementOrigin(at: point, map: map, frame: mirrorFrame)
+                    // The click's own location is unusable here — see `mirrorCursor` — so
+                    // the last hovered point stands in for it. They are the same point:
+                    // the cursor cannot right-click somewhere it is not.
+                    .onRightClick {
+                        armMeasurementOrigin(map: map, frame: mirrorFrame)
                     }
                     .contextMenu { measurementMenu }
                     // Only while a Measurement is armed, and lower priority than the Pawn
@@ -302,14 +314,18 @@ struct ControlView: View {
                     .onContinuousHover { phase in
                         switch phase {
                         case .active(let location):
+                            // Kept for the right-click, which cannot learn its own
+                            // location in this coordinate space.
+                            mirrorCursor = location
                             aim(at: location, map: map, frame: mirrorFrame)
                         case .ended:
-                            break
+                            mirrorCursor = nil
                         }
                     }
                     // Digits are claimed only while a Measurement is armed, the cursor is
                     // over the Map, and no text field has focus. See MeasurementTyping.
-                    .onMeasurementKeys(isArmed: appState.measurement != nil) {
+                    .onMeasurementKeys(isArmed: appState.measurement != nil,
+                                       isOverMap: mirrorCursor != nil) {
                         handleMeasurementKey($0)
                     }
                     .clipped()
@@ -524,9 +540,10 @@ struct ControlView: View {
     /// is long gone — so the Origin is resolved at right-click time and parked here. It is
     /// a Pawn-or-point already, because which one it is depends on where the click landed
     /// and not on which shape was chosen afterwards.
-    private func armMeasurementOrigin(at point: CGPoint, map: MapScale, frame: CGRect) {
+    private func armMeasurementOrigin(map: MapScale, frame: CGRect) {
         guard appState.measurementAvailability == .available,
-              let pixelsPerSquare = appState.pixelsPerSquare else { return }
+              let pixelsPerSquare = appState.pixelsPerSquare,
+              let point = mirrorCursor else { return }
         let mapPoint = PlayerPlacement.mapPoint(point, map: map, frame: frame)
         pendingOrigin = MeasurementControl.origin(forClickAt: mapPoint,
                                                   pawns: appState.fog.pawns,

@@ -1,25 +1,30 @@
 import SwiftUI
 import AppKit
 
-/// Secondary-click reporting for SwiftUI, which has no gesture for it.
+/// Secondary-click notification for SwiftUI, which has no gesture for it.
 ///
-/// Built the way `ScrollWheelModifier` is, and for the same reasons: a local event monitor
-/// rather than an `NSViewRepresentable`, because a representable in a `.position()`-based
-/// ZStack never gets a non-zero frame and so never receives events; and a `Handler`
-/// reference the body refreshes each render, because a monitor installed once in
-/// `onAppear` otherwise captures the closure — and the frame — it had at install time.
+/// Reports only *that* a right-click happened in this view's window — deliberately not
+/// where. An `NSEvent`'s `locationInWindow` cannot be converted into the coordinate space
+/// SwiftUI's `GeometryReader` reports: measured on a plain window, a `GeometryReader`
+/// under 80pt of chrome gives its `.global` origin as y=120 with a height 88pt short of
+/// the content view, so `.global` is neither the window's space nor the content view's.
+/// Flipping an event point against `contentLayoutRect` or converting it through the
+/// content view both land hundreds of points out, and both were shipped and reverted here
+/// before that was measured.
 ///
-/// Pairs with `.contextMenu` rather than replacing it: SwiftUI opens the menu but never
-/// says *where* it was opened, and a Measurement has to start at the point the DM clicked.
-/// This reports the location; the menu picks the shape.
+/// Callers that need the location read it from `onContinuousHover`, which reports in the
+/// modified view's own space. The cursor cannot right-click somewhere it is not.
+///
+/// Pairs with `.contextMenu`: this fires first, the menu opens second.
 struct RightClickModifier: ViewModifier {
-    /// The click, in the modified view's own coordinates. Reported before the context menu
-    /// opens, and the event carries on to open it.
-    let onRightClick: (CGPoint) -> Void
+    let onRightClick: () -> Void
 
+    /// The live closure and this view's window, read at event time. The monitor is
+    /// installed once and would otherwise capture the first render's state forever — the
+    /// bug `ScrollWheelModifier` documents at length.
     private final class Handler {
-        var onRightClick: (CGPoint) -> Void = { _ in }
-        var frame: CGRect = .zero
+        var onRightClick: () -> Void = {}
+        weak var window: NSWindow?
     }
 
     @State private var handler = Handler()
@@ -28,13 +33,7 @@ struct RightClickModifier: ViewModifier {
     func body(content: Content) -> some View {
         handler.onRightClick = onRightClick
         return content
-            .background(
-                GeometryReader { geo in
-                    Color.clear
-                        .onAppear { handler.frame = geo.frame(in: .global) }
-                        .onChange(of: geo.frame(in: .global)) { _, new in handler.frame = new }
-                }
-            )
+            .background(WindowReader { handler.window = $0 })
             .onAppear { start() }
             .onDisappear { stop() }
     }
@@ -43,17 +42,12 @@ struct RightClickModifier: ViewModifier {
         guard monitor == nil else { return }
         let handler = self.handler
         monitor = NSEvent.addLocalMonitorForEvents(matching: .rightMouseDown) { event in
-            guard let window = event.window else { return event }
-            // The monitor is global to the process, so only claim clicks landing inside
-            // this view; everything else must pass through untouched.
-            let inWindow = event.locationInWindow
-            let flipped = CGPoint(x: inWindow.x, y: window.contentLayoutRect.height - inWindow.y)
-            guard handler.frame.contains(flipped) else { return event }
-            handler.onRightClick(CGPoint(x: flipped.x - handler.frame.minX,
-                                         y: flipped.y - handler.frame.minY))
-            // The event is REPORTED, not consumed. A `.contextMenu` on the same view has
-            // to receive this same click to open — swallowing it here would report the
-            // location to a menu that then never appeared.
+            // Only this view's own window. The monitor is global to the process, and the
+            // Player window is borderless, fullscreen and perfectly capable of being key.
+            guard let window = handler.window, event.window === window else { return event }
+            handler.onRightClick()
+            // REPORTED, not consumed: the `.contextMenu` on the same view needs this very
+            // click to open.
             return event
         }
     }
@@ -65,7 +59,9 @@ struct RightClickModifier: ViewModifier {
 }
 
 extension View {
-    func onRightClick(_ onRightClick: @escaping (CGPoint) -> Void) -> some View {
+    /// Calls `onRightClick` when a secondary click lands in this view's window, before any
+    /// `.contextMenu` opens. Carries no location — see `RightClickModifier`.
+    func onRightClick(_ onRightClick: @escaping () -> Void) -> some View {
         modifier(RightClickModifier(onRightClick: onRightClick))
     }
 }

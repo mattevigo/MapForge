@@ -18,12 +18,16 @@ struct MeasurementKeysModifier: ViewModifier {
     /// this monitor is tolerable at all: it is live only in a state the DM entered
     /// deliberately, and torn down with the Measurement.
     let isArmed: Bool
+    /// Whether the cursor is over the Map. Passed in from `onContinuousHover` rather than
+    /// computed here: an `NSEvent` location cannot be converted into the space a
+    /// `GeometryReader` reports — see `RightClickModifier` for the measurements.
+    let isOverMap: Bool
     let onDecision: (MeasurementTyping.Decision) -> Void
 
     private final class Handler {
         var isArmed = false
+        var isOverMap = false
         var onDecision: (MeasurementTyping.Decision) -> Void = { _ in }
-        var frame: CGRect = .zero
         weak var window: NSWindow?
     }
 
@@ -34,15 +38,9 @@ struct MeasurementKeysModifier: ViewModifier {
         // Every render, before any event can arrive — the stale-capture bug both sibling
         // modifiers document at length.
         handler.isArmed = isArmed
+        handler.isOverMap = isOverMap
         handler.onDecision = onDecision
         return content
-            .background(
-                GeometryReader { geo in
-                    Color.clear
-                        .onAppear { handler.frame = geo.frame(in: .global) }
-                        .onChange(of: geo.frame(in: .global)) { _, new in handler.frame = new }
-                }
-            )
             .background(WindowReader { handler.window = $0 })
             .onAppear { start() }
             .onDisappear { stop() }
@@ -59,11 +57,6 @@ struct MeasurementKeysModifier: ViewModifier {
             }
             guard let window = handler.window, event.window === window else { return event }
 
-            // Where the cursor is, in this view's coordinates — the input to the
-            // is-over-the-Map gate, which `MeasurementTyping.decide` applies below.
-            let inWindow = window.mouseLocationOutsideOfEventStream
-            let flipped = CGPoint(x: inWindow.x, y: window.contentLayoutRect.height - inWindow.y)
-
             // Whether something is taking text input. Tested through `NSTextInputClient`
             // and the field editor rather than `NSText`/`NSTextView`, because a SwiftUI
             // `TextField` is neither — the distinction `DeleteKey` records, and the reason
@@ -73,7 +66,7 @@ struct MeasurementKeysModifier: ViewModifier {
                 || (responder != nil && responder === window.fieldEditor(false, for: nil))
 
             let decision = MeasurementTyping.decide(for: key, isArmed: handler.isArmed,
-                                                    isInFrame: handler.frame.contains(flipped),
+                                                    isInFrame: handler.isOverMap,
                                                     isEditingText: isEditingText)
             guard decision != .passThrough else { return event }
             handler.onDecision(decision)
@@ -95,9 +88,10 @@ extension View {
     /// Reports digits, ⌫, Return and Esc to a Measurement being typed. Claims nothing
     /// unless a Measurement is armed, the cursor is over this view, and no text field has
     /// focus — see `MeasurementTyping.decide`.
-    func onMeasurementKeys(isArmed: Bool,
+    func onMeasurementKeys(isArmed: Bool, isOverMap: Bool,
                            perform onDecision: @escaping (MeasurementTyping.Decision) -> Void)
     -> some View {
-        modifier(MeasurementKeysModifier(isArmed: isArmed, onDecision: onDecision))
+        modifier(MeasurementKeysModifier(isArmed: isArmed, isOverMap: isOverMap,
+                                         onDecision: onDecision))
     }
 }

@@ -62,6 +62,32 @@ final class MeasurementControlTests: XCTestCase {
         XCTAssertEqual(back.y, 125, accuracy: 1e-6)
     }
 
+    func testTheOriginLandsUnderTheCursorForALetterboxedMirror() {
+        // The end-to-end property the offset bug broke, expressed the way `ControlView`
+        // actually computes it: a hovered point in the mirror's OWN coordinate space,
+        // against the same `mirrorFrame` the overlays draw with, must resolve to the map
+        // point that draws back at that same hovered point.
+        //
+        // Both hover and the overlays work in the clipped container's space, which is why
+        // reading the cursor from `onContinuousHover` is correct and reading it from an
+        // `NSEvent` is not — `.global` is neither the window's space nor the content
+        // view's, so no flip of an AppKit point can reach it.
+        let map = MapScale.grid(squaresWide: 20,
+                                imagePixelSize: CGSize(width: 1000, height: 800))
+        let imageFrame = CGRect(x: 300, y: 240, width: 2000, height: 1600)
+        let visible = CGRect(x: 120, y: 90, width: 900, height: 700)
+        let mirrorFrame = CGRect(x: imageFrame.minX - visible.minX,
+                                 y: imageFrame.minY - visible.minY,
+                                 width: imageFrame.width, height: imageFrame.height)
+
+        let hovered = CGPoint(x: 412.5, y: 337.25)
+        let mapPoint = PlayerPlacement.mapPoint(hovered, map: map, frame: mirrorFrame)
+        let drawnBack = PlayerPlacement.viewPoint(mapPoint, map: map, frame: mirrorFrame)
+
+        XCTAssertEqual(drawnBack.x, hovered.x, accuracy: 1e-6)
+        XCTAssertEqual(drawnBack.y, hovered.y, accuracy: 1e-6)
+    }
+
     func testAClickIsReadInTheSameSpaceTheOverlaysAreDrawnIn() {
         // The bug this pins: the input modifiers were attached BELOW `.position()`, which
         // re-parents the mirror into the outer container. They therefore reported clicks
