@@ -31,6 +31,10 @@ struct ControlView: View {
     @State private var selectedLight: Light.ID?
     /// The Pawn whose label, colour and range the inspector edits.
     @State private var selectedPawn: Pawn.ID?
+    /// Which shape the next Measurement takes. Sticky across Measurements, so measuring
+    /// the same spell repeatedly through a fight is one right-click and one move rather
+    /// than a menu every time. Session-local, like the Measurement itself.
+    @State private var measurementShape: MeasurementShape = .circle
 
     var body: some View {
         // `alignment: .top` on the row below, plus the preview claiming the remaining
@@ -251,8 +255,44 @@ struct ControlView: View {
                                   onMove: { appState.movePawn(id: $0, to: $1) },
                                   onCommit: { appState.flushPendingFogWrites() })
                     }
+                    .overlay {
+                        // Above the tokens: a Measurement is what the DM is pointing at,
+                        // and a cone half-hidden behind the party is unreadable.
+                        let mirrorFrame = CGRect(x: frame.minX - visible.minX,
+                                                 y: frame.minY - visible.minY,
+                                                 width: frame.width, height: frame.height)
+                        if let measurement = appState.resolvedMeasurement,
+                           let origin = appState.measurementOriginPoint,
+                           let pixelsPerSquare = appState.pixelsPerSquare {
+                            MeasurementLayer(measurement: measurement, origin: origin,
+                                             map: map, frame: mirrorFrame,
+                                             pixelsPerSquare: pixelsPerSquare)
+                        }
+                    }
                     .clipped()
                     .position(x: visible.midX, y: visible.midY)
+                    // Measuring is a live play action, so it lives on the mirror rather
+                    // than behind an editing mode — beside dragging a Pawn, not beside
+                    // authoring Walls.
+                    .onRightClick { point in
+                        rightClickToMeasure(at: point, map: map,
+                                            frame: CGRect(x: frame.minX - visible.minX,
+                                                          y: frame.minY - visible.minY,
+                                                          width: frame.width, height: frame.height),
+                                            container: visible)
+                    }
+                    .onContinuousHover { phase in
+                        switch phase {
+                        case .active(let location):
+                            aim(at: location, map: map,
+                                frame: CGRect(x: frame.minX - visible.minX,
+                                              y: frame.minY - visible.minY,
+                                              width: frame.width, height: frame.height),
+                                container: visible)
+                        case .ended:
+                            break
+                        }
+                    }
                 } else {
                     // Only Grid Fit carries a zoom; every other use of this branch is the
                     // plain aspect fit, which is that transform's floor.
@@ -349,6 +389,7 @@ struct ControlView: View {
                 .disabled(!mapOverflowsViewport)
             Button("Edit Fog…") { startFogEditing() }
                 .disabled(appState.mapImage == nil)
+            measurementPicker
         case .gridFit:
             if fitSquare != nil, let snap = GridFit.snapSuggestion(for: appState.squaresWide) {
                 Button("Snap to \(snap)") { applySnap(snap) }
@@ -432,6 +473,83 @@ struct ControlView: View {
               let image = appState.mapImage, appState.squaresWide > 0 else { return nil }
         return GridFit.squareSide(imageWidth: image.pixelSize.width,
                                   squaresWide: appState.squaresWide)
+    }
+
+    // MARK: Measuring
+
+    /// The Measurement Shape the next right-click will draw.
+    ///
+    /// In the chrome rather than in a context menu on the Map: every other object setting
+    /// already lives beside the preview, and a sticky shape makes the common case — the
+    /// same spell measured repeatedly through a fight — one right-click and one move.
+    ///
+    /// Changing it re-projects a Measurement already on screen, keeping its Origin and
+    /// distance, which is how a DM compares a cone against a circle from the same Pawn.
+    @ViewBuilder
+    private var measurementPicker: some View {
+        let availability = appState.measurementAvailability
+        Picker("Measure", selection: Binding(
+            get: { measurementShape },
+            set: { shape in
+                measurementShape = shape
+                if var measurement = appState.measurement {
+                    measurement.shape = shape
+                    appState.setMeasurement(measurement)
+                }
+            })) {
+            ForEach(MeasurementShape.allCases, id: \.self) { Text($0.label).tag($0) }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .frame(width: 220)
+        .disabled(availability != .available)
+        // A control that is merely inert teaches the DM nothing, and they are reading it
+        // in front of players.
+        .help({
+            if case .disabled(let reason) = availability { return reason.explanation }
+            return "Right-click the Map to measure; right-click again to dismiss."
+        }())
+    }
+
+    /// Right-click on the mirror: start a Measurement, or dismiss the one on screen.
+    ///
+    /// Modal and unambiguous — there is only ever one Measurement, so "dismiss" needs no
+    /// target. A click that starts one hit-tests the Pawns itself rather than relying on a
+    /// gesture attached to the token: `PawnLayer` already owns a drag, child gestures beat
+    /// ancestor ones, and this render layer has four defects on record from composing them.
+    private func rightClickToMeasure(at point: CGPoint, map: MapScale,
+                                     frame: CGRect, container: CGRect) {
+        guard appState.measurementAvailability == .available,
+              let pixelsPerSquare = appState.pixelsPerSquare else { return }
+
+        if appState.measurement != nil {
+            appState.setMeasurement(nil)
+            return
+        }
+
+        // The modifier reports in its own coordinates; the mirror's frame is expressed in
+        // the clipped container's, so the two agree already.
+        let mapPoint = PlayerPlacement.mapPoint(point, map: map, frame: frame)
+        let origin = MeasurementControl.origin(forClickAt: mapPoint,
+                                               pawns: appState.fog.pawns,
+                                               pixelsPerSquare: pixelsPerSquare)
+        appState.setMeasurement(Measurement(origin: origin, shape: measurementShape,
+                                            distance: 0, direction: 0))
+    }
+
+    /// Follow the cursor: an armed Measurement rubber-bands as the mouse moves, so the
+    /// shape is live before it is committed. Distance snaps to whole squares — every DnD
+    /// distance is a multiple of one, and nobody reads "8.7 m" off a screen.
+    private func aim(at point: CGPoint, map: MapScale, frame: CGRect, container: CGRect) {
+        guard var measurement = appState.resolvedMeasurement,
+              let origin = appState.measurementOriginPoint,
+              let pixelsPerSquare = appState.pixelsPerSquare, pixelsPerSquare > 0 else { return }
+
+        let cursor = PlayerPlacement.mapPoint(point, map: map, frame: frame)
+        measurement.direction = MeasurementControl.direction(from: origin, to: cursor)
+        let squares = hypot(cursor.x - origin.x, cursor.y - origin.y) / pixelsPerSquare
+        measurement.distance = Measurement.snap(squares: squares)
+        appState.setMeasurement(measurement)
     }
 
     private func startGridFit() {

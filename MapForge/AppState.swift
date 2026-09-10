@@ -64,6 +64,12 @@ final class AppState: ObservableObject {
             if let id = soloSightPawnID, !fog.pawns.contains(where: { $0.id == id }) {
                 soloSightPawnID = nil
             }
+            // A Measurement anchored to a Pawn is a reference into this document too, and
+            // invalidates for the same reason and in the same place.
+            if case .pawn(let id) = measurement?.origin,
+               !fog.pawns.contains(where: { $0.id == id }) {
+                measurement = nil
+            }
             guard fog != oldValue, mapURL != nil else { return }
             fogAutosave.schedule(fog)
         }
@@ -187,6 +193,9 @@ final class AppState: ObservableObject {
         // match — an accident of uniqueness rather than a rule, and it says nothing about a
         // Map opened without a fog reassignment. The mode belongs to the Map it was set on.
         soloSightPawnID = nil
+        // Same rule, same reason: a Measurement belongs to the Map it was taken on, and
+        // its distance means something different under another Map's Grid.
+        measurement = nil
         mapURL = url
         mapImage = image
         viewportOrigin = nil
@@ -279,6 +288,60 @@ final class AppState: ObservableObject {
         return id
     }
 
+    /// The **Measurement** on screen, or nil when nothing is being measured.
+    ///
+    /// One optional, not a set: at most one exists at a time, and right-click dismissing
+    /// "the Measurement" only has an unambiguous meaning while that holds. `Measurement?`
+    /// is a strict subset of a set if comparing two is ever wanted.
+    ///
+    /// Not persisted, like `isFogOverlayOn` and `soloSightPawnID` — a Measurement is a
+    /// question asked during a turn, not something to reopen a Map and find still on it.
+    @Published private(set) var measurement: Measurement?
+
+    /// Start a Measurement, or pass nil to dismiss it.
+    ///
+    /// Not undoable, exactly as `setSoloSight` and `movePawn` are not: a live performance
+    /// action taken mid-session does not belong in the DM's authoring undo stack. It
+    /// changes no Pawn, so there is no live edit to record either.
+    func setMeasurement(_ measurement: Measurement?) {
+        guard self.measurement != measurement else { return }
+        self.measurement = measurement
+    }
+
+    /// The Measurement, but only while its Origin still exists.
+    ///
+    /// Every render path asks for this rather than `measurement`, for the reason
+    /// `resolvedSoloSightPawnID` exists: an anchor ID that matches no Pawn would otherwise
+    /// draw the shape at the Map's origin — a confident wrong answer, which is the one
+    /// thing a measuring tool must not give.
+    var resolvedMeasurement: Measurement? {
+        guard let measurement else { return nil }
+        if case .pawn(let id) = measurement.origin,
+           !fog.pawns.contains(where: { $0.id == id }) { return nil }
+        return measurement
+    }
+
+    /// Where the on-screen Measurement currently starts, in image pixels. Follows an
+    /// anchoring Pawn as it moves, which is why this is resolved rather than stored.
+    var measurementOriginPoint: MapPoint? {
+        resolvedMeasurement?.originPoint { id in
+            fog.pawns.first(where: { $0.id == id })?.at
+        }
+    }
+
+    /// Whether measuring is offered at all on the current Map.
+    var measurementAvailability: MeasurementControl.Availability {
+        MeasurementControl.availability(hasDeclaredGrid: hasDeclaredGrid,
+                                        hasMap: mapImage != nil)
+    }
+
+    /// How many image pixels one Grid square spans, or nil without a declared Grid.
+    /// The conversion every Measurement needs to turn squares into pixels.
+    var pixelsPerSquare: CGFloat? {
+        guard hasDeclaredGrid, let image = mapImage, squaresWide > 0 else { return nil }
+        return image.pixelSize.width / CGFloat(squaresWide)
+    }
+
     /// The lit regions for the current Map, cached against the fog and the Grid.
     ///
     /// Returns nothing when no Grid has been declared: Light radii are in Grid squares, so
@@ -286,8 +349,7 @@ final class AppState: ObservableObject {
     /// wrong — and darkness in the wrong places is worse than no darkness. The Control
     /// Window says so (see `undeclaredGridWarning`).
     var litRegions: [LitRegion] {
-        guard hasDeclaredGrid, let image = mapImage, squaresWide > 0 else { return [] }
-        let pixelsPerSquare = image.pixelSize.width / CGFloat(squaresWide)
+        guard let image = mapImage, let pixelsPerSquare else { return [] }
         return visibilityCache.regions(for: fog, imagePixelSize: image.pixelSize,
                                        pixelsPerSquare: pixelsPerSquare,
                                        soloSightPawnID: resolvedSoloSightPawnID)
@@ -398,6 +460,9 @@ final class AppState: ObservableObject {
         // Fog authoring needs the whole Map lit, and an isolated view would fight the
         // inspector it is being authored through.
         soloSightPawnID = nil
+        // Measuring is a play action, and the authoring preview is a different surface
+        // with a different transform — a Measurement left on it would be drawn wrong.
+        measurement = nil
     }
 
     /// Called as the fog editing mode closes, by Done as well as Cancel.
