@@ -234,7 +234,10 @@ final class AppState: ObservableObject {
         mapURL = url
         mapImage = image
         viewportOrigin = nil
-        let document = fogStore.load(forMapAt: url) ?? FogDocument()
+        var document = fogStore.load(forMapAt: url) ?? FogDocument()
+        // A Pawn a previous version let out of the image comes back to its edge here, or
+        // it stays unreachable for good — see `PawnBounds`.
+        document.pawns = PawnBounds.clamped(document.pawns, toImage: image.pixelSize)
         // Assign the fog BEFORE restoring the Grid: `restoreGrid` writes back into `fog`,
         // and doing it the other way round would push the outgoing Map's Grid into the
         // incoming Map's document — then onto its file.
@@ -444,9 +447,14 @@ final class AppState: ObservableObject {
 
     /// Move a Pawn outside the fog editing mode — the live table action, since the party
     /// moves during play and not during prep.
+    ///
+    /// Held inside the image: a drag past the edge stops at the edge. See `PawnBounds` for
+    /// why an off-Map Pawn is not just wrong but unreachable.
     func movePawn(id: Pawn.ID, to point: MapPoint) {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
-        fog.pawns[index].at = point
+        let destination = mapImage.map { PawnBounds.clamp(point, toImage: $0.pixelSize) } ?? point
+        guard fog.pawns[index].at != destination else { return }
+        fog.pawns[index].at = destination
         recordLiveEdit(.position, on: id)
     }
 
