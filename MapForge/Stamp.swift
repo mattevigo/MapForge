@@ -24,6 +24,24 @@ enum Stamp {
              characterID: character.id)
     }
 
+    /// The Stat Block a Stamped Pawn starts with, copied from the Character.
+    ///
+    /// A sibling of `pawn(from:droppedAt:map:frame:)` rather than another return value from
+    /// it, because the two land in different files: the Pawn in `<map>.fog.json`, its
+    /// numbers in `<map>.combat/stats.json`. Keeping them separate at the seam keeps that
+    /// split visible at every call site.
+    ///
+    /// A Character records what it is at full strength; a Pawn records what it is right
+    /// now — so `currentHP` starts at `maxHP` and the party walks in undamaged. No
+    /// Conditions and no exhaustion: those are things that happen on a Map, and a
+    /// Character has never been on one.
+    static func statBlock(from character: PartyCharacter) -> StatBlock {
+        StatBlock(initiativeBonus: character.initiativeBonus,
+                  armorClass: character.armorClass,
+                  currentHP: character.maxHP,
+                  maxHP: character.maxHP)
+    }
+
     /// The Pawn a Character Stamps when dropped at `droppedAt`, or nil when the drop misses
     /// the Map.
     ///
