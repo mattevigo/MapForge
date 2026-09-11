@@ -49,6 +49,28 @@ final class PartyAppStateTests: XCTestCase {
         XCTAssertEqual(reloaded.parties.first?.characters.first?.name, "Thorin")
     }
 
+    func testAFirstPartyCanBeCreatedFromNothing() {
+        // The regression this exists to prevent: "New Party…" lived only in the picker's
+        // menu, the picker needed a Party to name, so a DM with an empty roster could never
+        // make their first one. The feature was unreachable on a clean machine and every
+        // test passed, because they all started from a roster seeded by hand.
+        let app = makeAppState()
+        XCTAssertNil(app.activeParty, "precondition: nothing defined yet")
+
+        app.addParty(named: "Eroi")
+
+        XCTAssertEqual(app.activeParty?.name, "Eroi")
+        XCTAssertEqual(app.partyBook.parties.count, 1)
+    }
+
+    func testTheFirstPartyBecomesActive() {
+        // Otherwise the DM creates a Party and the panel still shows nothing to drag.
+        let app = makeAppState()
+        app.addParty(named: "Eroi")
+        app.addParty(named: "Alleati")
+        XCTAssertEqual(app.activeParty?.name, "Alleati", "a new Party did not become active")
+    }
+
     func testTheActivePartySurvivesARelaunch() {
         let app = makeAppState()
         app.addParty(named: "Eroi")

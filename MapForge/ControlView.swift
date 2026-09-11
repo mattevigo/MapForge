@@ -1145,15 +1145,17 @@ struct ControlView: View {
 
     /// Whether the Party group belongs on screen.
     ///
-    /// Gated on a Map being open as well as on a Party existing: the roster is a drag source,
-    /// and offering one with no Map to drop onto invites a gesture that cannot work. The other
-    /// groups are already implicitly gated this way, since fog belongs to a Map.
+    /// Gated on a Map being open: the roster is a drag source, and offering one with no Map to
+    /// drop onto invites a gesture that cannot work. The other groups are already implicitly
+    /// gated this way, since fog belongs to a Map.
+    ///
+    /// Deliberately **not** gated on a Party existing. That is the group's empty state, not a
+    /// reason to hide it — hiding it is what made creating a first Party impossible, since the
+    /// only way to make one is a button this group draws.
     ///
     /// One property rather than the same condition at the panel and at the group, which have
     /// to agree or the panel draws an empty box beside the preview.
-    private var showsParty: Bool {
-        appState.activeParty != nil && appState.mapURL != nil
-    }
+    private var showsParty: Bool { appState.mapURL != nil }
 
     /// The active Party: its picker, its Characters, and the inline editor.
     ///
@@ -1166,12 +1168,16 @@ struct ControlView: View {
     /// caption weight so the two read as siblings.
     @ViewBuilder
     private var partyGroup: some View {
-        if let party = appState.activeParty, showsParty {
+        if showsParty {
             VStack(alignment: .leading, spacing: 6) {
-                partyHeader(party)
+                if let party = appState.activeParty {
+                    partyHeader(party)
+                } else {
+                    emptyPartyHeader
+                }
                 if let edit = partyNameEdit {
                     partyNameField(edit)
-                } else {
+                } else if let party = appState.activeParty {
                     ForEach(party.characters) { character in
                         if editedCharacter?.id == character.id {
                             characterEditor()
@@ -1182,6 +1188,22 @@ struct ControlView: View {
                     if isAddingCharacter { characterEditor() }
                 }
             }
+        }
+    }
+
+    /// What the group shows before any Party exists.
+    ///
+    /// Without this the feature cannot be reached at all: "New Party…" lives in the picker's
+    /// menu, the picker is part of `partyHeader`, and `partyHeader` needs a Party — so a DM
+    /// with an empty roster had no way to create their first one. The bug was invisible in
+    /// testing because every run started from a roster seeded by hand.
+    private var emptyPartyHeader: some View {
+        HStack(spacing: 6) {
+            Text("Party").font(.caption.weight(.semibold))
+            Spacer(minLength: 0)
+            Button("New Party…") { partyNameEdit = .new("") }
+                .buttonStyle(.borderless)
+                .font(.caption)
         }
     }
 
