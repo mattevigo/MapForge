@@ -6,6 +6,37 @@ panel reads them from the built app.
 
 ## Unreleased
 
+### Measurement
+
+- Measure distances on the Map mid-play: right-click to pick Cone, Square, Circle or Line,
+  click where the measurement starts, move the mouse to aim and size it, click again to
+  settle it so it stops following the cursor, and click once more to clear it. Each click
+  advances one step, and the menu opens on the shape you used last. Esc backs out of a
+  measurement you have not placed yet.
+- Pin a measurement to keep it on screen: right-click on the shape itself and the menu
+  offers Pin instead of the list of shapes. Pinned measurements stay until you unpin them —
+  right-click the shape again — so two spell areas can sit side by side, or a route already
+  walked can stay up while you measure what is left. The table sees them exactly as it sees
+  the live one.
+- A Line is a polygonal chain: keep clicking to add points and the running total follows
+  the whole path, so a route around a table answers "can I get there this turn" rather
+  than just how far away the far wall is. Right-click finishes it and frees the cursor,
+  and the finished chain stays up until the next click. It is the one shape that does not
+  round to whole squares — each point lands exactly where you put it.
+- Clicking a Pawn measures from that Pawn — the shape follows it as it is dragged, and
+  ends when the Pawn does. Anywhere else measures from exactly the point clicked; the
+  token's own outline is the whole of its hit area, and nothing snaps to the Grid.
+- Type an exact distance instead of hunting for the pixel that happens to be 9 m away — the
+  number holds while the aim keeps following the cursor.
+- Distances read in metres, at 1.5 m to the Grid square. Dragged distances snap to whole
+  squares; a typed one does not.
+- The table sees the shape *and* its distance, so a measurement settles the range argument
+  rather than moving it — the first thing on the Player Display that is instrumentation
+  rather than world, and a deliberate one:
+  [ADR 0005](docs/adr/0005-the-player-display-shows-the-measurement.md).
+- A Cone is as wide at its mouth as it is long (5e's rule), and a Square is a side length
+  rather than a radius, because a spell card says "a 20-foot cube".
+
 ### Solo Sight
 
 - See the Map as one character alone lights it: isolating a Pawn puts out every other

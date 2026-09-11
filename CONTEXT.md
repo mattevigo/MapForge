@@ -93,5 +93,29 @@ Isolating one Pawn so the table sees the Map as that character alone lights it: 
 _Avoid_: field of view, line of sight, per-player fog, spotlight, focus mode
 
 **Light Marker**:
-The dot drawn where a Light stands, so the source of a lit region can be seen rather than inferred. On both screens, and the only thing besides a Pawn that the Player Display draws over the Map. Players see one only where the Light is burning *and* the spot is already lit — the rule a Creature follows — so an unlit fixture never gives away a room the party has not reached. The DM sees every Light, doused ones included, because a DM who cannot find their own torches cannot run the fight.
+The dot drawn where a Light stands, so the source of a lit region can be seen rather than inferred. On both screens. Players see one only where the Light is burning *and* the spot is already lit — the rule a Creature follows — so an unlit fixture never gives away a room the party has not reached. The DM sees every Light, doused ones included, because a DM who cannot find their own torches cannot run the fight.
 _Avoid_: light source, torch icon, lamp, emitter dot
+
+**Measurement**:
+A distance the DM asks about mid-play, drawn on the Map as a shape from an Origin and labelled with its length. One is being taken at a time; any number can be **Pinned** alongside it. Never persisted — a question asked during a turn, like Solo Sight rather than like a Wall.
+_Avoid_: measure, ruler, template, marker
+
+**Pinned**:
+A settled Measurement parked on the Map, which stays until it is unpinned instead of being cleared by the next click. Pinning is what lets a DM hold one answer on screen — a spell area, a route already walked — while measuring the next thing. Shown to the table exactly as the live Measurement is, and cleared with the Map it was taken on.
+_Avoid_: locked, saved, sticky, kept
+
+**Measurement Shape**:
+Which shape a Measurement takes: a **Cone**, a **Square**, a **Circle** or a **Line**. Circle is drawn around the Origin as a radius; Square is drawn around the Origin as a *side length*, because that is how a spell describes a cube. Cone is a length from the Origin towards the cursor. The readout names which it is — "6 m radius" against "6 m across" — so the distinction is read rather than assumed.
+_Avoid_: measure type, tool, template shape
+
+**Line**:
+The one Measurement Shape that is a **polygonal chain** rather than a region: a run of points from the Origin, whose readout is the length of the whole path. It answers the movement question — can I get there this turn, going round the table rather than through it — where the other three answer straight-line range. Alone among the shapes it does not snap to whole squares, because rounding every vertex would compound the error along a long path.
+_Avoid_: linear, ruler, path, polyline
+
+**Measurement Origin**:
+Where a Measurement starts: either a point on the Map, or a Pawn — in which case it starts at that Pawn's centre and follows it as the Pawn moves. A Measurement anchored to a Pawn ends when that Pawn does.
+_Avoid_: anchor, start point, source
+
+**Distance Unit**:
+The unit the table speaks distances in — currently **metres**, at 1.5 m per Grid square. Grid squares remain the unit distances are *stored* in; the Distance Unit is applied when a distance is shown. Feet is the other unit this is meant to become, which is why it is a choice and not a constant.
+_Avoid_: units, scale, measurement system

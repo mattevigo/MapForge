@@ -70,6 +70,22 @@ struct PlayerView: View {
                         PawnToken(pawn: pawn, squareSide: side)
                             .position(x: p.x, y: p.y)
                     }
+
+                    // The table sees the Measurement, its distance included — the first
+                    // thing on this screen that is instrumentation rather than world, and
+                    // a deliberate breach of the rule that kept it to two. See ADR 0005:
+                    // a measurement only the DM can see answers the question for the one
+                    // person who could already estimate it.
+                    //
+                    // Above the tokens, and not gated on the Fog Overlay: the DM drew this
+                    // to be seen, and darkness hiding it would defeat the point.
+                    if let pixelsPerSquare = appState.pixelsPerSquare {
+                        ForEach(appState.drawableMeasurements, id: \.measurement.id) {
+                            MeasurementLayer(measurement: $0.measurement, origin: $0.origin,
+                                             map: map, frame: frame,
+                                             pixelsPerSquare: pixelsPerSquare)
+                        }
+                    }
                 }
             }
         }
