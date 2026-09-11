@@ -7,32 +7,25 @@ import Foundation
 /// `LogLine`s that record it. Nothing here writes a file — `AppState` does that with what
 /// the control functions hand back.
 struct Encounter: Equatable {
-    /// The sequence Combatants take Turns in. Settled at the start by sorting on
-    /// Initiative and from then on the DM's to rearrange: ties are broken by the person
-    /// running the table, not by a rule.
-    var order: [UUID] = []
-    var round = 1
-    /// Whose Turn it is, as an index into `order`.
-    var activeIndex = 0
-    /// Listed but taking no Turns.
-    var removed: Set<UUID> = []
-
-    var blocks: [UUID: StatBlock] = [:]
-    var names: [UUID: String] = [:]
-    var kinds: [UUID: PawnKind] = [:]
-    var initiatives: [UUID: Int] = [:]
+    /// Every line already written to the Combat Log, oldest first.
+    ///
+    /// Together with `pendingChanges` this is the **only** state: hit points, the Order,
+    /// Conditions and the Round are all derived from it by `CombatLogFold`, never stored
+    /// alongside it. ADR-0008 rejects a live model kept in step with a record, because
+    /// "a state model and a record of how that state was reached are two things that must
+    /// agree forever, with nothing forcing them to" — and a test that detects drift is not
+    /// the same as a structure that cannot drift.
+    private(set) var lines: [LogLine] = []
 
     /// This Turn's Changes, not yet written. ADR-0008's write-behind buffer: durability
     /// lags reality by at most one Turn, which is what "saved at the end of the turn"
-    /// already meant.
-    var pendingChanges: [Change] = []
+    /// already meant. Folded along with `lines`, so the tracker shows them immediately.
+    private(set) var pendingChanges: [Change] = []
 
-    /// How many ended Turns back the correction cursor is, or nil when live.
+    /// The Turn the correction cursor is on, or nil when live. A `TurnRef` rather than a
+    /// count of Turns back, so nothing has to do arithmetic against `endedTurns.count`.
     /// See `docs/adr/0010-corrections-are-appended-never-edited.md`.
-    var correctionCursor: Int?
-
-    /// Every Turn that has ended, oldest first — what the correction cursor walks.
-    var endedTurns: [TurnRef] = []
+    private(set) var correctionTarget: TurnRef?
 
     /// One Turn, named by the Round it happened in and who took it. A Combatant acts at
     /// most once per Round, so the pair identifies a Turn.
@@ -41,28 +34,51 @@ struct Encounter: Equatable {
         var combatantID: UUID
     }
 
-    var activeCombatantID: UUID? {
-        guard order.indices.contains(activeIndex) else { return nil }
-        return order[activeIndex]
+    /// The fight as its Log describes it, including the Turn in progress.
+    ///
+    /// Computed on demand rather than cached: correctness first, and a fold over one
+    /// session's Turns is a few hundred small operations. If profiling ever says
+    /// otherwise, cache the fold of `lines` and re-fold only `pendingChanges` onto it —
+    /// the shape that stays honest, unlike a second mutable copy.
+    var state: EncounterState {
+        CombatLogFold.fold(lines, pending: pendingChanges)
     }
 
-    /// The Turn the correction cursor is on, or nil when live.
-    var correctionTarget: TurnRef? {
-        guard let correctionCursor,
-              endedTurns.indices.contains(endedTurns.count - 1 - correctionCursor) else {
-            return nil
+    var order: [UUID] { state.order }
+    var round: Int { state.round }
+    var blocks: [UUID: StatBlock] { state.blocks }
+    var removed: Set<UUID> { state.removed }
+
+    func initiative(of combatant: UUID) -> Int? { state.initiative(of: combatant) }
+    func name(of combatant: UUID) -> String? { state.name(of: combatant) }
+    func kind(of combatant: UUID) -> PawnKind? { state.kind(of: combatant) }
+
+    var activeCombatantID: UUID? { state.activeCombatantID }
+
+    /// Every Turn that has ended, oldest first — what the correction cursor walks.
+    var endedTurns: [TurnRef] {
+        lines.compactMap { line in
+            guard case let .turn(round, combatantID, _, _) = line else { return nil }
+            return TurnRef(round: round, combatantID: combatantID)
         }
-        return endedTurns[endedTurns.count - 1 - correctionCursor]
     }
 
     var isCorrecting: Bool { correctionTarget != nil }
+
+    fileprivate mutating func append(_ line: LogLine) { lines.append(line) }
+    fileprivate mutating func buffer(_ change: Change) { pendingChanges.append(change) }
+    fileprivate mutating func clearBuffer() { pendingChanges = [] }
+    fileprivate mutating func setCorrectionTarget(_ target: TurnRef?) {
+        correctionTarget = target
+    }
 }
 
 /// The rules of running a fight.
 ///
-/// Every operation returns the `LogLine`s it produced, so a caller cannot change an
-/// Encounter without also getting the record of it. That is ADR-0008's consequence made
-/// structural: a field the UI writes directly is a field the Log does not know about.
+/// Every operation returns the `LogLine`s it produced and changes the `Encounter` only by
+/// recording a `Change`. That is ADR-0008's consequence made structural rather than
+/// remembered: there is no way to move a number without the Log learning about it, because
+/// the numbers are only ever read back out of the Log.
 enum EncounterControl {
     /// A Pawn about to become a Combatant.
     struct Entrant: Equatable {
@@ -82,42 +98,36 @@ enum EncounterControl {
         at date: Date = Date(),
         using generator: inout G
     ) -> (encounter: Encounter, lines: [LogLine]) {
-        var encounter = Encounter()
-        var combatants: [Combatant] = []
-
-        for entrant in entrants where entrant.kind != .treasure {
-            let initiative = InitiativeRoll.roll(bonus: entrant.block.initiativeBonus,
-                                                 using: &generator)
-            encounter.blocks[entrant.id] = entrant.block
-            encounter.names[entrant.id] = entrant.name
-            encounter.kinds[entrant.id] = entrant.kind
-            encounter.initiatives[entrant.id] = initiative
-            combatants.append(Combatant(id: entrant.id, name: entrant.name,
-                                        kind: entrant.kind, initiative: initiative,
-                                        block: entrant.block))
-        }
+        let combatants = entrants
+            .filter { $0.kind != .treasure }
+            .map { entrant in
+                Combatant(id: entrant.id, name: entrant.name, kind: entrant.kind,
+                          initiative: InitiativeRoll.roll(bonus: entrant.block.initiativeBonus,
+                                                          using: &generator),
+                          block: entrant.block)
+            }
 
         // Sorted once, here, and recorded. Ties keep whatever order this produces and the
         // DM rearranges by hand — ADR-0008 needs the Order to be data, because two
         // Combatants on 14 cannot be re-sorted reproducibly.
-        encounter.order = combatants
-            .sorted { $0.initiative > $1.initiative }
-            .map(\.id)
+        let order = combatants.sorted { $0.initiative > $1.initiative }.map(\.id)
 
-        return (encounter, [.encounterStarted(startedAt: date,
-                                              order: encounter.order,
-                                              combatants: combatants)])
+        var encounter = Encounter()
+        let line = LogLine.encounterStarted(startedAt: date, order: order,
+                                            combatants: combatants)
+        encounter.append(line)
+        return (encounter, [line])
     }
 
-    /// Ends the current Turn and advances, or returns to live play when the correction
-    /// cursor is away from it.
+    /// Ends the current Turn and advances, or walks the correction cursor back towards
+    /// live play when it is away from it.
     ///
     /// The same button, two meanings — ADR-0010. Ending a Turn while correcting is
     /// refused rather than reinterpreted: the DM returns to live first.
     @discardableResult
     static func next(_ encounter: inout Encounter, at date: Date = Date()) -> [LogLine] {
-        if encounter.correctionCursor != nil {
-            advanceCursorTowardsLive(&encounter)
+        if encounter.isCorrecting {
+            moveCursorTowardsLive(&encounter)
             return []
         }
         guard let active = encounter.activeCombatantID else { return [] }
@@ -126,17 +136,21 @@ enum EncounterControl {
                                 combatantID: active,
                                 changes: encounter.pendingChanges,
                                 endedAt: date)
-        encounter.endedTurns.append(.init(round: encounter.round, combatantID: active))
-        encounter.pendingChanges = []
-        advanceActiveIndex(&encounter)
+        encounter.append(line)
+        encounter.clearBuffer()
         return [line]
     }
 
     /// Walks the correction cursor back one ended Turn.
     static func previous(_ encounter: inout Encounter) {
-        guard !encounter.endedTurns.isEmpty else { return }
-        let next = (encounter.correctionCursor ?? -1) + 1
-        encounter.correctionCursor = min(next, encounter.endedTurns.count - 1)
+        let turns = encounter.endedTurns
+        guard !turns.isEmpty else { return }
+        guard let current = encounter.correctionTarget else {
+            encounter.setCorrectionTarget(turns.last)
+            return
+        }
+        guard let index = turns.lastIndex(of: current), index > 0 else { return }
+        encounter.setCorrectionTarget(turns[index - 1])
     }
 
     /// Records a Change: buffered into the current Turn when live, or written immediately
@@ -148,24 +162,21 @@ enum EncounterControl {
     static func record(_ change: Change,
                        in encounter: inout Encounter,
                        at date: Date = Date()) -> [LogLine] {
-        if let target = encounter.correctionTarget {
-            if case .moved = change { return [] }
-            var changes = [change]
-            changes.append(contentsOf: consequences(of: change, in: &encounter))
-            for change in changes { applyToState(change, in: &encounter) }
-            return [.correction(targetRound: target.round,
-                                targetCombatantID: target.combatantID,
-                                changes: changes,
-                                recordedAt: date)]
+        var changes = [change]
+        changes.append(contentsOf: consequences(of: change, in: encounter))
+
+        guard let target = encounter.correctionTarget else {
+            for change in changes { encounter.buffer(change) }
+            return []
         }
 
-        encounter.pendingChanges.append(change)
-        applyToState(change, in: &encounter)
-        for consequence in consequences(of: change, in: &encounter) {
-            encounter.pendingChanges.append(consequence)
-            applyToState(consequence, in: &encounter)
-        }
-        return []
+        if case .moved = change { return [] }
+        let line = LogLine.correction(targetRound: target.round,
+                                      targetCombatantID: target.combatantID,
+                                      changes: changes,
+                                      recordedAt: date)
+        encounter.append(line)
+        return [line]
     }
 
     /// Adds a Combatant mid-fight — a summon, or a Character stamped while the fight runs.
@@ -176,27 +187,25 @@ enum EncounterControl {
         guard entrant.kind != .treasure else { return [] }
         let initiative = InitiativeRoll.roll(bonus: entrant.block.initiativeBonus,
                                              using: &generator)
-        encounter.blocks[entrant.id] = entrant.block
-        encounter.names[entrant.id] = entrant.name
-        encounter.kinds[entrant.id] = entrant.kind
-        encounter.initiatives[entrant.id] = initiative
+        let state = encounter.state
 
-        // Never before the active index: a summon that rolled above the Combatant whose
-        // Turn is already running would otherwise act twice in its first Round.
-        let earliest = encounter.activeIndex + 1
-        var insertion = earliest
-        while insertion < encounter.order.count,
-              (encounter.initiatives[encounter.order[insertion]] ?? Int.min) > initiative {
+        // Never before the active index: a Combatant that rolled above the one whose Turn
+        // is already running would otherwise act twice in its first Round. Past that, it
+        // sits where its Initiative earns — a summon is not sent to the back of the Order
+        // for arriving.
+        var insertion = state.activeIndex + 1
+        while insertion < state.order.count,
+              (state.initiative(of: state.order[insertion]) ?? Int.min) > initiative {
             insertion += 1
         }
-        encounter.order.insert(entrant.id, at: insertion)
+        var order = state.order
+        order.insert(entrant.id, at: min(insertion, order.count))
 
-        let joined = Change.combatantJoined(combatantID: entrant.id, name: entrant.name,
-                                            kind: entrant.kind, initiative: initiative,
-                                            block: entrant.block)
-        encounter.pendingChanges.append(joined)
-        encounter.pendingChanges.append(.orderChanged(order: encounter.order))
-        return []
+        return record([
+            .combatantJoined(combatantID: entrant.id, name: entrant.name, kind: entrant.kind,
+                             initiative: initiative, block: entrant.block),
+            .orderChanged(order: order),
+        ], in: &encounter)
     }
 
     /// Takes a Combatant out of the rotation. It stays in the Order: the Log already names
@@ -204,26 +213,19 @@ enum EncounterControl {
     @discardableResult
     static func remove(_ combatantID: UUID, in encounter: inout Encounter) -> [LogLine] {
         guard encounter.order.contains(combatantID) else { return [] }
-        encounter.removed.insert(combatantID)
-        encounter.pendingChanges.append(.combatantRemoved(combatantID: combatantID))
-        return []
+        return record([.combatantRemoved(combatantID: combatantID)], in: &encounter)
     }
 
     /// Moves a Combatant in the Order and records the whole new sequence.
     @discardableResult
     static func reorder(from source: Int, to destination: Int,
                         in encounter: inout Encounter) -> [LogLine] {
-        guard encounter.order.indices.contains(source),
-              (0...encounter.order.count).contains(destination) else { return [] }
-        let active = encounter.activeCombatantID
-        let moved = encounter.order.remove(at: source)
-        encounter.order.insert(moved, at: destination > source ? destination - 1 : destination)
-        // The Turn in progress belongs to whoever was taking it, wherever they now sit.
-        if let active, let index = encounter.order.firstIndex(of: active) {
-            encounter.activeIndex = index
-        }
-        encounter.pendingChanges.append(.orderChanged(order: encounter.order))
-        return []
+        var order = encounter.order
+        guard order.indices.contains(source),
+              (0...order.count).contains(destination) else { return [] }
+        let moved = order.remove(at: source)
+        order.insert(moved, at: destination > source ? destination - 1 : destination)
+        return record([.orderChanged(order: order)], in: &encounter)
     }
 
     /// Re-rolls every Initiative and re-sorts.
@@ -235,43 +237,57 @@ enum EncounterControl {
         in encounter: inout Encounter,
         using generator: inout G
     ) -> [LogLine] {
-        let active = encounter.activeCombatantID
-        for id in encounter.order {
-            let bonus = encounter.blocks[id]?.initiativeBonus ?? 0
-            let previous = encounter.initiatives[id] ?? 0
-            let rolled = InitiativeRoll.roll(bonus: bonus, using: &generator)
-            encounter.initiatives[id] = rolled
-            encounter.pendingChanges.append(
-                .initiativeChanged(combatantID: id, from: previous, to: rolled))
+        let state = encounter.state
+        var changes: [Change] = []
+        var rolled: [UUID: Int] = [:]
+
+        for id in state.order {
+            let bonus = state.blocks[id]?.initiativeBonus ?? 0
+            let initiative = InitiativeRoll.roll(bonus: bonus, using: &generator)
+            rolled[id] = initiative
+            changes.append(.initiativeChanged(combatantID: id,
+                                              from: state.initiative(of: id) ?? 0,
+                                              to: initiative))
         }
-        encounter.order.sort {
-            (encounter.initiatives[$0] ?? 0) > (encounter.initiatives[$1] ?? 0)
-        }
-        if let active, let index = encounter.order.firstIndex(of: active) {
-            encounter.activeIndex = index
-        }
-        encounter.pendingChanges.append(.orderChanged(order: encounter.order))
-        return []
+        changes.append(.orderChanged(
+            order: state.order.sorted { (rolled[$0] ?? 0) > (rolled[$1] ?? 0) }))
+        return record(changes, in: &encounter)
     }
 
     /// Flushes the Turn in progress and closes the Log.
+    ///
+    /// Refused while correcting, as `next` is: stopping a fight from a past Turn would end
+    /// it on a state the DM is not looking at.
     static func stop(_ encounter: inout Encounter, at date: Date = Date()) -> [LogLine] {
-        encounter.correctionCursor = nil
-        var lines = next(&encounter, at: date)
-        lines.append(.encounterEnded(endedAt: date))
+        guard !encounter.isCorrecting else { return [] }
+        // Only flush a Turn that has something in it — a fight stopped the instant a Turn
+        // began should not leave an empty Turn line behind.
+        var lines = encounter.pendingChanges.isEmpty ? [] : next(&encounter, at: date)
+        let ended = LogLine.encounterEnded(endedAt: date)
+        encounter.append(ended)
+        lines.append(ended)
         return lines
     }
 
-    // MARK: - Rules that fire on their own
+    // MARK: - Recording
+
+    /// Records several Changes as one step, so a join or a re-roll cannot half-happen.
+    @discardableResult
+    private static func record(_ changes: [Change],
+                               in encounter: inout Encounter,
+                               at date: Date = Date()) -> [LogLine] {
+        var lines: [LogLine] = []
+        for change in changes { lines += record(change, in: &encounter, at: date) }
+        return lines
+    }
 
     /// What a Change drags along with it.
     ///
     /// Only one rule so far: at 0 hit points a Combatant falls Unconscious and stops
     /// concentrating. Unconditional in the rules for Players and Creatures alike, and the
     /// thing a DM most reliably forgets. Here rather than in the editor so it holds
-    /// whichever code path changed the number.
-    private static func consequences(of change: Change,
-                                     in encounter: inout Encounter) -> [Change] {
+    /// whichever code path changes the number.
+    private static func consequences(of change: Change, in encounter: Encounter) -> [Change] {
         guard case let .hpChanged(id, _, to) = change, let to, to <= 0 else { return [] }
         var consequences: [Change] = []
         let block = encounter.blocks[id] ?? StatBlock()
@@ -284,57 +300,12 @@ enum EncounterControl {
         return consequences
     }
 
-    // MARK: - Keeping the live state in step with the Log
-
-    /// Applies a Change to the Encounter's own copy of the state.
-    ///
-    /// Deliberately the same rules as `CombatLogFold.apply`, so that folding a Log gives
-    /// what the tracker was showing — the invariant
-    /// `testAWholeFightFoldsBackToWhatTheTrackerShows` holds down.
-    private static func applyToState(_ change: Change, in encounter: inout Encounter) {
-        switch change {
-        case let .hpChanged(id, _, to):
-            encounter.blocks[id, default: StatBlock()].currentHP = to
-        case let .tempHPChanged(id, _, to):
-            encounter.blocks[id, default: StatBlock()].temporaryHP = to
-        case let .maxHPChanged(id, _, to):
-            encounter.blocks[id, default: StatBlock()].maxHP = to
-        case let .acChanged(id, _, to):
-            encounter.blocks[id, default: StatBlock()].armorClass = to
-        case let .conditionAdded(id, condition):
-            encounter.blocks[id, default: StatBlock()].conditions.insert(condition)
-        case let .conditionRemoved(id, condition):
-            encounter.blocks[id, default: StatBlock()].conditions.remove(condition)
-        case let .exhaustionChanged(id, _, to):
-            encounter.blocks[id, default: StatBlock()].exhaustion = to
-        case let .concentrationChanged(id, isConcentrating):
-            encounter.blocks[id, default: StatBlock()].isConcentrating = isConcentrating
-        case let .initiativeChanged(id, _, to):
-            encounter.initiatives[id] = to
-        case let .orderChanged(order):
-            encounter.order = order
-        case let .combatantRemoved(id):
-            encounter.removed.insert(id)
-        case .combatantJoined, .moved, .noteAdded, .unrecognised:
-            break
-        }
-    }
-
-    private static func advanceActiveIndex(_ encounter: inout Encounter) {
-        guard !encounter.order.isEmpty else { return }
-        // Every Combatant may have been removed; stop rather than spin.
-        for _ in 0..<encounter.order.count {
-            encounter.activeIndex += 1
-            if encounter.activeIndex >= encounter.order.count {
-                encounter.activeIndex = 0
-                encounter.round += 1
-            }
-            if !encounter.removed.contains(encounter.order[encounter.activeIndex]) { return }
-        }
-    }
-
-    private static func advanceCursorTowardsLive(_ encounter: inout Encounter) {
-        guard let cursor = encounter.correctionCursor else { return }
-        encounter.correctionCursor = cursor == 0 ? nil : cursor - 1
+    private static func moveCursorTowardsLive(_ encounter: inout Encounter) {
+        let turns = encounter.endedTurns
+        guard let current = encounter.correctionTarget,
+              let index = turns.lastIndex(of: current) else { return }
+        // Past the last ended Turn is live play again, which is how Next doubles as
+        // "return to live".
+        encounter.setCorrectionTarget(index + 1 < turns.count ? turns[index + 1] : nil)
     }
 }

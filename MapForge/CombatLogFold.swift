@@ -15,6 +15,18 @@ struct EncounterState: Equatable {
     var removed: Set<UUID> = []
     var hasEnded = false
 
+    /// Whose Turn it is, as an index into `order`.
+    ///
+    /// Derived like everything else: the Turn *after* the last one written. A Log ending
+    /// on the final Combatant of a Round resumes at the first Combatant of the next one,
+    /// which is why the Round cannot simply be read off the last Turn line.
+    var activeIndex = 0
+
+    var activeCombatantID: UUID? {
+        guard order.indices.contains(activeIndex) else { return nil }
+        return order[activeIndex]
+    }
+
     /// Names and kinds as the Log recorded them, so a Combatant can be described long
     /// after its Pawn is gone.
     fileprivate var names: [UUID: String] = [:]
@@ -39,7 +51,11 @@ enum CombatLogFold {
     /// written: a Correction amends the Turn it targets, so it lands there rather than at
     /// the end of the file. That is the whole difference between an append-only Log and a
     /// mutable one, and it is why a DM can fix Round 1 from Round 4 without the file lying.
-    static func fold(_ lines: [LogLine]) -> EncounterState {
+    /// - Parameter pending: the current Turn's Changes, not yet written to a line. Folded
+    ///   after everything in `lines` so the tracker shows them the moment they happen,
+    ///   without a second mutable copy of the state to keep in step. They do not advance
+    ///   the Turn: the Turn they belong to has not ended.
+    static func fold(_ lines: [LogLine], pending: [Change] = []) -> EncounterState {
         var state = EncounterState()
 
         // Corrections gathered by the Turn they target, so each can be applied in place.
@@ -70,9 +86,15 @@ enum CombatLogFold {
                 for change in changes { apply(change, to: &state) }
                 // The Turn's own Changes first, then anything amending it — a Correction
                 // is what the DM wishes had happened during this Turn, and it has to beat
-                // what they recorded at the time.
+                // what they recorded at the time. A *later* Turn touching the same field
+                // still wins, because a Change's `to` is the number the DM saw and is
+                // never reinterpreted as a delta.
                 let key = TurnKey(round: round, combatantID: combatantID)
                 for change in corrections[key] ?? [] { apply(change, to: &state) }
+                // The fight is now waiting on whoever comes next, which may be in the
+                // following Round. Reading the Round off the last Turn line instead would
+                // resume a DM one Round behind the table.
+                advance(&state, from: combatantID)
 
             case .correction:
                 // Already applied above, at the Turn it targets. A Correction naming a
@@ -84,12 +106,36 @@ enum CombatLogFold {
                 state.hasEnded = true
             }
         }
+        for change in pending { apply(change, to: &state) }
         return state
     }
 
     private struct TurnKey: Hashable {
         var round: Int
         var combatantID: UUID
+    }
+
+    /// Moves to the Turn after `combatantID`'s, wrapping into the next Round and stepping
+    /// over anyone removed.
+    ///
+    /// Takes the Combatant rather than trusting `activeIndex`, because the Order can have
+    /// been rearranged by an `orderChanged` during the very Turn that just ended.
+    private static func advance(_ state: inout EncounterState, from combatantID: UUID) {
+        guard !state.order.isEmpty else { return }
+        guard var index = state.order.firstIndex(of: combatantID) else { return }
+        // Everyone may have been removed; stop rather than spin.
+        for _ in 0..<state.order.count {
+            index += 1
+            if index >= state.order.count {
+                index = 0
+                state.round += 1
+            }
+            if !state.removed.contains(state.order[index]) {
+                state.activeIndex = index
+                return
+            }
+        }
+        state.activeIndex = index
     }
 
     private static func apply(_ change: Change, to state: inout EncounterState) {

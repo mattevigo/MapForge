@@ -140,6 +140,10 @@ _Avoid_: combat, fight, battle, session
 A Pawn taking part in the live Encounter: one with an Initiative and a place in the Order. Not a type but a role — a Pawn is a Combatant only on the Map it stands on and only while that Encounter runs. A Treasure is never one, having nothing to do on its turn. A Combatant removed from the Map stops taking Turns but stays listed, because the Combat Log already names it and a monster that died in Round 2 is part of what happened.
 _Avoid_: participant, actor, entity, fighter
 
+**Entrant**:
+A Pawn on its way into an Encounter — what a Combatant is before it has an Initiative. It exists because joining takes a name, a Kind and a Stat Block from the Map and gives back a place in the Order, and the thing going in is not yet the thing coming out. A Treasure can be offered as an Entrant and is simply refused.
+_Avoid_: candidate, applicant, joiner, participant
+
 **Stat Block**:
 A Pawn's combat numbers: initiative bonus, armour class, current, maximum and temporary hit points, its Conditions, its exhaustion level and whether it is concentrating. Kept beside the Map but never inside the fog file, because a fog file must stay readable by a DM who has never run a fight on it. Every Pawn may have one, Players and Creatures alike: the two differ in what a DM habitually tracks, not in what the rules permit, so the shape is one shape.
 _Avoid_: stats, sheet, character sheet, attributes, vitals

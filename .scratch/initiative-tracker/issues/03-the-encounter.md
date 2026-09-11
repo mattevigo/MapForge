@@ -40,8 +40,11 @@ of static functions. A `d20` that takes `inout RandomNumberGenerator` is enough.
 - **`reorder(from:to:)`** — moves a Combatant in `order` and records `orderChanged` carrying
   the whole new Order.
 - **`join(pawn:block:using:)`** — rolls, inserts into `order` at its Initiative position,
-  records `combatantJoined`. Inserting **after** the active index when the roll ties with
-  someone already passed, so a summon does not act twice in one Round.
+  records `combatantJoined`. Never **before** the active index, whatever it rolled: a
+  Combatant placed ahead of the Turn already running would act twice in one Round. Past
+  that it sits where its Initiative earns, so a summon that out-rolls the rest of the Order
+  still goes next, and one that rolls badly still acts this Round rather than being sent to
+  the back for arriving.
 - **`remove(combatantID:)`** — adds to `removed`, records `combatantRemoved`. The Combatant
   stays in `order`. If it is the active one, `next()` must still work.
 - **`stop()`** — flushes the current Turn and emits `encounterEnded`.

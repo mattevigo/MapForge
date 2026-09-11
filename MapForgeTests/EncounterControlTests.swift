@@ -39,8 +39,8 @@ final class EncounterControlTests: XCTestCase {
         // than typing into an empty field.
         let (encounter, _) = startedEncounter(goblinRolls: 12, grogRolls: 18)
         XCTAssertEqual(encounter.order, [grog, goblin])
-        XCTAssertEqual(encounter.initiatives[grog], 18)
-        XCTAssertEqual(encounter.initiatives[goblin], 12)
+        XCTAssertEqual(encounter.initiative(of: grog), 18)
+        XCTAssertEqual(encounter.initiative(of: goblin), 12)
     }
 
     func testTheInitiativeBonusIsAddedToTheRoll() {
@@ -49,7 +49,7 @@ final class EncounterControlTests: XCTestCase {
             [.init(id: grog, name: "Grog", kind: .player,
                    block: StatBlock(initiativeBonus: 3))],
             at: at, using: &generator)
-        XCTAssertEqual(encounter.initiatives[grog], 13)
+        XCTAssertEqual(encounter.initiative(of: grog), 13)
     }
 
     func testTreasureNeverJoinsTheOrder() {
@@ -224,6 +224,51 @@ final class EncounterControlTests: XCTestCase {
         XCTAssertTrue(lines.isEmpty, "a movement correction records nothing")
     }
 
+    func testAReorderWhileCorrectingIsWrittenAsACorrectionNotBufferedIntoTheLiveTurn() {
+        // The leak a review caught: an operation that pushed straight into the buffer
+        // would silently attach itself to the live Turn while the DM was looking at a
+        // past one, which ADR-0010 forbids. Everything now goes through `record`.
+        var (encounter, _) = startedEncounter()
+        _ = EncounterControl.next(&encounter, at: at)
+        EncounterControl.previous(&encounter)
+        let lines = EncounterControl.reorder(from: 1, to: 0, in: &encounter)
+        guard case .correction = lines.first else {
+            return XCTFail("expected a correction line, got \(lines)")
+        }
+        XCTAssertTrue(encounter.pendingChanges.isEmpty)
+    }
+
+    func testAJoinIsRecordedOnTheSpotRatherThanOnlyBuffered() {
+        // A summon's snapshot must survive a crash before the Turn ends: it is the only
+        // record of what the Combatant was when it arrived.
+        var (encounter, _) = startedEncounter()
+        _ = EncounterControl.next(&encounter, at: at)
+        EncounterControl.previous(&encounter)
+        var generator = ScriptedGenerator(d20Rolls: [15])
+        let lines = EncounterControl.join(.init(id: UUID(), name: "Wolf", kind: .creature,
+                                                block: StatBlock()),
+                                          in: &encounter, using: &generator)
+        XCTAssertFalse(lines.isEmpty, "a join while correcting must be written, not buffered")
+    }
+
+    func testStoppingIsRefusedWhileCorrecting() {
+        // ADR-0010: ending a Turn from a past one is refused rather than reinterpreted,
+        // and stopping the fight is the most final version of ending a Turn.
+        var (encounter, _) = startedEncounter()
+        _ = EncounterControl.next(&encounter, at: at)
+        EncounterControl.previous(&encounter)
+        XCTAssertTrue(EncounterControl.stop(&encounter, at: at).isEmpty)
+    }
+
+    func testStoppingAnUntouchedTurnWritesNoEmptyTurnLine() {
+        var (encounter, _) = startedEncounter()
+        let lines = EncounterControl.stop(&encounter, at: at)
+        XCTAssertEqual(lines.count, 1)
+        guard case .encounterEnded = lines.first else {
+            return XCTFail("expected only an encounterEnded line, got \(lines)")
+        }
+    }
+
     // MARK: - Joining and removal
 
     func testAJoinedCombatantEntersAtItsInitiative() {
@@ -255,6 +300,26 @@ final class EncounterControlTests: XCTestCase {
         _ = EncounterControl.next(&encounter, at: at)
         XCTAssertEqual(encounter.activeCombatantID, goblin)
         XCTAssertEqual(encounter.round, 1, "all three act in the Round the wolf arrived in")
+    }
+
+    func testASummonThatRollsBadlyStillActsInTheRoundItArrived() {
+        // It cannot go before Grog, whose Turn is running. Past that it sits where its
+        // Initiative earns: a 5 is below the goblin's 12, so it acts last — but it does
+        // act, in the Round it was summoned, rather than waiting for the next one.
+        var (encounter, _) = startedEncounter()
+        let wolf = UUID()
+        var generator = ScriptedGenerator(d20Rolls: [5])
+        _ = EncounterControl.join(.init(id: wolf, name: "Wolf", kind: .creature,
+                                        block: StatBlock()),
+                                  in: &encounter, using: &generator)
+        XCTAssertEqual(encounter.order, [grog, goblin, wolf])
+        XCTAssertEqual(encounter.initiative(of: wolf), 5)
+
+        _ = EncounterControl.next(&encounter, at: at)
+        XCTAssertEqual(encounter.activeCombatantID, goblin)
+        _ = EncounterControl.next(&encounter, at: at)
+        XCTAssertEqual(encounter.activeCombatantID, wolf)
+        XCTAssertEqual(encounter.round, 1, "the wolf gets its Turn in the Round it arrived")
     }
 
     func testARemovedCombatantIsSkippedButStaysListed() {

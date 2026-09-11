@@ -116,6 +116,46 @@ final class CombatLogFoldTests: XCTestCase {
         XCTAssertEqual(state.blocks[goblin]?.currentHP, 2)
     }
 
+    func testALaterTurnOverridesACorrectionToAnEarlierOne() {
+        // The rule when a Correction and a later Turn touch the same field: the later
+        // recorded value wins, absolutely. A Change's `to` is authoritative — it is the
+        // number the DM saw on screen at that moment — so it is never reinterpreted as a
+        // delta to be reapplied on top of an amended history.
+        //
+        // The consequence is real and is the UI's to handle, not the fold's: correcting
+        // Round 1's damage when Round 2 already set a new total changes nothing visible,
+        // and the tracker must say so rather than letting a DM believe it landed.
+        let state = CombatLogFold.fold([
+            started(),
+            .turn(round: 1, combatantID: grog,
+                  changes: [.hpChanged(combatantID: goblin, from: 10, to: 8)], endedAt: at),
+            .turn(round: 2, combatantID: grog,
+                  changes: [.hpChanged(combatantID: goblin, from: 8, to: 5)], endedAt: at),
+            .correction(targetRound: 1, targetCombatantID: grog,
+                        changes: [.hpChanged(combatantID: goblin, from: 8, to: 6)],
+                        recordedAt: at),
+        ])
+        XCTAssertEqual(state.blocks[goblin]?.currentHP, 5,
+                       "Round 2 set 5 after the Turn being corrected, and it stands")
+    }
+
+    func testACorrectionToAFieldNoLaterTurnTouchedSurvives() {
+        // The other half of the same rule, and the common case: nothing overwrote it, so
+        // the amendment is what the tracker shows.
+        let state = CombatLogFold.fold([
+            started(),
+            .turn(round: 1, combatantID: grog,
+                  changes: [.hpChanged(combatantID: goblin, from: 10, to: 8)], endedAt: at),
+            .turn(round: 2, combatantID: grog,
+                  changes: [.hpChanged(combatantID: grog, from: 26, to: 22)], endedAt: at),
+            .correction(targetRound: 1, targetCombatantID: grog,
+                        changes: [.hpChanged(combatantID: goblin, from: 8, to: 6)],
+                        recordedAt: at),
+        ])
+        XCTAssertEqual(state.blocks[goblin]?.currentHP, 6)
+        XCTAssertEqual(state.blocks[grog]?.currentHP, 22)
+    }
+
     func testACorrectionForATurnThatNeverHappenedIsIgnored() {
         // A hand-edited file, or one from a later version. Not fatal: the rest of the
         // fight is still readable.
@@ -221,5 +261,38 @@ final class CombatLogFoldTests: XCTestCase {
 
     func testAnEmptyLogIsAnEmptyState() {
         XCTAssertEqual(CombatLogFold.fold([]).order, [])
+    }
+
+    func testTheRoundAdvancesWhenTheLastCombatantsTurnIsWritten() {
+        // Resuming a Map whose Log ends on the last Turn of a Round must come back in the
+        // *next* Round — the fight is waiting on the first Combatant again. Reading the
+        // Round straight off the last Turn line would put the DM a Round behind.
+        let state = CombatLogFold.fold([
+            started(),
+            .turn(round: 1, combatantID: grog, changes: [], endedAt: at),
+            .turn(round: 1, combatantID: goblin, changes: [], endedAt: at),
+        ])
+        XCTAssertEqual(state.round, 2)
+        XCTAssertEqual(state.activeCombatantID, grog)
+    }
+
+    func testTheRoundStandsStillMidRound() {
+        let state = CombatLogFold.fold([
+            started(),
+            .turn(round: 1, combatantID: grog, changes: [], endedAt: at),
+        ])
+        XCTAssertEqual(state.round, 1)
+        XCTAssertEqual(state.activeCombatantID, goblin, "the goblin has not acted yet")
+    }
+
+    func testARemovedCombatantIsSkippedWhenResuming() {
+        // The Order still names it, so the resumed active Combatant must step over it.
+        let state = CombatLogFold.fold([
+            started(),
+            .turn(round: 1, combatantID: grog,
+                  changes: [.combatantRemoved(combatantID: goblin)], endedAt: at),
+        ])
+        XCTAssertEqual(state.round, 2)
+        XCTAssertEqual(state.activeCombatantID, grog)
     }
 }
