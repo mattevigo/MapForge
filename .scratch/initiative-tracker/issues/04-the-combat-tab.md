@@ -1,6 +1,6 @@
 # 04 — Tabs in the right-hand panel
 
-Status: ready-for-agent
+Status: ready-for-human
 
 Structural, and deliberately alone: the panel gains tabs and width before anything combat-
 shaped goes into it. Depends on issue 01 only, so it can run alongside 02 and 03.
@@ -50,3 +50,36 @@ Mostly UI tests, which `MapForgeUITests` already has three files of:
 
 The panel has two working tabs at 320 points, Scene behaves exactly as it did, and the Scene
 content lives in its own file. The Combat tab is an empty shell.
+
+## Comments
+
+**Built, minus the extraction.** Two things this issue got wrong.
+
+**The Scene content did not move into its own file, and the plan to move it was mistaken.**
+The panel reads `mode`, `fogEdits`, `tool`, `selectedPawn` and `selectedLight` — the
+fog-editing machinery — so "a behaviour-preserving extraction" would in fact mean threading
+six or more bindings through the wiring that drives fog editing. That is a rewrite wearing a
+move's clothes. Left in place; worth its own issue once the Combat tab shows what genuinely
+wants sharing, and `ControlView.swift` is no worse than it was.
+
+**`TabView` is the wrong control here** and was replaced with a segmented `Picker` plus a
+`switch`. The picker is also what this window already uses for the fog tool, so the panel
+reads as part of the same app rather than as a document with tabs.
+
+**The three long-failing `FogEditingUITests` are fixed, and the cause was not what it looked
+like.** Their queries were stale — the Light toggle stopped being a button called "1" when
+the panel went vertical, and a `.button`-styled `Toggle` publishes on macOS as a checkBox —
+but repairing the queries only moved the failure to "not hittable" at a coordinate plainly
+inside the window.
+
+The live panel's `ScrollView` publishes as **Disabled** in the accessibility tree. It does so
+at 236 points on `8969b26` as well as at 320 here, so it is AppKit's behaviour and not this
+feature's. Everything inside it reports `isHittable == false` and `element.click()` refuses.
+A probe settled whether the app was actually broken: a coordinate click at a toggle's own
+centre flips it, 1 to 0. The controls are live and always were.
+
+Worth keeping in mind for issues 05 and 06, whose every control lives in that same panel: a
+UI test there must click by coordinate, and asserting `isHittable` will always fail. The
+tests now also assert the *effect* — the Light douses, the Fog switch flips — rather than
+that an element exists, which is what let three of them sit broken for months saying nothing
+useful.
