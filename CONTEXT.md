@@ -61,8 +61,20 @@ A point source that illuminates the Map out to a bright radius and a dim radius,
 _Avoid_: lamp, torch, emitter, light source
 
 **Pawn**:
-A token on the Map with a label and a colour, drawn for players whether or not the Fog Overlay is active — unless its Pawn Kind is one the players must discover, or Solo Sight is on. A Pawn is also a Light: its range of sight and its range of illumination are the same thing, except under Solo Sight, where one Pawn's sight decides what the whole table can see. It has **one** radius — its sight — unlike a Light, which has a bright and a dim band; DnD gives a character a sight range, not a band of dim vision. The region fades out over one further square purely so its edge is not a hard cut. Moving a Pawn during play is a live action and is not undoable; moving one while authoring fog is an edit and is.
+A token on the Map with a label and a colour, drawn for players whether or not the Fog Overlay is active — unless its Pawn Kind is one the players must discover, or Solo Sight is on. A Pawn is also a Light: its range of sight and its range of illumination are the same thing, except under Solo Sight, where one Pawn's sight decides what the whole table can see. It has **one** radius — its sight — unlike a Light, which has a bright and a dim band; DnD gives a character a sight range, not a band of dim vision. The region fades out over one further square purely so its edge is not a hard cut. Moving a Pawn during play is a live action and is not undoable; moving one while authoring fog is an edit and is. A Pawn Stamped from a Character remembers which one, but only so the roster can show how many of its Pawns are on this Map — the memory is advisory, and a Pawn whose Character is gone is in no way diminished.
 _Avoid_: token, miniature, figure, character, marker
+
+**Character**:
+A member of the party, defined once and reused across every Map: a name, a colour, a sight range and whether it is Big. Always a Player — the cast a DM re-places every session — never a Creature or a Treasure, which are per-encounter and stay placed by hand. It carries no portrait: a Character is drawn exactly as the Pawn it stamps is. It is a definition, not a token; it is never on a Map, and a Pawn is what appears there.
+_Avoid_: PC, hero, player character, actor, token template
+
+**Party**:
+A named roster of Characters — a campaign's cast, defined once. Parties live with the DM rather than with any Map, so they outlive the Map a session happens to be run on. One Party is active at a time, and the active one is what the Control Window offers; the rest keep existing, unlisted. Deleting a Party is a change to the roster and never touches a Pawn already on a Map.
+_Avoid_: group, team, roster, campaign
+
+**Stamp**:
+Creating a Pawn from a Character by dragging the Character onto the Map. The Pawn is a **copy**, not a link: it takes the Character's name, colour, sight and size at that moment and then leads its own life. Renaming or deleting the Character afterwards leaves every Pawn already stamped from it untouched — the Map's own file stays self-contained and readable without the roster. Stamping is a live action like moving a Pawn, not an edit like tracing a Wall: it needs no mode and is not undoable. The same Character may be stamped any number of times, and each Pawn bears the same label.
+_Avoid_: instantiate, spawn, place, drop, add to map
 
 **Pawn Kind**:
 What a Pawn is: a **Player**, a **Creature**, or a **Treasure**. The three are mutually exclusive, so one enum on Pawn rather than a boolean each. Only two things branch on it — whether the Pawn emits Light, and which side of the Fog Overlay it draws on — and both follow from whether the players *discover* it.

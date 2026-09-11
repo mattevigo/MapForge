@@ -39,4 +39,23 @@ final class DisplayPreferencesTests: XCTestCase {
         defaults.set("uuid-tv", forKey: "playerDisplayUUID")
         XCTAssertEqual(DisplayPreferences(defaults: defaults).rememberedPlayerDisplay?.uuid, "uuid-tv")
     }
+
+    func testNoActivePartyInitially() {
+        XCTAssertNil(DisplayPreferences(defaults: defaults).activePartyID)
+    }
+
+    func testActivePartySurvivesANewInstance() {
+        // The DM runs one campaign per sitting: the app must reopen on the Party they were
+        // last using, not make them pick it again.
+        let id = UUID()
+        DisplayPreferences(defaults: defaults).activePartyID = id
+        XCTAssertEqual(DisplayPreferences(defaults: defaults).activePartyID, id)
+    }
+
+    func testAMalformedActivePartyResolvesToNone() {
+        // A hand-edited or corrupted value must degrade to "no Party chosen" rather than
+        // crash the launch — the roster is a convenience, never a precondition for running.
+        defaults.set("not-a-uuid", forKey: "activePartyID")
+        XCTAssertNil(DisplayPreferences(defaults: defaults).activePartyID)
+    }
 }
