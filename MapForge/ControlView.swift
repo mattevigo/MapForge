@@ -1101,8 +1101,12 @@ struct ControlView: View {
     /// Map's own furniture rather than anyone's token.
     @ViewBuilder
     private var livePanel: some View {
-        if !appState.fog.lights.isEmpty || !appState.fog.pawns.isEmpty
-            || !appState.partyBook.parties.isEmpty {
+        // The Party group is gated on a Map being open as well as on a Party existing: the
+        // roster is a drag source, and offering one with no Map to drop onto is an invitation
+        // to a gesture that cannot work. The other groups are already implicitly gated this
+        // way, since fog belongs to a Map.
+        let hasParty = !appState.partyBook.parties.isEmpty && appState.mapURL != nil
+        if !appState.fog.lights.isEmpty || !appState.fog.pawns.isEmpty || hasParty {
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 12) {
                     // First, above the Lights: it is the palette a session starts from, and
@@ -1151,7 +1155,7 @@ struct ControlView: View {
     /// no Party is defined, following the panel's own rule for empty groups.
     @ViewBuilder
     private var partyGroup: some View {
-        if let party = appState.activeParty {
+        if let party = appState.activeParty, appState.mapURL != nil {
             VStack(alignment: .leading, spacing: 6) {
                 partyHeader(party)
                 if let edit = partyNameEdit {
@@ -1262,9 +1266,10 @@ struct ControlView: View {
         }
         .contentShape(Rectangle())
         .draggable(CharacterDragPayload(characterID: character.id)) {
-            // The drag preview, which macOS renders under the cursor.
-            PawnToken(pawn: Stamp.preview(of: character), squareSide: 28,
-                      scalesWithFootprint: false)
+            // The drag preview, which macOS renders under the cursor. This one DOES scale
+            // with the footprint, unlike the row's token: it is headed for the Map, where a
+            // Big Pawn's two squares are the thing the DM is judging the drop against.
+            PawnToken(pawn: Stamp.preview(of: character), squareSide: 20)
         }
         .contextMenu {
             Button("Edit…") {
