@@ -131,3 +131,47 @@ _Avoid_: anchor, start point, source
 **Distance Unit**:
 The unit the table speaks distances in — currently **metres**, at 1.5 m per Grid square. Grid squares remain the unit distances are *stored* in; the Distance Unit is applied when a distance is shown. Feet is the other unit this is meant to become, which is why it is a choice and not a constant.
 _Avoid_: units, scale, measurement system
+
+**Encounter**:
+One fight on one Map, from the moment the DM starts it to the moment they stop it. It holds an Order of Combatants and a Round number, and it writes a Combat Log. A Map accumulates Encounters over a campaign; at most one is live at a time. Stopping one neither heals anyone nor clears their Conditions — a fight ending is not a rest, and the state a party fought three Rounds to reach is the state they are in.
+_Avoid_: combat, fight, battle, session
+
+**Combatant**:
+A Pawn taking part in the live Encounter: one with an Initiative and a place in the Order. Not a type but a role — a Pawn is a Combatant only on the Map it stands on and only while that Encounter runs. A Treasure is never one, having nothing to do on its turn. A Combatant removed from the Map stops taking Turns but stays listed, because the Combat Log already names it and a monster that died in Round 2 is part of what happened.
+_Avoid_: participant, actor, entity, fighter
+
+**Stat Block**:
+A Pawn's combat numbers: initiative bonus, armour class, current, maximum and temporary hit points, its Conditions, its exhaustion level and whether it is concentrating. Kept beside the Map but never inside the fog file, because a fog file must stay readable by a DM who has never run a fight on it. Every Pawn may have one, Players and Creatures alike: the two differ in what a DM habitually tracks, not in what the rules permit, so the shape is one shape.
+_Avoid_: stats, sheet, character sheet, attributes, vitals
+
+**Initiative**:
+A Combatant's place-deciding number, rolled as 1d20 plus its initiative bonus when the Encounter starts. Rolled for every Combatant, Players included — overtyping a number the players call out is faster than typing into an empty field. Editable at any time; changing it does not by itself move anyone, because the Order is the DM's.
+_Avoid_: init, roll, initiative score
+
+**Order**:
+The sequence Combatants take Turns in. Settled when the Encounter starts by sorting on Initiative, and from then on the DM's to rearrange by hand — ties are not broken by a rule, they are broken by the person running the table. Because the Order is decided rather than derived, it is recorded, not recomputed.
+_Avoid_: initiative order, turn order, queue, lineup
+
+**Turn**:
+One Combatant acting: everything between the previous advance and the next one. A Turn ends by writing exactly one line to the Combat Log, carrying its Round, its Combatant and every Change made while it ran — including Changes to somebody else, because a Turn records what happened during it, not what happened to one Pawn.
+_Avoid_: move, action, step, go
+
+**Round**:
+One pass through the whole Order. Advancing past the last Combatant wraps to the first and increments the Round silently, with no confirmation, because the table is waiting. A Round number is a fact about history: it never resets mid-Encounter, not even when Initiative is re-rolled.
+_Avoid_: cycle, pass, sequence
+
+**Combat Log**:
+The append-only record of an Encounter, one line per Turn. Never rewritten and never deleted from: a mistake is amended by a Correction appended after it, so what happened at the table stays readable next to what the DM later wished had happened. Written at the end of each Turn, which is the most that can be lost to a crash.
+_Avoid_: history, journal, transcript, audit, replay
+
+**Change**:
+One recorded mutation during a Turn — a hit point edit, a Condition applied, a Pawn moved, a note taken. Carries the Combatant it targets and the value both **before and after**, never a delta, so the Combat Log can be replayed exactly and a Correction is unambiguous about what it corrects.
+_Avoid_: event, mutation, delta, edit, update
+
+**Correction**:
+A Change appended against a Turn that has already ended. The amended Turn's own line is untouched; the Correction is a new line naming the Turn it targets. Reading the Log folds Corrections onto their Turns. Hit points, Conditions and notes can be corrected; a movement cannot, because where a Pawn stands is the Map's truth and cannot be retroactively somewhere else.
+_Avoid_: undo, fix, amend, retcon, revision
+
+**Condition**:
+One of the fourteen boolean states of DnD 5.5e a Combatant can be under — Prone, Restrained, Blinded, and the rest. Exhaustion is deliberately not one of them: it is a level from 0 to 6 and is tracked apart. Conditions carry no duration and expire on nobody's schedule: encoding "until the end of your next turn" and its cousins is a system in itself, and half of that system is worse than a DM's memory.
+_Avoid_: status, effect, debuff, ailment, state
