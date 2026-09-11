@@ -159,10 +159,16 @@ struct CombatPanel: View {
         let isRemoved = encounter.removed.contains(id)
 
         return HStack(spacing: 6) {
+            // On its own ground rather than as bold text beside the name: at the table
+            // "13  2" read as one number and a stray digit, and the Initiative is the
+            // column the DM's eye runs down.
             Text("\(encounter.initiative(of: id) ?? 0)")
                 .font(.system(.body, design: .rounded).weight(.semibold))
-                .frame(width: 26, alignment: .trailing)
                 .monospacedDigit()
+                .frame(width: 30)
+                .padding(.vertical, 1)
+                .background(Color.secondary.opacity(0.14),
+                            in: RoundedRectangle(cornerRadius: 4))
 
             kindMark(encounter.kind(of: id) ?? .creature)
 
@@ -240,12 +246,15 @@ struct CombatPanel: View {
     }
 
     private func armourClass(_ block: StatBlock) -> some View {
-        HStack(spacing: 1) {
-            Image(systemName: "shield.fill").font(.system(size: 8))
+        HStack(spacing: 2) {
+            // 8 points rendered as an indistinct grey dot on a real screen — checked by
+            // eye, not by a test, because "is this legible" is not a thing a test knows.
+            Image(systemName: "shield.fill").font(.system(size: 10))
             Text("\(block.armorClass)").monospacedDigit()
         }
         .font(.caption)
         .foregroundStyle(.secondary)
+        .help("Armour class \(block.armorClass)")
     }
 
     /// Icons, not words: fourteen Conditions will not fit as text in 320 points. Past
