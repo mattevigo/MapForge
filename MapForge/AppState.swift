@@ -85,6 +85,24 @@ final class AppState: ObservableObject {
     /// Set when a fog file exists but could not be read, so the UI can say so rather than
     /// letting a DM assume their Walls were never there and redraw over them.
     @Published private(set) var fogLoadFailure: FogStore.UnreadableFile?
+
+    /// The DM's Parties. App state, not Map state — a campaign's cast outlives the Map a
+    /// session is run on. Written straight through on every edit rather than debounced: a
+    /// roster changes when the DM types in it, which is nothing like drag-rate.
+    @Published private(set) var partyBook = PartyBook()
+    /// Which Party the panel offers. Remembered across launches.
+    @Published private(set) var activePartyID: UUID?
+    /// Set when the roster exists but could not be read.
+    ///
+    /// Surfaced *and* obeyed: while this is set the app will not write the roster at all. The
+    /// hazard is `FogStore`'s, one step further along — a DM who opens the app, sees no party,
+    /// and retypes it would otherwise have the first save overwrite the very file that could
+    /// have been recovered. Reporting the failure without refusing the write would leave the
+    /// warning true and useless.
+    @Published private(set) var partyLoadFailure: PartyStore.UnreadableFile?
+
+    /// The Party the panel should show: the remembered one, or the first, or none.
+    var activeParty: Party? { PartyRoster.activeParty(in: partyBook, id: activePartyID) }
     @Published private(set) var playerScreen: NSScreen?
     /// The DM's explicit pick. Nil = let the policy choose (remembered, else sole external).
     @Published private(set) var chosenDisplay: DisplayIdentity?
@@ -92,6 +110,7 @@ final class AppState: ObservableObject {
     private let playerWindow = PlayerWindowController()
     private let preferences: DisplayPreferences
     private let fogStore: FogStore
+    private let partyStore: PartyStore
     /// Recomputes Visibility only when the fog actually changes — never on a Viewport pan,
     /// which is drag-rate. See issue 05 and `VisibilityCache`.
     private let visibilityCache = VisibilityCache()
@@ -100,9 +119,16 @@ final class AppState: ObservableObject {
     private var closeObserver: NSObjectProtocol?
 
     init(preferences: DisplayPreferences = DisplayPreferences(),
-         fogStore: FogStore = FogStore()) {
+         fogStore: FogStore = FogStore(),
+         partyStore: PartyStore = PartyStore()) {
         self.preferences = preferences
         self.fogStore = fogStore
+        self.partyStore = partyStore
+        // Read once at launch: the roster is small, changes only when the DM edits it here,
+        // and nothing else on the machine writes it.
+        partyBook = partyStore.load()
+        partyLoadFailure = partyStore.lastLoadFailure
+        activePartyID = preferences.activePartyID
         fogAutosave = FogAutosave { [weak self] document in
             self?.writeFog(document)
         }
@@ -208,7 +234,10 @@ final class AppState: ObservableObject {
         mapURL = url
         mapImage = image
         viewportOrigin = nil
-        let document = fogStore.load(forMapAt: url) ?? FogDocument()
+        var document = fogStore.load(forMapAt: url) ?? FogDocument()
+        // A Pawn a previous version let out of the image comes back to its edge here, or
+        // it stays unreachable for good — see `PawnBounds`.
+        document.pawns = PawnBounds.clamped(document.pawns, toImage: image.pixelSize)
         // Assign the fog BEFORE restoring the Grid: `restoreGrid` writes back into `fog`,
         // and doing it the other way round would push the outgoing Map's Grid into the
         // incoming Map's document — then onto its file.
@@ -418,9 +447,14 @@ final class AppState: ObservableObject {
 
     /// Move a Pawn outside the fog editing mode — the live table action, since the party
     /// moves during play and not during prep.
+    ///
+    /// Held inside the image: a drag past the edge stops at the edge. See `PawnBounds` for
+    /// why an off-Map Pawn is not just wrong but unreachable.
     func movePawn(id: Pawn.ID, to point: MapPoint) {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
-        fog.pawns[index].at = point
+        let destination = mapImage.map { PawnBounds.clamp(point, toImage: $0.pixelSize) } ?? point
+        guard fog.pawns[index].at != destination else { return }
+        fog.pawns[index].at = destination
         recordLiveEdit(.position, on: id)
     }
 
@@ -437,6 +471,106 @@ final class AppState: ObservableObject {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
         fog.pawns[index].label = label
         recordLiveEdit(.label, on: id)
+    }
+
+    // MARK: The Party
+
+    /// Stamp a Character onto the Map at a drop point on the mirror.
+    ///
+    /// A **live** action, beside `movePawn` and not beside `FogEdits.addPawn`: placing the
+    /// party is what a DM does at the table when the session starts, not while authoring fog.
+    /// Gating it behind the editing mode would have replaced one ritual with another, which
+    /// is the whole complaint the feature answers. Not undoable, for the same reason a move
+    /// is not. See ADR 0007.
+    ///
+    /// Returns whether anything was placed, so the drop can report a miss to SwiftUI.
+    @discardableResult
+    func stamp(_ character: PartyCharacter, at droppedPoint: CGPoint, frame: CGRect) -> Bool {
+        guard let map = mapScale,
+              let pawn = Stamp.pawn(from: character, droppedAt: droppedPoint,
+                                    map: map, frame: frame) else { return false }
+        fog.pawns.append(pawn)
+        // A drop is one completed action, not a stream of positions: it should be on disk
+        // before the DM's next click, exactly as the end of a drag is.
+        flushPendingFogWrites()
+        return true
+    }
+
+    /// The Character a drag is carrying. Searched across every Party, not just the active
+    /// one: a drag that began before the DM switched Party is still a drag of a real
+    /// Character, and refusing it would be a puzzle rather than a rule.
+    func character(id: UUID) -> PartyCharacter? {
+        partyBook.parties.lazy.compactMap { party in
+            party.characters.first { $0.id == id }
+        }.first
+    }
+
+    /// How many of this Character's Pawns stand on the Map being run.
+    func placedCount(of character: PartyCharacter) -> Int {
+        PartyRoster.placedCount(of: character, among: fog.pawns)
+    }
+
+    func addParty(named name: String) {
+        let (book, party) = PartyRoster.addParty(named: name, to: partyBook)
+        partyBook = book
+        // A Party created mid-session is the one the DM wants to use.
+        setActiveParty(party.id)
+        writeParties()
+    }
+
+    func renameParty(id: UUID, to name: String) {
+        partyBook = PartyRoster.renameParty(id: id, to: name, in: partyBook)
+        writeParties()
+    }
+
+    /// Delete a Party. Pawns Stamped from its Characters stay on their Maps: they hold their
+    /// own label, colour and sight and know nothing about the roster.
+    func deleteParty(id: UUID) {
+        partyBook = PartyRoster.deleteParty(id: id, from: partyBook)
+        if activePartyID == id { setActiveParty(partyBook.parties.first?.id) }
+        writeParties()
+    }
+
+    func setActiveParty(_ id: UUID?) {
+        activePartyID = id
+        preferences.activePartyID = id
+    }
+
+    func addCharacter(_ character: PartyCharacter) {
+        guard let partyID = activeParty?.id else { return }
+        partyBook = PartyRoster.addCharacter(character, toPartyWith: partyID, in: partyBook)
+        writeParties()
+    }
+
+    /// Edit a Character in place. Pawns already Stamped from it are deliberately untouched:
+    /// a Stamp is a copy taken at the drag, so renaming Thorin today leaves last week's map
+    /// exactly as it was run.
+    func updateCharacter(_ character: PartyCharacter) {
+        partyBook = PartyRoster.updateCharacter(character, in: partyBook)
+        writeParties()
+    }
+
+    /// Delete a Character. Its Pawns stay on their Maps, fully functional; they only stop
+    /// being counted.
+    func deleteCharacter(id: UUID) {
+        partyBook = PartyRoster.deleteCharacter(id: id, in: partyBook)
+        writeParties()
+    }
+
+    private func writeParties() {
+        // Never write over a roster we could not read. This is the rule `FogStore` enforces
+        // by refusing to overwrite the bytes it failed to parse; here the refusal has to be
+        // at the write, because an unreadable roster still leaves the app running with an
+        // empty one that the DM may start typing into.
+        guard partyLoadFailure == nil else { return }
+        do {
+            try partyStore.save(partyBook)
+        } catch {
+            // Non-fatal and deliberately quiet: the roster is a convenience, and a failed
+            // write must not interrupt a session in progress. The in-memory book is still
+            // correct for as long as the app runs.
+            NSLog("MapForge: could not save parties: \(error)")
+        }
     }
 
     /// Push the fog authored inside the editing mode onto the Map.

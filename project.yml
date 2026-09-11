@@ -13,8 +13,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mattevigo.MapForge
-        MARKETING_VERSION: "1.1.0"
-        CURRENT_PROJECT_VERSION: "2"
+        MARKETING_VERSION: "1.2.0"
+        CURRENT_PROJECT_VERSION: "3"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_NSHumanReadableCopyright: "© 2026 Matteo Vigoni"
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
@@ -23,6 +24,17 @@ targets:
         CODE_SIGN_STYLE: Manual
         ENABLE_HARDENED_RUNTIME: NO
         COMBINE_HIDPI_IMAGES: YES
+    info:
+      path: MapForge/Info.plist
+      properties:
+        # Declared so the Party panel's drag carries a type of its own: a file or a snippet
+        # of text dropped on the Map is then refused by the type system rather than by
+        # hand-written validation guessing what the DM meant.
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.mattevigo.MapForge.character-id
+            UTTypeDescription: MapForge Character
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification: {}
 
   MapForgeTests:
     type: bundle.unit-test

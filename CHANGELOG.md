@@ -4,6 +4,36 @@ Versions follow [Semantic Versioning](https://semver.org). `MARKETING_VERSION` a
 `CURRENT_PROJECT_VERSION` in `project.yml` are the single source of truth; the About
 panel reads them from the built app.
 
+## 1.2.0 — 2026-09-11
+
+### Party
+
+- Define the cast once and stop re-entering it: a **Party** is a named roster of
+  **Characters**, each a name, a colour, a sight range and whether it is Big. Parties live
+  with the DM rather than with any Map, in
+  `~/Library/Application Support/MapForge/parties.json`, so they outlive the Map a session
+  happens to be run on.
+- Start a session by dragging: the active Party sits at the top of the Control Window's live
+  panel, and dragging a Character onto the Map **Stamps** a Pawn from it — placed free-form
+  under the cursor, live, and written to the Map's fog file on drop rather than on the
+  debounce. A drop outside the image creates nothing.
+- A Stamp is a copy, never a link. The Pawn takes the Character's fields at drag time and
+  then leads its own life, so renaming or deleting a Character afterwards leaves every Pawn
+  already on a Map untouched and the fog file readable without the roster —
+  [ADR 0007](docs/adr/0007-characters-are-stamped-not-linked.md). Stamp the same Character
+  five times and get five working Pawns; the roster shows a `×2`-style placed count for the
+  current Map only.
+- Authoring is inline, in the panel: a "+" appends an editable row with the same four
+  controls the Pawn inspector uses. Roster edits are not Map edits — they stay out of the
+  fog undo history, and ⌘Z after a Stamp does not remove the Pawn.
+- The Party group appears only once a Map is open, so the drag source is never offered with
+  nowhere to drop.
+
+### Icon
+
+- MapForge has an app icon: the forge and a lit dungeon with the fog still rolling over half
+  of it.
+
 ## 1.1.0 — 2026-09-11
 
 ### Measurement
@@ -113,6 +143,6 @@ screen on the table.
   rotation are described in `CONTEXT.md` but not built; True Scale relies on the display
   reporting its physical size.
 - The UI test target does not run reliably on every machine
-  (`.scratch/table-ready/issues/06-ui-tests-running.md`). The 302 unit tests are green.
+  (`.scratch/table-ready/issues/06-ui-tests-running.md`). The 500 unit tests are green.
 - The build is ad-hoc signed for personal use, not notarised. macOS may ask you to
   allow it in System Settings → Privacy & Security on first launch.
