@@ -24,6 +24,18 @@ during this feature and **no unit test could have caught any of them** — the a
 correct every time and the view handed it the wrong frame. A UI test is the only level that
 sees that class of defect. See the note on `PlayerPlacement.mapPoint(_:map:frame:)`.
 
+## Three UI tests are failing, and were already
+
+`FogEditingUITests` has 3 failures — including
+`testTheFogOverlayHasAnAlwaysReachableOffSwitch` ("no Fog Overlay switch outside the mode")
+and `testPlacingAPawnAndDraggingItOutsideTheEditingMode`. Verified **not** caused by
+Measurement: checking out `develop` into a worktree and running the same suite gives the
+same 3 failures on the same tests. They predate this branch and belong to whoever last
+moved the fog chrome.
+
+Worth fixing before they are taken as background noise — a permanently red UI suite is how
+the one class of bug this feature kept shipping goes unnoticed.
+
 ## Three copies of the local event monitor
 
 `RightClick.swift`, `ScrollWheel.swift` and `DeleteKey.swift` are near-identical: the same
