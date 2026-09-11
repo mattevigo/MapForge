@@ -218,12 +218,14 @@ extension AppState {
         joinEncounter(pawn)
     }
 
-    /// Takes a Pawn off the Map, and out of the rotation if a fight is running.
+    /// Takes a Pawn off the Map, and onto the bench if a fight is running.
     ///
-    /// The Combatant stays listed and struck through: the Log already names it, and its
-    /// Stat Block outlives it so the record has something to describe.
+    /// Benched rather than forgotten: the Log already names it, and its Stat Block outlives
+    /// the token so the record has something to describe. A Pawn deleted from the Map
+    /// cannot be un-benched, having nowhere to stand — the bench keeps it visible in the
+    /// tracker for the rest of the fight, which is what a DM wants of a monster that died.
     func removePawnFromMap(_ id: Pawn.ID) {
-        removeFromEncounter(id)
+        benchCombatant(id)
         fog.pawns.removeAll { $0.id == id }
         flushPendingFogWrites()
     }
@@ -254,10 +256,29 @@ extension AppState {
         encounter = live
     }
 
-    /// Takes a Combatant out of the rotation. It stays listed: the Log already names it.
-    func removeFromEncounter(_ pawn: Pawn.ID) {
+    /// Takes a Combatant out of the Order and onto the bench.
+    func benchCombatant(_ pawn: Pawn.ID) {
         guard var live = encounter else { return }
-        write(EncounterControl.remove(pawn, in: &live))
+        write(EncounterControl.bench(pawn, in: &live))
+        encounter = live
+    }
+
+    /// Puts a Benched Pawn into the Order, rolling Initiative afresh.
+    ///
+    /// Also the way in for a Pawn that was never a Combatant — one placed since the fight
+    /// began, or one the DM has only just decided is part of it. Both are joins; the
+    /// difference is only whether the Log has met it before.
+    func unbenchCombatant(_ pawn: Pawn.ID) {
+        guard var live = encounter else { return }
+        var generator = SystemRandomNumberGenerator()
+        if live.benched.contains(pawn) {
+            write(EncounterControl.unbench(pawn, in: &live, using: &generator))
+        } else if let onMap = fog.pawns.first(where: { $0.id == pawn }) {
+            let entrant = EncounterControl.Entrant(id: onMap.id, name: onMap.label,
+                                                   kind: onMap.kind,
+                                                   block: statBlock(for: onMap.id))
+            write(EncounterControl.join(entrant, in: &live, using: &generator))
+        }
         encounter = live
     }
 

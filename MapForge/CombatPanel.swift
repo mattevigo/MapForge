@@ -153,15 +153,95 @@ struct CombatPanel: View {
                 ForEach(encounter.order, id: \.self) { id in
                     row(encounter, id: id)
                 }
+                bench(encounter)
             }
             .padding(6)
         }
     }
 
+    /// What is on the Map but out of the Order — see `CONTEXT.md`, **Benched**.
+    ///
+    /// Under the Order rather than hidden behind a disclosure, because a DM needs to see
+    /// the whole room: the goblin bleeding out on the floor is still a thing in the fight
+    /// even while it takes no Turns.
+    @ViewBuilder
+    private func bench(_ encounter: Encounter) -> some View {
+        // Everything on the Map that is not taking Turns, not only what was benched out of
+        // the Order: a Treasure, and anything placed since the fight began. One honest list
+        // of "here but not fighting" beats two lists that mean nearly the same thing.
+        let onMap = Set(appState.fog.pawns.map(\.id))
+        let inOrder = Set(encounter.order)
+        let benched = (encounter.benched.union(onMap.subtracting(inOrder)))
+            .sorted { name(of: $0, in: encounter) < name(of: $1, in: encounter) }
+        if !benched.isEmpty {
+            Divider().padding(.vertical, 4)
+            Text("Not in combat")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 6)
+            ForEach(benched, id: \.self) { id in
+                benchRow(encounter, id: id)
+            }
+        }
+    }
+
+    /// A Benched Pawn's name, from the Encounter if it was ever in it and from the Map
+    /// otherwise — a Pawn stamped after the fight began has no Log entry to be named by.
+    private func name(of id: Pawn.ID, in encounter: Encounter) -> String {
+        encounter.name(of: id)
+            ?? appState.fog.pawns.first { $0.id == id }?.label
+            ?? "?"
+    }
+
+    private func kind(of id: Pawn.ID, in encounter: Encounter) -> PawnKind {
+        encounter.kind(of: id)
+            ?? appState.fog.pawns.first { $0.id == id }?.kind
+            ?? .creature
+    }
+
+    private func benchRow(_ encounter: Encounter, id: Pawn.ID) -> some View {
+        let block = encounter.blocks[id] ?? appState.statBlock(for: id)
+        let kind = kind(of: id, in: encounter)
+        return HStack(spacing: 6) {
+            Button {
+                appState.unbenchCombatant(id)
+            } label: {
+                Image(systemName: "arrow.uturn.up")
+                    .font(.system(size: 9))
+                    .frame(width: 18)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityIdentifier("unbench")
+            // A Treasure has nothing to do on its turn, so there is nowhere to put it back
+            // to. Shown in the list because it is in the room; not offered a way in.
+            .disabled(kind == .treasure)
+            .opacity(kind == .treasure ? 0 : 1)
+            .help("Roll Initiative and put back into the Order")
+
+            kindMark(kind)
+
+            Text(name(of: id, in: encounter))
+                .lineLimit(1)
+
+            Spacer(minLength: 0)
+            hitPoints(block)
+            conditions(block)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .foregroundStyle(.secondary)
+        .contentShape(Rectangle())
+        .onTapGesture { selection = id }
+        .overlay(RoundedRectangle(cornerRadius: 4)
+            .stroke(selection == id ? Color.accentColor : .clear))
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("benched-row")
+        .accessibilityLabel(Text(encounter.name(of: id) ?? "?"))
+    }
+
     private func row(_ encounter: Encounter, id: Pawn.ID) -> some View {
         let block = encounter.blocks[id] ?? StatBlock()
         let isActive = encounter.activeCombatantID == id && !encounter.isCorrecting
-        let isRemoved = encounter.removed.contains(id)
 
         return HStack(spacing: 6) {
             // On its own ground rather than as bold text beside the name: at the table
@@ -179,17 +259,25 @@ struct CombatPanel: View {
 
             Text(encounter.name(of: id) ?? "?")
                 .lineLimit(1)
-                .strikethrough(isRemoved)
 
             Spacer(minLength: 0)
 
             hitPoints(block)
             armourClass(block)
             conditions(block)
+
+            Button {
+                appState.benchCombatant(id)
+            } label: {
+                Image(systemName: "arrow.uturn.down")
+                    .font(.system(size: 9))
+            }
+            .buttonStyle(.borderless)
+            .accessibilityIdentifier("bench")
+            .help("Take out of the Order. Stays on the Map and can be put back.")
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
-        .opacity(isRemoved ? 0.45 : 1)
         // Filled, not outlined: a DM reads this from across a table at a glance.
         .background(isActive ? Color.accentColor.opacity(0.30) : .clear,
                     in: RoundedRectangle(cornerRadius: 4))

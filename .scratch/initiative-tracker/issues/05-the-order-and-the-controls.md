@@ -73,3 +73,26 @@ UI tests for the flows, unit tests for anything computable:
 
 A whole fight can be run from the panel: play, several Rounds of Next, a trip backwards and
 forwards, a re-roll, a stop — with the Log on disk matching what happened.
+
+## Amendment — the bench replaces the struck-through row
+
+Asked for after the issue was built, and it reverses one of its rules. A Combatant taken out
+of the fight no longer stays in the Order struck through: it moves to a **Not in combat**
+list below the Order, and comes back by rolling Initiative afresh.
+
+`CONTEXT.md` gains **Benched** and the **Combatant** entry is corrected — it used to say a
+removed Combatant "stays listed", which is now wrong.
+
+The list holds everything on the Map that is not taking Turns, not only what was benched out
+of the Order: a Treasure, and anything placed since the fight began. One honest list of
+"here but not fighting" beats two that mean nearly the same thing. A Treasure is shown
+without a way back in, having nothing to do on its turn.
+
+Returning is a join and nothing else — same rules, same fresh roll, never ahead of the Turn
+already running. Hit points and Conditions come back untouched: the bench is not a rest. A
+Pawn the Order has never seen joins by the same button, which is why `unbenchCombatant` falls
+back to the Map when the Log cannot name it.
+
+`combatantRemoved` keeps its name on the wire. It has always meant "out of the Order", which
+is what Benched now names, and renaming it would make every Log already beside a DM's Maps
+unreadable.

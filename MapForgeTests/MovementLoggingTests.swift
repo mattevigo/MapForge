@@ -234,7 +234,7 @@ final class MovementLoggingTests: XCTestCase {
         XCTAssertNil(state.encounter)
     }
 
-    func testDeletingAPawnMidFightMarksItRemovedAndKeepsItListed() {
+    func testDeletingAPawnMidFightBenchesIt() {
         // The Log already names it, and a monster that died in Round 2 is part of what
         // happened.
         let state = makeAppState()
@@ -246,8 +246,47 @@ final class MovementLoggingTests: XCTestCase {
         state.removePawnFromMap(goblin.id)
 
         XCTAssertFalse(state.fog.pawns.contains { $0.id == goblin.id }, "gone from the Map")
-        XCTAssertTrue(state.encounter?.order.contains(goblin.id) ?? false, "still in the Order")
-        XCTAssertTrue(state.encounter?.removed.contains(goblin.id) ?? false)
+        XCTAssertFalse(state.encounter?.order.contains(goblin.id) ?? true,
+                       "a Benched Pawn is out of the Order")
+        XCTAssertTrue(state.encounter?.benched.contains(goblin.id) ?? false,
+                      "and on the bench, where the tracker still shows it")
+    }
+
+    func testAPawnThatWasNeverInTheFightCanBePutIntoIt() {
+        // The bench holds everything on the Map that is not taking Turns, including a Pawn
+        // the Order has never seen — so the way in has to work for one the Log cannot name.
+        let state = makeAppState()
+        state.fog.pawns = [pawn("Grog", at: 100)]
+        state.startEncounter()
+
+        let chest = pawn("Chest", at: 700, kind: .treasure)
+        state.fog.pawns.append(chest)
+        let wolf = pawn("Wolf", at: 500, kind: .creature)
+        state.fog.pawns.append(wolf)
+
+        state.unbenchCombatant(wolf.id)
+
+        XCTAssertTrue(state.encounter?.order.contains(wolf.id) ?? false)
+        XCTAssertNotNil(state.encounter?.initiative(of: wolf.id), "it needs a rolled Initiative")
+        XCTAssertFalse(state.encounter?.order.contains(chest.id) ?? true,
+                       "a Treasure has nothing to do on its turn")
+    }
+
+    func testABenchedPawnComesBackWithTheHitPointsItHad() {
+        let state = makeAppState()
+        let goblin = pawn("Goblin", at: 400, kind: .creature)
+        state.fog.pawns = [pawn("Grog", at: 100), goblin]
+        state.setStatBlock(StatBlock(currentHP: 7, maxHP: 7), for: goblin.id)
+        state.startEncounter()
+        state.editStatBlock(for: goblin.id) { $0.currentHP = 2 }
+
+        state.benchCombatant(goblin.id)
+        XCTAssertTrue(state.encounter?.benched.contains(goblin.id) ?? false)
+
+        state.unbenchCombatant(goblin.id)
+        XCTAssertTrue(state.encounter?.order.contains(goblin.id) ?? false)
+        XCTAssertEqual(state.encounter?.blocks[goblin.id]?.currentHP, 2,
+                       "the bench is not a rest")
     }
 
     func testApplyingFogEditsLeavesTheFightAlone() {

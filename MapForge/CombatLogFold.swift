@@ -11,8 +11,13 @@ struct EncounterState: Equatable {
     var order: [UUID] = []
     var round = 1
     var blocks: [UUID: StatBlock] = [:]
-    /// Listed but taking no Turns. A monster that died in Round 2 is part of what happened.
-    var removed: Set<UUID> = []
+    /// On the Map but out of the Order — see `CONTEXT.md`, **Benched**.
+    ///
+    /// Held apart from `order` rather than as a flag within it, because a Benched Pawn is
+    /// not in the Order at all: it takes no Turns, it is listed separately, and it returns
+    /// by rolling afresh. Its name and numbers stay in `blocks` and `names`, so the Log can
+    /// still describe a Creature that died three Rounds ago.
+    var benched: Set<UUID> = []
     var hasEnded = false
 
     /// Whose Turn it is, as an index into `order`.
@@ -37,8 +42,9 @@ struct EncounterState: Equatable {
     func kind(of combatant: UUID) -> PawnKind? { kinds[combatant] }
     func initiative(of combatant: UUID) -> Int? { initiatives[combatant] }
 
-    /// The Combatants still taking Turns, in Order.
-    var active: [UUID] { order.filter { !removed.contains($0) } }
+    /// The Combatants taking Turns, in Order. Benched Pawns are not among them — they are
+    /// not in `order` at all.
+    var active: [UUID] { order }
 }
 
 /// Reads a Combat Log back as the state it describes.
@@ -115,27 +121,27 @@ enum CombatLogFold {
         var combatantID: UUID
     }
 
-    /// Moves to the Turn after `combatantID`'s, wrapping into the next Round and stepping
-    /// over anyone removed.
+    /// Moves to the Turn after `combatantID`'s, wrapping into the next Round.
     ///
     /// Takes the Combatant rather than trusting `activeIndex`, because the Order can have
-    /// been rearranged by an `orderChanged` during the very Turn that just ended.
+    /// been rearranged — or the Combatant Benched out of it — during the very Turn that
+    /// just ended.
     private static func advance(_ state: inout EncounterState, from combatantID: UUID) {
         guard !state.order.isEmpty else { return }
-        guard var index = state.order.firstIndex(of: combatantID) else { return }
-        // Everyone may have been removed; stop rather than spin.
-        for _ in 0..<state.order.count {
-            index += 1
-            if index >= state.order.count {
-                index = 0
-                state.round += 1
-            }
-            if !state.removed.contains(state.order[index]) {
-                state.activeIndex = index
-                return
-            }
+        guard let index = state.order.firstIndex(of: combatantID) else {
+            // Benched during its own Turn: it is gone from the Order, so whoever now holds
+            // its old position acts next. The index cannot be trusted to name them, but it
+            // is where the fight continues from.
+            state.activeIndex = min(state.activeIndex, state.order.count - 1)
+            return
         }
-        state.activeIndex = index
+        let next = index + 1
+        if next >= state.order.count {
+            state.activeIndex = 0
+            state.round += 1
+        } else {
+            state.activeIndex = next
+        }
     }
 
     private static func apply(_ change: Change, to state: inout EncounterState) {
@@ -161,13 +167,21 @@ enum CombatLogFold {
         case let .orderChanged(order):
             state.order = order
         case let .combatantJoined(id, name, kind, initiative, block):
+            // Also how a Benched Pawn returns: it is a join, with the same rules and a
+            // fresh roll. The snapshot carries whatever hit points it had, so returning
+            // after three Rounds on the bench is not a reset.
             state.blocks[id] = block
             state.names[id] = name
             state.kinds[id] = kind
             state.initiatives[id] = initiative
+            state.benched.remove(id)
             if !state.order.contains(id) { state.order.append(id) }
         case let .combatantRemoved(id):
-            state.removed.insert(id)
+            // The wire name is older than the concept: on disk this has always meant "out
+            // of the Order", which is what Benched now names. Kept as written so Logs
+            // already beside a DM's Maps still read.
+            state.benched.insert(id)
+            state.order.removeAll { $0 == id }
         case .moved, .noteAdded:
             // Recorded for the record, not for the state: where a Pawn stands is the
             // Map's own truth, and a note is something to read rather than something the

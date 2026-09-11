@@ -137,8 +137,12 @@ One fight on one Map, from the moment the DM starts it to the moment they stop i
 _Avoid_: combat, fight, battle, session
 
 **Combatant**:
-A Pawn taking part in the live Encounter: one with an Initiative and a place in the Order. Not a type but a role — a Pawn is a Combatant only on the Map it stands on and only while that Encounter runs. A Treasure is never one, having nothing to do on its turn. A Combatant removed from the Map stops taking Turns but stays listed, because the Combat Log already names it and a monster that died in Round 2 is part of what happened.
+A Pawn taking part in the live Encounter: one with an Initiative and a place in the Order. Not a type but a role — a Pawn is a Combatant only on the Map it stands on and only while that Encounter runs. A Treasure is never one, having nothing to do on its turn. A Pawn taken out of the Order stops being a Combatant and becomes Benched; the Combat Log still names it, because a monster that died in Round 2 is part of what happened whatever the tracker shows now.
 _Avoid_: participant, actor, entity, fighter
+
+**Benched**:
+On the Map but not in the Order: a Creature that has died or fled, a summon that has not been added yet, a Treasure, a Pawn the DM has simply set aside. Benched Pawns are listed under the Order rather than hidden, because a DM needs to see the whole room and not only the part of it taking Turns. Being Benched says nothing about being alive — a Combatant at 0 hit points is Unconscious whether it is Benched or not, and the two are decided separately. A Benched Pawn returns to the Order by rolling Initiative afresh, exactly as one joining for the first time does.
+_Avoid_: removed, inactive, sidelined, out, reserve
 
 **Entrant**:
 A Pawn on its way into an Encounter — what a Combatant is before it has an Initiative. It exists because joining takes a name, a Kind and a Stat Block from the Map and gives back a place in the Order, and the thing going in is not yet the thing coming out. A Treasure can be offered as an Entrant and is simply refused.

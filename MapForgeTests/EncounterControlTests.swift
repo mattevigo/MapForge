@@ -322,21 +322,7 @@ final class EncounterControlTests: XCTestCase {
         XCTAssertEqual(encounter.round, 1, "the wolf gets its Turn in the Round it arrived")
     }
 
-    func testARemovedCombatantIsSkippedButStaysListed() {
-        var (encounter, _) = startedEncounter()
-        _ = EncounterControl.remove(goblin, in: &encounter)
-        _ = EncounterControl.next(&encounter, at: at)
-        XCTAssertEqual(encounter.activeCombatantID, grog, "the goblin takes no more Turns")
-        XCTAssertEqual(encounter.round, 2)
-        XCTAssertTrue(encounter.order.contains(goblin), "the Log already names it")
-    }
-
-    func testRemovingTheActiveCombatantLeavesNextWorking() {
-        var (encounter, _) = startedEncounter()
-        _ = EncounterControl.remove(grog, in: &encounter)
-        _ = EncounterControl.next(&encounter, at: at)
-        XCTAssertEqual(encounter.activeCombatantID, goblin)
-    }
+    // Benching and returning live in `BenchTests`, which covers both directions.
 
     // MARK: - Reordering
 
@@ -377,7 +363,7 @@ final class EncounterControlTests: XCTestCase {
         var (encounter, _) = startedEncounter()
         _ = EncounterControl.record(.hpChanged(combatantID: goblin, from: 7, to: 0),
                                     in: &encounter)
-        XCTAssertFalse(encounter.removed.contains(goblin))
+        XCTAssertFalse(encounter.benched.contains(goblin))
     }
 
     func testDroppingToZeroWhileAlreadyUnconsciousRecordsNoDuplicate() {

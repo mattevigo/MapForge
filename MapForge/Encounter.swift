@@ -47,7 +47,7 @@ struct Encounter: Equatable {
     var order: [UUID] { state.order }
     var round: Int { state.round }
     var blocks: [UUID: StatBlock] { state.blocks }
-    var removed: Set<UUID> { state.removed }
+    var benched: Set<UUID> { state.benched }
 
     func initiative(of combatant: UUID) -> Int? { state.initiative(of: combatant) }
     func name(of combatant: UUID) -> String? { state.name(of: combatant) }
@@ -219,12 +219,33 @@ enum EncounterControl {
         ], in: &encounter)
     }
 
-    /// Takes a Combatant out of the rotation. It stays in the Order: the Log already names
-    /// it, and a monster that died in Round 2 is part of what happened.
+    /// Takes a Combatant out of the Order and onto the bench.
+    ///
+    /// Not a deletion: its name and numbers stay, so the Log can still describe it and the
+    /// DM can still heal it before sending it back. See `CONTEXT.md`, **Benched**.
     @discardableResult
-    static func remove(_ combatantID: UUID, in encounter: inout Encounter) -> [LogLine] {
+    static func bench(_ combatantID: UUID, in encounter: inout Encounter) -> [LogLine] {
         guard encounter.order.contains(combatantID) else { return [] }
         return record([.combatantRemoved(combatantID: combatantID)], in: &encounter)
+    }
+
+    /// Returns a Benched Pawn to the Order, rolling Initiative afresh.
+    ///
+    /// Exactly a join, and deliberately so: a Creature that has spent three Rounds off the
+    /// Order has no claim on the number it rolled before, and the DM would have to correct
+    /// a stale one by hand. Its hit points and Conditions come back untouched — the bench
+    /// is not a rest.
+    @discardableResult
+    static func unbench<G: RandomNumberGenerator>(_ combatantID: UUID,
+                                                  in encounter: inout Encounter,
+                                                  using generator: inout G) -> [LogLine] {
+        guard encounter.benched.contains(combatantID) else { return [] }
+        let state = encounter.state
+        let entrant = Entrant(id: combatantID,
+                              name: state.name(of: combatantID) ?? "?",
+                              kind: state.kind(of: combatantID) ?? .creature,
+                              block: state.blocks[combatantID] ?? StatBlock())
+        return join(entrant, in: &encounter, using: &generator)
     }
 
     /// Moves a Combatant in the Order and records the whole new sequence.

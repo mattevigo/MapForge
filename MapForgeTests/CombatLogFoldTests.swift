@@ -185,17 +185,19 @@ final class CombatLogFoldTests: XCTestCase {
         XCTAssertEqual(state.name(of: wolf), "Wolf")
     }
 
-    func testARemovedCombatantStaysInTheFoldedState() {
-        // The Log already names it, and a monster that died in Round 2 is part of what
-        // happened. It stops taking Turns; it does not stop existing.
+    func testABenchedCombatantLeavesTheOrderButNotTheLog() {
+        // Out of the Order entirely — it takes no Turns and is listed apart — while its
+        // name and numbers stay, because a monster that died in Round 2 is part of what
+        // happened and a DM may yet heal it and send it back.
         let state = CombatLogFold.fold([
             started(),
             .turn(round: 1, combatantID: grog,
                   changes: [.combatantRemoved(combatantID: goblin)], endedAt: at),
         ])
-        XCTAssertTrue(state.removed.contains(goblin))
+        XCTAssertTrue(state.benched.contains(goblin))
+        XCTAssertFalse(state.order.contains(goblin), "a Benched Pawn is not in the Order")
         XCTAssertEqual(state.name(of: goblin), "Goblin")
-        XCTAssertTrue(state.order.contains(goblin))
+        XCTAssertEqual(state.blocks[goblin]?.maxHP, 7)
     }
 
     func testTheOrderIsWhatWasRecordedNotASortOnInitiative() {
