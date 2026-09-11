@@ -83,7 +83,7 @@ struct CombatPanel: View {
                     Label("Play", systemImage: "play.fill")
                 }
                 .accessibilityIdentifier("encounter-play")
-                .disabled(!hasCombatants)
+                .disabled(!hasRosteredCombatants)
                 .help("Roll Initiative for everyone on the Map and begin.")
             } else {
                 Button {
@@ -141,8 +141,15 @@ struct CombatPanel: View {
     @State private var isConfirmingReroll = false
     @State private var isConfirmingStop = false
 
+    /// Whether anything on the Map could fight at all, roster aside.
     private var hasCombatants: Bool {
         appState.fog.pawns.contains { $0.kind != .treasure }
+    }
+
+    /// Whether pressing play would start anything. A Map full of Pawns with every one of
+    /// them ticked out is a Map with no fight in it.
+    private var hasRosteredCombatants: Bool {
+        appState.fog.pawns.contains { $0.kind != .treasure && appState.isInCombat($0.id) }
     }
 
     // MARK: The Order
@@ -166,12 +173,10 @@ struct CombatPanel: View {
     /// even while it takes no Turns.
     @ViewBuilder
     private func bench(_ encounter: Encounter) -> some View {
-        // Everything on the Map that is not taking Turns, not only what was benched out of
-        // the Order: a Treasure, and anything placed since the fight began. One honest list
-        // of "here but not fighting" beats two lists that mean nearly the same thing.
-        let onMap = Set(appState.fog.pawns.map(\.id))
-        let inOrder = Set(encounter.order)
-        let benched = (encounter.benched.union(onMap.subtracting(inOrder)))
+        // Everything on the Map that is not taking Turns: left off the roster before the
+        // fight, Benched during it, placed since it began, or Treasure. One honest list of
+        // "here but not fighting" beats several that mean nearly the same thing.
+        let benched = appState.notInCombat
             .sorted { name(of: $0, in: encounter) < name(of: $1, in: encounter) }
         if !benched.isEmpty {
             Divider().padding(.vertical, 4)
@@ -379,16 +384,48 @@ struct CombatPanel: View {
         .foregroundStyle(.secondary)
     }
 
+    /// Before a fight: who would roll if the DM pressed play.
+    ///
+    /// Shown rather than left to be discovered, because the roster is set in the Scene tab
+    /// and a DM should not have to switch back to find out who is in. The count is the
+    /// thing that catches "why is the barkeep rolling".
     private var idle: some View {
-        VStack(spacing: 8) {
+        let rostered = appState.fog.pawns.filter {
+            $0.kind != .treasure && appState.isInCombat($0.id)
+        }
+        return VStack(spacing: 8) {
             Image(systemName: "shield.lefthalf.filled")
                 .font(.largeTitle)
                 .foregroundStyle(.tertiary)
-            Text(hasCombatants ? "No encounter yet" : "Nobody on the Map to fight")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            if rostered.isEmpty {
+                Text(hasCombatants
+                     ? "Nobody on the Map is in the next fight"
+                     : "Nobody on the Map to fight")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                if hasCombatants {
+                    Text("Tick them in the Scene tab.")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.tertiary)
+                }
+            } else {
+                Text("^[\(rostered.count) Pawn](inflect: true) ready to roll")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(rostered) { pawn in
+                        HStack(spacing: 4) {
+                            kindMark(pawn.kind)
+                            Text(pawn.label).lineLimit(1)
+                        }
+                        .font(.caption)
+                    }
+                }
+                .accessibilityIdentifier("roster-preview")
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity)
         .padding(.vertical, 24)
     }
 }

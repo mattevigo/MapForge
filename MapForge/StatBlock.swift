@@ -40,6 +40,18 @@ struct StatBlock: Codable, Equatable {
     /// a table, and it is one boolean.
     var isConcentrating: Bool = false
 
+    /// Whether this Pawn rolls when the next fight starts.
+    ///
+    /// A Pawn is on the Map whether or not it is in the fight — the innkeeper behind the
+    /// bar while the party brawls in front of it is still a Pawn. Defaults to true so a Map
+    /// nobody has set up behaves as the app did before the roster existed: press play and
+    /// everyone rolls.
+    ///
+    /// Read only when a fight *starts*. Once one is running, Pawns come and go through the
+    /// bench, and this is neither consulted nor shown — two controls for one thing at two
+    /// different moments, rather than one control whose meaning changes.
+    var isInCombat: Bool = true
+
     static let defaultArmorClass = 10
     static let maximumExhaustion = 6
 
@@ -56,7 +68,8 @@ struct StatBlock: Codable, Equatable {
          temporaryHP: Int = 0,
          conditions: Set<Condition> = [],
          exhaustion: Int = 0,
-         isConcentrating: Bool = false) {
+         isConcentrating: Bool = false,
+         isInCombat: Bool = true) {
         self.initiativeBonus = initiativeBonus
         self.armorClass = armorClass
         self.currentHP = currentHP
@@ -65,6 +78,7 @@ struct StatBlock: Codable, Equatable {
         self.conditions = conditions
         self.exhaustion = Self.clampExhaustion(exhaustion)
         self.isConcentrating = isConcentrating
+        self.isInCombat = isInCombat
     }
 
     private static func clampExhaustion(_ level: Int) -> Int {
@@ -86,7 +100,10 @@ struct StatBlock: Codable, Equatable {
             temporaryHP: try container.decodeIfPresent(Int.self, forKey: .temporaryHP) ?? 0,
             conditions: try container.decodeIfPresent(Set<Condition>.self, forKey: .conditions) ?? [],
             exhaustion: try container.decodeIfPresent(Int.self, forKey: .exhaustion) ?? 0,
-            isConcentrating: try container.decodeIfPresent(Bool.self, forKey: .isConcentrating) ?? false
+            isConcentrating: try container.decodeIfPresent(Bool.self, forKey: .isConcentrating) ?? false,
+            // Absent in every file written before the roster existed, and every Pawn in one
+            // of those was fighting — there was no way to say otherwise.
+            isInCombat: try container.decodeIfPresent(Bool.self, forKey: .isInCombat) ?? true
         )
     }
 }

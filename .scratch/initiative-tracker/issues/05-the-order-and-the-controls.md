@@ -96,3 +96,24 @@ back to the Map when the Log cannot name it.
 `combatantRemoved` keeps its name on the wire. It has always meant "out of the Order", which
 is what Benched now names, and renaming it would make every Log already beside a DM's Maps
 unreadable.
+
+## Amendment — a fight starts with the Pawns the DM ticked
+
+A Pawn is on the Map whether or not it is in the next fight: the innkeeper behind the bar
+while the party brawls in front of it is still a Pawn. Each Scene-tab row gains a shield
+toggle on the right, and `play` rolls for the ticked ones only.
+
+Default is in-combat, so a Map nobody has set up behaves as the app did before the roster
+existed. The flag lives on `StatBlock` — beside the hit points, in `stats.json`, remembered
+per Map — because both answer "what is this Pawn in a fight", and only the exception is
+written, so a file stays small and the default stays implicit. A block written before this
+existed reads as in-combat, there having been no way to say otherwise.
+
+Read **only when a fight starts**. Once one is running the toggle is hidden and Pawns come
+and go through the bench: two controls for two moments, rather than one control whose
+meaning changes halfway. A Pawn left off the roster lands on the bench when the fight begins,
+so the same button that returns a Benched Pawn brings it in.
+
+The Combat tab shows the roster before play — "2 Pawns ready to roll", and their names —
+because the roster is set in the other tab and a DM should not have to switch back to find
+out who is in.

@@ -127,14 +127,45 @@ extension AppState {
 
     // MARK: Running a fight
 
-    /// Rolls Initiative for every Player and Creature on the Map and opens a Combat Log.
+    // MARK: The roster
+
+    /// Whether a Pawn rolls when the next fight starts. See `StatBlock.isInCombat`.
+    func isInCombat(_ pawn: Pawn.ID) -> Bool {
+        statBlock(for: pawn).isInCombat
+    }
+
+    /// Puts a Pawn in or out of the next fight.
+    ///
+    /// Straight to `stats.json`, never through the Log: a roster is prep, decided before a
+    /// fight rather than during one, and there is nothing open to record it into.
+    func setInCombat(_ isInCombat: Bool, for pawn: Pawn.ID) {
+        var block = statBlock(for: pawn)
+        guard block.isInCombat != isInCombat else { return }
+        block.isInCombat = isInCombat
+        setStatBlock(block, for: pawn)
+    }
+
+    /// Pawns on the Map that are not taking Turns: left off the roster, Benched during the
+    /// fight, or Treasure. What the tracker lists under the Order.
+    var notInCombat: Set<Pawn.ID> {
+        let onMap = Set(fog.pawns.map(\.id))
+        guard let encounter else {
+            return Set(fog.pawns.filter { !isInCombat($0.id) || $0.kind == .treasure }.map(\.id))
+        }
+        return encounter.benched.union(onMap.subtracting(Set(encounter.order)))
+    }
+
+    /// Rolls Initiative for every rostered Player and Creature on the Map and opens a
+    /// Combat Log.
     ///
     /// Does nothing when there is nobody to fight: an empty tracker would be worse than
-    /// no tracker.
+    /// no tracker. A Pawn left off the roster is not refused so much as not asked — it
+    /// stays on the Map, is listed as not in combat, and the same button that returns a
+    /// Benched Pawn will bring it in.
     func startEncounter() {
         guard let mapURL, encounter == nil else { return }
         let entrants = fog.pawns
-            .filter { $0.kind != .treasure }
+            .filter { $0.kind != .treasure && isInCombat($0.id) }
             .map { EncounterControl.Entrant(id: $0.id, name: $0.label, kind: $0.kind,
                                             block: statBlock(for: $0.id)) }
         guard !entrants.isEmpty else { return }

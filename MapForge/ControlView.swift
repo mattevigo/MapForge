@@ -1031,6 +1031,8 @@ struct ControlView: View {
                   : "Visible to players where the light reaches. Click to hide.")
 
             soloSightToggle(pawn)
+
+            combatRosterToggle(pawn)
         }
         // With one Pawn isolated, the rest of the party is switched out of the lighting,
         // and the panel should say so at a glance: a DM who forgets Solo Sight is on will
@@ -1041,6 +1043,34 @@ struct ControlView: View {
         // dimmed here for the different reason that its *light* is switched out, which is
         // true of a Pawn the table can still plainly see standing in a brazier's glow.
         .opacity(isSwitchedOutBySoloSight(pawn) ? soloSightSwitchedOutOpacity : 1)
+    }
+
+    /// Whether this Pawn rolls when the next fight starts.
+    ///
+    /// Rightmost in the row, past the controls that decide what the *table* sees: this one
+    /// decides nothing about the Map, only who the tracker asks for Initiative. Remembered
+    /// per Map, so a tavern's innkeeper stays out of every brawl held in it.
+    ///
+    /// Shown only while no fight is running. Once one is, Pawns come and go through the
+    /// tracker's bench — a checkbox that silently meant something different mid-fight would
+    /// be the worst of both.
+    @ViewBuilder
+    private func combatRosterToggle(_ pawn: Pawn) -> some View {
+        if pawn.kind != .treasure && appState.encounter == nil {
+            let isIn = appState.isInCombat(pawn.id)
+            Toggle(isOn: Binding(
+                get: { isIn },
+                set: { appState.setInCombat($0, for: pawn.id) }
+            )) {
+                Image(systemName: isIn ? "shield.lefthalf.filled" : "shield.slash")
+                    .frame(width: 16)
+            }
+            .toggleStyle(.button)
+            .accessibilityIdentifier("pawn-in-combat")
+            .help(isIn
+                  ? "\(pawn.label) rolls Initiative when a fight starts. Click to leave them out."
+                  : "\(pawn.label) sits the next fight out. Click to put them in.")
+        }
     }
 
     /// How far a row is faded when Solo Sight has switched its Pawn out of the lighting.
