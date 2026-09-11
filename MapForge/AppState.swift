@@ -55,6 +55,29 @@ final class AppState: ObservableObject {
     /// `squaresWide` mirrors into it through `publishGridToFog`.
     @Published var fog = FogDocument() {
         didSet {
+            // Solo Sight holds a Pawn ID, and this is every way a document can lose one:
+            // a deletion, a Cancel that restores a snapshot from before the Pawn existed,
+            // and the wholesale replacement `loadMap` does when another Map opens. Clearing
+            // it here rather than at each call site is why the mode cannot outlive its
+            // subject — the `be14e58` bug class, whose lesson was that a reference into a
+            // document needs the document to be the thing that invalidates it.
+            if let id = soloSightPawnID, !fog.pawns.contains(where: { $0.id == id }) {
+                soloSightPawnID = nil
+            }
+            // A Measurement anchored to a Pawn is a reference into this document too, and
+            // invalidates for the same reason and in the same place. Pinned ones hold the
+            // same kind of reference and go the same way — a pin does not make a stale
+            // anchor any less stale.
+            if case .pawn(let id) = measurement?.origin,
+               !fog.pawns.contains(where: { $0.id == id }) {
+                measurement = nil
+            }
+            pinnedMeasurements.removeAll { pinned in
+                if case .pawn(let id) = pinned.origin {
+                    return !fog.pawns.contains(where: { $0.id == id })
+                }
+                return false
+            }
             guard fog != oldValue, mapURL != nil else { return }
             fogAutosave.schedule(fog)
         }
@@ -173,6 +196,15 @@ final class AppState: ObservableObject {
     /// belongs to the *outgoing* Map, so it is flushed before `mapURL` moves on.
     func loadMap(image: NSImage, at url: URL) {
         fogAutosave.flush()
+        // Explicitly, before the document changes underneath it. `fog`'s didSet would also
+        // drop the ID, but only because Pawn IDs are UUIDs and the incoming Map's will not
+        // match — an accident of uniqueness rather than a rule, and it says nothing about a
+        // Map opened without a fog reassignment. The mode belongs to the Map it was set on.
+        soloSightPawnID = nil
+        // Same rule, same reason: a Measurement belongs to the Map it was taken on, and
+        // its distance means something different under another Map's Grid.
+        measurement = nil
+        pinnedMeasurements = []
         mapURL = url
         mapImage = image
         viewportOrigin = nil
@@ -227,6 +259,142 @@ final class AppState: ObservableObject {
     /// Pawns still on it, because turning off fog is not turning off tokens.
     @Published var isFogOverlayOn = true
 
+    /// The Pawn under **Solo Sight**, or nil when the table is seeing the Map normally.
+    ///
+    /// One optional ID, not a set: at most one Pawn is isolated at a time, and `Pawn.ID?`
+    /// is a strict subset of `Set<Pawn.ID>` if isolating a scouting pair is ever wanted.
+    ///
+    /// Not persisted, like `isFogOverlayOn` and unlike the eye — nobody wants to reopen a
+    /// Map tomorrow and find the table still looking through one character's eyes. See
+    /// ADR 0004 for why the mode is derived and mutates no Pawn.
+    @Published private(set) var soloSightPawnID: Pawn.ID?
+
+    /// Isolate a Pawn, or pass nil to end Solo Sight.
+    ///
+    /// Not undoable, exactly as `setPawnHidden` and `setPawnLight` are not, and for the
+    /// same stated reason: a live performance action taken mid-session does not belong in
+    /// the DM's authoring undo stack. It records no live edit either, because it changes no
+    /// Pawn — there is nothing for `carryLiveState` to carry.
+    func setSoloSight(id: Pawn.ID?) {
+        guard soloSightPawnID != id else { return }
+        soloSightPawnID = id
+    }
+
+    /// The isolated Pawn's ID, but only while that Pawn is actually on the Map.
+    ///
+    /// Every render path asks for this rather than `soloSightPawnID`, because an ID that
+    /// matches no Pawn is worse than no mode at all: the fog falls back to lighting
+    /// everything while the token rule puts the whole party through a discovery test
+    /// against a Pawn that is not there, and the table watches the party disappear from a
+    /// fully lit Map. Resolving it once here is what makes a stale ID inert instead.
+    ///
+    /// `fog`'s `didSet` already clears the ID when its Pawn goes, so this is the belt to
+    /// that braces — the states it covers are the ones between a mutation and its
+    /// observer.
+    var resolvedSoloSightPawnID: Pawn.ID? {
+        guard let id = soloSightPawnID,
+              fog.pawns.contains(where: { $0.id == id }) else { return nil }
+        return id
+    }
+
+    /// The **Measurement** being taken, or nil when nothing is being measured.
+    ///
+    /// One at a time, still: this is the shape the DM is actively drawing or has just
+    /// settled, and the clicks that drive it need an unambiguous subject. Measurements
+    /// that outlive it are **pinned** instead — see `pinnedMeasurements`.
+    ///
+    /// Not persisted, like `isFogOverlayOn` and `soloSightPawnID` — a Measurement is a
+    /// question asked during a turn, not something to reopen a Map and find still on it.
+    @Published private(set) var measurement: Measurement?
+
+    /// Measurements the DM has parked on the Map, which stay until unpinned.
+    ///
+    /// Retires the "at most one Measurement" rule this feature shipped with. That rule was
+    /// reasoned from Solo Sight's `Pawn.ID?` (ADR 0004) and it held while every Measurement
+    /// was transient — but a DM comparing two spell areas, or holding a route on screen
+    /// while measuring the next one, needs both on the Map at once. The live slot above is
+    /// unchanged: pinning is what makes a Measurement outlive the next click.
+    ///
+    /// Not persisted either. A pin survives the next click, not the next session.
+    @Published private(set) var pinnedMeasurements: [Measurement] = []
+
+    /// Park the settled Measurement on the Map and free the live slot for the next one.
+    ///
+    /// Only a settled Measurement pins: one still following the cursor is not yet an
+    /// answer, and pinning it would park whatever the DM happened to be dragging.
+    func pinMeasurement() {
+        guard let measurement, measurement.isDistanceSettled else { return }
+        pinnedMeasurements.append(measurement)
+        self.measurement = nil
+    }
+
+    func unpinMeasurement(id: Measurement.ID) {
+        pinnedMeasurements.removeAll { $0.id == id }
+    }
+
+    /// Start a Measurement, or pass nil to dismiss it.
+    ///
+    /// Not undoable, exactly as `setSoloSight` and `movePawn` are not: a live performance
+    /// action taken mid-session does not belong in the DM's authoring undo stack. It
+    /// changes no Pawn, so there is no live edit to record either.
+    func setMeasurement(_ measurement: Measurement?) {
+        guard self.measurement != measurement else { return }
+        self.measurement = measurement
+    }
+
+    /// The Measurement, but only while its Origin still exists.
+    ///
+    /// Every render path asks for this rather than `measurement`, for the reason
+    /// `resolvedSoloSightPawnID` exists: an anchor ID that matches no Pawn would otherwise
+    /// draw the shape at the Map's origin — a confident wrong answer, which is the one
+    /// thing a measuring tool must not give.
+    var resolvedMeasurement: Measurement? {
+        guard let measurement else { return nil }
+        if case .pawn(let id) = measurement.origin,
+           !fog.pawns.contains(where: { $0.id == id }) { return nil }
+        return measurement
+    }
+
+    /// Where the on-screen Measurement currently starts, in image pixels. Follows an
+    /// anchoring Pawn as it moves, which is why this is resolved rather than stored.
+    var measurementOriginPoint: MapPoint? {
+        resolvedMeasurement?.originPoint { id in
+            fog.pawns.first(where: { $0.id == id })?.at
+        }
+    }
+
+    /// Every Measurement that should be drawn, paired with where it starts: the pinned
+    /// ones and then the live one on top.
+    ///
+    /// One list so both screens draw from the same answer — two lists is how the Control
+    /// Window and the Player Display drift, which is the divergence `PawnToken` and
+    /// `PlayerVisibility.showsToPlayers` exist to prevent.
+    var drawableMeasurements: [(measurement: Measurement, origin: MapPoint)] {
+        var drawable = pinnedMeasurements.compactMap { pinned -> (Measurement, MapPoint)? in
+            guard let origin = pinned.originPoint(pawnAt: { id in
+                fog.pawns.first(where: { $0.id == id })?.at
+            }) else { return nil }
+            return (pinned, origin)
+        }
+        if let measurement = resolvedMeasurement, let origin = measurementOriginPoint {
+            drawable.append((measurement, origin))
+        }
+        return drawable
+    }
+
+    /// Whether measuring is offered at all on the current Map.
+    var measurementAvailability: MeasurementControl.Availability {
+        MeasurementControl.availability(hasDeclaredGrid: hasDeclaredGrid,
+                                        hasMap: mapImage != nil)
+    }
+
+    /// How many image pixels one Grid square spans, or nil without a declared Grid.
+    /// The conversion every Measurement needs to turn squares into pixels.
+    var pixelsPerSquare: CGFloat? {
+        guard hasDeclaredGrid, let image = mapImage, squaresWide > 0 else { return nil }
+        return image.pixelSize.width / CGFloat(squaresWide)
+    }
+
     /// The lit regions for the current Map, cached against the fog and the Grid.
     ///
     /// Returns nothing when no Grid has been declared: Light radii are in Grid squares, so
@@ -234,10 +402,10 @@ final class AppState: ObservableObject {
     /// wrong — and darkness in the wrong places is worse than no darkness. The Control
     /// Window says so (see `undeclaredGridWarning`).
     var litRegions: [LitRegion] {
-        guard hasDeclaredGrid, let image = mapImage, squaresWide > 0 else { return [] }
-        let pixelsPerSquare = image.pixelSize.width / CGFloat(squaresWide)
+        guard let image = mapImage, let pixelsPerSquare else { return [] }
         return visibilityCache.regions(for: fog, imagePixelSize: image.pixelSize,
-                                       pixelsPerSquare: pixelsPerSquare)
+                                       pixelsPerSquare: pixelsPerSquare,
+                                       soloSightPawnID: resolvedSoloSightPawnID)
     }
 
     /// A Pawn's light, from the live panel. Same contract as `setLight`.
@@ -342,6 +510,13 @@ final class AppState: ObservableObject {
     func beginFogEditing() {
         liveEdits = [:]
         fogEditingMapURL = mapURL
+        // Fog authoring needs the whole Map lit, and an isolated view would fight the
+        // inspector it is being authored through.
+        soloSightPawnID = nil
+        // Measuring is a play action, and the authoring preview is a different surface
+        // with a different transform — a Measurement left on it would be drawn wrong.
+        measurement = nil
+        pinnedMeasurements = []
     }
 
     /// Called as the fog editing mode closes, by Done as well as Cancel.
@@ -401,6 +576,13 @@ final class AppState: ObservableObject {
               fog.pawns[index].isHidden != isHidden else { return }
         fog.pawns[index].isHidden = isHidden
         recordLiveEdit(.hidden, on: id)
+        // The eye takes a Pawn out of the lighting, so hiding the isolated one strands Solo
+        // Sight on a Pawn that emits nothing: the fog falls back to lighting the Map with
+        // every torch while the token rule keeps the rest of the party under the discovery
+        // test, and the table sees a lit Map with most of the party missing from it. The
+        // control is disabled on a hidden Pawn, so the DM cannot click their way back out
+        // either. Hiding the subject ends the mode instead.
+        if isHidden, soloSightPawnID == id { soloSightPawnID = nil }
     }
 
     /// Flush any pending fog edit. Called as the app terminates.

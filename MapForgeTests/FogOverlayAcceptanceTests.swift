@@ -26,7 +26,7 @@ final class FogOverlayAcceptanceTests: XCTestCase {
     }()
 
     private func regions() -> [LitRegion] {
-        VisibilityCache().regions(for: document, imagePixelSize: imageSize, pixelsPerSquare: 20)
+        VisibilityCache().regions(for: document, imagePixelSize: imageSize, pixelsPerSquare: 20, soloSightPawnID: nil)
     }
 
     func testPlayersSeeTheRoomTheDoorwayWedgeAndBlackBeyond() {
@@ -76,7 +76,7 @@ final class FogOverlayAcceptanceTests: XCTestCase {
         var computations = 0
         let cache = VisibilityCache { computations += 1 }
         for _ in 0..<100 {
-            _ = cache.regions(for: document, imagePixelSize: imageSize, pixelsPerSquare: 20)
+            _ = cache.regions(for: document, imagePixelSize: imageSize, pixelsPerSquare: 20, soloSightPawnID: nil)
         }
         XCTAssertEqual(computations, 1)
     }

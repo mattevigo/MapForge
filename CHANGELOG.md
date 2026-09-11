@@ -4,6 +4,65 @@ Versions follow [Semantic Versioning](https://semver.org). `MARKETING_VERSION` a
 `CURRENT_PROJECT_VERSION` in `project.yml` are the single source of truth; the About
 panel reads them from the built app.
 
+## 1.1.0 — 2026-09-11
+
+### Measurement
+
+- Measure distances on the Map mid-play: right-click to pick Cone, Square, Circle or Line,
+  click where the measurement starts, move the mouse to aim and size it, click again to
+  settle it so it stops following the cursor, and click once more to clear it. Each click
+  advances one step, and the menu opens on the shape you used last. Esc backs out of a
+  measurement you have not placed yet.
+- Pin a measurement to keep it on screen: right-click on the shape itself and the menu
+  offers Pin instead of the list of shapes. Pinned measurements stay until you unpin them —
+  right-click the shape again — so two spell areas can sit side by side, or a route already
+  walked can stay up while you measure what is left. The table sees them exactly as it sees
+  the live one.
+- A Line is a polygonal chain: keep clicking to add points and the running total follows
+  the whole path, so a route around a table answers "can I get there this turn" rather
+  than just how far away the far wall is. Right-click finishes it and frees the cursor,
+  and the finished chain stays up until the next click. It is the one shape that does not
+  round to whole squares — each point lands exactly where you put it.
+- Clicking a Pawn measures from that Pawn — the shape follows it as it is dragged, and
+  ends when the Pawn does. Anywhere else measures from exactly the point clicked; the
+  token's own outline is the whole of its hit area, and nothing snaps to the Grid.
+- Type an exact distance instead of hunting for the pixel that happens to be 9 m away — the
+  number holds while the aim keeps following the cursor.
+- Distances read in metres, at 1.5 m to the Grid square. Dragged distances snap to whole
+  squares; a typed one does not.
+- The table sees the shape *and* its distance, so a measurement settles the range argument
+  rather than moving it — the first thing on the Player Display that is instrumentation
+  rather than world, and a deliberate one:
+  [ADR 0005](docs/adr/0005-the-player-display-shows-the-measurement.md).
+- A Cone is as wide at its mouth as it is long (5e's rule), and a Square is a side length
+  rather than a radius, because a spell card says "a 20-foot cube".
+
+### Solo Sight
+
+- See the Map as one character alone lights it: isolating a Pawn puts out every other
+  Pawn's Light, and the rest of the party is then drawn only where the light that remains
+  reaches it — a party member around a corner is genuinely absent from the Player Display.
+  The Map's own Lights keep burning, because a brazier is the room rather than another
+  character's influence.
+- Shown to the table, not only to the DM: a scout goes ahead and the players see what the
+  scout's own light finds. The Control Window keeps its readable tint and still draws every
+  Pawn, dimming the ones the table has lost, so the DM can see who the mode is costing them.
+- One click in the live row beside the eye. At most one Pawn is isolated at a time; the
+  mode is never persisted, never undoable, and ends itself on a Map switch, on its Pawn
+  being deleted or hidden, and on entering the Fog editing mode.
+- The first per-observer rule in the app, and the first thing to make a Pawn's sight and its
+  illumination distinguishable — see
+  [ADR 0004](docs/adr/0004-solo-sight-is-a-per-observer-view.md).
+
+### Light Markers
+
+- A Light is no longer invisible: a warm dot marks where each of the Map's own Lights
+  stands, so the source of a lit region can be seen rather than inferred — on both screens,
+  and without opening the Fog editing mode mid-session.
+- Players see a marker only where the Light is burning *and* the spot is already lit, the
+  same rule a Creature follows, so a doused lantern placed for later never gives away a room
+  the party has not reached. The DM sees every Light, doused ones faded.
+
 ## 1.0.0 — 2026-09-09
 
 First official build. Everything a DM needs to run a session from a Mac with one HDMI
