@@ -62,6 +62,10 @@ struct ControlView: View {
     /// The Party being renamed, or created, in the picker's sheet-free inline field.
     @State private var partyNameEdit: PartyNameEdit?
 
+    /// Which half of the live panel is showing. Starts on Scene every launch — see
+    /// `PanelTab`.
+    @State private var panelTab: PanelTab = .scene
+
     /// Renaming an existing Party, or naming a new one. A sum type rather than a name plus a
     /// flag, because the two resolve differently and only one of them has an id.
     private enum PartyNameEdit: Equatable {
@@ -162,7 +166,10 @@ struct ControlView: View {
             }
         }
         .padding()
-        .frame(minWidth: 480, minHeight: 400)
+        // Wide enough for the live panel plus a preview worth looking at. The minimum was
+        // 480 when the panel was 236: at 320 the same window pushed the panel's own
+        // controls past the window's edge, where they draw but cannot be clicked.
+        .frame(minWidth: 480 + (Self.livePanelWidth - 236), minHeight: 400)
         // The Control Window IS the app: its close button kept being hit during mode
         // work (it reads like "exit this mode"), killing the session — every "crash"
         // reported against Grid Fit/panning was this. Minimize stays; quit is ⌘Q.
@@ -983,6 +990,9 @@ struct ControlView: View {
                 PawnToken(pawn: pawn, squareSide: 14, scalesWithFootprint: false)
             }
             .toggleStyle(.button)
+            // The button's own label is the Pawn's name, which the DM can rename in the
+            // very next field. The identifier is what a test should hold on to.
+            .accessibilityIdentifier("pawn-light-toggle")
             .help(pawn.isDiscovered
                   ? "\(pawn.label): a \(pawn.kind.title) — emits no Light. Click to douse the light it does not cast."
                   : "\(pawn.label): sight \(Int(pawn.light.brightSquares)) squares. Click to douse.")
@@ -1083,11 +1093,72 @@ struct ControlView: View {
             || !appState.fog.pawns.isEmpty {
             Toggle("Fog", isOn: $appState.isFogOverlayOn)
                 .toggleStyle(.switch)
+                // A stable handle for the UI tests. Addressing this by its rendered label
+                // is what went stale when the panel was last restructured — and a
+                // `.switch` Toggle publishes on macOS as a checkBox, not a switch, which
+                // is the other half of why the query missed.
+                .accessibilityIdentifier("fog-overlay-switch")
                 .help("Hide or reveal the Fog Overlay on the Player Display. Pawns stay visible either way.")
         }
     }
 
     /// Everything on the Map that can be switched, listed down the side of the preview.
+    ///
+    /// The panel beside the preview: the Scene as it stands, and the fight being run on it.
+    ///
+    /// Two tabs rather than one longer scroll, because the two are used at different moments
+    /// — the Scene tab is setup and the Combat tab is play — and a DM mid-fight should not
+    /// scroll past the roster to reach the Order.
+    ///
+    /// Both tabs are the same width. A panel that resized when the tab changed would move the
+    /// preview beside it, which is the thing `fogInspectorRowHeight` already exists to
+    /// prevent; widening once is the calmer answer.
+    /// A segmented Picker and a switch rather than a `TabView`.
+    ///
+    /// `TabView` was the obvious spelling and is the wrong one here: on macOS it disables
+    /// its own content in the accessibility tree when it cannot resolve a definite size
+    /// from its container, so every control in the panel became unclickable — visibly
+    /// present, and inert. The UI tests caught it as "not hittable" at a coordinate that
+    /// was plainly inside the window, which is the only reason it was not shipped.
+    ///
+    /// The segmented Picker is also the control this window already uses to switch the fog
+    /// tool, so the panel reads as part of the same app rather than as a document with
+    /// tabs.
+    @ViewBuilder
+    private var livePanel: some View {
+        if !appState.fog.lights.isEmpty || !appState.fog.pawns.isEmpty || showsParty {
+            VStack(spacing: 8) {
+                Picker("", selection: $panelTab) {
+                    Label("Scene", systemImage: "map").tag(PanelTab.scene)
+                    Label("Combat", systemImage: "shield.lefthalf.filled").tag(PanelTab.combat)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .accessibilityIdentifier("panel-tab")
+
+                switch panelTab {
+                case .scene: scenePanel
+                case .combat: combatPanel
+                }
+            }
+            .frame(width: Self.livePanelWidth)
+        }
+    }
+
+    /// Which tab the panel is showing.
+    ///
+    /// Deliberately not persisted: a DM opening MapForge is setting up, not resuming a fight
+    /// mid-Turn, so Scene is the right thing to land on every launch.
+    enum PanelTab: Hashable {
+        case scene
+        case combat
+    }
+
+    /// Wide enough for an Order row — Initiative, a name, hit points, armour class and a
+    /// run of Condition icons — which 236 points could not hold.
+    static let livePanelWidth: CGFloat = 320
+
+    /// The Map as it stands: the Party to stamp from, the Lights, and every Pawn on it.
     ///
     /// Vertical and grouped, because the horizontal row this replaces did not survive
     /// contact with a real encounter: a party of four plus a room of goblins ran off the
@@ -1100,7 +1171,7 @@ struct ControlView: View {
     /// them, and the Treasure is what the room is worth. Lights lead because they are the
     /// Map's own furniture rather than anyone's token.
     @ViewBuilder
-    private var livePanel: some View {
+    private var scenePanel: some View {
         if !appState.fog.lights.isEmpty || !appState.fog.pawns.isEmpty || showsParty {
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 12) {
@@ -1131,7 +1202,7 @@ struct ControlView: View {
                 }
                 .padding(10)
             }
-            .frame(width: 236)
+            .frame(width: Self.livePanelWidth)
             // `.controlBackgroundColor` is all but identical to the window's own, so the
             // panel read as text floating beside the Map rather than as a surface. The
             // preview next to it is bordered; this needs to look like its sibling.
@@ -1139,6 +1210,24 @@ struct ControlView: View {
                         in: RoundedRectangle(cornerRadius: 6))
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
         }
+    }
+
+    // MARK: Combat
+
+    /// The Initiative Tracker's home. Filled in by issues 05 and 06 of
+    /// `.scratch/initiative-tracker/`; this is the shell the tabs were added for.
+    private var combatPanel: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "shield.lefthalf.filled")
+                .font(.largeTitle)
+                .foregroundStyle(.tertiary)
+            Text("No encounter yet")
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .textBackgroundColor),
+                    in: RoundedRectangle(cornerRadius: 6))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
     }
 
     // MARK: The Party
@@ -1406,6 +1495,9 @@ struct ControlView: View {
                     .frame(width: 16)
             }
             .toggleStyle(.button)
+            // A symbol-only button publishes as its symbol name, which changes as the
+            // Light does. The identifier does not.
+            .accessibilityIdentifier("light-toggle-\(number)")
 
             Text("Light \(number)")
                 .lineLimit(1)

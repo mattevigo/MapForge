@@ -29,6 +29,14 @@ Conditions.
 - **Editing works with no Encounter running.** A DM fills in monster hit points during prep,
   and there is no Log open then — the edit writes straight to `stats.json` and records
   nothing, which is correct and is exactly why ADR-0009 keeps Stat Blocks out of the Log.
+- **A correction that changes nothing must say so.** A later Turn overrides a Correction to
+  an earlier one absolutely — a Change's `to` is the number the DM saw at that moment, never
+  a delta reapplied on top of an amended history. So correcting Round 1's hit points when
+  Round 2 already set a new total is recorded faithfully and changes the tracker not at all.
+  That is the right rule and the wrong silence: the editor must tell the DM their correction
+  was recorded but is not what the Combatant is at, rather than leaving them to believe it
+  landed. `CombatLogFoldTests.testALaterTurnOverridesACorrectionToAnEarlierOne` is the
+  behaviour to explain.
 
 **The notes box**, below the editor. Free text, about **the Combatant whose Turn it is** —
 not the selected one. Label it with that Combatant's name so there is no ambiguity. Return,
