@@ -1,6 +1,6 @@
 # 01 — The Party model and its store
 
-Status: ready-for-agent
+Status: ready-for-human
 
 The pure, testable core: what a Character and a Party *are*, and where they live on disk. No
 views, no drag-and-drop.
@@ -52,3 +52,15 @@ Unit tests, no UI:
 ## Done when
 
 Parties persist across launches and the model is covered by tests. Nothing yet shows them.
+
+## Comments
+
+**Built.** One deviation worth recording: the type is spelled **`PartyCharacter`**, not
+`Character`. Swift's `Character` is a grapheme cluster in the standard library, and shadowing
+it inside the module compiles — then quietly changes the meaning of any string code that
+names the type. `CONTEXT.md` still calls the domain term a **Character**; this is a spelling
+forced by the language, not a different concept.
+
+The active-Party ID went onto `DisplayPreferences` rather than a sibling type. Its remit is
+now wider than displays and its doc comment says so: what it holds are small choices a DM can
+remake with one click, as against the authored data the stores guard.

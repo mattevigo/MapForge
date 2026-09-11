@@ -1,6 +1,6 @@
 # 04 — Stamping a Character onto the Map by drag
 
-Status: ready-for-agent
+Status: ready-for-human
 
 Depends on: 01, 02, 03
 
@@ -61,3 +61,17 @@ is one completed action, so reuse the `onCommit` path a drag-end already takes
 ## Done when
 
 A DM defines a Party once and starts a session by dragging its Characters onto the Map.
+
+## Comments
+
+**Built.** Verified against the running app rather than only by unit test, since SwiftUI's
+drag-and-drop cannot be driven from XCUITest: three Characters Stamped by real mouse drags,
+every field copied, `dimSquares` derived rather than carried, a duplicate allowed and counted
+`×2`, and the fog file written on drop rather than on the debounce.
+
+Running it surfaced one thing the tests could not: the Party group appeared beside "No Map
+open" — a drag source with nothing to drop onto. Now gated on `mapURL != nil`.
+
+The row's token keeps `scalesWithFootprint: false`, per `PawnToken`'s existing rule for chrome
+that is not the Map. The **drag preview** does scale: it is headed for the Map, where a Big
+Pawn's two squares are what the DM judges the drop against.

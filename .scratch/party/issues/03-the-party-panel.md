@@ -1,6 +1,6 @@
 # 03 — The Party group in the Control Window
 
-Status: ready-for-agent
+Status: ready-for-human
 
 Depends on: 01, 02
 

@@ -1,6 +1,6 @@
 # 02 — A Pawn remembers which Character stamped it
 
-Status: ready-for-agent
+Status: ready-for-human
 
 Depends on: 01
 
