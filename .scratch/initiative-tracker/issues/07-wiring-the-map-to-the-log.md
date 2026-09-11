@@ -1,6 +1,6 @@
 # 07 — Wiring the Map to the Log
 
-Status: ready-for-agent
+Status: ready-for-human
 
 The last seam: things that happen on the Map become Changes in the Log. Depends on all of
 01–06.
@@ -83,3 +83,32 @@ it. `carryLiveState(onto:)` is the precedent for what a live change has to survi
 A fight can be run at a real table: play, drag pawns, take damage, apply Conditions, take
 notes, go back and fix Round 2, stop — and the file beside the Map is a complete, foldable,
 human-readable record of it.
+
+## Comments
+
+**Built.** `PawnLayer.onCommit` now carries the Pawn and where the drag *began* — the only
+place that value still exists, since `onMove` has overwritten the position many times by the
+time the gesture ends. `AppState.commitPawnMove` flushes to disk as it always did and, when a
+fight is running, records one `moved` Change with the distance in Grid squares.
+
+Two things the issue did not say, both found while wiring it:
+
+**`stamp` was appending to `fog.pawns` directly**, so a Character dropped onto the Map during
+a fight never joined the Order. It now goes through `addPawnToMap`, which is also what makes
+`joinEncounter` reachable at all from the UI.
+
+**A Stamped Pawn was getting no Stat Block.** `Stamp.statBlock(from:)` has existed since issue
+01 and nothing called it, so a Character with 44 hit points stamped as a Combatant with none.
+Now copied at drag time, before the join, because joining snapshots the block into the Log.
+
+**This could not be verified by hand.** Pawn tokens are not drawn on the Control Window's
+preview at all — filed as `.scratch/pawns-not-drawn/01-tokens-missing-from-the-mirror.md`,
+and **not caused by this feature**: the same bare preview appears on the pre-feature tree,
+checked by building both and comparing screenshots. The Pawns are in the fog file, in the
+Scene tab's list, and in the tracker; they are simply not rendered, so there is no token to
+drag.
+
+`MovementEndToEndTests` is what stands in for the gesture: one Turn driven through `AppState`
+exactly as the panel drives it — move four squares, drop a goblin to 0, take a note — read
+back from the file and folded. It is the nearest a test gets to running the app, and it is
+what should be re-run by hand once the tokens are visible again.
