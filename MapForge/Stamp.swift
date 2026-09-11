@@ -9,6 +9,21 @@ import Foundation
 /// and which fields the new Pawn takes. What remains in the view is a call to this and an
 /// append.
 enum Stamp {
+    /// A throwaway Pawn for drawing a Character's swatch — in the roster row, and under the
+    /// cursor while dragging.
+    ///
+    /// The Character is shown as the Pawn it would Stamp rather than as a coloured dot, so
+    /// what the DM drags looks like what they will get, Big footprint included. Never added
+    /// to a document: its position is meaningless and its id changes on every redraw.
+    static func preview(of character: PartyCharacter) -> Pawn {
+        Pawn(at: MapPoint(x: 0, y: 0),
+             label: character.name,
+             colorHex: character.colorHex,
+             brightSquares: character.sightSquares,
+             isBig: character.isBig,
+             characterID: character.id)
+    }
+
     /// The Pawn a Character Stamps when dropped at `droppedAt`, or nil when the drop misses
     /// the Map.
     ///
