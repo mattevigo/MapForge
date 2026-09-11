@@ -1,6 +1,6 @@
 # 03 — The Encounter
 
-Status: ready-for-agent
+Status: ready-for-human
 
 The rules of running a fight, as pure logic: rolling, ordering, advancing, correcting. Still
 no views. This is the `MeasurementControl`/`SoloSightControl` layer of the feature.
@@ -80,3 +80,30 @@ Deterministic via an injected generator throughout:
 
 A whole fight can be run in tests — start, several Rounds, a correction, a join, a removal,
 a stop — producing a Log that folds (issue 02) back to the same state. Nothing shows it.
+
+## Comments
+
+**Built.** One behavioural question the issue left ambiguous, resolved in the code.
+
+The issue says a joined Combatant should insert "**after** the active index when the roll ties
+with someone already passed, so a summon does not act twice in one Round". The implementation
+inserts after the active index *always*, then walks forward to the position its Initiative
+earns. So a wolf rolling 20 during Grog's turn (18) acts after Grog but still ahead of the
+goblin's 12, in the same Round. The first test asserted the wolf should fall behind the goblin
+too, which would have been punishing a summon for arriving — the test was wrong and was
+changed.
+
+`ScriptedGenerator`, the test's deterministic die, needed its own tests. `Int.random(in:using:)`
+does not take `next()` modulo the range — it draws from the full `UInt64` space with rejection
+sampling — so the obvious implementation returned faces nobody asked for and would have made a
+dozen downstream assertions quietly meaningless. It now maps each face to the middle of its
+band, and `testTheScriptedGeneratorRollsWhatItWasToldTo` holds that down.
+
+`applyToState` in `EncounterControl` deliberately mirrors `CombatLogFold.apply`. The two are
+kept separate because they serve different masters — one keeps the live tracker in step, the
+other reconstructs from a file — and `testAWholeFightFoldsBackToWhatTheTrackerShows` is what
+holds them to the same answer. If they ever disagree, that test fails rather than a DM finding
+out mid-session. Worth revisiting if a third caller appears.
+
+Three mutations were confirmed to fail the suite: the join insertion point, `next` ending a
+Turn while correcting, and the 0-hit-point boundary at exactly 0.

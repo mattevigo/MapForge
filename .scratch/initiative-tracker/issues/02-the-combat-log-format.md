@@ -1,6 +1,6 @@
 # 02 — The Combat Log format
 
-Status: ready-for-agent
+Status: ready-for-human
 
 The file format and the fold that reads it back. Still no Encounter, no UI — this issue is
 the vocabulary every later one writes in.
@@ -90,3 +90,21 @@ the shape of `Visibility` and `ScaleMath`. It is the most-tested thing in the fe
 
 A Combat Log can be written, read back, and folded to state, with Corrections landing where
 they belong. Covered by tests. Nothing writes one yet.
+
+## Comments
+
+**Built.** Two deviations.
+
+An unknown `Change` type decodes to a **`.unrecognised` case** rather than being skipped as
+the issue described. A sentinel is testable at the codec seam and keeps the line's other
+Changes intact; skipping at the reader would have meant the codec silently returning fewer
+Changes than the file holds. Encoding one throws — a Change this version never understood is
+read-only, and nothing writes a Log line back anyway.
+
+**The fold's correction ordering was not actually tested by the tests this issue listed.**
+"Two Corrections against the same Turn both apply" passed with the corrections applied
+*before* the Turn's own Changes as well as after, because the corrected Turn in that test had
+no Changes of its own. A mutation that swapped the order survived the whole suite.
+`testACorrectionBeatsWhatTheTurnItselfRecorded` closes it: the Turn records 7→4 and the
+Correction 4→2, so only the right order gives 2. Worth remembering as a pattern — a test
+whose fixture is empty where the rule applies proves nothing about the rule.

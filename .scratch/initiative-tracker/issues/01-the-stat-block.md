@@ -1,6 +1,6 @@
 # 01 — The Stat Block and its store
 
-Status: ready-for-agent
+Status: ready-for-human
 
 The pure, testable core: what a Combatant's numbers *are*, and where they live on disk. No
 views, no Encounter, no Log.
@@ -70,3 +70,26 @@ Unit tests, no UI:
 
 Stat Blocks persist beside a Map and survive a round trip, `parties.json` migrates silently,
 and stamping a Character carries its numbers. Nothing yet shows any of it.
+
+## Comments
+
+**Built.** Three deviations worth recording.
+
+`StatBlock` needed a **hand-written `init(from:)`**, which the issue did not anticipate. The
+`didSet` that clamps exhaustion does not fire during decoding — the synthesized decoder
+assigns stored properties directly — so a hand-edited `stats.json` with `"exhaustion": 99`
+decoded to 99. Caught by mutation testing, not by writing the test first. Decoding now goes
+through the initialiser, which clamps in one place.
+
+`PartyCharacter` needed a hand-written decoder too, for the same class of reason: the
+synthesized one *throws* on a missing non-optional key, so adding `initiativeBonus` and
+`armorClass` as plain `Int`s would have made every existing `parties.json` unreadable rather
+than merely incomplete. `decodeIfPresent` throughout.
+
+`Condition.symbolName` shipped `"stars"` for Stunned, which does not resolve on macOS 15.
+`ConditionTests.testEveryConditionSymbolResolves` caught it — the same bug class
+`LiveRowSymbolTests` was written for. Now `"sparkles"`.
+
+`StatsDocument` encodes `blocks` as a sorted array of `{pawnID, block}` entries rather than a
+dictionary, because `[UUID: StatBlock]` encodes by default as an unkeyed array of alternating
+keys and values. Sorted so a DM who version-controls their maps gets meaningful diffs.
