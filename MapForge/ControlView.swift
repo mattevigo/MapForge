@@ -66,6 +66,11 @@ struct ControlView: View {
     /// `PanelTab`.
     @State private var panelTab: PanelTab = .scene
 
+    /// Which row the Combat tab's Stat Block editor is pointed at. Separate from
+    /// `selectedPawn`, which is the fog editor's selection: a DM editing a monster's hit
+    /// points is not selecting it for a Wall.
+    @State private var selectedCombatant: Pawn.ID?
+
     /// Renaming an existing Party, or naming a new one. A sum type rather than a name plus a
     /// flag, because the two resolve differently and only one of them has an id.
     private enum PartyNameEdit: Equatable {
@@ -1214,20 +1219,11 @@ struct ControlView: View {
 
     // MARK: Combat
 
-    /// The Initiative Tracker's home. Filled in by issues 05 and 06 of
-    /// `.scratch/initiative-tracker/`; this is the shell the tabs were added for.
+    /// The Initiative Tracker. Its own view rather than another member of this file: it
+    /// reads the Encounter and nothing else this window holds, which is the seam issue
+    /// 04's Scene extraction turned out not to have.
     private var combatPanel: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "shield.lefthalf.filled")
-                .font(.largeTitle)
-                .foregroundStyle(.tertiary)
-            Text("No encounter yet")
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(nsColor: .textBackgroundColor),
-                    in: RoundedRectangle(cornerRadius: 6))
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
+        CombatPanel(selection: $selectedCombatant)
     }
 
     // MARK: The Party

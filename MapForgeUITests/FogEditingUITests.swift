@@ -249,7 +249,9 @@ final class FogEditingUITests: XCTestCase {
 
         // Switching tabs shows the other panel and hides this one's rows.
         combat.click()
-        XCTAssertTrue(app.staticTexts["No encounter yet"].waitForExistence(timeout: 2),
+        // Only a Light was placed, so the tracker correctly reports there is nobody to
+        // fight rather than offering an empty Order.
+        XCTAssertTrue(app.staticTexts["Nobody on the Map to fight"].waitForExistence(timeout: 2),
                       "the Combat tab showed nothing")
         XCTAssertFalse(app.checkBoxes["light-toggle-1"].exists,
                        "the Scene tab's rows are still on screen behind the Combat tab")

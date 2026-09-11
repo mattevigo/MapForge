@@ -59,6 +59,16 @@ final class CombatLogWriter {
         try handle.seekToEnd()
     }
 
+    /// Reopens an existing Log to append to it — the writer a resumed fight needs.
+    ///
+    /// Seeks to the end and adds to what is there. A Log is never rewritten, so picking one
+    /// up again is the same operation as starting it, minus creating the file.
+    init(reopening url: URL) throws {
+        self.url = url
+        handle = try FileHandle(forWritingTo: url)
+        try handle.seekToEnd()
+    }
+
     deinit { try? handle.close() }
 
     /// Appends one line and flushes it. A crash after this returns has lost nothing.

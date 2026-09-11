@@ -65,6 +65,17 @@ struct Encounter: Equatable {
 
     var isCorrecting: Bool { correctionTarget != nil }
 
+    init() {}
+
+    /// Picks up a fight that was still running when its Map was last closed.
+    ///
+    /// Takes the Log and nothing else, because the Log is everything: the Round, the
+    /// Order, whose Turn it is and every hit point all come back out of the fold. This is
+    /// the payoff ADR-0008 was chosen for, and it is one line of work.
+    init(resuming lines: [LogLine]) {
+        self.lines = lines
+    }
+
     fileprivate mutating func append(_ line: LogLine) { lines.append(line) }
     fileprivate mutating func buffer(_ change: Change) { pendingChanges.append(change) }
     fileprivate mutating func clearBuffer() { pendingChanges = [] }

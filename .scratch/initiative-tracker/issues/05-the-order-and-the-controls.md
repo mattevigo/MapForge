@@ -1,6 +1,6 @@
 # 05 — The Order and the combat controls
 
-Status: ready-for-agent
+Status: ready-for-human
 
 The tracker itself: the list of Combatants and the buttons that drive a fight. Depends on
 01, 02, 03 and 04.
