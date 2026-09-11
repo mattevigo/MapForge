@@ -92,6 +92,14 @@ final class AppState: ObservableObject {
     @Published private(set) var partyBook = PartyBook()
     /// Which Party the panel offers. Remembered across launches.
     @Published private(set) var activePartyID: UUID?
+    /// Set when the roster exists but could not be read.
+    ///
+    /// Surfaced *and* obeyed: while this is set the app will not write the roster at all. The
+    /// hazard is `FogStore`'s, one step further along — a DM who opens the app, sees no party,
+    /// and retypes it would otherwise have the first save overwrite the very file that could
+    /// have been recovered. Reporting the failure without refusing the write would leave the
+    /// warning true and useless.
+    @Published private(set) var partyLoadFailure: PartyStore.UnreadableFile?
 
     /// The Party the panel should show: the remembered one, or the first, or none.
     var activeParty: Party? { PartyRoster.activeParty(in: partyBook, id: activePartyID) }
@@ -119,6 +127,7 @@ final class AppState: ObservableObject {
         // Read once at launch: the roster is small, changes only when the DM edits it here,
         // and nothing else on the machine writes it.
         partyBook = partyStore.load()
+        partyLoadFailure = partyStore.lastLoadFailure
         activePartyID = preferences.activePartyID
         fogAutosave = FogAutosave { [weak self] document in
             self?.writeFog(document)
@@ -541,6 +550,11 @@ final class AppState: ObservableObject {
     }
 
     private func writeParties() {
+        // Never write over a roster we could not read. This is the rule `FogStore` enforces
+        // by refusing to overwrite the bytes it failed to parse; here the refusal has to be
+        // at the write, because an unreadable roster still leaves the app running with an
+        // empty one that the DM may start typing into.
+        guard partyLoadFailure == nil else { return }
         do {
             try partyStore.save(partyBook)
         } catch {

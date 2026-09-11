@@ -1101,12 +1101,7 @@ struct ControlView: View {
     /// Map's own furniture rather than anyone's token.
     @ViewBuilder
     private var livePanel: some View {
-        // The Party group is gated on a Map being open as well as on a Party existing: the
-        // roster is a drag source, and offering one with no Map to drop onto is an invitation
-        // to a gesture that cannot work. The other groups are already implicitly gated this
-        // way, since fog belongs to a Map.
-        let hasParty = !appState.partyBook.parties.isEmpty && appState.mapURL != nil
-        if !appState.fog.lights.isEmpty || !appState.fog.pawns.isEmpty || hasParty {
+        if !appState.fog.lights.isEmpty || !appState.fog.pawns.isEmpty || showsParty {
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 12) {
                     // First, above the Lights: it is the palette a session starts from, and
@@ -1148,14 +1143,30 @@ struct ControlView: View {
 
     // MARK: The Party
 
+    /// Whether the Party group belongs on screen.
+    ///
+    /// Gated on a Map being open as well as on a Party existing: the roster is a drag source,
+    /// and offering one with no Map to drop onto invites a gesture that cannot work. The other
+    /// groups are already implicitly gated this way, since fog belongs to a Map.
+    ///
+    /// One property rather than the same condition at the panel and at the group, which have
+    /// to agree or the panel draws an empty box beside the preview.
+    private var showsParty: Bool {
+        appState.activeParty != nil && appState.mapURL != nil
+    }
+
     /// The active Party: its picker, its Characters, and the inline editor.
     ///
     /// Sits above the Lights because it is where a session starts — the DM drags from here
-    /// onto the Map rather than clicking the Map and filling in a form. Hidden entirely when
-    /// no Party is defined, following the panel's own rule for empty groups.
+    /// onto the Map rather than clicking the Map and filling in a form.
+    ///
+    /// Deliberately **not** built with `liveGroup`, which every other group here uses: its
+    /// heading is a Menu and an add button rather than a static title, and the roster actions
+    /// have nowhere else to live. The body below still matches `liveGroup`'s spacing and
+    /// caption weight so the two read as siblings.
     @ViewBuilder
     private var partyGroup: some View {
-        if let party = appState.activeParty, appState.mapURL != nil {
+        if let party = appState.activeParty, showsParty {
             VStack(alignment: .leading, spacing: 6) {
                 partyHeader(party)
                 if let edit = partyNameEdit {

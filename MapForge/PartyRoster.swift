@@ -26,6 +26,13 @@ enum PartyRoster {
     /// A remembered ID naming a Party that has since been deleted resolves here rather than
     /// in `DisplayPreferences` — deleting a Party must not have to reach into preferences to
     /// keep the app consistent.
+    ///
+    /// A dangling ID **falls back to the first Party** rather than to none. That is a
+    /// different question from the one `DisplayPreferences.activePartyID` answers, which is
+    /// whether a malformed stored *string* is an ID at all (it resolves to nil there). Here
+    /// the ID parsed fine and simply names a Party that is gone, and showing an empty panel
+    /// beside a roster that exists would read as the feature being broken. The DM can still
+    /// pick any Party from the picker.
     static func activeParty(in book: PartyBook, id: UUID?) -> Party? {
         if let id, let party = book.parties.first(where: { $0.id == id }) { return party }
         return book.parties.first
@@ -67,6 +74,11 @@ enum PartyRoster {
     /// Pawns already Stamped from it are deliberately not revisited: a Stamp is a copy taken
     /// at the moment of the drag, so renaming Thorin today leaves last week's map exactly as
     /// it was run. That silence is the decision, not an oversight.
+    ///
+    /// Searches every Party rather than the active one, and stops at the first match. A
+    /// Character belongs to exactly one Party, so "which Party is active" is not part of the
+    /// question — making it so would mean an edit silently doing nothing if the DM switched
+    /// Party while the editor was open.
     static func updateCharacter(_ character: PartyCharacter, in book: PartyBook) -> PartyBook {
         var book = book
         for partyIndex in book.parties.indices {
