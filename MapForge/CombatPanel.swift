@@ -20,6 +20,11 @@ struct CombatPanel: View {
             } else {
                 idle
             }
+            // Below the list, as the spec asks: the numbers a DM changes mid-fight, and
+            // the box they type a note into. Edits reflect into the rows above because
+            // both read the same folded state.
+            StatEditor(combatant: selection ?? appState.encounter?.activeCombatantID)
+                .padding(8)
         }
         .background(Color(nsColor: .textBackgroundColor),
                     in: RoundedRectangle(cornerRadius: 6))

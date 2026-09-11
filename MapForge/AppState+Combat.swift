@@ -28,6 +28,94 @@ extension AppState {
         statsAutosave.schedule(statsDocument)
     }
 
+    /// Edits a Pawn's numbers, whichever way is correct right now.
+    ///
+    /// The panel's single door, so no view has to know the rule: during an Encounter each
+    /// field that actually moved becomes a `Change` in the Turn — or a Correction, if the
+    /// cursor is on a past one — and outside a fight the block is written straight to
+    /// `stats.json`, because there is no Log to record into.
+    ///
+    /// Takes a mutating closure rather than a finished block, so the diff is computed here
+    /// and a caller cannot hand over a block built from stale values.
+    func editStatBlock(for pawn: Pawn.ID, _ edit: (inout StatBlock) -> Void) {
+        let before = encounter?.blocks[pawn] ?? statBlock(for: pawn)
+        var after = before
+        edit(&after)
+        guard after != before else { return }
+
+        guard encounter != nil else {
+            setStatBlock(after, for: pawn)
+            return
+        }
+        for change in Self.changes(for: pawn, from: before, to: after) {
+            recordChange(change)
+        }
+    }
+
+    /// Overtypes a Combatant's Initiative — what a DM does as the players call theirs out.
+    ///
+    /// Does **not** re-sort the Order: ties are the DM's to break, so a number and a
+    /// position are allowed to disagree until they drag the row.
+    func setInitiative(_ initiative: Int, for pawn: Pawn.ID) {
+        guard let current = encounter?.initiative(of: pawn), current != initiative else { return }
+        recordChange(.initiativeChanged(combatantID: pawn, from: current, to: initiative))
+    }
+
+    /// Records a quick note against the Combatant whose Turn it is.
+    ///
+    /// About the *active* Combatant, not the selected one — the panel labels the box with
+    /// that name so there is no ambiguity. While correcting it lands on the Turn under the
+    /// cursor, which is how a note reaches a Turn that has already ended.
+    func addNote(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let encounter else { return }
+        let subject = encounter.correctionTarget?.combatantID ?? encounter.activeCombatantID
+        guard let subject else { return }
+        recordChange(.noteAdded(combatantID: subject, text: trimmed))
+    }
+
+    /// One `Change` per field that actually moved.
+    ///
+    /// Field by field rather than a single "the block changed" event, because the Log is
+    /// meant to be read: "poisoned, then 14 to 9" is what happened, and a block-shaped
+    /// diff would say only that something did.
+    static func changes(for pawn: Pawn.ID,
+                        from before: StatBlock,
+                        to after: StatBlock) -> [Change] {
+        var changes: [Change] = []
+        if before.currentHP != after.currentHP {
+            changes.append(.hpChanged(combatantID: pawn, from: before.currentHP, to: after.currentHP))
+        }
+        if before.maxHP != after.maxHP {
+            changes.append(.maxHPChanged(combatantID: pawn, from: before.maxHP, to: after.maxHP))
+        }
+        if before.temporaryHP != after.temporaryHP {
+            changes.append(.tempHPChanged(combatantID: pawn,
+                                          from: before.temporaryHP, to: after.temporaryHP))
+        }
+        if before.armorClass != after.armorClass {
+            changes.append(.acChanged(combatantID: pawn,
+                                      from: before.armorClass, to: after.armorClass))
+        }
+        if before.exhaustion != after.exhaustion {
+            changes.append(.exhaustionChanged(combatantID: pawn,
+                                              from: before.exhaustion, to: after.exhaustion))
+        }
+        if before.isConcentrating != after.isConcentrating {
+            changes.append(.concentrationChanged(combatantID: pawn,
+                                                 isConcentrating: after.isConcentrating))
+        }
+        // Sorted so a Log reads the same way twice: a Set has no order, and two runs of the
+        // same edit would otherwise write their Conditions in whatever order hashing gave.
+        for condition in after.conditions.subtracting(before.conditions).sorted(by: { $0.rawValue < $1.rawValue }) {
+            changes.append(.conditionAdded(combatantID: pawn, condition: condition))
+        }
+        for condition in before.conditions.subtracting(after.conditions).sorted(by: { $0.rawValue < $1.rawValue }) {
+            changes.append(.conditionRemoved(combatantID: pawn, condition: condition))
+        }
+        return changes
+    }
+
     func loadStats(forMapAt url: URL) {
         statsDocument = statsStore.load(forMapAt: url) ?? StatsDocument()
         statsLoadFailure = statsStore.lastLoadFailure

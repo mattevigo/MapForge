@@ -1,6 +1,6 @@
 # 06 — The Stat Block editor and the notes box
 
-Status: ready-for-agent
+Status: ready-for-human
 
 The two panes below the Order list. Depends on 05.
 
@@ -65,3 +65,38 @@ note can be added to a past Turn; no note can ever be edited or deleted (ADR-001
 
 Every number and Condition is editable from the panel, edits show instantly in the Order list,
 and every one of them is in the Log with its before and after.
+
+## Comments
+
+**Built.** Every edit goes through one door, `AppState.editStatBlock`, which diffs the block
+and decides what the edit *is*: a `Change` in the live Turn, a Correction against the Turn
+under the cursor, or a straight write to `stats.json` when no fight is running. No view
+writes a `StatBlock`, which is ADR-0008's rule made structural rather than remembered.
+
+**A real bug, found by running the app and not by any test.** Filling in Max HP wiped the
+current HP that had just been entered. `NumberField` committed on focus loss, so clicking
+from one field to another committed the *other* field's text too — and a field showing a
+Combatant with no hit points committed "no hit points" over the number next door. It now
+remembers what it last held and skips a commit that would write the same thing back. A
+model-level regression test covers the clearing case; the focus behaviour itself is only
+reachable by hand.
+
+**One flaky test, mine.** `testEditingInitiativeRecordsIt` set Initiative to a literal 17,
+and `startEncounter` rolls with the system generator — so about one run in twenty the
+Combatant already had 17, `setInitiative` correctly recorded nothing, and the test failed.
+It now derives the new value from the rolled one. The no-op it was accidentally exercising
+is worth having, so it became a test of its own.
+
+**Verified at the table, not just in the suite**: hit points typed in, 7 damage applied
+through the box, a Condition toggled, a note taken, Turn ended. The resulting line reads
+
+```
+TURN r1
+  hpChanged      to 26
+  maxHPChanged   to 26
+  hpChanged      26 → 19
+  conditionAdded paralyzed
+  noteAdded      "shoved the ogre into the pit"
+```
+
+which is the DM-readable record the whole feature exists for.
