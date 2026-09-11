@@ -230,9 +230,13 @@ struct FogOverlay: View {
                     edits.beginPawnDrag()
                 }
                 guard let start = pawnDragStart, value.translation != .zero else { return }
+                // Clamped to the image, as the live drag in `PawnLayer` is through
+                // `AppState.movePawn`: a token pulled off the Map here would be just as
+                // unreachable once the mode closes. See `PawnBounds`.
+                let dragged = MapPoint(x: start.x + value.translation.width / transform.scale,
+                                       y: start.y + value.translation.height / transform.scale)
                 edits.movePawn(id: pawn.id,
-                               to: MapPoint(x: start.x + value.translation.width / transform.scale,
-                                            y: start.y + value.translation.height / transform.scale))
+                               to: PawnBounds.clamp(dragged, toImage: transform.imagePixelSize))
                 onChange()
             }
             .onEnded { _ in

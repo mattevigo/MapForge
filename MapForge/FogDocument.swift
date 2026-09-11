@@ -197,6 +197,18 @@ struct Pawn: Codable, Equatable, Identifiable {
     /// Independent of `kind` — an ogre ally, a goblin and a big hoard are all meaningful.
     var isBig = false
 
+    /// Which `PartyCharacter` Stamped this Pawn, when one did.
+    ///
+    /// **Advisory, and read by exactly one thing**: the Party panel's count of how many of a
+    /// Character's Pawns stand on this Map. Nothing about drawing, lighting, discovery or
+    /// persistence may branch on it, and a Pawn whose Character has been deleted is in no way
+    /// diminished — it simply stops being counted.
+    ///
+    /// This is not a link. The Pawn holds its own label, colour and sight, copied at the
+    /// moment of the drag, so `<map>.fog.json` stays readable with no roster present. See
+    /// `docs/adr/0007-characters-are-stamped-not-linked.md` for why a reference was rejected.
+    var characterID: UUID?
+
     /// How many Grid squares a token spans. The one place the 2 lives, so every surface
     /// that sizes a token agrees.
     static func squaresAcross(isBig: Bool) -> CGFloat { isBig ? 2 : 1 }
@@ -230,7 +242,8 @@ struct Pawn: Codable, Equatable, Identifiable {
 
     init(id: UUID = UUID(), at: MapPoint, label: String, colorHex: String,
          brightSquares: CGFloat,
-         kind: PawnKind = .player, isHidden: Bool = false, isBig: Bool = false) {
+         kind: PawnKind = .player, isHidden: Bool = false, isBig: Bool = false,
+         characterID: UUID? = nil) {
         self.id = id
         self.label = label
         self.colorHex = colorHex
@@ -239,6 +252,7 @@ struct Pawn: Codable, Equatable, Identifiable {
         self.kind = kind
         self.isHidden = isHidden
         self.isBig = isBig
+        self.characterID = characterID
     }
 
     /// Written by hand for the three flags, which decode as false when absent.
@@ -263,6 +277,7 @@ struct Pawn: Codable, Equatable, Identifiable {
         kind = try Self.decodeKind(from: container)
         isHidden = try container.decodeIfPresent(Bool.self, forKey: .isHidden) ?? false
         isBig = try container.decodeIfPresent(Bool.self, forKey: .isBig) ?? false
+        characterID = try container.decodeIfPresent(UUID.self, forKey: .characterID)
     }
 
     /// Written by hand because `CodingKeys` carries the legacy `isCreature` key that has
@@ -281,6 +296,10 @@ struct Pawn: Codable, Equatable, Identifiable {
         try container.encode(kind, forKey: .kind)
         try container.encode(isHidden, forKey: .isHidden)
         try container.encode(isBig, forKey: .isBig)
+        // Omitted when absent, unlike the flags above: a DM who has never defined a Party
+        // should see no trace of the feature in their map files, and `"characterID": null`
+        // in every Pawn would be exactly that.
+        try container.encodeIfPresent(characterID, forKey: .characterID)
     }
 
     /// Reads `kind`, falling back to the `isCreature` boolean it replaces.
@@ -302,7 +321,7 @@ struct Pawn: Codable, Equatable, Identifiable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, label, colorHex, light, kind, isCreature, isHidden, isBig
+        case id, label, colorHex, light, kind, isCreature, isHidden, isBig, characterID
     }
 }
 

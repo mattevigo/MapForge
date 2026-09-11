@@ -1,14 +1,20 @@
 import Foundation
 
-/// App-level, per-display settings. The app's first persistence of any kind.
+/// App-level settings. The app's first persistence of any kind.
 ///
 /// A named type rather than `@AppStorage` because the selection policy runs inside
 /// `AppState.presentIfPossible()`, which is not a view context. Shaped so issue 04's
 /// Calibration factor joins it keyed by the same `DisplayIdentity` — not built here.
+///
+/// It began as per-display settings and now also remembers the active Party. The name is
+/// kept rather than churn every call site: what these have in common is that they are small
+/// choices a DM can remake with one click, which is exactly what distinguishes them from the
+/// authored data `FogStore` and `PartyStore` guard.
 final class DisplayPreferences {
     private enum Key {
         static let playerDisplayUUID = "playerDisplayUUID"
         static let playerDisplayName = "playerDisplayName"
+        static let activePartyID = "activePartyID"
     }
 
     private let defaults: UserDefaults
@@ -44,5 +50,20 @@ final class DisplayPreferences {
             defaults.set(newValue?.uuid, forKey: Key.playerDisplayUUID)
             defaults.set(newValue?.name, forKey: Key.playerDisplayName)
         }
+    }
+
+    /// The Party the Control Window offers, remembered across launches — a DM runs one
+    /// campaign per sitting, so the choice is made rarely and should not be remade daily.
+    ///
+    /// An ID rather than the Party itself: the roster lives in `PartyStore`, and duplicating
+    /// it here would give the app two answers to "what is this Party called". An ID naming a
+    /// Party that no longer exists resolves to nil at the point of use, not here — deleting a
+    /// Party must not have to reach into preferences to stay consistent.
+    var activePartyID: UUID? {
+        get {
+            guard let string = defaults.string(forKey: Key.activePartyID) else { return nil }
+            return UUID(uuidString: string)
+        }
+        set { defaults.set(newValue?.uuidString, forKey: Key.activePartyID) }
     }
 }

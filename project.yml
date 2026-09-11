@@ -23,6 +23,17 @@ targets:
         CODE_SIGN_STYLE: Manual
         ENABLE_HARDENED_RUNTIME: NO
         COMBINE_HIDPI_IMAGES: YES
+    info:
+      path: MapForge/Info.plist
+      properties:
+        # Declared so the Party panel's drag carries a type of its own: a file or a snippet
+        # of text dropped on the Map is then refused by the type system rather than by
+        # hand-written validation guessing what the DM meant.
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.mattevigo.MapForge.character-id
+            UTTypeDescription: MapForge Character
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification: {}
 
   MapForgeTests:
     type: bundle.unit-test

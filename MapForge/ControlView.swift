@@ -54,6 +54,34 @@ struct ControlView: View {
     /// Digits typed towards an exact distance. Empty except between the first digit and
     /// Return, which is also the only window in which the key monitor claims anything.
     @State private var typedDistance = MeasurementTyping.Buffer()
+    /// The Character being authored or edited in the Party panel, if any. One at a time: the
+    /// panel is 236pt wide and two open editors would leave no room for the roster itself.
+    @State private var editedCharacter: PartyCharacter?
+    /// Whether `editedCharacter` is new, so Cancel knows whether to leave anything behind.
+    @State private var isAddingCharacter = false
+    /// The Party being renamed, or created, in the picker's sheet-free inline field.
+    @State private var partyNameEdit: PartyNameEdit?
+
+    /// Renaming an existing Party, or naming a new one. A sum type rather than a name plus a
+    /// flag, because the two resolve differently and only one of them has an id.
+    private enum PartyNameEdit: Equatable {
+        case new(String)
+        case rename(id: UUID, name: String)
+
+        var name: String {
+            switch self {
+            case .new(let name): return name
+            case .rename(_, let name): return name
+            }
+        }
+
+        func withName(_ name: String) -> PartyNameEdit {
+            switch self {
+            case .new: return .new(name)
+            case .rename(let id, _): return .rename(id: id, name: name)
+            }
+        }
+    }
 
     var body: some View {
         // `alignment: .top` on the row below, plus the preview claiming the remaining
@@ -280,6 +308,20 @@ struct ControlView: View {
                                   },
                                   onMove: { appState.movePawn(id: $0, to: $1) },
                                   onCommit: { appState.flushPendingFogWrites() })
+                    }
+                    // Stamping a Character is a LIVE action too, so the drop target is this
+                    // mirror rather than the fog editing mode's overlay.
+                    //
+                    // `location` arrives in this view's own space, which is the clipped
+                    // container `mirrorFrame` is already rebased into — the pairing
+                    // `PlayerPlacement.mapPoint` warns about at length. Attached here,
+                    // alongside the overlays drawn with the same frame, and never above a
+                    // `.position()` that would re-parent it into the outer GeometryReader.
+                    .dropDestination(for: CharacterDragPayload.self) { payloads, location in
+                        guard let payload = payloads.first,
+                              let character = appState.character(id: payload.characterID)
+                        else { return false }
+                        return appState.stamp(character, at: location, frame: mirrorFrame)
                     }
                     .overlay {
                         // Above the tokens: a Measurement is what the DM is pointing at,
@@ -1059,9 +1101,13 @@ struct ControlView: View {
     /// Map's own furniture rather than anyone's token.
     @ViewBuilder
     private var livePanel: some View {
-        if !appState.fog.lights.isEmpty || !appState.fog.pawns.isEmpty {
+        if !appState.fog.lights.isEmpty || !appState.fog.pawns.isEmpty || showsParty {
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 12) {
+                    // First, above the Lights: it is the palette a session starts from, and
+                    // a short drag to the Map is the whole point of it being here rather
+                    // than in a window of its own.
+                    partyGroup
                     if !appState.fog.lights.isEmpty {
                         liveGroup("Lights", count: appState.fog.lights.count) {
                             ForEach(Array(appState.fog.lights.enumerated()), id: \.element.id) { index, light in
@@ -1093,6 +1139,246 @@ struct ControlView: View {
                         in: RoundedRectangle(cornerRadius: 6))
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
         }
+    }
+
+    // MARK: The Party
+
+    /// Whether the Party group belongs on screen.
+    ///
+    /// Gated on a Map being open: the roster is a drag source, and offering one with no Map to
+    /// drop onto invites a gesture that cannot work. The other groups are already implicitly
+    /// gated this way, since fog belongs to a Map.
+    ///
+    /// Deliberately **not** gated on a Party existing. That is the group's empty state, not a
+    /// reason to hide it — hiding it is what made creating a first Party impossible, since the
+    /// only way to make one is a button this group draws.
+    ///
+    /// One property rather than the same condition at the panel and at the group, which have
+    /// to agree or the panel draws an empty box beside the preview.
+    private var showsParty: Bool { appState.mapURL != nil }
+
+    /// The active Party: its picker, its Characters, and the inline editor.
+    ///
+    /// Sits above the Lights because it is where a session starts — the DM drags from here
+    /// onto the Map rather than clicking the Map and filling in a form.
+    ///
+    /// Deliberately **not** built with `liveGroup`, which every other group here uses: its
+    /// heading is a Menu and an add button rather than a static title, and the roster actions
+    /// have nowhere else to live. The body below still matches `liveGroup`'s spacing and
+    /// caption weight so the two read as siblings.
+    @ViewBuilder
+    private var partyGroup: some View {
+        if showsParty {
+            VStack(alignment: .leading, spacing: 6) {
+                if let party = appState.activeParty {
+                    partyHeader(party)
+                } else {
+                    emptyPartyHeader
+                }
+                if let edit = partyNameEdit {
+                    partyNameField(edit)
+                } else if let party = appState.activeParty {
+                    ForEach(party.characters) { character in
+                        if editedCharacter?.id == character.id {
+                            characterEditor()
+                        } else {
+                            characterRow(character)
+                        }
+                    }
+                    if isAddingCharacter { characterEditor() }
+                }
+            }
+        }
+    }
+
+    /// What the group shows before any Party exists.
+    ///
+    /// Without this the feature cannot be reached at all: "New Party…" lives in the picker's
+    /// menu, the picker is part of `partyHeader`, and `partyHeader` needs a Party — so a DM
+    /// with an empty roster had no way to create their first one. The bug was invisible in
+    /// testing because every run started from a roster seeded by hand.
+    private var emptyPartyHeader: some View {
+        HStack(spacing: 6) {
+            Text("Party").font(.caption.weight(.semibold))
+            Spacer(minLength: 0)
+            Button("New Party…") { partyNameEdit = .new("") }
+                .buttonStyle(.borderless)
+                .font(.caption)
+        }
+    }
+
+    private func partyHeader(_ party: Party) -> some View {
+        HStack(spacing: 6) {
+            // A Menu rather than a Picker: it carries the roster actions alongside the
+            // choice, and a DM switches Party rarely enough that one control can do both.
+            Menu {
+                ForEach(appState.partyBook.parties) { candidate in
+                    Button {
+                        appState.setActiveParty(candidate.id)
+                    } label: {
+                        // A checkmark rather than a Picker's selection, since this menu also
+                        // holds actions and cannot be one.
+                        Label(candidate.name,
+                              systemImage: candidate.id == party.id ? "checkmark" : "")
+                    }
+                }
+                Divider()
+                Button("New Party…") { partyNameEdit = .new("") }
+                Button("Rename Party…") {
+                    partyNameEdit = .rename(id: party.id, name: party.name)
+                }
+                Button("Delete Party") { appState.deleteParty(id: party.id) }
+            } label: {
+                Text(party.name).font(.caption.weight(.semibold)).lineLimit(1)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+
+            Spacer(minLength: 0)
+            Text("\(party.characters.count)").font(.caption).foregroundStyle(.secondary)
+            Button {
+                editedCharacter = PartyCharacter(name: "")
+                isAddingCharacter = true
+            } label: {
+                Image(systemName: "plus").frame(width: 16)
+            }
+            .buttonStyle(.borderless)
+            .help("Add a Character to this Party")
+        }
+    }
+
+    /// Naming a new Party, or renaming one. Inline rather than a sheet: this app has no
+    /// modals, and one text field does not justify introducing the first.
+    private func partyNameField(_ edit: PartyNameEdit) -> some View {
+        HStack(spacing: 6) {
+            TextField("Party name", text: Binding(
+                get: { edit.name },
+                set: { partyNameEdit = edit.withName($0) }
+            ))
+            .textFieldStyle(.roundedBorder)
+            .onSubmit { commitPartyName() }
+            Button("OK") { commitPartyName() }
+                .buttonStyle(.borderless)
+                .disabled(edit.name.trimmingCharacters(in: .whitespaces).isEmpty)
+            Button("Cancel") { partyNameEdit = nil }
+                .buttonStyle(.borderless)
+        }
+    }
+
+    private func commitPartyName() {
+        guard let edit = partyNameEdit else { return }
+        let name = edit.name.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        switch edit {
+        case .new: appState.addParty(named: name)
+        case .rename(let id, _): appState.renameParty(id: id, to: name)
+        }
+        partyNameEdit = nil
+    }
+
+    /// One Character in the roster: what it looks like on the Map, its name, and how many of
+    /// its Pawns are already standing on this one.
+    ///
+    /// The whole row is the drag source. Dropping it on the Map Stamps a Pawn — see
+    /// `Stamp` and ADR 0007.
+    private func characterRow(_ character: PartyCharacter) -> some View {
+        let placed = appState.placedCount(of: character)
+        return HStack(spacing: 6) {
+            PawnToken(pawn: Stamp.preview(of: character), squareSide: 14,
+                      scalesWithFootprint: false)
+            Text(character.name).lineLimit(1)
+            Spacer(minLength: 0)
+            if placed > 0 {
+                // Decoration, never a constraint: duplicates are deliberate, and this is
+                // what makes an accidental second drop visible without forbidding a summon.
+                Text("×\(placed)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .help("\(placed) on this Map")
+            }
+        }
+        .contentShape(Rectangle())
+        .draggable(CharacterDragPayload(characterID: character.id)) {
+            // The drag preview, which macOS renders under the cursor. This one DOES scale
+            // with the footprint, unlike the row's token: it is headed for the Map, where a
+            // Big Pawn's two squares are the thing the DM is judging the drop against.
+            PawnToken(pawn: Stamp.preview(of: character), squareSide: 20)
+        }
+        .contextMenu {
+            Button("Edit…") {
+                editedCharacter = character
+                isAddingCharacter = false
+            }
+            Button("Delete") { appState.deleteCharacter(id: character.id) }
+        }
+    }
+
+    /// The inline editor for a Character, new or existing. The same four fields the
+    /// `pawnInspector` uses, stacked to fit the panel's 236pt.
+    @ViewBuilder
+    private func characterEditor() -> some View {
+        if let character = editedCharacter {
+            VStack(alignment: .leading, spacing: 4) {
+                TextField("Name", text: bindingForCharacter(\.name))
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { commitCharacter() }
+                HStack(spacing: 6) {
+                    ColorPicker("", selection: Binding(
+                        get: { Color(hex: character.colorHex) ?? .red },
+                        set: { editedCharacter?.colorHex = $0.hexString }
+                    ), supportsOpacity: false)
+                    .labelsHidden()
+                    Text("Sight:").font(.caption)
+                    // Bridged through Double as `pawnInspector` does: CGFloat is not a
+                    // parseable format type.
+                    TextField("", value: Binding(
+                        get: { Double(character.sightSquares) },
+                        set: { editedCharacter?.sightSquares = CGFloat($0) }
+                    ), format: .number)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 44)
+                    Toggle("Big", isOn: bindingForCharacter(\.isBig))
+                        .toggleStyle(.checkbox)
+                }
+                HStack(spacing: 6) {
+                    Spacer(minLength: 0)
+                    Button("Cancel") { cancelCharacterEdit() }
+                        .buttonStyle(.borderless)
+                    Button("Save") { commitCharacter() }
+                        .buttonStyle(.borderless)
+                        .disabled(character.name.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+            .padding(6)
+            .background(Color(nsColor: .controlBackgroundColor),
+                        in: RoundedRectangle(cornerRadius: 4))
+        }
+    }
+
+    private func bindingForCharacter<Value>(
+        _ keyPath: WritableKeyPath<PartyCharacter, Value>
+    ) -> Binding<Value> {
+        Binding(
+            get: { editedCharacter?[keyPath: keyPath] ?? PartyCharacter(name: "")[keyPath: keyPath] },
+            set: { editedCharacter?[keyPath: keyPath] = $0 }
+        )
+    }
+
+    private func commitCharacter() {
+        guard var character = editedCharacter else { return }
+        character.name = character.name.trimmingCharacters(in: .whitespaces)
+        guard !character.name.isEmpty else { return }
+        if isAddingCharacter {
+            appState.addCharacter(character)
+        } else {
+            appState.updateCharacter(character)
+        }
+        cancelCharacterEdit()
+    }
+
+    private func cancelCharacterEdit() {
+        editedCharacter = nil
+        isAddingCharacter = false
     }
 
     /// One titled group in the side panel. The count is in the heading so the DM can see
