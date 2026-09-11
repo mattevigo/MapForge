@@ -4,7 +4,7 @@ Versions follow [Semantic Versioning](https://semver.org). `MARKETING_VERSION` a
 `CURRENT_PROJECT_VERSION` in `project.yml` are the single source of truth; the About
 panel reads them from the built app.
 
-## Unreleased
+## 1.1.0 — 2026-09-11
 
 ### Measurement
 
