@@ -175,6 +175,59 @@ extension AppState {
         syncStatsFromEncounter(live)
     }
 
+    // MARK: The Map
+
+    /// Records a completed drag.
+    ///
+    /// Called from the end of the gesture, never from its updates: one Change per drag, not
+    /// one per frame. The DM's hand-wobble on the way is not domain data — the decision is
+    /// where they let go, and three drags in a Turn is the honest record of "moved,
+    /// attacked, moved back".
+    ///
+    /// The Pawn has already moved by the time this is called, and moves whether or not it
+    /// is recorded: outside a fight, and while the correction cursor is on a past Turn,
+    /// nothing is written. Where a Pawn stands is the Map's own truth.
+    func commitPawnMove(id: Pawn.ID, from origin: MapPoint) {
+        flushPendingFogWrites()
+        guard encounter != nil,
+              let pawn = fog.pawns.first(where: { $0.id == id }),
+              pawn.at != origin else { return }
+        recordChange(.moved(combatantID: id,
+                            from: origin,
+                            to: pawn.at,
+                            distanceSquares: distanceInSquares(from: origin, to: pawn.at)))
+    }
+
+    /// Straight-line distance in Grid squares — the unit distances are *stored* in, as
+    /// `Measurement` does. Metres are what `DistanceUnit` turns it into for display.
+    private func distanceInSquares(from: MapPoint, to: MapPoint) -> CGFloat {
+        guard let map = mapScale, map.imagePixelSize.width > 0, squaresWide > 0 else { return 0 }
+        let pixelsPerSquare = map.imagePixelSize.width / CGFloat(squaresWide)
+        guard pixelsPerSquare > 0 else { return 0 }
+        return hypot(to.x - from.x, to.y - from.y) / pixelsPerSquare
+    }
+
+    /// Puts a Pawn on the Map, and into the fight if one is running.
+    ///
+    /// A summon, or a Character Stamped mid-Encounter, joins at its rolled Initiative with
+    /// no prompt — it is what a DM wants almost every time, and removing it from the
+    /// tracker is one click if not.
+    func addPawnToMap(_ pawn: Pawn) {
+        fog.pawns.append(pawn)
+        flushPendingFogWrites()
+        joinEncounter(pawn)
+    }
+
+    /// Takes a Pawn off the Map, and out of the rotation if a fight is running.
+    ///
+    /// The Combatant stays listed and struck through: the Log already names it, and its
+    /// Stat Block outlives it so the record has something to describe.
+    func removePawnFromMap(_ id: Pawn.ID) {
+        removeFromEncounter(id)
+        fog.pawns.removeAll { $0.id == id }
+        flushPendingFogWrites()
+    }
+
     func reorderCombatant(from source: Int, to destination: Int) {
         guard var live = encounter else { return }
         write(EncounterControl.reorder(from: source, to: destination, in: &live))

@@ -538,10 +538,15 @@ final class AppState: ObservableObject {
         guard let map = mapScale,
               let pawn = Stamp.pawn(from: character, droppedAt: droppedPoint,
                                     map: map, frame: frame) else { return false }
-        fog.pawns.append(pawn)
-        // A drop is one completed action, not a stream of positions: it should be on disk
-        // before the DM's next click, exactly as the end of a drag is.
-        flushPendingFogWrites()
+        // The Character's combat numbers, copied at drag time like every other field —
+        // ADR-0007's rule reaching more of them. Before `addPawnToMap`, because joining a
+        // running fight reads the Stat Block to snapshot it into the Log.
+        setStatBlock(Stamp.statBlock(from: character), for: pawn.id)
+        // Through `addPawnToMap` rather than appending here, so a Character Stamped while
+        // a fight is running rolls Initiative and joins the Order. It also flushes: a drop
+        // is one completed action, not a stream of positions, and should be on disk before
+        // the DM's next click, exactly as the end of a drag is.
+        addPawnToMap(pawn)
         return true
     }
 

@@ -319,7 +319,11 @@ struct ControlView: View {
                                           hasVisibility: appState.hasDeclaredGrid)
                                   },
                                   onMove: { appState.movePawn(id: $0, to: $1) },
-                                  onCommit: { appState.flushPendingFogWrites() })
+                                  // Flushes to disk and, if a fight is running, records
+                                  // the move in the Combat Log.
+                                  onCommit: { id, origin in
+                                      appState.commitPawnMove(id: id, from: origin)
+                                  })
                     }
                     // Stamping a Character is a LIVE action too, so the drop target is this
                     // mirror rather than the fog editing mode's overlay.
