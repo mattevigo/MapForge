@@ -32,6 +32,20 @@ enum PlayerVisibility {
     /// `soloSightPawnID` has no default on purpose: a call site that forgot it would
     /// compile and silently render the pre-Solo-Sight rules, which is the second answer to
     /// "what do players see" that this type exists to prevent. Make the compiler ask.
+    /// Whether a Pawn's label is drawn at the table. It is not.
+    ///
+    /// A label is the DM's bookkeeping — "Goblin B", "3", "Ambusher" — and the Player
+    /// Display is the world, which does not caption itself. The table identifies a token by
+    /// its colour, which is why the DM assigns one per token, so nothing is lost; what is
+    /// gained is that a DM can name a Pawn for their own notes without the name crossing
+    /// the room.
+    ///
+    /// A constant rather than a parameter because it is not conditional on anything — but
+    /// it lives *here*, beside the rules about which Pawns draw at all, so that the whole
+    /// answer to "what do the players get to see" is in one file and a view cannot quietly
+    /// disagree with it.
+    static let showsPawnLabelToPlayers = false
+
     static func showsToPlayers(pawn: Pawn, regions: [LitRegion],
                                isFogOverlayOn: Bool, hasVisibility: Bool,
                                soloSightPawnID: Pawn.ID?) -> Bool {
