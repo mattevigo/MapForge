@@ -1459,6 +1459,37 @@ struct ControlView: View {
                     Toggle("Big", isOn: bindingForCharacter(\.isBig))
                         .toggleStyle(.checkbox)
                 }
+                // The combat numbers. A Character has carried these since the Party
+                // existed and the Stamp has always copied them, but nothing could type
+                // them — so every Stamped Pawn arrived at +0 / AC 10 / no hit points, and
+                // the DM filled them in again on the Map at every encounter. That is the
+                // exact retyping the Party exists to stop.
+                //
+                // Only these three. Conditions, exhaustion and temporary hit points are
+                // things that happen on a Map, and a Character has never been on one —
+                // the split `Stamp.statBlock(from:)` already reasons about.
+                HStack(spacing: 6) {
+                    Text("Init:").font(.caption)
+                    TextField("", value: bindingForCharacter(\.initiativeBonus),
+                              format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 36)
+                        .accessibilityIdentifier("character-initiative-bonus")
+                    Text("AC:").font(.caption)
+                    TextField("", value: bindingForCharacter(\.armorClass), format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 36)
+                        .accessibilityIdentifier("character-armor-class")
+                    Text("HP:").font(.caption)
+                    // The only optional of the three, and it stays optional all the way to
+                    // the field: a Character sketched in without hit points has none, and a
+                    // 0 there would read as "already unconscious". An empty field means
+                    // absent, which is what `.number` gives back for a nil Int?.
+                    TextField("", value: bindingForCharacter(\.maxHP), format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 44)
+                        .accessibilityIdentifier("character-max-hp")
+                }
                 HStack(spacing: 6) {
                     Spacer(minLength: 0)
                     Button("Cancel") { cancelCharacterEdit() }
