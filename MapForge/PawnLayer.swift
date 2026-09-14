@@ -51,6 +51,12 @@ struct PawnLayer: View {
                     .opacity(isDimmed(pawn) ? 0.4 : 1)
                     .position(x: p.x, y: p.y)
                     .gesture(drag(pawn))
+                    // A test hook, and the only way to ask "is this Pawn on the preview":
+                    // the token is a ZStack that publishes as one element, so its label
+                    // Text is not separately queryable. Without this, the preview drawing
+                    // nothing at all is indistinguishable from it drawing everything —
+                    // which is how `.scratch/pawns-not-drawn/` survived a whole feature.
+                    .accessibilityIdentifier("pawn-token-\(pawn.label)")
             }
         }
         .coordinateSpace(name: Self.coordinateSpace)

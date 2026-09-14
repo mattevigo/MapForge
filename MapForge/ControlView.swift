@@ -3,8 +3,6 @@ import SwiftUI
 struct ControlView: View {
     @EnvironmentObject private var appState: AppState
 
-    private enum PreviewMode { case normal, gridFit, viewport, fog }
-
     @State private var mode: PreviewMode = .normal
     @State private var fitSquare: GridFitSquare?
     @State private var squaresWideBeforeFit: Double = 0
@@ -287,43 +285,16 @@ struct ControlView: View {
                     }
                     .frame(width: visible.width, height: visible.height)
                     .overlay {
-                        // The DM's view of the same Visibility: a tint they can read
-                        // through, over a Map that stays fully lit. Weaker than the
-                        // players' darkness by design — a DM as blind as the players
-                        // cannot run the game.
-                        FogCanvas(regions: appState.litRegions,
-                                  map: map,
-                                  frame: mirrorFrame) {
-                            FogShading.control($0, isOverlayOn: appState.isFogOverlayOn)
-                        }
-                    }
-                    .overlay {
+                        // The DM's view of the same Visibility, the party, and anything
+                        // being measured. Shared with the fitted branch below so the two
+                        // cannot drift: the mirror is not the only place a DM looks at
+                        // their own Pawns, and for a long time it behaved as though it
+                        // were. See `liveLayers`.
+                        //
                         // Dragging a Pawn is a LIVE action — the party moves during play,
-                        // not during prep — so it works on the normal mirror, outside the
-                        // fog editing mode entirely.
-                        PawnLayer(map: map,
-                                  frame: mirrorFrame,
-                                  pawns: appState.fog.pawns,
-                                  lights: appState.fog.lights,
-                                  // Hoisted, not read per Pawn: `litRegions` is computed,
-                                  // and rebuilding the cache key for every token every
-                                  // frame of a drag is exactly the drag-rate work this
-                                  // file's comments record a regression over.
-                                  isDimmed: { [regions = appState.litRegions] pawn in
-                                      isInvisibleToPlayers(pawn, regions: regions)
-                                  },
-                                  isLightDimmed: { [regions = appState.litRegions] light in
-                                      PlayerVisibility.isLightMarkerDimmedForDM(
-                                          light: light, regions: regions,
-                                          isFogOverlayOn: appState.isFogOverlayOn,
-                                          hasVisibility: appState.hasDeclaredGrid)
-                                  },
-                                  onMove: { appState.movePawn(id: $0, to: $1) },
-                                  // Flushes to disk and, if a fight is running, records
-                                  // the move in the Combat Log.
-                                  onCommit: { id, origin in
-                                      appState.commitPawnMove(id: id, from: origin)
-                                  })
+                        // not during prep — so it works here, outside the fog editing mode
+                        // entirely.
+                        liveLayers(map: map, frame: mirrorFrame)
                     }
                     // Stamping a Character is a LIVE action too, so the drop target is this
                     // mirror rather than the fog editing mode's overlay.
@@ -338,19 +309,6 @@ struct ControlView: View {
                               let character = appState.character(id: payload.characterID)
                         else { return false }
                         return appState.stamp(character, at: location, frame: mirrorFrame)
-                    }
-                    .overlay {
-                        // Above the tokens: a Measurement is what the DM is pointing at,
-                        // and a cone half-hidden behind the party is unreadable. Pinned
-                        // ones first, the live one over them.
-                        if let pixelsPerSquare = appState.pixelsPerSquare {
-                            ForEach(appState.drawableMeasurements, id: \.measurement.id) {
-                                MeasurementLayer(measurement: $0.measurement,
-                                                 origin: $0.origin,
-                                                 map: map, frame: mirrorFrame,
-                                                 pixelsPerSquare: pixelsPerSquare)
-                            }
-                        }
                     }
                     .overlay {
                         // An armed tool has nothing on the Map yet, so without this the
@@ -454,6 +412,16 @@ struct ControlView: View {
                                 appState.viewportOrigin = desired
                             }
                         }
+                        // The DM's own party, on the branch that runs when nothing is
+                        // plugged in. Without this the preview is bare artwork whenever
+                        // there is no Player Display — the Pawns are in the document and
+                        // listed in the Scene tab, and the DM cannot see or drag one.
+                        // `PreviewBranch.drawsLiveLayers` is the single statement of when
+                        // these are owed; see `.scratch/pawns-not-drawn/`.
+                        if PreviewBranch.drawsLiveLayers(mode: mode, hasViewport: false),
+                           let map = appState.mapScale {
+                            liveLayers(map: map, frame: fitted)
+                        }
                     }
                     // Pin to the preview and clip. Both are load-bearing: without the
                     // frame the ZStack sizes itself to the zoomed Image and the reader
@@ -554,6 +522,50 @@ struct ControlView: View {
     /// and the fog file stay in step with what the DM sees.
     private func applyFogEdits() {
         appState.applyFogEdits(fogEdits)
+    }
+
+    /// The Fog tint, the Light Markers, the Pawn tokens and any Measurement — everything
+    /// the preview draws *on* the Map rather than as part of it.
+    ///
+    /// Shared by both branches of `preview` so the mirror and the fitted view cannot drift
+    /// apart. They differ only in the frame they pass: the mirror's carries the Viewport's
+    /// pan, the fitted branch's is the aspect fit. `PreviewBranch.liveLayerFrame` is the
+    /// same choice stated as arithmetic.
+    @ViewBuilder
+    private func liveLayers(map: MapScale, frame: CGRect) -> some View {
+        FogCanvas(regions: appState.litRegions, map: map, frame: frame) {
+            FogShading.control($0, isOverlayOn: appState.isFogOverlayOn)
+        }
+        PawnLayer(map: map,
+                  frame: frame,
+                  pawns: appState.fog.pawns,
+                  lights: appState.fog.lights,
+                  // Hoisted, not read per Pawn: `litRegions` is computed, and rebuilding
+                  // the cache key for every token every frame of a drag is exactly the
+                  // drag-rate work this file's comments record a regression over.
+                  isDimmed: { [regions = appState.litRegions] pawn in
+                      isInvisibleToPlayers(pawn, regions: regions)
+                  },
+                  isLightDimmed: { [regions = appState.litRegions] light in
+                      PlayerVisibility.isLightMarkerDimmedForDM(
+                          light: light, regions: regions,
+                          isFogOverlayOn: appState.isFogOverlayOn,
+                          hasVisibility: appState.hasDeclaredGrid)
+                  },
+                  onMove: { appState.movePawn(id: $0, to: $1) },
+                  onCommit: { id, origin in
+                      appState.commitPawnMove(id: id, from: origin)
+                  })
+        // Above the tokens: a Measurement is what the DM is pointing at, and a cone
+        // half-hidden behind the party is unreadable.
+        if let pixelsPerSquare = appState.pixelsPerSquare {
+            ForEach(appState.drawableMeasurements, id: \.measurement.id) {
+                MeasurementLayer(measurement: $0.measurement,
+                                 origin: $0.origin,
+                                 map: map, frame: frame,
+                                 pixelsPerSquare: pixelsPerSquare)
+            }
+        }
     }
 
     private var fogSummary: String {
