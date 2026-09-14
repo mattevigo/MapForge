@@ -966,9 +966,6 @@ struct ControlView: View {
         }
     }
 
-    /// Set a Light's state, from the live row. In the fog mode the write has to go
-    /// through `FogEdits`, or the next edit would overwrite `appState.fog` wholesale from
-    /// the edit buffer and silently revert the toggle.
     /// Rename a Light from the roster, which is reachable in every mode.
     ///
     /// Routed like `setLight(id:isOn:)`: through `FogEdits` while the fog mode owns the
@@ -987,6 +984,9 @@ struct ControlView: View {
         }
     }
 
+    /// Set a Light's state, from the live row. In the fog mode the write has to go
+    /// through `FogEdits`, or the next edit would overwrite `appState.fog` wholesale from
+    /// the edit buffer and silently revert the toggle.
     private func setLight(id: Light.ID, isOn: Bool) {
         if mode == .fog {
             if fogEdits.document.lights.first(where: { $0.id == id })?.isOn != isOn {
@@ -1603,6 +1603,10 @@ struct ControlView: View {
             // the old positional name, so a Light placed before names existed still reads
             // sensibly — and a DM who clears the field gets that fallback back rather than
             // a blank row.
+            // The placeholder is what an unnamed Light is *called*, and the only unnamed
+            // Lights are those placed before names existed — so it uses the position, as
+            // the roster always did. It is deliberately not `Light.nextName`, which answers
+            // a different question: what to call the NEXT Light placed.
             TextField("Light \(number)", text: Binding(
                 get: { light.name ?? "" },
                 set: { setLightName(id: light.id, $0) }

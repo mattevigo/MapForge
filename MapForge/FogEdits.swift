@@ -68,22 +68,38 @@ struct FogEdits {
         document.lights[index].at = point
     }
 
-    /// Radii are in Grid squares, and negative is meaningless — both the stepper and the
-    /// text field let a DM go past zero. Dim zero is legal: a sharp-edged source.
     /// Name a Light, or clear its name by passing something blank.
     ///
     /// Undoable, beside `setLightRadii` and unlike `toggleLight`: a name is authoring, the way
     /// a radius is, not a live performance action the way dousing one is.
     ///
-    /// An empty or whitespace-only name becomes nil rather than `""`, so "unnamed" has one
-    /// representation instead of two. The roster then falls back to the Light's position,
-    /// which is what every Light placed before names existed does.
+    /// **One undo step for the whole rename, not one per keystroke.** A `TextField` binding
+    /// fires on every character, so recording unconditionally made undoing a seven-letter name
+    /// take seven presses — the defect `beginLightDrag`/`endLightDrag` exist to prevent for a
+    /// drag. Consecutive edits to the same Light coalesce: the first records, the rest write
+    /// over it. Any other edit in between ends the run, so the DM never loses a step they
+    /// meant to keep.
+    ///
+    /// **Not trimmed here.** Trimming per keystroke means a DM cannot type a name with a
+    /// space in it and have it survive the pause before the next character — "trapped brazier"
+    /// spends a keystroke as "trapped ". `Pawn.setPawnLabel` does not trim either. The blank
+    /// check runs on what was typed, so clearing the field still yields nil rather than `""`.
     mutating func setLightName(id: Light.ID, _ name: String) {
         guard let index = document.lights.firstIndex(where: { $0.id == id }) else { return }
-        record()
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        document.lights[index].name = trimmed.isEmpty ? nil : trimmed
+        if renamingLight != id {
+            record()            // clears `renamingLight`, so the assignment must follow it
+            renamingLight = id
+        }
+        // Blank — empty or whitespace — is stored as nil so "unnamed" has one representation
+        // and the roster's positional fallback fires. Anything else is kept exactly as typed,
+        // including its spaces: trimming mid-word is what stops a DM typing "trapped brazier".
+        document.lights[index].name =
+            name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : name
     }
+
+    /// The Light whose name is being typed, so consecutive keystrokes share one undo step.
+    /// Cleared by every other edit — see `record()`.
+    private var renamingLight: Light.ID?
 
     mutating func setLightRadii(id: Light.ID, brightSquares: CGFloat, dimSquares: CGFloat) {
         guard let index = document.lights.firstIndex(where: { $0.id == id }) else { return }
@@ -202,6 +218,7 @@ struct FogEdits {
     /// here, so an edit that lands mid-drag (a delete on ⌫, say) cannot push a second
     /// entry and make one action take two presses to undo.
     private mutating func record() {
+        renamingLight = nil
         guard dragOrigin == nil else { return }
         history.append(document)
     }

@@ -100,12 +100,69 @@ final class LightNameTests: XCTestCase {
                      "an empty name should be nil, not an empty string")
     }
 
+    /// The bug a per-keystroke trim causes: a DM typing "trapped brazier" gets as far as
+    /// "trapped" and then cannot type the space, because each keystroke trims the field back.
+    /// Setting the name once is not the same test — it is how the first version of these
+    /// tests passed while the feature was unusable at the keyboard.
+    func testANameCanContainSpacesAsItIsTyped() {
+        var edits = FogEdits(document: FogDocument())
+        let torch = light("Light 1")
+        edits.addLight(torch)
+
+        // One call per keystroke, as the TextField's binding makes.
+        let typed = "trapped brazier"
+        for end in 1...typed.count {
+            edits.setLightName(id: torch.id, String(typed.prefix(end)))
+        }
+        XCTAssertEqual(edits.document.lights.first?.name, "trapped brazier",
+                       "the space could not be typed")
+    }
+
+    /// Typing a name is ONE edit to undo, not one per character.
+    func testTypingANameIsASingleUndo() {
+        var edits = FogEdits(document: FogDocument())
+        let torch = light("Light 1")
+        edits.addLight(torch)
+
+        let typed = "brazier"
+        for end in 1...typed.count {
+            edits.setLightName(id: torch.id, String(typed.prefix(end)))
+        }
+        edits.undo()
+        XCTAssertEqual(edits.document.lights.first?.name, "Light 1",
+                       "undo unwound one keystroke instead of the whole rename")
+    }
+
+    /// Undo then place again: the gap-filling scheme hands out the name the undone Light had,
+    /// which is correct — that name is free again. The question is whether a *redo* can then
+    /// produce two Lights sharing one name.
+    func testUndoingAPlacementFreesItsNameForReuse() {
+        var edits = FogEdits(document: FogDocument())
+        edits.addLight(Light(at: MapPoint(x: 0, y: 0), brightSquares: 4,
+                             name: Light.nextName(after: edits.document.lights)))
+        edits.addLight(Light(at: MapPoint(x: 1, y: 0), brightSquares: 4,
+                             name: Light.nextName(after: edits.document.lights)))
+        XCTAssertEqual(edits.document.lights.map(\.name), ["Light 1", "Light 2"])
+
+        edits.undo()
+        XCTAssertEqual(edits.document.lights.map(\.name), ["Light 1"])
+
+        // The freed name is reused, and there is still exactly one of it.
+        edits.addLight(Light(at: MapPoint(x: 2, y: 0), brightSquares: 4,
+                             name: Light.nextName(after: edits.document.lights)))
+        XCTAssertEqual(edits.document.lights.map(\.name), ["Light 1", "Light 2"])
+        XCTAssertEqual(Set(edits.document.lights.compactMap(\.name)).count,
+                       edits.document.lights.count,
+                       "two Lights ended up sharing a name")
+    }
+
     /// Whitespace is the same thing typed differently.
     func testAWhitespaceOnlyNameIsNoName() {
         var edits = FogEdits(document: FogDocument())
         let torch = light("Light 1")
         edits.addLight(torch)
         edits.setLightName(id: torch.id, "   ")
-        XCTAssertNil(edits.document.lights.first?.name)
+        XCTAssertNil(edits.document.lights.first?.name,
+                     "a name of nothing but spaces should read as unnamed")
     }
 }

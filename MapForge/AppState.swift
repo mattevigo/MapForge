@@ -516,21 +516,23 @@ final class AppState: ObservableObject {
     /// cannot unwind past what the mode opened with, so a live edit has no stack to land in
     /// anyway. The in-mode `pawnInspector` path stays undoable through `FogEdits` — two
     /// paths with different undo semantics is the pattern here, not an inconsistency.
-    /// Rename a Light outside the fog editing mode — "Light 3" becomes "trapped brazier"
-    /// while the DM is looking at the roster, without entering authoring mode.
-    ///
-    /// Empty becomes nil, exactly as `FogEdits.setLightName` does: "unnamed" must have one
-    /// representation, or the roster's fallback fires for `nil` and not for `""`.
-    func setLightName(id: Light.ID, _ name: String) {
-        guard let index = fog.lights.firstIndex(where: { $0.id == id }) else { return }
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        fog.lights[index].name = trimmed.isEmpty ? nil : trimmed
-    }
-
     func setPawnLabel(id: Pawn.ID, _ label: String) {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
         fog.pawns[index].label = label
         recordLiveEdit(.label, on: id)
+    }
+
+    /// Rename a Light outside the fog editing mode — "Light 3" becomes "trapped brazier"
+    /// while the DM is looking at the roster, without entering authoring mode.
+    ///
+    /// Blank becomes nil, exactly as `FogEdits.setLightName` does: "unnamed" must have one
+    /// representation, or the roster's fallback fires for `nil` and not for `""`. What is not
+    /// blank is kept as typed — trimming every keystroke is what stops a DM typing a name with
+    /// a space in it.
+    func setLightName(id: Light.ID, _ name: String) {
+        guard let index = fog.lights.firstIndex(where: { $0.id == id }) else { return }
+        fog.lights[index].name =
+            name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : name
     }
 
     // MARK: The Party
