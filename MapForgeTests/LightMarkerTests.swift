@@ -88,4 +88,26 @@ final class LightMarkerTests: XCTestCase {
             light: light(at: lit), regions: regions(),
             isFogOverlayOn: true, hasVisibility: true))
     }
+
+    // MARK: - The table never reads a Light's name
+
+    /// The counterpart of `PawnLabelTests.testTheTableNeverReadsALabel`. A Light's name is the
+    /// DM's bookkeeping, exactly as a Pawn's label is, and must not cross the room.
+    func testTheTableNeverReadsALightsName() {
+        XCTAssertFalse(PlayerVisibility.showsLightNameToPlayers,
+                       "a Light's name would be drawn where the players can read it")
+    }
+
+    /// And the decision lives where every other leak is settled, rather than inside a view.
+    ///
+    /// `LightMarker` draws no text today, so the invariant currently holds by accident — this
+    /// is what turns it into a rule. A future issue that wants the name on the marker for the
+    /// DM must consult the constant rather than discover the question for itself.
+    func testWhetherTheTableReadsLightNamesIsSettledWhereEveryOtherLeakIs() {
+        // Both live on PlayerVisibility, beside the rules about which Pawns and Markers draw
+        // at all. If either moves into a view, this stops compiling and that is the point.
+        XCTAssertEqual(PlayerVisibility.showsLightNameToPlayers,
+                       PlayerVisibility.showsPawnLabelToPlayers,
+                       "a Light's name and a Pawn's label should reach the table alike")
+    }
 }

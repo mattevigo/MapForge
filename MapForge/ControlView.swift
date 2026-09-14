@@ -966,6 +966,24 @@ struct ControlView: View {
         }
     }
 
+    /// Rename a Light from the roster, which is reachable in every mode.
+    ///
+    /// Routed like `setLight(id:isOn:)`: through `FogEdits` while the fog mode owns the
+    /// document, through `AppState` otherwise. Unlike a Pawn's live rename this is undoable
+    /// in the mode, because `carryLiveState` is Pawn-shaped throughout — `LivePawnEdit`,
+    /// `liveEdits: [Pawn.ID: …]`, applied per Pawn — and a live Light rename would be
+    /// silently discarded the next time the DM opened fog editing. The issue anticipated this
+    /// and named it as the fallback; the alternative is a parallel live-edit structure for one
+    /// field, which is more machinery than the asymmetry costs.
+    private func setLightName(id: Light.ID, _ name: String) {
+        if mode == .fog {
+            fogEdits.setLightName(id: id, name)
+            applyFogEdits()
+        } else {
+            appState.setLightName(id: id, name)
+        }
+    }
+
     /// Set a Light's state, from the live row. In the fog mode the write has to go
     /// through `FogEdits`, or the next edit would overwrite `appState.fog` wholesale from
     /// the edit buffer and silently revert the toggle.
@@ -1581,8 +1599,21 @@ struct ControlView: View {
             // Light does. The identifier does not.
             .accessibilityIdentifier("light-toggle-\(number)")
 
-            Text("Light \(number)")
-                .lineLimit(1)
+            // Editable in place, as a Pawn's label is in its own row. The placeholder is
+            // the old positional name, so a Light placed before names existed still reads
+            // sensibly — and a DM who clears the field gets that fallback back rather than
+            // a blank row.
+            // The placeholder is what an unnamed Light is *called*, and the only unnamed
+            // Lights are those placed before names existed — so it uses the position, as
+            // the roster always did. It is deliberately not `Light.nextName`, which answers
+            // a different question: what to call the NEXT Light placed.
+            TextField("Light \(number)", text: Binding(
+                get: { light.name ?? "" },
+                set: { setLightName(id: light.id, $0) }
+            ))
+            .textFieldStyle(.roundedBorder)
+            .lineLimit(1)
+            .frame(minWidth: 0)
             Spacer(minLength: 0)
             Text("\(Int(light.brightSquares))")
                 .font(.caption)
@@ -1597,6 +1628,15 @@ struct ControlView: View {
     private var lightInspector: some View {
         if mode == .fog, tool == .lights, let light = appState.fog.lights.first(where: { $0.id == selectedLight }) {
             HStack(spacing: 10) {
+                // The name leads, as a Pawn's label does in its own inspector: it is what
+                // the DM identifies the Light by, and the radii are what they tune.
+                TextField("name", text: Binding(
+                    get: { light.name ?? "" },
+                    set: { fogEdits.setLightName(id: light.id, $0); applyFogEdits() }
+                ))
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 110)
+
                 Text("Bright:")
                 TextField("bright", value: Binding(
                     get: { Double(light.brightSquares) },

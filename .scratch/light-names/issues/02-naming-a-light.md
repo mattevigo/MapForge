@@ -1,6 +1,6 @@
 # 02 — Naming a Light
 
-Status: ready-for-agent
+Status: done
 
 Auto-naming on placement, and the two places the DM retypes it. Depends on 01.
 
@@ -87,3 +87,50 @@ A Light is placed already named, deleting one never renames another, and the DM 
 name from the panel during play or from the inspector while authoring.
 
 ## Comments
+
+**Built.** `Light.nextName(after:)` landed with the type in issue 01; this wired it to
+placement and added both edit points.
+
+**The live rename is undoable, which is a deliberate departure from the Pawn precedent.** The
+issue anticipated it and named the fallback. `carryLiveState` is Pawn-shaped throughout —
+`LivePawnEdit`, `liveEdits: [Pawn.ID: …]`, applied per Pawn — so a live Light rename routed
+through `AppState` during a fog session would be silently discarded the next time the mode
+opened. Routing through `FogEdits` in the mode costs the asymmetry; the alternative is a
+parallel live-edit structure for one field, which is more machinery than the asymmetry is
+worth. `setLightName(id:_:)` in `ControlView` reconciles the two paths exactly as
+`setLight(id:isOn:)` already does for the flame toggle.
+
+**Empty means nil, in both paths.** A Light called `""` would be a second representation of
+"unnamed" and the roster's fallback fires only for nil. Whitespace is trimmed to the same end.
+
+**`fogInspectorRowHeight` did not move.** The mirror view in `FogInspectorRowHeightTests`
+gained the name field and both assertions still pass at 24 pt — checked rather than eyeballed,
+as the issue asked.
+
+The `light-toggle-N` identifier stays index-based, per the spec's exclusions.
+
+**Two defects found by `/code-review`, both at the keyboard rather than in the model.**
+
+**Trimming ran on every keystroke.** A `TextField` binding fires per character, so a name was
+trimmed back before the next letter arrived — "trapped brazier" spent a keystroke as
+"trapped ", and a trailing space could never survive. `setPawnLabel` does not trim, and neither
+does this now: blankness is decided on the *trimmed* value so clearing the field still yields
+nil, while what is stored keeps its spaces exactly as typed.
+
+**Undo unwound one keystroke at a time.** Seven letters made seven full-document snapshots, so
+undoing one rename took seven presses — the defect `beginLightDrag`/`endLightDrag` exist to
+prevent for a drag. Consecutive edits to the same Light now coalesce into one step, and any
+other edit ends the run (`record()` clears the marker, so the assignment has to follow it).
+
+Both are covered by tests that call the setter **once per character**, which is what the
+original tests failed to do: setting a name in one call is not how a DM types.
+
+`Light.nextName`'s gap-filling was queried as a possible source of duplicate names after
+undo/redo. It is not — `FogEdits` has no redo, and an undone Light's name is genuinely free.
+`testUndoingAPlacementFreesItsNameForReuse` pins that.
+
+Three doc comments had been spliced away from the functions they described
+(`AppState.setPawnLabel`, `FogEdits.setLightRadii`, `ControlView.setLight`); all reunited.
+
+
+- 2026-09-14: closed on a green suite. Not checked by hand at the table.

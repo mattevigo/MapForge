@@ -133,14 +133,58 @@ struct Light: Codable, Equatable, Identifiable {
     /// Zero is legal: a sharp-edged source with no falloff band.
     var dimSquares: CGFloat
     var isOn = true
+    /// The DM's own name for this Light — "trapped brazier", "goes out in round 3".
+    ///
+    /// **Never drawn on the Player Display**, exactly as a Pawn's label is not: a Light named
+    /// for the DM's notes must not cross the room. `PlayerVisibility.showsLightNameToPlayers`
+    /// is where that is settled, beside every other rule about what the table sees.
+    ///
+    /// Optional, and that is load-bearing rather than stylistic. `Light`'s conformance is
+    /// synthesised, and Swift's synthesised `decode` requires every key unless the property
+    /// is optional — a defaulted `String` here would make every `.fog.json` written before
+    /// today fail to load outright, which is the `Pawn` break documented below at length.
+    /// "Unnamed" is also a real state: a Light placed before this feature has no name, and
+    /// the roster falls back to its position.
+    var name: String?
 
     init(id: UUID = UUID(), at: MapPoint, brightSquares: CGFloat,
-         dimSquares: CGFloat? = nil, isOn: Bool = true) {
+         dimSquares: CGFloat? = nil, isOn: Bool = true, name: String? = nil) {
         self.id = id
         self.at = at
         self.brightSquares = brightSquares
         self.dimSquares = dimSquares ?? brightSquares * 2
         self.isOn = isOn
+        self.name = name
+    }
+
+    /// Hand-written for one reason: `encodeIfPresent`, so an unnamed Light writes no `name`
+    /// key rather than `"name": null` in every entry of every file. The precedent and the
+    /// reasoning are `Pawn.encode(to:)`'s treatment of `characterID`.
+    ///
+    /// Decoding stays synthesised. An optional key is exactly what the synthesised decoder
+    /// handles correctly, and hand-writing it would add a second place for the two halves to
+    /// disagree.
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(at, forKey: .at)
+        try container.encode(brightSquares, forKey: .brightSquares)
+        try container.encode(dimSquares, forKey: .dimSquares)
+        try container.encode(isOn, forKey: .isOn)
+        try container.encodeIfPresent(name, forKey: .name)
+    }
+
+    /// The next name for a Light placed on a Map that already holds these.
+    ///
+    /// Mirrors `Pawn.nextLabel(after:)`, and exists for the same defect: numbering from
+    /// `count + 1` reuses a number after a delete. Lights had that defect and could not fix
+    /// it, because there was no stored value to hold the answer — the roster numbered them by
+    /// position, so deleting Light 2 silently renamed Light 3.
+    static func nextName(after lights: [Light]) -> String {
+        let used = Set(lights.compactMap(\.name))
+        var n = 1
+        while used.contains("Light \(n)") { n += 1 }
+        return "Light \(n)"
     }
 }
 

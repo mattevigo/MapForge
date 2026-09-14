@@ -365,9 +365,13 @@ struct FogOverlay: View {
             // over.
             let point = MapPoint(transform.imagePoint(from: location))
             let previous = lights.last
+            // Named on placement, mirroring `Pawn.nextLabel(after:)` one case below. An
+            // unnamed Light would leave the roster falling back to its list position, which
+            // is the renumbering defect this feature exists to fix.
             edits.addLight(Light(at: point,
                                  brightSquares: previous?.brightSquares ?? 4,
-                                 dimSquares: previous?.dimSquares))
+                                 dimSquares: previous?.dimSquares,
+                                 name: Light.nextName(after: lights)))
             onChange()
         }
     }

@@ -522,6 +522,19 @@ final class AppState: ObservableObject {
         recordLiveEdit(.label, on: id)
     }
 
+    /// Rename a Light outside the fog editing mode — "Light 3" becomes "trapped brazier"
+    /// while the DM is looking at the roster, without entering authoring mode.
+    ///
+    /// Blank becomes nil, exactly as `FogEdits.setLightName` does: "unnamed" must have one
+    /// representation, or the roster's fallback fires for `nil` and not for `""`. What is not
+    /// blank is kept as typed — trimming every keystroke is what stops a DM typing a name with
+    /// a space in it.
+    func setLightName(id: Light.ID, _ name: String) {
+        guard let index = fog.lights.firstIndex(where: { $0.id == id }) else { return }
+        fog.lights[index].name =
+            name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : name
+    }
+
     // MARK: The Party
 
     /// Stamp a Character onto the Map at a drop point on the mirror.
