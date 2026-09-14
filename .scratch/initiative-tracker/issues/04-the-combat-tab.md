@@ -1,6 +1,6 @@
 # 04 — Tabs in the right-hand panel
 
-Status: ready-for-human
+Status: done
 
 Structural, and deliberately alone: the panel gains tabs and width before anything combat-
 shaped goes into it. Depends on issue 01 only, so it can run alongside 02 and 03.
@@ -83,3 +83,5 @@ UI test there must click by coordinate, and asserting `isHittable` will always f
 tests now also assert the *effect* — the Light douses, the Fog switch flips — rather than
 that an element exists, which is what let three of them sit broken for months saying nothing
 useful.
+
+- 2026-09-14: verified at the table on real hardware. Closed.

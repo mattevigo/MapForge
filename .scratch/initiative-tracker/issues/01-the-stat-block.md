@@ -1,6 +1,6 @@
 # 01 — The Stat Block and its store
 
-Status: ready-for-human
+Status: done
 
 The pure, testable core: what a Combatant's numbers *are*, and where they live on disk. No
 views, no Encounter, no Log.
@@ -93,3 +93,5 @@ than merely incomplete. `decodeIfPresent` throughout.
 `StatsDocument` encodes `blocks` as a sorted array of `{pawnID, block}` entries rather than a
 dictionary, because `[UUID: StatBlock]` encodes by default as an unkeyed array of alternating
 keys and values. Sorted so a DM who version-controls their maps gets meaningful diffs.
+
+- 2026-09-14: verified at the table on real hardware. Closed.

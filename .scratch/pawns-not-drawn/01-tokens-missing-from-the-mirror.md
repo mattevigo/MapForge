@@ -1,6 +1,6 @@
 # 01 — Pawn tokens are not drawn on the Control Window's preview
 
-Status: ready-for-human
+Status: done
 
 Found while verifying the Initiative Tracker by hand. **Not caused by that feature**: the
 same behaviour is present on the stashed pre-feature tree, checked by building both and
@@ -94,3 +94,7 @@ XCTest. That is the gap this bug lived in.
 
 Verified by hand in the running app with no Player Display attached: two Players, a Big
 Creature, a Light Marker and the Fog tint all drawn, and the Scene panel agreeing.
+
+- 2026-09-14: verified at the table. Running a real fight exercised this directly — the
+  tokens are drawn, and dragging one writes to the Combat Log, which is what issue 07 of the
+  Initiative Tracker could not be checked without. Closed.

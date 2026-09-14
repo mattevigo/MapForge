@@ -1,6 +1,6 @@
 # 03 — The Encounter
 
-Status: ready-for-human
+Status: done
 
 The rules of running a fight, as pure logic: rolling, ordering, advancing, correcting. Still
 no views. This is the `MeasurementControl`/`SoloSightControl` layer of the feature.
@@ -110,3 +110,5 @@ out mid-session. Worth revisiting if a third caller appears.
 
 Three mutations were confirmed to fail the suite: the join insertion point, `next` ending a
 Turn while correcting, and the 0-hit-point boundary at exactly 0.
+
+- 2026-09-14: verified at the table on real hardware. Closed.

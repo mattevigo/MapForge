@@ -1,6 +1,6 @@
 # 05 — The Order and the combat controls
 
-Status: ready-for-human
+Status: done
 
 The tracker itself: the list of Combatants and the buttons that drive a fight. Depends on
 01, 02, 03 and 04.
@@ -117,3 +117,7 @@ so the same button that returns a Benched Pawn brings it in.
 The Combat tab shows the roster before play — "2 Pawns ready to roll", and their names —
 because the roster is set in the other tab and a DM should not have to switch back to find
 out who is in.
+
+## Comments
+
+- 2026-09-14: verified at the table on real hardware. Closed.

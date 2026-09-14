@@ -1,6 +1,6 @@
 # 02 — The Combat Log format
 
-Status: ready-for-human
+Status: done
 
 The file format and the fold that reads it back. Still no Encounter, no UI — this issue is
 the vocabulary every later one writes in.
@@ -108,3 +108,5 @@ no Changes of its own. A mutation that swapped the order survived the whole suit
 `testACorrectionBeatsWhatTheTurnItselfRecorded` closes it: the Turn records 7→4 and the
 Correction 4→2, so only the right order gives 2. Worth remembering as a pattern — a test
 whose fixture is empty where the rule applies proves nothing about the rule.
+
+- 2026-09-14: verified at the table on real hardware. Closed.

@@ -1,6 +1,6 @@
 # 07 — Wiring the Map to the Log
 
-Status: ready-for-human
+Status: done
 
 The last seam: things that happen on the Map become Changes in the Log. Depends on all of
 01–06.
@@ -112,3 +112,5 @@ drag.
 exactly as the panel drives it — move four squares, drop a goblin to 0, take a note — read
 back from the file and folded. It is the nearest a test gets to running the app, and it is
 what should be re-run by hand once the tokens are visible again.
+
+- 2026-09-14: verified at the table on real hardware. Closed.

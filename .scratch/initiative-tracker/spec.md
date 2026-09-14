@@ -1,6 +1,6 @@
 # Initiative Tracker: run the fight from the Control Window
 
-Status: ready-for-agent
+Status: closed 2026-09-14 — all seven issues done, verified at the table
 
 MapForge presents maps and lights them. It knows nothing about the fight happening on them —
 no hit points, no armour class, no dice, no turn order. A DM runs combat on paper or in a

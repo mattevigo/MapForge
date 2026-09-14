@@ -1,6 +1,6 @@
 # 06 — The Stat Block editor and the notes box
 
-Status: ready-for-human
+Status: done
 
 The two panes below the Order list. Depends on 05.
 
@@ -100,3 +100,5 @@ TURN r1
 ```
 
 which is the DM-readable record the whole feature exists for.
+
+- 2026-09-14: verified at the table on real hardware. Closed.
