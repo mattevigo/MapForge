@@ -38,6 +38,11 @@ final class FogInspectorRowHeightTests: XCTestCase {
     private struct LightInspectorRow: View {
         var body: some View {
             HStack(spacing: 10) {
+                // The name field, added when Lights gained names. Mirrors the real row: if
+                // this drifts from `ControlView.lightInspector` the constant stops being
+                // measured against what it actually reserves room for.
+                TextField("name", text: .constant("trapped brazier"))
+                    .textFieldStyle(.roundedBorder).frame(width: 110)
                 Text("Bright:")
                 TextField("bright", value: .constant(4.0), format: .number)
                     .textFieldStyle(.roundedBorder).frame(width: 52)

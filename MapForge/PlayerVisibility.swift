@@ -46,6 +46,18 @@ enum PlayerVisibility {
     /// disagree with it.
     static let showsPawnLabelToPlayers = false
 
+    /// Whether a **Light's name** reaches the Player Display. It does not, for the reason a
+    /// Pawn's label does not: a Light named "trapped brazier" or "goes out in round 3" is the
+    /// DM's prep, and prep crossing the room is the failure this app exists to prevent.
+    ///
+    /// Nothing enforces this today because `LightMarker` draws no text at all — which is
+    /// exactly why the constant is here rather than nowhere. An invariant that holds by
+    /// accident is one a future feature breaks without noticing, and "draw the Light's name on
+    /// the marker so the DM can find it across the room" is a plausible, well-meant change
+    /// that would leak. Stated here, beside every other answer to "what do the players get to
+    /// see", so a view cannot quietly disagree with it.
+    static let showsLightNameToPlayers = false
+
     static func showsToPlayers(pawn: Pawn, regions: [LitRegion],
                                isFogOverlayOn: Bool, hasVisibility: Bool,
                                soloSightPawnID: Pawn.ID?) -> Bool {

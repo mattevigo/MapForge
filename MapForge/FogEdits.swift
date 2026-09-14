@@ -70,6 +70,21 @@ struct FogEdits {
 
     /// Radii are in Grid squares, and negative is meaningless — both the stepper and the
     /// text field let a DM go past zero. Dim zero is legal: a sharp-edged source.
+    /// Name a Light, or clear its name by passing something blank.
+    ///
+    /// Undoable, beside `setLightRadii` and unlike `toggleLight`: a name is authoring, the way
+    /// a radius is, not a live performance action the way dousing one is.
+    ///
+    /// An empty or whitespace-only name becomes nil rather than `""`, so "unnamed" has one
+    /// representation instead of two. The roster then falls back to the Light's position,
+    /// which is what every Light placed before names existed does.
+    mutating func setLightName(id: Light.ID, _ name: String) {
+        guard let index = document.lights.firstIndex(where: { $0.id == id }) else { return }
+        record()
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        document.lights[index].name = trimmed.isEmpty ? nil : trimmed
+    }
+
     mutating func setLightRadii(id: Light.ID, brightSquares: CGFloat, dimSquares: CGFloat) {
         guard let index = document.lights.firstIndex(where: { $0.id == id }) else { return }
         record()

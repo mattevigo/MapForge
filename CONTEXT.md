@@ -57,7 +57,7 @@ A two-sided line segment that blocks Light. Stored in the Map's image pixels, so
 _Avoid_: barrier, occluder, edge, boundary
 
 **Light**:
-A point source that illuminates the Map out to a bright radius and a dim radius, measured in Grid squares. Blocked by Walls, and independently switchable on or off. Drawn as a Light Marker where players can see it.
+A point source that illuminates the Map out to a bright radius and a dim radius, measured in Grid squares. Blocked by Walls, and independently switchable on or off. Drawn as a Light Marker where players can see it. It carries a **name** — the DM's own, like a Pawn's label and never drawn on the Player Display, so a Light can be called "trapped brazier" without the name crossing the room. The name is assigned when the Light is placed and is what the roster identifies it by; before names existed a Light was known by its position in that list, so deleting one silently renamed another.
 _Avoid_: lamp, torch, emitter, light source
 
 **Pawn**:

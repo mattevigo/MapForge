@@ -1,6 +1,6 @@
 # 03 — The table never reads a Light's name
 
-Status: ready-for-agent
+Status: ready-for-human
 
 Cheap to build, and the reason it is cheap is worth writing down rather than leaving implicit.
 Depends on 01.
@@ -74,3 +74,17 @@ A Light's name is DM-side by a rule that is written down and tested, rather than
 accident that nobody has drawn text on a Light Marker yet.
 
 ## Comments
+
+**Built**, and it is the two-line change the issue predicted — plus the tests that make it a
+rule rather than an accident.
+
+`PlayerVisibility.showsLightNameToPlayers` sits beside `showsPawnLabelToPlayers`. No
+`isForPlayers` parameter was added to `LightMarker`: it draws no text, so there is nothing to
+suppress, and threading a flag through a view to gate a branch that does not exist would be
+machinery pretending to be safety. The constant documents the decision; the test enforces it.
+
+`testWhetherTheTableReadsLightNamesIsSettledWhereEveryOtherLeakIs` asserts the two constants
+agree, so a future change that lets one leak has to confront the other.
+
+`CONTEXT.md`'s **Light** entry now carries the invariant, so the next feature reads it there
+rather than rediscovering the question.
