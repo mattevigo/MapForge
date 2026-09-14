@@ -84,4 +84,23 @@ final class PartyStoreTests: XCTestCase {
         let json = try JSONSerialization.jsonObject(with: Data(contentsOf: store.fileURL))
         XCTAssertEqual((json as? [String: Any])?["version"] as? Int, PartyBook.current)
     }
+
+    func testARosterWrittenBeforeCombatNumbersStillLoads() throws {
+        // A DM who has been using MapForge since 1.2.0 has a parties.json with no
+        // initiative bonus, armour class or hit points in it. It must open, and the
+        // Characters in it must come back with sensible numbers rather than zeroes that
+        // would make everything hit.
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try Data(#"""
+        {"version": 1, "parties": [{"id": "\#(UUID().uuidString)", "name": "Eroi",
+          "characters": [{"id": "\#(UUID().uuidString)", "name": "Thorin",
+                          "colorHex": "#1E90C8", "sightSquares": 9, "isBig": false}]}]}
+        """#.utf8).write(to: store().fileURL)
+
+        let character = try XCTUnwrap(store().load().parties.first?.characters.first)
+        XCTAssertEqual(character.name, "Thorin")
+        XCTAssertEqual(character.initiativeBonus, 0)
+        XCTAssertEqual(character.armorClass, StatBlock.defaultArmorClass)
+        XCTAssertNil(character.maxHP)
+    }
 }

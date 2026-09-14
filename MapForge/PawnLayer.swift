@@ -22,7 +22,12 @@ struct PawnLayer: View {
     let isLightDimmed: (Light) -> Bool
     let onMove: (Pawn.ID, MapPoint) -> Void
     /// Called when a drag ends, so the move reaches disk without waiting out the debounce.
-    let onCommit: () -> Void
+    ///
+    /// Carries where the drag *began*, which only this view knows: `onMove` has already
+    /// overwritten the Pawn's position many times by now, so the Combat Log's "from" has
+    /// to come from the gesture rather than the document. A drag that ends where it
+    /// started passes the same point twice and records nothing.
+    let onCommit: (Pawn.ID, MapPoint) -> Void
 
     @State private var dragStart: MapPoint?
 
@@ -65,8 +70,11 @@ struct PawnLayer: View {
                 onMove(pawn.id, MapPoint(x: start.x + dx, y: start.y + dy))
             }
             .onEnded { _ in
+                // `dragStart` is where the Pawn stood before any of this drag's updates,
+                // which is the only place that value still exists.
+                let origin = dragStart ?? pawn.at
                 dragStart = nil
-                onCommit()
+                onCommit(pawn.id, origin)
             }
     }
 }

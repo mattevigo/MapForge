@@ -67,7 +67,7 @@ struct PlayerView: View {
                                                         soloSightPawnID: appState.resolvedSoloSightPawnID)
                     }) { pawn in
                         let p = PlayerPlacement.viewPoint(pawn.at, map: map, frame: frame)
-                        PawnToken(pawn: pawn, squareSide: side)
+                        PawnToken(pawn: pawn, squareSide: side, isForPlayers: true)
                             .position(x: p.x, y: p.y)
                     }
 

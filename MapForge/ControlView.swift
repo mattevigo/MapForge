@@ -62,6 +62,15 @@ struct ControlView: View {
     /// The Party being renamed, or created, in the picker's sheet-free inline field.
     @State private var partyNameEdit: PartyNameEdit?
 
+    /// Which half of the live panel is showing. Starts on Scene every launch — see
+    /// `PanelTab`.
+    @State private var panelTab: PanelTab = .scene
+
+    /// Which row the Combat tab's Stat Block editor is pointed at. Separate from
+    /// `selectedPawn`, which is the fog editor's selection: a DM editing a monster's hit
+    /// points is not selecting it for a Wall.
+    @State private var selectedCombatant: Pawn.ID?
+
     /// Renaming an existing Party, or naming a new one. A sum type rather than a name plus a
     /// flag, because the two resolve differently and only one of them has an id.
     private enum PartyNameEdit: Equatable {
@@ -162,7 +171,10 @@ struct ControlView: View {
             }
         }
         .padding()
-        .frame(minWidth: 480, minHeight: 400)
+        // Wide enough for the live panel plus a preview worth looking at. The minimum was
+        // 480 when the panel was 236: at 320 the same window pushed the panel's own
+        // controls past the window's edge, where they draw but cannot be clicked.
+        .frame(minWidth: 480 + (Self.livePanelWidth - 236), minHeight: 400)
         // The Control Window IS the app: its close button kept being hit during mode
         // work (it reads like "exit this mode"), killing the session — every "crash"
         // reported against Grid Fit/panning was this. Minimize stays; quit is ⌘Q.
@@ -307,7 +319,11 @@ struct ControlView: View {
                                           hasVisibility: appState.hasDeclaredGrid)
                                   },
                                   onMove: { appState.movePawn(id: $0, to: $1) },
-                                  onCommit: { appState.flushPendingFogWrites() })
+                                  // Flushes to disk and, if a fight is running, records
+                                  // the move in the Combat Log.
+                                  onCommit: { id, origin in
+                                      appState.commitPawnMove(id: id, from: origin)
+                                  })
                     }
                     // Stamping a Character is a LIVE action too, so the drop target is this
                     // mirror rather than the fog editing mode's overlay.
@@ -983,6 +999,9 @@ struct ControlView: View {
                 PawnToken(pawn: pawn, squareSide: 14, scalesWithFootprint: false)
             }
             .toggleStyle(.button)
+            // The button's own label is the Pawn's name, which the DM can rename in the
+            // very next field. The identifier is what a test should hold on to.
+            .accessibilityIdentifier("pawn-light-toggle")
             .help(pawn.isDiscovered
                   ? "\(pawn.label): a \(pawn.kind.title) — emits no Light. Click to douse the light it does not cast."
                   : "\(pawn.label): sight \(Int(pawn.light.brightSquares)) squares. Click to douse.")
@@ -1012,6 +1031,8 @@ struct ControlView: View {
                   : "Visible to players where the light reaches. Click to hide.")
 
             soloSightToggle(pawn)
+
+            combatRosterToggle(pawn)
         }
         // With one Pawn isolated, the rest of the party is switched out of the lighting,
         // and the panel should say so at a glance: a DM who forgets Solo Sight is on will
@@ -1022,6 +1043,34 @@ struct ControlView: View {
         // dimmed here for the different reason that its *light* is switched out, which is
         // true of a Pawn the table can still plainly see standing in a brazier's glow.
         .opacity(isSwitchedOutBySoloSight(pawn) ? soloSightSwitchedOutOpacity : 1)
+    }
+
+    /// Whether this Pawn rolls when the next fight starts.
+    ///
+    /// Rightmost in the row, past the controls that decide what the *table* sees: this one
+    /// decides nothing about the Map, only who the tracker asks for Initiative. Remembered
+    /// per Map, so a tavern's innkeeper stays out of every brawl held in it.
+    ///
+    /// Shown only while no fight is running. Once one is, Pawns come and go through the
+    /// tracker's bench — a checkbox that silently meant something different mid-fight would
+    /// be the worst of both.
+    @ViewBuilder
+    private func combatRosterToggle(_ pawn: Pawn) -> some View {
+        if pawn.kind != .treasure && appState.encounter == nil {
+            let isIn = appState.isInCombat(pawn.id)
+            Toggle(isOn: Binding(
+                get: { isIn },
+                set: { appState.setInCombat($0, for: pawn.id) }
+            )) {
+                Image(systemName: isIn ? "shield.lefthalf.filled" : "shield.slash")
+                    .frame(width: 16)
+            }
+            .toggleStyle(.button)
+            .accessibilityIdentifier("pawn-in-combat")
+            .help(isIn
+                  ? "\(pawn.label) rolls Initiative when a fight starts. Click to leave them out."
+                  : "\(pawn.label) sits the next fight out. Click to put them in.")
+        }
     }
 
     /// How far a row is faded when Solo Sight has switched its Pawn out of the lighting.
@@ -1083,11 +1132,72 @@ struct ControlView: View {
             || !appState.fog.pawns.isEmpty {
             Toggle("Fog", isOn: $appState.isFogOverlayOn)
                 .toggleStyle(.switch)
+                // A stable handle for the UI tests. Addressing this by its rendered label
+                // is what went stale when the panel was last restructured — and a
+                // `.switch` Toggle publishes on macOS as a checkBox, not a switch, which
+                // is the other half of why the query missed.
+                .accessibilityIdentifier("fog-overlay-switch")
                 .help("Hide or reveal the Fog Overlay on the Player Display. Pawns stay visible either way.")
         }
     }
 
     /// Everything on the Map that can be switched, listed down the side of the preview.
+    ///
+    /// The panel beside the preview: the Scene as it stands, and the fight being run on it.
+    ///
+    /// Two tabs rather than one longer scroll, because the two are used at different moments
+    /// — the Scene tab is setup and the Combat tab is play — and a DM mid-fight should not
+    /// scroll past the roster to reach the Order.
+    ///
+    /// Both tabs are the same width. A panel that resized when the tab changed would move the
+    /// preview beside it, which is the thing `fogInspectorRowHeight` already exists to
+    /// prevent; widening once is the calmer answer.
+    /// A segmented Picker and a switch rather than a `TabView`.
+    ///
+    /// `TabView` was the obvious spelling and is the wrong one here: on macOS it disables
+    /// its own content in the accessibility tree when it cannot resolve a definite size
+    /// from its container, so every control in the panel became unclickable — visibly
+    /// present, and inert. The UI tests caught it as "not hittable" at a coordinate that
+    /// was plainly inside the window, which is the only reason it was not shipped.
+    ///
+    /// The segmented Picker is also the control this window already uses to switch the fog
+    /// tool, so the panel reads as part of the same app rather than as a document with
+    /// tabs.
+    @ViewBuilder
+    private var livePanel: some View {
+        if !appState.fog.lights.isEmpty || !appState.fog.pawns.isEmpty || showsParty {
+            VStack(spacing: 8) {
+                Picker("", selection: $panelTab) {
+                    Label("Scene", systemImage: "map").tag(PanelTab.scene)
+                    Label("Combat", systemImage: "shield.lefthalf.filled").tag(PanelTab.combat)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .accessibilityIdentifier("panel-tab")
+
+                switch panelTab {
+                case .scene: scenePanel
+                case .combat: combatPanel
+                }
+            }
+            .frame(width: Self.livePanelWidth)
+        }
+    }
+
+    /// Which tab the panel is showing.
+    ///
+    /// Deliberately not persisted: a DM opening MapForge is setting up, not resuming a fight
+    /// mid-Turn, so Scene is the right thing to land on every launch.
+    enum PanelTab: Hashable {
+        case scene
+        case combat
+    }
+
+    /// Wide enough for an Order row — Initiative, a name, hit points, armour class and a
+    /// run of Condition icons — which 236 points could not hold.
+    static let livePanelWidth: CGFloat = 320
+
+    /// The Map as it stands: the Party to stamp from, the Lights, and every Pawn on it.
     ///
     /// Vertical and grouped, because the horizontal row this replaces did not survive
     /// contact with a real encounter: a party of four plus a room of goblins ran off the
@@ -1100,7 +1210,7 @@ struct ControlView: View {
     /// them, and the Treasure is what the room is worth. Lights lead because they are the
     /// Map's own furniture rather than anyone's token.
     @ViewBuilder
-    private var livePanel: some View {
+    private var scenePanel: some View {
         if !appState.fog.lights.isEmpty || !appState.fog.pawns.isEmpty || showsParty {
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 12) {
@@ -1131,7 +1241,7 @@ struct ControlView: View {
                 }
                 .padding(10)
             }
-            .frame(width: 236)
+            .frame(width: Self.livePanelWidth)
             // `.controlBackgroundColor` is all but identical to the window's own, so the
             // panel read as text floating beside the Map rather than as a surface. The
             // preview next to it is bordered; this needs to look like its sibling.
@@ -1139,6 +1249,15 @@ struct ControlView: View {
                         in: RoundedRectangle(cornerRadius: 6))
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
         }
+    }
+
+    // MARK: Combat
+
+    /// The Initiative Tracker. Its own view rather than another member of this file: it
+    /// reads the Encounter and nothing else this window holds, which is the seam issue
+    /// 04's Scene extraction turned out not to have.
+    private var combatPanel: some View {
+        CombatPanel(selection: $selectedCombatant)
     }
 
     // MARK: The Party
@@ -1340,6 +1459,37 @@ struct ControlView: View {
                     Toggle("Big", isOn: bindingForCharacter(\.isBig))
                         .toggleStyle(.checkbox)
                 }
+                // The combat numbers. A Character has carried these since the Party
+                // existed and the Stamp has always copied them, but nothing could type
+                // them — so every Stamped Pawn arrived at +0 / AC 10 / no hit points, and
+                // the DM filled them in again on the Map at every encounter. That is the
+                // exact retyping the Party exists to stop.
+                //
+                // Only these three. Conditions, exhaustion and temporary hit points are
+                // things that happen on a Map, and a Character has never been on one —
+                // the split `Stamp.statBlock(from:)` already reasons about.
+                HStack(spacing: 6) {
+                    Text("Init:").font(.caption)
+                    TextField("", value: bindingForCharacter(\.initiativeBonus),
+                              format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 36)
+                        .accessibilityIdentifier("character-initiative-bonus")
+                    Text("AC:").font(.caption)
+                    TextField("", value: bindingForCharacter(\.armorClass), format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 36)
+                        .accessibilityIdentifier("character-armor-class")
+                    Text("HP:").font(.caption)
+                    // The only optional of the three, and it stays optional all the way to
+                    // the field: a Character sketched in without hit points has none, and a
+                    // 0 there would read as "already unconscious". An empty field means
+                    // absent, which is what `.number` gives back for a nil Int?.
+                    TextField("", value: bindingForCharacter(\.maxHP), format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 44)
+                        .accessibilityIdentifier("character-max-hp")
+                }
                 HStack(spacing: 6) {
                     Spacer(minLength: 0)
                     Button("Cancel") { cancelCharacterEdit() }
@@ -1406,6 +1556,9 @@ struct ControlView: View {
                     .frame(width: 16)
             }
             .toggleStyle(.button)
+            // A symbol-only button publishes as its symbol name, which changes as the
+            // Light does. The identifier does not.
+            .accessibilityIdentifier("light-toggle-\(number)")
 
             Text("Light \(number)")
                 .lineLimit(1)

@@ -24,6 +24,10 @@ struct PawnToken: View {
     /// row taller than its neighbours without conveying anything the inspector does not.
     var scalesWithFootprint = true
 
+    /// Whether this is the Player Display rather than the DM's own screen. Players get the
+    /// bare disc — see `showsLabel(atDiameter:toPlayers:)`.
+    var isForPlayers = false
+
     /// The disc's width: one square, or two for a Big Pawn on a surface that shows Maps.
     private var diameter: CGFloat {
         squareSide * (scalesWithFootprint ? pawn.squaresAcross : 1)
@@ -57,7 +61,7 @@ struct PawnToken: View {
                         lineWidth: isSelected ? 3 : 1.5)
             // Sized from ONE square, so an ogre's "3" is the same size as a goblin's and
             // the legibility floor means the same thing for both.
-            if Self.showsLabel(atDiameter: squareSide) {
+            if Self.showsLabel(atDiameter: squareSide, toPlayers: isForPlayers) {
                 Text(pawn.label)
                     .font(.system(size: squareSide * 0.5, weight: .semibold))
                     .foregroundStyle(.white)
@@ -70,18 +74,32 @@ struct PawnToken: View {
         .frame(width: diameter, height: diameter)
     }
 
-    /// Whether a token this size gets its label drawn.
+    /// Whether a token this size, on this screen, gets its label drawn.
     ///
-    /// The threshold used to be 16 pt, above every floor the three call sites apply
-    /// (10-12 pt) — so at low zoom, or with no Grid declared, Pawns rendered as
-    /// unlabelled coloured dots on the Player Display as well as the preview. That is the
-    /// real defect behind "Pawns should have editable labels": they had them and could not
-    /// be seen. The floor is now where a one- or two-character label stops being readable
-    /// at all rather than where it stops being comfortable — `minimumScaleFactor` lets the
-    /// text shrink into the disc instead of vanishing from it. Below 8 pt the glyph is a
-    /// couple of grey pixels that only muddy the disc's colour, which is what a player
-    /// identifies a token by.
-    static func showsLabel(atDiameter diameter: CGFloat) -> Bool { diameter >= 8 }
+    /// Two separate reasons a label is absent, answered in one place so no call site has
+    /// to remember both.
+    ///
+    /// **Who is looking.** The table gets the bare disc — `PlayerVisibility` holds that
+    /// rule and the reasoning, beside everything else the players do and do not see. The
+    /// disc's colour, size and shape are untouched, so the reason `PawnToken` is one shared
+    /// view still holds: the DM points at the red circle and the players are looking at the
+    /// same red circle.
+    ///
+    /// **Whether it could be read.** The threshold used to be 16 pt, above every floor the
+    /// call sites apply (10-12 pt) — so at low zoom, or with no Grid declared, Pawns
+    /// rendered as unlabelled coloured dots on the preview as well. That is the real
+    /// defect behind "Pawns should have editable labels": they had them and could not be
+    /// seen. The floor is where a one- or two-character label stops being readable at all
+    /// rather than where it stops being comfortable — `minimumScaleFactor` lets the text
+    /// shrink into the disc instead of vanishing from it. Below 8 pt the glyph is a couple
+    /// of grey pixels that only muddy the disc's colour.
+    ///
+    /// Defaults to the DM because three of the four call sites are DM chrome. The one
+    /// screen that must stay silent is the one that says so.
+    static func showsLabel(atDiameter diameter: CGFloat, toPlayers: Bool = false) -> Bool {
+        if toPlayers, !PlayerVisibility.showsPawnLabelToPlayers { return false }
+        return diameter >= 8
+    }
 }
 
 extension Color {

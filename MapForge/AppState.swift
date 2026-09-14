@@ -86,6 +86,25 @@ final class AppState: ObservableObject {
     /// letting a DM assume their Walls were never there and redraw over them.
     @Published private(set) var fogLoadFailure: FogStore.UnreadableFile?
 
+    /// The fight being run on this Map, or nil when there is none.
+    ///
+    /// Holds its own Combat Log lines and derives every number from them, so there is no
+    /// second copy of the state to drift — see `Encounter` and ADR-0008. Live state, like
+    /// Solo Sight and Measurement: never part of `FogEdits`, never undone by the fog Undo
+    /// button.
+    @Published var encounter: Encounter?
+
+    /// Every Pawn's combat numbers on this Map, as they stand between fights.
+    @Published var statsDocument = StatsDocument()
+
+    /// Set when a stats file exists but could not be read.
+    @Published var statsLoadFailure: StatsStore.UnreadableFile?
+
+    let statsStore: StatsStore
+    var statsAutosave: StatsAutosave!
+    /// Open for as long as an Encounter is running. Appends; never rewrites.
+    var logWriter: CombatLogWriter?
+
     /// The DM's Parties. App state, not Map state — a campaign's cast outlives the Map a
     /// session is run on. Written straight through on every edit rather than debounced: a
     /// roster changes when the DM types in it, which is nothing like drag-rate.
@@ -120,10 +139,12 @@ final class AppState: ObservableObject {
 
     init(preferences: DisplayPreferences = DisplayPreferences(),
          fogStore: FogStore = FogStore(),
-         partyStore: PartyStore = PartyStore()) {
+         partyStore: PartyStore = PartyStore(),
+         statsStore: StatsStore = StatsStore()) {
         self.preferences = preferences
         self.fogStore = fogStore
         self.partyStore = partyStore
+        self.statsStore = statsStore
         // Read once at launch: the roster is small, changes only when the DM edits it here,
         // and nothing else on the machine writes it.
         partyBook = partyStore.load()
@@ -131,6 +152,9 @@ final class AppState: ObservableObject {
         activePartyID = preferences.activePartyID
         fogAutosave = FogAutosave { [weak self] document in
             self?.writeFog(document)
+        }
+        statsAutosave = StatsAutosave { [weak self] document in
+            self?.writeStats(document)
         }
         screenObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
@@ -222,6 +246,14 @@ final class AppState: ObservableObject {
     /// belongs to the *outgoing* Map, so it is flushed before `mapURL` moves on.
     func loadMap(image: NSImage, at url: URL) {
         fogAutosave.flush()
+        // The outgoing Map's numbers, before `mapURL` moves and `writeStats` would send
+        // them to the new Map's folder. A fight left running is flushed, never stopped: a
+        // DM closing one Map is taking a break, and inventing an end line would put a lie
+        // in the Log.
+        statsAutosave.flush()
+        encounter = nil
+        try? logWriter?.close()
+        logWriter = nil
         // Explicitly, before the document changes underneath it. `fog`'s didSet would also
         // drop the ID, but only because Pawn IDs are UUIDs and the incoming Map's will not
         // match — an accident of uniqueness rather than a rule, and it says nothing about a
@@ -249,6 +281,10 @@ final class AppState: ObservableObject {
         restoreGrid(squaresWide: document.squaresWide ?? squaresWide,
                     wasDeclared: document.squaresWide != nil)
         fogLoadFailure = fogStore.lastLoadFailure
+        // The new Map's combat state: what its Pawns are worth, and a fight if one was
+        // still running when it was last closed.
+        loadStats(forMapAt: url)
+        resumeEncounter(forMapAt: url)
         presentIfPossible()
     }
 
@@ -269,6 +305,19 @@ final class AppState: ObservableObject {
             try fogStore.save(document, forMapAt: url)
         } catch {
             NSLog("MapForge: could not save fog for \(url.lastPathComponent): \(error)")
+        }
+    }
+
+    private func writeStats(_ document: StatsDocument) {
+        guard let url = mapURL else { return }
+        // Refuse to write over a file we could not read, the rule `PartyStore`'s failure
+        // already follows: a DM who reopens a Map, sees no hit points and retypes them
+        // must not have the first save destroy the file that would have recovered them.
+        guard statsLoadFailure == nil else { return }
+        do {
+            try statsStore.save(document, forMapAt: url)
+        } catch {
+            NSLog("MapForge: could not save stats for \(url.lastPathComponent): \(error)")
         }
     }
 
@@ -489,10 +538,15 @@ final class AppState: ObservableObject {
         guard let map = mapScale,
               let pawn = Stamp.pawn(from: character, droppedAt: droppedPoint,
                                     map: map, frame: frame) else { return false }
-        fog.pawns.append(pawn)
-        // A drop is one completed action, not a stream of positions: it should be on disk
-        // before the DM's next click, exactly as the end of a drag is.
-        flushPendingFogWrites()
+        // The Character's combat numbers, copied at drag time like every other field —
+        // ADR-0007's rule reaching more of them. Before `addPawnToMap`, because joining a
+        // running fight reads the Stat Block to snapshot it into the Log.
+        setStatBlock(Stamp.statBlock(from: character), for: pawn.id)
+        // Through `addPawnToMap` rather than appending here, so a Character Stamped while
+        // a fight is running rolls Initiative and joins the Order. It also flushes: a drop
+        // is one completed action, not a stream of positions, and should be on disk before
+        // the DM's next click, exactly as the end of a drag is.
+        addPawnToMap(pawn)
         return true
     }
 
@@ -722,6 +776,9 @@ final class AppState: ObservableObject {
     /// Flush any pending fog edit. Called as the app terminates.
     func flushPendingFogWrites() {
         fogAutosave.flush()
+        // The Map's other file. A hit point typed in the last half-second is sitting in
+        // the same kind of debounce, and quitting is exactly when it would be lost.
+        statsAutosave.flush()
     }
 
     /// Resolve the Player Display through the policy and present there. With two or more
