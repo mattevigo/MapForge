@@ -1,6 +1,6 @@
 # 02 — Naming a Light
 
-Status: ready-for-human
+Status: done
 
 Auto-naming on placement, and the two places the DM retypes it. Depends on 01.
 
@@ -132,3 +132,5 @@ undo/redo. It is not — `FogEdits` has no redo, and an undone Light's name is g
 Three doc comments had been spliced away from the functions they described
 (`AppState.setPawnLabel`, `FogEdits.setLightRadii`, `ControlView.setLight`); all reunited.
 
+
+- 2026-09-14: closed on a green suite. Not checked by hand at the table.

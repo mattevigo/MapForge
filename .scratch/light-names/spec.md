@@ -1,6 +1,6 @@
 # Light Names: a Light the DM can call something
 
-Status: ready-for-human
+Status: closed 2026-09-14 — all three issues done; green suite, no at-the-table check
 
 A **Light** has no name. The Control Window identifies one by its position in the list —
 `Text("Light \(number)")` at `ControlView.swift:1563`, where `number` is `index + 1` from an

@@ -1,6 +1,6 @@
 # 03 — The table never reads a Light's name
 
-Status: ready-for-human
+Status: done
 
 Cheap to build, and the reason it is cheap is worth writing down rather than leaving implicit.
 Depends on 01.
@@ -88,3 +88,5 @@ agree, so a future change that lets one leak has to confront the other.
 
 `CONTEXT.md`'s **Light** entry now carries the invariant, so the next feature reads it there
 rather than rediscovering the question.
+
+- 2026-09-14: closed on a green suite. Not checked by hand at the table.

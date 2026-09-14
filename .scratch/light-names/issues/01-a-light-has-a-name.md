@@ -1,6 +1,6 @@
 # 01 — A Light has a name
 
-Status: ready-for-human
+Status: done
 
 The model and the file format, alone, with the compatibility test that guards them. 02 and 03
 depend on this.
@@ -94,3 +94,5 @@ mirroring `Pawn.nextLabel(after:)`. It scans for the lowest unused number rather
 which is the after-delete defect this feature exists to fix.
 
 No version bump, as the issue specified.
+
+- 2026-09-14: closed on a green suite. Not checked by hand at the table.
