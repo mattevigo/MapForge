@@ -86,7 +86,20 @@ final class PreviewWithoutDisplayUITests: XCTestCase {
         let app = try launchWithoutADisplay()
         let window = controlWindow(app)
         XCTAssertTrue(window.waitForExistence(timeout: 10))
+
         XCTAssertTrue(app.popUpButtons.firstMatch.waitForExistence(timeout: 5))
+
+        // What actually matters, and what a weaker assertion missed: nothing is being
+        // presented. A fix that drew the Pawns by inventing a Player Display would pass
+        // the test above while breaking True Scale, and it would show itself here — the
+        // Player window only exists while there is a Player Display to put it on.
+        //
+        // Asserted on the windows rather than the picker's value: a SwiftUI `Picker`
+        // publishes an empty `value` and `title` on macOS, so the selected row's text is
+        // not reachable from XCTest at all.
+        XCTAssertEqual(app.windows.count, 1,
+                       "a Player window exists with no Player Display connected")
+        XCTAssertTrue(window.exists, "the one window should be the Control Window")
     }
 }
 

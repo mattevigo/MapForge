@@ -45,21 +45,17 @@ final class PreviewLiveLayerTests: XCTestCase {
 
     /// Prepping a Map with no external display is ordinary use, not an edge case, and the
     /// DM must still see their Pawns.
-    func testTheLiveLayersAreDrawnWithoutAPlayerDisplay() {
-        XCTAssertTrue(PreviewBranch.drawsLiveLayers(mode: .normal, hasViewport: false),
+    func testTheLiveLayersAreDrawnWhateverIsPluggedIn() {
+        XCTAssertTrue(PreviewBranch.drawsLiveLayers(mode: .normal),
                       "no Player Display: the preview drew no Pawns, Lights or Fog tint")
-    }
-
-    func testTheLiveLayersAreDrawnWithAPlayerDisplay() {
-        XCTAssertTrue(PreviewBranch.drawsLiveLayers(mode: .normal, hasViewport: true))
     }
 
     /// Fog authoring has its own overlay drawing its own Pawns, and stacking the live layer
     /// on top of it would double every token.
     func testTheEditingModesKeepTheirOwnOverlays() {
-        XCTAssertFalse(PreviewBranch.drawsLiveLayers(mode: .fog, hasViewport: true))
-        XCTAssertFalse(PreviewBranch.drawsLiveLayers(mode: .gridFit, hasViewport: true))
-        XCTAssertFalse(PreviewBranch.drawsLiveLayers(mode: .viewport, hasViewport: true))
+        XCTAssertFalse(PreviewBranch.drawsLiveLayers(mode: .fog))
+        XCTAssertFalse(PreviewBranch.drawsLiveLayers(mode: .gridFit))
+        XCTAssertFalse(PreviewBranch.drawsLiveLayers(mode: .viewport))
     }
 
     // MARK: The frame the live layers are placed against

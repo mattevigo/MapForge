@@ -40,14 +40,15 @@ enum PreviewBranch {
     /// Whether the preview draws the live layers: Pawn tokens, Light Markers, the Fog tint
     /// the DM reads through, and any Measurement on the Map.
     ///
-    /// **Not conditional on a Player Display.** A Pawn the DM cannot see is a Pawn the DM
-    /// cannot drag, and dragging a Pawn is this app's headline live action — it does not
-    /// become less true when nothing is plugged in.
+    /// **Not conditional on a Player Display**, which is the whole of the bug this exists
+    /// to state. A Pawn the DM cannot see is a Pawn the DM cannot drag, and dragging a Pawn
+    /// is this app's headline live action — it does not become less true when nothing is
+    /// plugged in.
     ///
-    /// It *is* conditional on the mode: Grid Fit, Viewport and fog editing each own the
-    /// preview while they run, and fog editing draws its own Pawns already. Stacking the
+    /// Conditional on the mode and nothing else: Grid Fit, Viewport and fog editing each own
+    /// the preview while they run, and fog editing draws its own Pawns already. Stacking the
     /// live layer over `FogOverlay` would draw every token twice.
-    static func drawsLiveLayers(mode: PreviewMode, hasViewport: Bool) -> Bool {
+    static func drawsLiveLayers(mode: PreviewMode) -> Bool {
         mode == .normal
     }
 

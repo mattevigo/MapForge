@@ -265,10 +265,11 @@ struct ControlView: View {
                     // The image frame rebased into the clipped container's coordinates.
                     // Every overlay on this mirror needs exactly this rect, and each one
                     // spelling it out again is how one of them ends up subtly offset from
-                    // the Pawn it is drawn against.
-                    let mirrorFrame = CGRect(x: frame.minX - visible.minX,
-                                             y: frame.minY - visible.minY,
-                                             width: frame.width, height: frame.height)
+                    // the Pawn it is drawn against — so it is computed in `PreviewBranch`,
+                    // where a test can reach it, rather than open-coded here.
+                    let mirrorFrame = PreviewBranch.liveLayerFrame(imagePixelSize: image.pixelSize,
+                                                                   viewportRect: viewportPx,
+                                                                   container: geo.size)
                     ZStack {
                         Color.black
                         Image(nsImage: image)
@@ -418,9 +419,17 @@ struct ControlView: View {
                         // listed in the Scene tab, and the DM cannot see or drag one.
                         // `PreviewBranch.drawsLiveLayers` is the single statement of when
                         // these are owed; see `.scratch/pawns-not-drawn/`.
-                        if PreviewBranch.drawsLiveLayers(mode: mode, hasViewport: false),
+                        //
+                        // Sized to the artwork and positioned over it, NOT left to fill
+                        // the ZStack: `FogCanvas` fills its darkness against its own
+                        // `size` while cutting the lit regions against `frame`, so a
+                        // greedy canvas tints the letterbox margins as well as the Map.
+                        // Given the fitted rect as both, the two agree.
+                        if PreviewBranch.drawsLiveLayers(mode: mode),
                            let map = appState.mapScale {
-                            liveLayers(map: map, frame: fitted)
+                            liveLayers(map: map, frame: CGRect(origin: .zero, size: fitted.size))
+                                .frame(width: fitted.width, height: fitted.height)
+                                .position(x: fitted.midX, y: fitted.midY)
                         }
                     }
                     // Pin to the preview and clip. Both are load-bearing: without the
