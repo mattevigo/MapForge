@@ -1,6 +1,6 @@
 # 01 — A Light has a name
 
-Status: ready-for-agent
+Status: ready-for-human
 
 The model and the file format, alone, with the compatibility test that guards them. 02 and 03
 depend on this.
@@ -74,3 +74,23 @@ the only test that goes through the real file on disk.
 would fail loudly if that stopped being true.
 
 ## Comments
+
+**Built.** `var name: String?` on `Light`, optional exactly as the issue required.
+
+**The missing-key test was verified to bite.** Making `name` a defaulted non-optional `String`
+— the mistake — fails `testALightWithNoNameKeyStillDecodes` immediately, which is the
+`FogDocument.swift:222-231` break reproduced on purpose before being ruled out. A second test
+covers a **Pawn's nested Light**, which the issue did not ask for: a break there would take
+every Pawn with it rather than only the Map's own Lights.
+
+**`encode(to:)` is hand-written, `init(from:)` is not.** `encodeIfPresent` is the whole reason
+— an unnamed Light writes no `name` key rather than `"name": null` in every entry, following
+`Pawn.encode(to:)`'s `characterID`. Decoding stays synthesised because an optional key is
+precisely what it handles correctly, and a hand-written decoder would add a second place for
+the halves to disagree.
+
+**`Light.nextName(after:)` landed here rather than in issue 02**, beside the type it names,
+mirroring `Pawn.nextLabel(after:)`. It scans for the lowest unused number rather than counting,
+which is the after-delete defect this feature exists to fix.
+
+No version bump, as the issue specified.
