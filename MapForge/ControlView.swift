@@ -95,6 +95,8 @@ struct ControlView: View {
     @State private var isPickingWorkspace = false
     /// Set when switching would end a fight, so the DM is asked before it does.
     @State private var confirmSwitchEndsEncounter = false
+    /// Set when the DM asks to set a damaged roster aside and start fresh.
+    @State private var confirmNewRoster = false
 
     private var endEncounterMessage: String {
         let map = appState.mapURL?.lastPathComponent ?? "this map"
@@ -1406,10 +1408,43 @@ struct ControlView: View {
     /// heading is a Menu and an add button rather than a static title, and the roster actions
     /// have nowhere else to live. The body below still matches `liveGroup`'s spacing and
     /// caption weight so the two read as siblings.
+    /// Shown in place of the roster when `parties.json` could not be read.
+    ///
+    /// In place of, not above: while this is up the app refuses to write the roster at all
+    /// (`AppState.writeParties`), so a DM who starts typing their party back in is filling a
+    /// form that discards every word. Offering the controls anyway is worse than disabling
+    /// them, because the DM only finds out at the end of the evening.
+    private var damagedRosterWarning: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Your party roster couldn't be read", systemImage: "exclamationmark.triangle")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.orange)
+            Text(damagedRosterExplanation)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button("Start a New Roster…") { confirmNewRoster = true }
+                .buttonStyle(.link)
+                .font(.caption)
+                .accessibilityIdentifier("party-start-new-roster")
+        }
+        .accessibilityIdentifier("party-damaged-warning")
+    }
+
+    private var damagedRosterExplanation: String {
+        let path = appState.partyLoadFailure?.url.path ?? "the roster file"
+        return "MapForge hasn't changed the file at \(path). Changes made here won't be "
+            + "saved until it's fixed or moved aside."
+    }
+
     @ViewBuilder
     private var partyGroup: some View {
+
         if showsParty {
             VStack(alignment: .leading, spacing: 6) {
+                if appState.partyLoadFailure != nil {
+                    damagedRosterWarning
+                } else {
                 if let party = appState.activeParty {
                     partyHeader(party)
                 } else {
@@ -1427,8 +1462,20 @@ struct ControlView: View {
                     }
                     if isAddingCharacter { characterEditor() }
                 }
+                }
+            }
+            .alert("Start a new roster?", isPresented: $confirmNewRoster) {
+                Button("Cancel", role: .cancel) {}
+                Button("Start New Roster") { appState.setAsideDamagedRoster() }
+            } message: {
+                Text(newRosterExplanation)
             }
         }
+    }
+
+    private var newRosterExplanation: String {
+        "MapForge will rename the damaged file to “parties.json.damaged” and start an empty "
+            + "roster. Nothing in it is deleted, so you can still open it yourself."
     }
 
     /// What the group shows before any Party exists.

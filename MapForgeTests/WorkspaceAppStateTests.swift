@@ -178,6 +178,39 @@ final class WorkspaceAppStateTests: XCTestCase {
         XCTAssertEqual(onDisk.parties.first?.characters.map(\.name), ["Thorin"])
     }
 
+    func testTheDamagedRosterCanBeSetAsideToWorkAgain() throws {
+        // The way forward out of the latch. Refusing to write is right — the alternative is a
+        // DM retyping their party over the file that could have been recovered — but it leaves
+        // them unable to edit anything, and this is the DM's own choice to move on.
+        let workspace = try makeWorkspace("Damaged")
+        let bytes = Data("{ not a roster".utf8)
+        try bytes.write(to: workspace.partiesURL)
+        let app = makeAppState()
+        app.open(workspace)
+
+        app.setAsideDamagedRoster()
+
+        XCTAssertNil(app.partyLoadFailure)
+        XCTAssertEqual(try Data(contentsOf: workspace.partiesURL.appendingPathExtension("damaged")),
+                       bytes, "the bytes are renamed, never deleted")
+
+        app.addParty(named: "Retyped")
+        app.addCharacter(thorin)
+        XCTAssertEqual(PartyStore(directory: workspace.supportDirectory).load()
+                        .parties.first?.characters.map(\.name), ["Thorin"])
+    }
+
+    func testSettingAsideWithNoFailureDoesNothing() throws {
+        let workspace = try makeWorkspace("Healthy")
+        let app = makeAppState()
+        app.open(workspace)
+        app.addParty(named: "Lost Boys")
+
+        app.setAsideDamagedRoster()
+
+        XCTAssertEqual(app.partyBook.parties.map(\.name), ["Lost Boys"])
+    }
+
     func testADamagedRosterIsNeverOverwritten() throws {
         // `PartyStore`'s rule, which the Workspace must not weaken: a DM who opens the app,
         // sees no party and retypes it must not have the first save destroy the file that

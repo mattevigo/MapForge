@@ -1,6 +1,6 @@
 # 05 — The Party load-failure latch loses edits silently
 
-Status: ready-for-agent
+Status: done
 
 Independent of 01–04 and can be done at any point, including first. It is a pre-existing bug,
 not something this feature introduces — but the feature makes it considerably likelier to fire,

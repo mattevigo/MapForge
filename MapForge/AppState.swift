@@ -707,6 +707,30 @@ final class AppState: ObservableObject {
         workspacePreferences?.save(settings)
     }
 
+    /// Moves a damaged `parties.json` aside so the DM can work again.
+    ///
+    /// The only recovery offered, and the DM's to choose. While `partyLoadFailure` is set the
+    /// app refuses to write the roster at all — the right rule, since the alternative is a DM
+    /// retyping their party over the file that could have been recovered — but it leaves them
+    /// with a roster they cannot edit and no way forward. This is the way forward: the bytes
+    /// are renamed, never deleted, and an empty roster takes their place.
+    func setAsideDamagedRoster() {
+        guard let failure = partyLoadFailure else { return }
+        let aside = failure.url.appendingPathExtension("damaged")
+        try? FileManager.default.removeItem(at: aside)
+        do {
+            try FileManager.default.moveItem(at: failure.url, to: aside)
+        } catch {
+            NSLog("MapForge: could not set aside the damaged roster: \(error)")
+            return
+        }
+        partyLoadFailure = nil
+        partyBook = PartyBook()
+        activePartyID = nil
+        settings.activePartyID = nil
+        writeSettings()
+    }
+
     /// How many of this Character's Pawns stand on the Map being run.
     func placedCount(of character: PartyCharacter) -> Int {
         PartyRoster.placedCount(of: character, among: fog.pawns)
