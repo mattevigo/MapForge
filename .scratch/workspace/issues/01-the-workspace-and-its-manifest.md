@@ -1,6 +1,6 @@
 # 01 — The Workspace and its Manifest
 
-Status: ready-for-agent
+Status: done
 
 The value, the store and the on-disk folder, alone. No UI, no preferences changes, no
 migration. Everything else in this feature depends on this.
