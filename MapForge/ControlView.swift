@@ -90,6 +90,60 @@ struct ControlView: View {
         }
     }
 
+    /// Shown whenever there is no Workspace open — which is every launch until the DM picks
+    /// one — and on demand when they switch.
+    @State private var isPickingWorkspace = false
+    /// Set when switching would end a fight, so the DM is asked before it does.
+    @State private var confirmSwitchEndsEncounter = false
+    /// Set when the DM asks to set a damaged roster aside and start fresh.
+    @State private var confirmNewRoster = false
+
+    private var endEncounterMessage: String {
+        let map = appState.mapURL?.lastPathComponent ?? "this map"
+        return "An encounter is running on \(map). Switching workspaces will end it. "
+            + "The combat log is kept."
+    }
+
+    private var migrationTitle: String {
+        if case .migrated = appState.migrationOutcome { return "Your parties have moved" }
+        return "Couldn't move your parties"
+    }
+
+    private var migrationMessage: String {
+        switch appState.migrationOutcome {
+        case .migrated(let names, let workspace):
+            // Name the destination *and* state the new rule. The second sentence is the one
+            // doing the work: a DM who later opens a second workspace and finds no cast must
+            // not conclude the app ate it.
+            let quoted = names.map { "\u{201C}\($0)\u{201D}" }
+            let list = ListFormatter().string(from: quoted) ?? quoted.joined(separator: ", ")
+            let verb = names.count == 1 ? "is" : "are"
+            return "\(list) \(verb) now stored in this workspace, in \u{201C}\(workspace)\u{201D}. "
+                + "Parties live in a workspace now rather than on this Mac, so another "
+                + "workspace starts with an empty roster."
+        case .failed(let reason):
+            return "Your existing parties are still stored on this Mac and weren't changed. "
+                + "MapForge will try again next time you open a workspace.\n\n\(reason)"
+        case .none:
+            return ""
+        }
+    }
+
+    private var workspaceButton: some View {
+
+        Button {
+            if appState.switchingWouldEndAnEncounter {
+                confirmSwitchEndsEncounter = true
+            } else {
+                isPickingWorkspace = true
+            }
+        } label: {
+            Label(appState.workspace?.name ?? "No Workspace", systemImage: "folder")
+        }
+        .accessibilityIdentifier("workspace-switch")
+        .help("Switch workspace")
+    }
+
     var body: some View {
         // `alignment: .top` on the row below, plus the preview claiming the remaining
         // height, keeps this stack's controls pinned to the top of the window whether or
@@ -100,6 +154,8 @@ struct ControlView: View {
                 if let url = appState.mapURL {
                     Text(url.lastPathComponent).foregroundStyle(.secondary)
                 }
+                Spacer()
+                workspaceButton
             }
 
             // Two rows, always. A single row with a `Spacer()` between the two halves ran
@@ -169,6 +225,34 @@ struct ControlView: View {
             }
         }
         .padding()
+        // The launch gate. There is nothing behind this sheet until a Workspace is open, so
+        // it is not dismissible then; when switching, Cancel puts the DM back where they were.
+        .sheet(isPresented: Binding(
+            get: { isPickingWorkspace || appState.workspace == nil },
+            set: { isPickingWorkspace = $0 }
+        )) {
+            WorkspacePickerView(isSwitching: appState.workspace != nil)
+                .environmentObject(appState)
+                .interactiveDismissDisabled(appState.workspace == nil)
+        }
+        .alert("End the encounter and switch workspace?",
+               isPresented: $confirmSwitchEndsEncounter) {
+            Button("Cancel", role: .cancel) {}
+            Button("Switch") {
+                appState.stopEncounter()
+                isPickingWorkspace = true
+            }
+        } message: {
+            Text(endEncounterMessage)
+        }
+        .alert(migrationTitle, isPresented: Binding(
+            get: { appState.migrationOutcome != nil },
+            set: { if !$0 { appState.migrationOutcome = nil } }
+        )) {
+            Button("OK") { appState.migrationOutcome = nil }
+        } message: {
+            Text(migrationMessage)
+        }
         // Wide enough for the live panel plus a preview worth looking at. The minimum was
         // 480 when the panel was 236: at 320 the same window pushed the panel's own
         // controls past the window's edge, where they draw but cannot be clicked.
@@ -1324,10 +1408,43 @@ struct ControlView: View {
     /// heading is a Menu and an add button rather than a static title, and the roster actions
     /// have nowhere else to live. The body below still matches `liveGroup`'s spacing and
     /// caption weight so the two read as siblings.
+    /// Shown in place of the roster when `parties.json` could not be read.
+    ///
+    /// In place of, not above: while this is up the app refuses to write the roster at all
+    /// (`AppState.writeParties`), so a DM who starts typing their party back in is filling a
+    /// form that discards every word. Offering the controls anyway is worse than disabling
+    /// them, because the DM only finds out at the end of the evening.
+    private var damagedRosterWarning: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Your party roster couldn't be read", systemImage: "exclamationmark.triangle")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.orange)
+            Text(damagedRosterExplanation)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button("Start a New Roster…") { confirmNewRoster = true }
+                .buttonStyle(.link)
+                .font(.caption)
+                .accessibilityIdentifier("party-start-new-roster")
+        }
+        .accessibilityIdentifier("party-damaged-warning")
+    }
+
+    private var damagedRosterExplanation: String {
+        let path = appState.partyLoadFailure?.url.path ?? "the roster file"
+        return "MapForge hasn't changed the file at \(path). Changes made here won't be "
+            + "saved until it's fixed or moved aside."
+    }
+
     @ViewBuilder
     private var partyGroup: some View {
+
         if showsParty {
             VStack(alignment: .leading, spacing: 6) {
+                if appState.partyLoadFailure != nil {
+                    damagedRosterWarning
+                } else {
                 if let party = appState.activeParty {
                     partyHeader(party)
                 } else {
@@ -1345,8 +1462,20 @@ struct ControlView: View {
                     }
                     if isAddingCharacter { characterEditor() }
                 }
+                }
+            }
+            .alert("Start a new roster?", isPresented: $confirmNewRoster) {
+                Button("Cancel", role: .cancel) {}
+                Button("Start New Roster") { appState.setAsideDamagedRoster() }
+            } message: {
+                Text(newRosterExplanation)
             }
         }
+    }
+
+    private var newRosterExplanation: String {
+        "MapForge will rename the damaged file to “parties.json.damaged” and start an empty "
+            + "roster. Nothing in it is deleted, so you can still open it yourself."
     }
 
     /// What the group shows before any Party exists.

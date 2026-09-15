@@ -4,7 +4,7 @@ import Foundation
 /// The stable key for a physical display. `CGDirectDisplayID` is reassigned on replug
 /// and across reboots, so it can never key persisted state; the UUID survives both.
 /// `name` is carried for the UI and logs only — two identical TVs share it.
-struct DisplayIdentity: Equatable, Hashable {
+struct DisplayIdentity: Equatable, Hashable, Codable {
     var uuid: String
     var name: String
 }

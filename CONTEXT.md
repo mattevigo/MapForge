@@ -24,9 +24,13 @@ _Avoid_: TV, second screen, presentation screen
 The DM-facing window on the Mac's own display: map selection, viewport control, blackout, rotation.
 _Avoid_: dashboard, admin window, DM screen
 
-**Library**:
-A user-chosen watched folder of Maps. Per-Map settings persist in sidecar metadata so a Map is configured once.
-_Avoid_: collection, catalog
+**Workspace**:
+The folder a DM keeps their game in, chosen once: its Maps sit inside it, in whatever subfolders they arrange — one campaign or a shelf of them — and `.mapforge/` at its root holds what the app knows that is not about a Map, its Parties first among them. A Workspace is a home, not a campaign: it draws no line between the campaigns inside it, because the DM already draws that line in Finder and a second one in the app would be a second thing to keep in step. One is open at a time, and the last one opened is the one the app returns to. It replaces the **Library**, a watched folder of Maps that was described but never built.
+_Avoid_: library, project, campaign, campaign folder, vault, collection, catalog
+
+**Manifest**:
+`.mapforge/workspace.json`, the file whose presence makes a folder a Workspace. It records the layout's version and what wrote it, and nothing else — the Workspace is named by its folder, so there is no name here to drift out of step with the one in Finder. A folder without a Manifest is an ordinary directory the DM may adopt; a Workspace whose Manifest is unreadable is not a Workspace the app will guess at.
+_Avoid_: index, config, metadata, workspace file
 
 **Grid Fit**:
 Declaring a Map's Grid by dragging a square over a single grid square of the artwork in the Control Window; the Map's size in squares derives from it. Adjusts the Map's declared size, not the display — that is Calibration.
@@ -69,7 +73,7 @@ A member of the party, defined once and reused across every Map: a name, a colou
 _Avoid_: PC, hero, player character, actor, token template
 
 **Party**:
-A named roster of Characters — a campaign's cast, defined once. Parties live with the DM rather than with any Map, so they outlive the Map a session happens to be run on. One Party is active at a time, and the active one is what the Control Window offers; the rest keep existing, unlisted. Deleting a Party is a change to the roster and never touches a Pawn already on a Map.
+A named roster of Characters — a campaign's cast, defined once. Parties belong to a Workspace rather than to any Map, so they outlive the Map a session happens to be run on, and a DM running several campaigns out of one Workspace keeps a Party for each. One Party is active at a time, and the active one is what the Control Window offers; the rest keep existing, unlisted. Deleting a Party is a change to the roster and never touches a Pawn already on a Map.
 _Avoid_: group, team, roster, campaign
 
 **Stamp**:
