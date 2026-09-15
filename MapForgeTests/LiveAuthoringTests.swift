@@ -72,6 +72,33 @@ final class LiveAuthoringTests: XCTestCase {
 
         XCTAssertFalse(appState.encounter?.order.contains(pawn.id) ?? true,
                        "a Treasure was left taking Turns")
+        // What reaches the Log is `.combatantRemoved` — that the Pawn left the Order, which
+        // is what happened. The Kind change itself is not recorded: issue 03's "a Kind
+        // change is not a Change" and issue 05's "deleting removes it from the Order"
+        // describe one event from two sides, and this is the record issue 05 sanctions.
+        XCTAssertTrue(appState.encounter?.pendingChanges
+            .contains(.combatantRemoved(combatantID: pawn.id)) ?? false,
+            "leaving the Order went unrecorded")
+    }
+
+    /// And a Kind change that does not touch the Order writes nothing at all — the guard in
+    /// `EncounterControl.bench` means a Pawn that was never a Combatant is silent.
+    func testEditingANonCombatantsKindWritesNoLogLine() throws {
+        let appState = try loadedAppState()
+        let vex = Pawn(at: MapPoint(x: 20, y: 20), label: "Vex",
+                       colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        let chest = Pawn(at: MapPoint(x: 10, y: 10), label: "Chest",
+                         colorHex: Pawn.defaultColorHex, brightSquares: 6, kind: .treasure)
+        appState.fog.pawns = [vex, chest]
+        appState.startEncounter()
+        let linesBefore = appState.encounter?.lines.count ?? 0
+
+        var draft = EditPawnDraft(pawn: chest)
+        draft.label = "Hoard"
+        appState.updatePawn(id: chest.id, with: draft)
+
+        XCTAssertEqual(appState.encounter?.lines.count ?? 0, linesBefore,
+                       "editing a Treasure wrote to the Combat Log")
     }
 
     // MARK: Editing a Light
@@ -160,6 +187,62 @@ final class LiveAuthoringTests: XCTestCase {
         XCTAssertNil(appState.resolvedSoloSightPawnID)
     }
 
+    /// Issue 05 asks that deleting a Pawn "does not leave the stats file referencing a Pawn
+    /// that is gone". It deliberately does — and this records the decision rather than
+    /// leaving the question open. `removePawnFromMap` says why: the Combat Log still names a
+    /// monster that died in Round 2, and a Log line describing a Pawn whose numbers have
+    /// been thrown away describes nothing. The Stat Block outlives the token on purpose.
+    func testDeletingAPawnKeepsItsStatBlockForTheLog() throws {
+        let appState = try loadedAppState()
+        let goblin = Pawn(at: MapPoint(x: 10, y: 10), label: "Goblin",
+                          colorHex: Pawn.defaultColorHex, brightSquares: 6, kind: .creature)
+        appState.fog.pawns = [goblin]
+        appState.setStatBlock(StatBlock(armorClass: 15, currentHP: 7, maxHP: 7),
+                              for: goblin.id)
+
+        appState.removePawnFromMap(goblin.id)
+
+        XCTAssertNotNil(appState.statBlock(for: goblin.id),
+                        "the Log was left describing a Pawn whose numbers are gone")
+    }
+
+    // MARK: A sheet whose subject goes away
+
+    /// The sheet holds its subject by ID, so a commit against a Pawn that is gone must not
+    /// resurrect it or write anywhere else. `ControlView` closes the sheet on both paths —
+    /// the Map changing and the Pawn being deleted — and this is the model half: even if it
+    /// did not, OK writes nothing.
+    func testCommittingAgainstADeletedPawnWritesNothing() throws {
+        let appState = try loadedAppState()
+        let pawn = Pawn(at: MapPoint(x: 10, y: 10), label: "3",
+                        colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        let other = Pawn(at: MapPoint(x: 90, y: 90), label: "4",
+                         colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        appState.fog.pawns = [pawn, other]
+
+        var draft = EditPawnDraft(pawn: pawn)
+        draft.label = "Ogre"
+        appState.removePawnFromMap(pawn.id)
+        appState.updatePawn(id: pawn.id, with: draft)
+
+        XCTAssertEqual(appState.fog.pawns.map(\.label), ["4"],
+                       "a commit against a deleted Pawn changed the Map")
+    }
+
+    func testCommittingAgainstADeletedLightWritesNothing() throws {
+        let appState = try loadedAppState()
+        let light = Light(at: MapPoint(x: 50, y: 50), brightSquares: 4, name: "Light 1")
+        appState.fog.lights = [light]
+
+        var draft = EditLightDraft(light: light)
+        draft.name = "brazier"
+        appState.removeLight(id: light.id)
+        appState.updateLight(id: light.id, with: draft)
+
+        XCTAssertTrue(appState.fog.lights.isEmpty,
+                      "a commit against a deleted Light put it back")
+    }
+
     // MARK: End to end
 
     /// What the feature is judged on: a Light can be created again, without leaving the
@@ -169,8 +252,8 @@ final class LiveAuthoringTests: XCTestCase {
         let appState = try loadedAppState()
         XCTAssertTrue(appState.fog.lights.isEmpty)
 
-        appState.addLight(AddPlacement.light(at: MapPoint(x: 120, y: 80),
-                                             existing: appState.fog.lights))
+        appState.addLight(try XCTUnwrap(AddPlacement.light(at: MapPoint(x: 120, y: 80),
+                                                           existing: appState.fog.lights)))
         let placed = try XCTUnwrap(appState.fog.lights.first)
         XCTAssertEqual(placed.name, "Light 1")
         XCTAssertEqual(placed.at, MapPoint(x: 120, y: 80))

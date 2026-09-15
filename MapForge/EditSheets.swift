@@ -64,23 +64,13 @@ struct EditPawnSheet: View {
                 }
                 GridRow {
                     Text("Sight")
-                    HStack(spacing: 6) {
-                        // Bridged through Double: CGFloat is not a `BinaryFloatingPoint`
-                        // SwiftUI's `.number` format accepts directly.
-                        TextField("range", value: Binding(
-                            get: { Double(draft.sightSquares) },
-                            set: { draft.sightSquares = CGFloat($0) }
-                        ), format: .number)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 60)
-                        // A Pawn has one radius. The extra square the region fades over is
-                        // not a second number the DM sets — it is there so the edge is not a
-                        // hard cut — so it is not offered as one.
-                        Text(draft.kind.isDiscovered
-                             ? "squares — unused, a \(draft.kind.title) emits no Light"
-                             : "squares")
-                            .foregroundStyle(.secondary)
-                    }
+                    // A Pawn has one radius. The extra square the region fades over is not
+                    // a second number the DM sets — it is there so the edge is not a hard
+                    // cut — so it is not offered as one.
+                    SquaresField($draft.sightSquares,
+                                 unit: draft.kind.isDiscovered
+                                     ? "squares — unused, a \(draft.kind.title) emits no Light"
+                                     : "squares")
                 }
             }
 
@@ -129,11 +119,11 @@ struct EditLightSheet: View {
                 }
                 GridRow {
                     Text("Bright")
-                    radiusField($draft.brightSquares)
+                    SquaresField($draft.brightSquares)
                 }
                 GridRow {
                     Text("Dim")
-                    radiusField($draft.dimSquares)
+                    SquaresField($draft.dimSquares)
                 }
                 GridRow {
                     Text("Burning")
@@ -158,18 +148,33 @@ struct EditLightSheet: View {
         .padding(20)
         .frame(width: 420)
     }
+}
 
-    /// Bridged through Double: CGFloat is not a `BinaryFloatingPoint` SwiftUI's `.number`
-    /// format accepts directly.
-    private func radiusField(_ value: Binding<CGFloat>) -> some View {
+/// A distance in Grid squares, typed.
+///
+/// Shared by both sheets rather than written twice: the CGFloat↔Double bridge below is the
+/// kind of incidental detail that drifts when it is duplicated, and a Pawn's sight and a
+/// Light's radii are the same quantity in the same unit.
+private struct SquaresField: View {
+    @Binding private var squares: CGFloat
+    private let unit: String
+
+    init(_ squares: Binding<CGFloat>, unit: String = "squares") {
+        _squares = squares
+        self.unit = unit
+    }
+
+    var body: some View {
         HStack(spacing: 6) {
-            TextField("radius", value: Binding(
-                get: { Double(value.wrappedValue) },
-                set: { value.wrappedValue = CGFloat($0) }
+            // Bridged through Double: CGFloat is not a `BinaryFloatingPoint` that SwiftUI's
+            // `.number` format accepts directly.
+            TextField("squares", value: Binding(
+                get: { Double(squares) },
+                set: { squares = CGFloat($0) }
             ), format: .number)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 60)
-            Text("squares").foregroundStyle(.secondary)
+            Text(unit).foregroundStyle(.secondary)
         }
     }
 }

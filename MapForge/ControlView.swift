@@ -336,8 +336,27 @@ struct ControlView: View {
             // crosshair left hunting on a Map the DM has closed is the same staleness.
             armedShape = nil
             armedAdd = nil
+            // An Edit sheet holds the outgoing Map's Pawn or Light by ID. Left up, it would
+            // sit over a Map it does not belong to and its OK would silently no-op against
+            // the `guard` in `updatePawn` — a sheet whose buttons have quietly stopped doing
+            // anything, which is the staleness this whole block exists to prevent.
+            editing = nil
             typedDistance.clear()
             mode = .normal
+        }
+        // The other half: the subject can go while the Map stays — a Pawn deleted from the
+        // roster, or from this very menu. Follows the `resolved…` guard pattern
+        // (`AppState.swift`, `resolvedSoloSightPawnID`): never hold an ID that matches
+        // nothing, rather than checking for staleness at the point of use.
+        .onChange(of: appState.fog) { _, fog in
+            switch editing {
+            case .pawn(let id, _) where !fog.pawns.contains(where: { $0.id == id }):
+                editing = nil
+            case .light(let id, _) where !fog.lights.contains(where: { $0.id == id }):
+                editing = nil
+            default:
+                break
+            }
         }
         .onChange(of: fitSquare) { _, square in
             guard let square, let image = appState.mapImage,
@@ -942,7 +961,10 @@ struct ControlView: View {
 
         switch kind {
         case .light:
-            appState.addLight(AddPlacement.light(at: point, existing: appState.fog.lights))
+            guard let light = AddPlacement.light(at: point, existing: appState.fog.lights,
+                                                 imageSize: appState.mapImage?.pixelSize)
+            else { return }   // outside the image: refused, and still armed
+            appState.addLight(light)
         case .pawn(let pawnKind):
             guard let pawn = AddPlacement.pawn(kind: pawnKind, at: point,
                                                existing: appState.fog.pawns,

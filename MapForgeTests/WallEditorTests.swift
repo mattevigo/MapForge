@@ -133,6 +133,42 @@ final class WallEditorTests: XCTestCase {
                        "drawing a Wall relit a doused Light")
     }
 
+    // MARK: The mode touches only Walls
+
+    /// Issue 01 asks that `⌫` with no Wall selected deletes no Pawn and no Light. The mode
+    /// has no Pawn or Light selection left to make, so this asserts the reachable half: the
+    /// only deletion `FogEdits` can perform is a Wall's.
+    func testTheModeCanOnlyDeleteWalls() {
+        let pawn = Pawn(at: MapPoint(x: 10, y: 10), label: "Vex",
+                        colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        let torch = Light(at: MapPoint(x: 50, y: 50), brightSquares: 4, name: "Light 1")
+        let wall = Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 10, y: 0))
+        var edits = FogEdits(document: FogDocument(walls: [wall], lights: [torch],
+                                                   pawns: [pawn]))
+
+        edits.deleteWall(id: wall.id)
+
+        XCTAssertTrue(edits.document.walls.isEmpty)
+        XCTAssertEqual(edits.document.pawns, [pawn], "a Pawn went with the Wall")
+        XCTAssertEqual(edits.document.lights, [torch], "a Light went with the Wall")
+    }
+
+    /// Tracing a Wall across a token must work. The mode draws Pawns and Lights with
+    /// `allowsHitTesting(false)`, so a click on one reaches the Wall layer underneath — that
+    /// is view wiring no unit test reaches, but the model half is that a Wall placed on a
+    /// Pawn's exact position is an ordinary Wall.
+    func testAWallCanBeTracedAcrossAPawn() {
+        let pawn = Pawn(at: MapPoint(x: 25, y: 25), label: "Vex",
+                        colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        var edits = FogEdits(document: FogDocument(pawns: [pawn]))
+
+        let across = Wall(from: MapPoint(x: 20, y: 25), to: MapPoint(x: 30, y: 25))
+        edits.addWalls([across])
+
+        XCTAssertEqual(edits.document.walls, [across])
+        XCTAssertEqual(edits.document.pawns, [pawn])
+    }
+
     // MARK: Helpers
 
     private func makeMap(named name: String) throws -> (url: URL, image: NSImage) {

@@ -29,8 +29,8 @@ final class AddPlacementTests: XCTestCase {
         XCTAssertEqual(new.at, MapPoint(x: 100, y: 100))
     }
 
-    func testTheFirstLightTakesTheDefaults() {
-        let placed = AddPlacement.light(at: MapPoint(x: 50, y: 50), existing: [])
+    func testTheFirstLightTakesTheDefaults() throws {
+        let placed = try XCTUnwrap(AddPlacement.light(at: MapPoint(x: 50, y: 50), existing: []))
         XCTAssertEqual(placed.brightSquares, 4)
         XCTAssertEqual(placed.dimSquares, 8, "dim defaults to twice bright, the 5e convention")
         XCTAssertEqual(placed.name, "Light 1")
@@ -75,10 +75,11 @@ final class AddPlacementTests: XCTestCase {
         XCTAssertFalse(treasure.isBig, "a Treasure inherited a Creature's size")
     }
 
-    func testANewLightInheritsTheLastOnesRadii() {
+    func testANewLightInheritsTheLastOnesRadii() throws {
         let existing = [Light(at: MapPoint(x: 0, y: 0), brightSquares: 6, dimSquares: 7,
                               name: "Light 1")]
-        let placed = AddPlacement.light(at: MapPoint(x: 50, y: 50), existing: existing)
+        let placed = try XCTUnwrap(AddPlacement.light(at: MapPoint(x: 50, y: 50),
+                                                      existing: existing))
 
         XCTAssertEqual(placed.brightSquares, 6)
         XCTAssertEqual(placed.dimSquares, 7, "dim was re-derived instead of inherited")
@@ -89,7 +90,8 @@ final class AddPlacementTests: XCTestCase {
     func testANewLightBurnsEvenIfTheLastOneWasDoused() {
         var doused = Light(at: MapPoint(x: 0, y: 0), brightSquares: 4, name: "Light 1")
         doused.isOn = false
-        XCTAssertTrue(AddPlacement.light(at: MapPoint(x: 50, y: 50), existing: [doused]).isOn)
+        XCTAssertEqual(AddPlacement.light(at: MapPoint(x: 50, y: 50), existing: [doused])?.isOn,
+                       true)
     }
 
     // MARK: Naming
@@ -111,7 +113,7 @@ final class AddPlacementTests: XCTestCase {
     func testANewLightReusesAFreedName() {
         let lights = [Light(at: MapPoint(x: 0, y: 0), brightSquares: 4, name: "Light 1"),
                       Light(at: MapPoint(x: 1, y: 0), brightSquares: 4, name: "Light 3")]
-        XCTAssertEqual(AddPlacement.light(at: MapPoint(x: 2, y: 0), existing: lights).name,
+        XCTAssertEqual(AddPlacement.light(at: MapPoint(x: 2, y: 0), existing: lights)?.name,
                        "Light 2")
     }
 
@@ -122,6 +124,11 @@ final class AddPlacementTests: XCTestCase {
     /// meaningless to Visibility — so this refuses too, rather than silently landing the
     /// token at the edge where the DM did not point.
     func testAClickOutsideTheImagePlacesNothing() {
+        // Lights follow the same rule as Pawns. An exemption was tried and was wrong:
+        // `LiveHitTest` only reaches what the DM can click, so a Light outside the image
+        // could never be selected, edited or deleted again.
+        XCTAssertNil(AddPlacement.light(at: MapPoint(x: 500, y: 100),
+                                        existing: [], imageSize: imageSize))
         XCTAssertNil(AddPlacement.pawn(kind: .player, at: MapPoint(x: 500, y: 100),
                                        existing: [], imageSize: imageSize))
         XCTAssertNil(AddPlacement.pawn(kind: .player, at: MapPoint(x: -5, y: 100),
@@ -133,6 +140,8 @@ final class AddPlacementTests: XCTestCase {
     func testAClickInsideTheImageIsAccepted() {
         XCTAssertNotNil(AddPlacement.pawn(kind: .player, at: MapPoint(x: 399, y: 299),
                                           existing: [], imageSize: imageSize))
+        XCTAssertNotNil(AddPlacement.light(at: MapPoint(x: 399, y: 299),
+                                           existing: [], imageSize: imageSize))
     }
 }
 

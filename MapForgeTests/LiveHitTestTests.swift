@@ -86,6 +86,25 @@ final class LiveHitTestTests: XCTestCase {
                                        gridPixels: gridPixels), .pawn(vex.id))
     }
 
+    // MARK: Order against a Measurement
+
+    /// The third rank, which `ControlView` enforces by asking this first and falling back to
+    /// `measurementUnderCursor`. A Pawn standing inside a pinned circle is the Pawn's menu;
+    /// this is the half that decides it — a hit here means the Measurement is never consulted.
+    func testAPawnUnderTheCursorIsFoundSoTheMeasurementIsNeverConsulted() {
+        let vex = pawn(at: MapPoint(x: 100, y: 100))
+        XCTAssertNotNil(LiveHitTest.hit(at: MapPoint(x: 100, y: 100), pawns: [vex],
+                                        lights: [], gridPixels: gridPixels))
+    }
+
+    /// And the inverse: over bare Map the menu falls through to the Measurement, so this
+    /// must return nil rather than claiming the click.
+    func testBareMapYieldsNothingSoTheMeasurementIsConsulted() {
+        let vex = pawn(at: MapPoint(x: 100, y: 100))
+        XCTAssertNil(LiveHitTest.hit(at: MapPoint(x: 300, y: 300), pawns: [vex],
+                                     lights: [], gridPixels: gridPixels))
+    }
+
     // MARK: No declared Grid
 
     /// Without a Grid a token is drawn at a fixed size rather than a square's, so the hit

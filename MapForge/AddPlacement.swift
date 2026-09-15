@@ -34,12 +34,16 @@ enum AddPlacement {
                     isBig: previous?.isBig ?? false)
     }
 
-    /// A new Light at `point`.
+    /// A new Light at `point`, or nil when the point is outside the image.
     ///
-    /// No bounds check and no optional: a Light outside the image is odd but harmless — it
-    /// lights nothing the players can see and the implicit Walls contain it — where a Pawn
-    /// out there is a token the DM cannot reach. The asymmetry is deliberate.
-    static func light(at point: MapPoint, existing: [Light]) -> Light {
+    /// Refused on the same rule as a Pawn. An asymmetry was tried here — a Light outside the
+    /// image lights nothing the players can see, so it reads as harmless — but it is not:
+    /// `LiveHitTest` only reaches what the DM can click, so a Light out there could never be
+    /// selected, edited or deleted again. Unreachable is the same problem for both, and one
+    /// rule is easier to rely on than two.
+    static func light(at point: MapPoint, existing: [Light],
+                      imageSize: CGSize? = nil) -> Light? {
+        guard isInside(point, imageSize) else { return nil }
         let previous = existing.last
         return Light(at: point,
                      brightSquares: previous?.brightSquares ?? defaultBrightSquares,

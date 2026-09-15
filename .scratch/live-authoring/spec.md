@@ -117,6 +117,37 @@ expect the real verification to be manual.
 `MapForgeUITests` still hangs and has never run — noted in the `fog-of-war` spec and not
 fixed here.
 
+## What only a human can check
+
+Everything below is in the layer no unit test reaches — the one the four gesture-composition
+defects lived in. A code review of the implementation raised each; they are recorded here
+rather than left as absent tests.
+
+- **The hit-test after the preview is resized.** `LiveHitTest` is held by unit tests against
+  Map points; whether `mirrorCursor` still agrees with the Map after a window resize is view
+  wiring.
+- **Inertness in the Wall Editor.** `allowsHitTesting(false)` on the token layers is the
+  whole mechanism, and nothing but a real click proves it. The model half is held
+  (`WallEditorTests.testAWallCanBeTracedAcrossAPawn`).
+- **The sheets themselves.** Escape behaving as Cancel comes from `.keyboardShortcut(.cancelAction)`;
+  that the sheet closes on a Map switch or on its subject being deleted is now wired through
+  `editing = nil` and an `.onChange(of: appState.fog)` guard, with the model half held by
+  `LiveAuthoringTests` — but the closing is view state.
+- **The crosshair, and Esc backing out of an armed `Add`.**
+
+## Settled during implementation
+
+- **A deleted Pawn keeps its Stat Block.** Issue 05 listed the opposite as a test. The
+  Combat Log still names a Pawn that is gone, and a line describing a Pawn whose numbers were
+  thrown away describes nothing — so the block outlives the token, as `removePawnFromMap`
+  already intended. Held by `testDeletingAPawnKeepsItsStatBlockForTheLog`.
+- **A Light outside the image is refused, exactly as a Pawn is.** An exemption was tried on
+  the grounds that a Light out there lights nothing visible. It was wrong: `LiveHitTest` only
+  reaches what the DM can click, so such a Light could never be selected, edited or deleted.
+- **Benching a Pawn edited into a Treasure writes `.combatantRemoved`.** That records it
+  leaving the Order, not the Kind change — issue 03's "a Kind change is not a Change" and
+  issue 05's removal rule describe one event from two sides.
+
 ## Issues
 
 - `01` — the Wall Editor loses its tools
