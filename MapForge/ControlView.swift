@@ -263,9 +263,13 @@ struct ControlView: View {
 
             undeclaredGridWarning
 
-            fogSwitch
-
-            measurementVisibilitySwitch
+            // One row: both govern what the Player Display shows, and stacking them cost a
+            // line of height on a window whose vertical space belongs to the preview.
+            HStack(spacing: 16) {
+                fogSwitch
+                measurementVisibilitySwitch
+                Spacer()
+            }
 
             HStack(alignment: .top, spacing: 12) {
                 preview
@@ -505,6 +509,12 @@ struct ControlView: View {
                     // `previewSize` a fixed point rather than a function of the zoom.
                     .frame(width: previewSize.width, height: previewSize.height)
                     .clipped()
+                    // The preview has to be hit-testable as a whole for the modifiers below
+                    // to see a click at all. The mirror branch got this for free from the
+                    // `Color.black` letterbox filling its ZStack; this one is transparent
+                    // wherever the artwork is not, so the right-click menu simply never
+                    // opened over the margins — and `.clipped()` does not restore a shape.
+                    .contentShape(Rectangle())
                     // Everything below was attached to the mirror until the Live View
                     // started showing the whole Map. It moved wholesale rather than being
                     // rewritten: these read against `fitted` instead of `mirrorFrame`, and
@@ -1362,13 +1372,12 @@ struct ControlView: View {
     @ViewBuilder
     private var measurementVisibilitySwitch: some View {
         if appState.measurement != nil || !appState.pinnedMeasurements.isEmpty {
-            Toggle("Show measurements to players",
-                   isOn: $appState.showsMeasurementsToPlayers)
+            Toggle("Measurements", isOn: $appState.showsMeasurementsToPlayers)
                 .toggleStyle(.checkbox)
                 // A stable handle for the UI tests, as the Fog switch carries: addressing a
                 // control by its rendered label is what goes stale first.
                 .accessibilityIdentifier("measurement-visibility-switch")
-                .help("Off, the shape and its distance stay on this window only.")
+                .help("Show Measurements on the Player Display. Off, the shape and its distance stay on this window only.")
         }
     }
 

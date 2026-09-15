@@ -109,7 +109,10 @@ final class MeasurementVisibilityUITests: XCTestCase {
         // Right-click arms a shape; the left-click after it places the Origin, and a second
         // settles the distance. See the `measurement` spec.
         let window = app.windows["control"]
-        let point = window.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.7))
+        // dx well left of centre: the live panel takes 320 of the window's width, so
+        // anything past about a third of the way across lands on the panel rather than the
+        // preview. This was 0.45 and worked only while the mirror made the preview wider.
+        let point = window.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.7))
         point.rightClick()
         let circle = app.menuItems["Circle"]
         XCTAssertTrue(circle.waitForExistence(timeout: 3), "no shape menu on right-click")
