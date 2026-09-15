@@ -44,16 +44,22 @@ final class InitiativeTrackerUITests: XCTestCase {
                                "--test-player-screen", "--test-fresh-preferences"]
         app.launch()
 
-        // Two Pawns, placed in the fog editing mode as the Pawns tool does.
-        app.buttons["Edit Fog…"].click()
-        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 3))
-        app.radioButtons["Pawns"].click()
-        let window = controlWindow(app)
-        window.coordinate(withNormalizedOffset: CGVector(dx: 0.35, dy: 0.7)).click()
-        window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)).click()
-        XCTAssertTrue(app.staticTexts["0 Walls, 0 Lights, 2 Pawns"].waitForExistence(timeout: 2),
-                      "the fixture needs two Pawns to fight")
-        app.buttons["Done"].click()
+        // Two Pawns, placed from the Live View's Add menu. They were placed in the fog
+        // editing mode until ADR-0013 moved authoring out of it; the fixture is shorter for
+        // it, since there is no mode to enter and leave.
+        //
+        // Armed once per Pawn: one click places one thing and disarms, so a DM adding two
+        // goblins opens the menu twice. The fixture mirrors that rather than working round
+        // it.
+        for dx in [0.35, 0.5] {
+            let menu = app.menuButtons["Add"]
+            XCTAssertTrue(menu.waitForExistence(timeout: 3), "no Add menu")
+            menu.click()
+            let item = app.menuItems["Creature"]
+            XCTAssertTrue(item.waitForExistence(timeout: 2), "Add offers no Creature")
+            item.click()
+            controlWindow(app).coordinate(withNormalizedOffset: CGVector(dx: dx, dy: 0.7)).click()
+        }
 
         app.radioButtons["Combat"].click()
         return app
