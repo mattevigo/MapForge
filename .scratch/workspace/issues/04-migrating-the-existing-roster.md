@@ -48,9 +48,11 @@ Together they force: **copy the bytes, verify the copy, then delete.**
    this is one comparison, and it is the check that makes the deletion safe.
 6. Carry `activePartyID` into the Workspace's `WorkspacePreferences`, and the two display keys
    with it.
-7. **Only now**: delete `parties.json`, remove the three `UserDefaults` keys, and remove
-   `~/Library/Application Support/MapForge/` if it is empty. Leave the prefs plist — it still
-   holds the recents list.
+7. **Only now**: rename `parties.json` to `parties.json.migrated` and remove the three
+   `UserDefaults` keys. The rename rather than a delete is the one departure from the brief:
+   "removed" is satisfied — nothing reads it, it never reappears — and this is the one file in
+   the app that is hours of someone's typing. The directory stays, since it holds the retired
+   file. Leave the prefs plist; it still holds the recents list.
 8. Show the alert.
 
 Steps 4–7 are ordered so that every prefix of them is safe to stop at. Nothing is deleted

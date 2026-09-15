@@ -46,10 +46,20 @@ Encounter, after a confirm that names the Map and says the Combat Log is kept.
   outside the Workspace behaves exactly like one inside it.
 - **Adoption is non-destructive.** Adopting a folder writes `.mapforge/` and nothing else. It
   never moves, renames or touches a Map, a `.fog.json` or a `.combat/`.
-- **Migration is copy, verify, then delete.** Never load-and-save: `PartyStore.save` deletes
+- **Migration is copy, verify, then retire.** Never load-and-save: `PartyStore.save` deletes
   the file when the book is empty (`PartyStore.swift:62-65`), so a transient empty book would
   destroy the source. Byte copy, decode the copy, compare to what was loaded, and only then
-  remove the original and the three `UserDefaults` keys.
+  retire the original and clear the three `UserDefaults` keys.
+- **Retire means rename, not delete.** The roster becomes `parties.json.migrated`. "Removed" is
+  satisfied as far as the app is concerned — nothing reads it and it never reappears — and a DM
+  whose roster goes missing to a bug we have not found can still get their evening's typing
+  back. The `UserDefaults` keys are genuinely deleted: three small values the Workspace now
+  holds, where a stale `playerDisplayUUID` is what a future reader wires back up by mistake.
+- **The migration has no default source.** `WorkspaceMigration.legacyURL` is required, and only
+  `MapForgeApp` supplies the real one. This is not defensive style: the first version had a
+  default, and the first run of the unit suite found the developer's real `parties.json`
+  through it, copied it, verified it and deleted it — doing exactly what it was built to do, to
+  data no test should have been able to reach.
 - **Migration failure is not fatal.** The Workspace opens, a warning explains, nothing is
   deleted, and the next Workspace opened tries again. The absence of `parties.json` is the
   only guard needed — no flag, nothing to fall out of step.
