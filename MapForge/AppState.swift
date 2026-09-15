@@ -633,6 +633,21 @@ final class AppState: ObservableObject {
 
     // MARK: - The Workspace
 
+    /// The Workspaces this Mac has opened, for the picker.
+    var recentWorkspaces: [URL] { preferences.recentWorkspaces }
+
+    /// Forget a recent Workspace. The DM's gesture — the app never prunes the list itself.
+    func forgetWorkspace(_ url: URL) {
+        preferences.forgetWorkspace(url)
+        objectWillChange.send()
+    }
+
+    /// Whether switching Workspaces would end a fight in progress. The picker asks first when
+    /// it would: switching is a navigation gesture, and the DM making it is not thinking about
+    /// the Encounter.
+    var switchingWouldEndAnEncounter: Bool { encounter != nil }
+
+
     /// Opens a Workspace: its roster, its settings, and the recents list.
     ///
     /// Everything read here was read at `init` before this feature, which is why it is a

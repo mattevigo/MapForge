@@ -1,6 +1,6 @@
 # 03 — The picker sheet, and getting the tests past it
 
-Status: ready-for-agent
+Status: done
 
 Depends on 02. The launch gate, adoption, switching, and the UI-test seam that every existing
 UI test now needs.

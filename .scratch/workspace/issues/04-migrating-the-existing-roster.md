@@ -1,6 +1,6 @@
 # 04 — Migrating the existing roster
 
-Status: ready-for-agent
+Status: done
 
 Depends on 03. Moves `~/Library/Application Support/MapForge/parties.json` into the first
 Workspace opened, then removes it and the three stale `UserDefaults` keys.

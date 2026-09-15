@@ -90,6 +90,58 @@ struct ControlView: View {
         }
     }
 
+    /// Shown whenever there is no Workspace open — which is every launch until the DM picks
+    /// one — and on demand when they switch.
+    @State private var isPickingWorkspace = false
+    /// Set when switching would end a fight, so the DM is asked before it does.
+    @State private var confirmSwitchEndsEncounter = false
+
+    private var endEncounterMessage: String {
+        let map = appState.mapURL?.lastPathComponent ?? "this map"
+        return "An encounter is running on \(map). Switching workspaces will end it. "
+            + "The combat log is kept."
+    }
+
+    private var migrationTitle: String {
+        if case .migrated = appState.migrationOutcome { return "Your parties have moved" }
+        return "Couldn't move your parties"
+    }
+
+    private var migrationMessage: String {
+        switch appState.migrationOutcome {
+        case .migrated(let names, let workspace):
+            // Name the destination *and* state the new rule. The second sentence is the one
+            // doing the work: a DM who later opens a second workspace and finds no cast must
+            // not conclude the app ate it.
+            let quoted = names.map { "\u{201C}\($0)\u{201D}" }
+            let list = ListFormatter().string(from: quoted) ?? quoted.joined(separator: ", ")
+            let verb = names.count == 1 ? "is" : "are"
+            return "\(list) \(verb) now stored in this workspace, in \u{201C}\(workspace)\u{201D}. "
+                + "Parties live in a workspace now rather than on this Mac, so another "
+                + "workspace starts with an empty roster."
+        case .failed(let reason):
+            return "Your existing parties are still stored on this Mac and weren't changed. "
+                + "MapForge will try again next time you open a workspace.\n\n\(reason)"
+        case .none:
+            return ""
+        }
+    }
+
+    private var workspaceButton: some View {
+
+        Button {
+            if appState.switchingWouldEndAnEncounter {
+                confirmSwitchEndsEncounter = true
+            } else {
+                isPickingWorkspace = true
+            }
+        } label: {
+            Label(appState.workspace?.name ?? "No Workspace", systemImage: "folder")
+        }
+        .accessibilityIdentifier("workspace-switch")
+        .help("Switch workspace")
+    }
+
     var body: some View {
         // `alignment: .top` on the row below, plus the preview claiming the remaining
         // height, keeps this stack's controls pinned to the top of the window whether or
@@ -100,6 +152,8 @@ struct ControlView: View {
                 if let url = appState.mapURL {
                     Text(url.lastPathComponent).foregroundStyle(.secondary)
                 }
+                Spacer()
+                workspaceButton
             }
 
             // Two rows, always. A single row with a `Spacer()` between the two halves ran
@@ -169,6 +223,34 @@ struct ControlView: View {
             }
         }
         .padding()
+        // The launch gate. There is nothing behind this sheet until a Workspace is open, so
+        // it is not dismissible then; when switching, Cancel puts the DM back where they were.
+        .sheet(isPresented: Binding(
+            get: { isPickingWorkspace || appState.workspace == nil },
+            set: { isPickingWorkspace = $0 }
+        )) {
+            WorkspacePickerView(isSwitching: appState.workspace != nil)
+                .environmentObject(appState)
+                .interactiveDismissDisabled(appState.workspace == nil)
+        }
+        .alert("End the encounter and switch workspace?",
+               isPresented: $confirmSwitchEndsEncounter) {
+            Button("Cancel", role: .cancel) {}
+            Button("Switch") {
+                appState.stopEncounter()
+                isPickingWorkspace = true
+            }
+        } message: {
+            Text(endEncounterMessage)
+        }
+        .alert(migrationTitle, isPresented: Binding(
+            get: { appState.migrationOutcome != nil },
+            set: { if !$0 { appState.migrationOutcome = nil } }
+        )) {
+            Button("OK") { appState.migrationOutcome = nil }
+        } message: {
+            Text(migrationMessage)
+        }
         // Wide enough for the live panel plus a preview worth looking at. The minimum was
         // 480 when the panel was 236: at 320 the same window pushed the panel's own
         // controls past the window's edge, where they draw but cannot be clicked.
