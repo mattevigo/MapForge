@@ -1,13 +1,13 @@
 import XCTest
 
-/// The DM's magnifier, driven through the real window.
+/// The Live View's zoom and its Viewport rectangle, driven through the real window.
 ///
-/// Worth a UI test despite the suite's troubles: `MirrorZoom` is held by unit tests, but
-/// whether a scroll wheel event reaches the mirror at all is gesture composition, and that
-/// is the layer this repo has four defects on record in. The assertion is on a button's
-/// existence rather than on a static text, because static texts publish no label here — see
+/// Worth UI tests despite the suite's troubles: whether a scroll wheel reaches the preview,
+/// and whether a toggle's press reaches the overlay, is gesture composition — the layer this
+/// repo has four defects on record in. The assertions are on control state rather than on
+/// static text, because static texts publish no label here — see
 /// `.scratch/ui-tests-never-ran/`.
-final class MirrorZoomUITests: XCTestCase {
+final class LiveViewZoomUITests: XCTestCase {
     private func fixturePNG() throws -> URL {
         let size = NSSize(width: 1200, height: 900)
         let image = NSImage(size: size)
@@ -23,7 +23,7 @@ final class MirrorZoomUITests: XCTestCase {
         return url
     }
 
-    func testScrollingMagnifiesTheMirrorAndResetPutsItBack() throws {
+    func testScrollingZoomsTheLiveViewAndResetPutsItBack() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
                                "--test-player-screen", "--test-fresh-preferences"]
@@ -31,18 +31,18 @@ final class MirrorZoomUITests: XCTestCase {
 
         let reset = app.buttons["Zoomed — Reset"]
         XCTAssertTrue(app.buttons["Edit Fog…"].waitForExistence(timeout: 5))
-        XCTAssertFalse(reset.exists, "the mirror claims to be magnified before any scroll")
+        XCTAssertFalse(reset.exists, "the preview claims to be zoomed before any scroll")
 
         let window = app.windows["control"]
         window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
             .scroll(byDeltaX: 0, deltaY: 30)
 
         XCTAssertTrue(reset.waitForExistence(timeout: 3),
-                      "scrolling did not magnify the mirror")
+                      "scrolling did not zoom the preview")
 
         reset.click()
         XCTAssertFalse(reset.waitForExistence(timeout: 2),
-                       "Reset did not return the mirror to a true mirror")
+                       "Reset did not return the preview to the whole Map")
     }
 
     /// The Viewport toggle: one press shows the rectangle, the same press puts it away. It
@@ -63,17 +63,9 @@ final class MirrorZoomUITests: XCTestCase {
         XCTAssertTrue(viewport.waitForExistence(timeout: 3), "no Viewport toggle")
         XCTAssertEqual(viewport.value as? Int, 0, "the rectangle is showing before any press")
 
-        // Magnify first, so the toggle has something to put away.
-        app.windows["control"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
-            .scroll(byDeltaX: 0, deltaY: 30)
-        XCTAssertTrue(app.buttons["Zoomed — Reset"].waitForExistence(timeout: 3),
-                      "precondition: the mirror did not magnify")
-
         viewport.click()
         XCTAssertEqual(app.checkBoxes["Viewport"].value as? Int, 1,
                        "the toggle did not turn on")
-        XCTAssertFalse(app.buttons["Zoomed — Reset"].exists,
-                       "showing the Viewport left the Magnifier armed underneath")
 
         app.checkBoxes["Viewport"].click()
         XCTAssertEqual(app.checkBoxes["Viewport"].value as? Int, 0,

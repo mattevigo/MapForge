@@ -45,7 +45,7 @@ The stable key for a physical display, used to remember which screen is the Play
 _Avoid_: screen ID, display number, monitor name
 
 **Viewport**:
-The region of a Map currently visible on the Player Display. At True Scale most Maps exceed the screen, so the DM pans the Viewport from the Live View: a toggle shows it as a rectangle over the whole Map — the Map has to be shown whole, or there would be nothing outside the rectangle to drag it across — and the same toggle puts it away. Moving it is a live action the table watches as it happens, so it has no Cancel, exactly as dragging a Pawn has none.
+The region of a Map currently visible on the Player Display. At True Scale most Maps exceed the screen, so the DM moves the Viewport from the Live View, where it is always drawn as a green rectangle over the whole Map — knowing what the players can see is not a question a DM should press a button to answer. A toggle decides whether that rectangle can be **dragged**, not whether it is drawn: idle it is an outline the clicks pass through, armed it is filled and moves. Moving it is a live action the table watches as it happens, so it has no Cancel, exactly as dragging a Pawn has none.
 _Avoid_: camera, crop, window
 
 **Sidecar**:
@@ -69,11 +69,11 @@ A token on the Map with a label and a colour, drawn for players whether or not t
 _Avoid_: token, miniature, figure, character, marker
 
 **Live View**:
-The Control Window's ordinary state: the Map as the table sees it, with Pawns, Light Markers, the Fog Overlay tint and Measurements drawn over it. Everything a DM does to a Pawn or a Light happens here — adding, editing, moving, deleting — because there is no moment in a session when the DM wants to leave the table's view to change a token. Mirrors the Player Display when one is attached, and falls back to the whole Map fitted when none is.
-_Avoid_: preview, preview mode, normal mode, play mode
+The Control Window's ordinary state: the **whole Map**, with Pawns, Light Markers, the Fog Overlay tint and Measurements drawn over it, and the Viewport drawn on it as a green rectangle. Everything a DM does to a Pawn or a Light happens here — adding, editing, moving, deleting — because there is no moment in a session when the DM wants to leave the table's view to change a token. It showed only what the Player Display showed until the rectangle replaced that: a DM who can see just the Viewport cannot see what is about to walk into the room, and cannot place anything outside it without panning there first.
+_Avoid_: preview, preview mode, normal mode, play mode, mirror
 
 **Magnifier**:
-The Live View's private zoom: the DM looks closer at the mirror without the Viewport moving, so the Player Display keeps showing exactly what it showed. It cannot zoom out past the mirror or pan outside it — the mirror's promise is that it shows what the table sees, and a Magnifier that showed more would break it. Distinct from panning the Viewport, which is a deliberate act the table watches. Never persisted, and it says on screen when it is on.
+The Live View's private zoom: the DM looks closer without the Viewport moving, so the Player Display keeps showing exactly what it showed. Distinct from dragging the Viewport, which is a deliberate act the table watches. Never persisted, and it says on screen when it is on.
 _Avoid_: zoom, preview zoom, magnification
 
 **Wall Editor**:

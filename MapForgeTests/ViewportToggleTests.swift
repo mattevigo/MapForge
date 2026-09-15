@@ -9,22 +9,27 @@ import XCTest
 /// with two exits is a thing to get wrong in front of players.
 final class ViewportToggleTests: XCTestCase {
 
-    /// While the rectangle is showing, the preview pulls back to the whole Map — the DM has
-    /// to see where they are dragging *to*, and on the mirror there is nothing outside the
-    /// rectangle to drag toward.
-    func testShowingTheViewportPullsBackToTheWholeMap() {
-        XCTAssertFalse(ViewportToggle.showsWholeMap(isShowingViewport: false, mode: .normal))
-        XCTAssertTrue(ViewportToggle.showsWholeMap(isShowingViewport: true, mode: .normal))
+    /// The rectangle is **always** drawn on the Live View, toggle or no toggle: it is how
+    /// the DM knows what the table is being shown, and that is not a question they should
+    /// have to press a button to answer.
+    func testTheRectangleIsAlwaysDrawnOnTheLiveView() {
+        XCTAssertTrue(ViewportToggle.drawsRectangle(mode: .normal, hasViewport: true))
+        XCTAssertFalse(ViewportToggle.drawsRectangle(mode: .normal, hasViewport: false),
+                       "no Player Display means no Viewport to draw")
     }
 
-    /// The authoring modes own the preview outright; the toggle does not reach into them.
-    /// `.viewport` is not in this list because it no longer exists — panning became this
-    /// toggle, which is the change that deleted the case.
-    func testTheAuthoringModesAreUnaffected() {
-        for mode in [PreviewMode.gridFit, .fog] {
-            XCTAssertFalse(ViewportToggle.showsWholeMap(isShowingViewport: true, mode: mode),
-                           "\(mode) is not the Live View's to change")
-        }
+    /// The authoring modes draw their own overlays and are not about the table's view.
+    func testTheRectangleIsNotDrawnInTheAuthoringModes() {
+        XCTAssertFalse(ViewportToggle.drawsRectangle(mode: .fog, hasViewport: true))
+        XCTAssertFalse(ViewportToggle.drawsRectangle(mode: .gridFit, hasViewport: true))
+    }
+
+    /// The toggle decides **draggable**, not visible. Idle it is a readout; armed it is a
+    /// control — and until it is armed it must not eat the clicks that drag a Pawn or open
+    /// the right-click menu underneath it.
+    func testTheToggleDecidesWhetherTheRectangleCanBeDragged() {
+        XCTAssertFalse(ViewportToggle.isDraggable(isShowingViewport: false))
+        XCTAssertTrue(ViewportToggle.isDraggable(isShowingViewport: true))
     }
 
     /// The Magnifier and the rectangle both act on the Live View's preview, and only one of

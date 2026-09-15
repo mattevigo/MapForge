@@ -3,24 +3,42 @@ import Foundation
 /// Whether the Live View is showing the Viewport rectangle, and what follows from it.
 ///
 /// Moving what the players see used to be a **mode**: a button that took the preview over,
-/// with Cancel and Done. It is a toggle now — one button to show the rectangle, the same
-/// button to put it away. A DM pans the Viewport mid-sentence, between one thing a player
-/// says and the next, and a mode with two exits is a thing to get wrong in front of them.
+/// with Cancel and Done. It is a toggle now, and the toggle decides whether the rectangle
+/// can be *dragged* rather than whether it is *drawn* — the rectangle is always on the Live
+/// View. A DM pans the Viewport mid-sentence, between one thing a player says and the next,
+/// and a mode with two exits is a thing to get wrong in front of them.
 ///
 /// Losing Cancel is the deliberate cost. There is no "put it back where it was", for the
 /// same reason dragging a Pawn has none: this is a live performance action, the table is
 /// already watching the result, and an undo would be a second move rather than the erasure
 /// of the first.
 enum ViewportToggle {
-    /// Whether the preview pulls back to show the whole Map.
+    /// Whether the Viewport rectangle is drawn at all.
     ///
-    /// It has to. The Live View's preview is the mirror — exactly what the Player Display
-    /// shows — so a Viewport rectangle drawn on it would fill the preview edge to edge, with
-    /// nothing outside it to drag toward. Showing the rectangle means showing the Map around
-    /// it, which is the view the old mode gave and the only one the drag makes sense in.
-    static func showsWholeMap(isShowingViewport: Bool, mode: PreviewMode) -> Bool {
-        mode == .normal && isShowingViewport
+    /// Always, on the Live View, with or without the toggle. The rectangle is how the DM
+    /// knows what their players are being shown, and that is not a question they should have
+    /// to press a button to answer — it is the question the whole Control Window exists to
+    /// answer. The Live View shows the **whole Map**, so there is always somewhere for the
+    /// rectangle to sit and always map outside it to see.
+    ///
+    /// This replaced a cropped mirror that showed only what was inside the Viewport. That
+    /// mirror was exact, but it meant the DM could never see what was about to walk into the
+    /// room — and a DM who cannot see the rest of their own Map is worse off than one
+    /// reading a rectangle.
+    static func drawsRectangle(mode: PreviewMode, hasViewport: Bool) -> Bool {
+        mode == .normal && hasViewport
     }
+
+    /// Whether the rectangle can be dragged.
+    ///
+    /// This is what the toggle decides — not whether the rectangle is visible. Idle it is a
+    /// **readout**: drawn as an outline, hit-testing off, so the clicks that drag a Pawn or
+    /// open the right-click menu pass straight through it. Armed it becomes a **control**.
+    ///
+    /// Splitting the two is what lets the rectangle be permanent. A permanently draggable
+    /// rectangle would sit over the middle of the Map swallowing every gesture aimed at the
+    /// Pawns beneath it, which is why it used to be confined to a mode.
+    static func isDraggable(isShowingViewport: Bool) -> Bool { isShowingViewport }
 
     /// Whether showing the rectangle should put the Magnifier away.
     ///
