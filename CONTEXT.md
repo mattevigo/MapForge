@@ -45,7 +45,7 @@ The stable key for a physical display, used to remember which screen is the Play
 _Avoid_: screen ID, display number, monitor name
 
 **Viewport**:
-The region of a Map currently visible on the Player Display. At True Scale most Maps exceed the screen, so the DM pans the Viewport from the Control Window.
+The region of a Map currently visible on the Player Display. At True Scale most Maps exceed the screen, so the DM pans the Viewport from the Live View: a toggle shows it as a rectangle over the whole Map — the Map has to be shown whole, or there would be nothing outside the rectangle to drag it across — and the same toggle puts it away. Moving it is a live action the table watches as it happens, so it has no Cancel, exactly as dragging a Pawn has none.
 _Avoid_: camera, crop, window
 
 **Sidecar**:

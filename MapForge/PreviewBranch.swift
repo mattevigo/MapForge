@@ -5,7 +5,11 @@ import CoreGraphics
 /// `.normal` is the DM watching the table; the other three each take the preview over for a
 /// prep task. Lifted out of `ControlView` so `PreviewBranch` can be asked about a mode
 /// without standing up the view.
-enum PreviewMode { case normal, gridFit, viewport, fog }
+/// `.viewport` was a fourth case until panning became a toggle on the Live View
+/// (`ViewportToggle`): a DM moves what the table sees mid-sentence, and a mode with a Cancel
+/// and a Done is a thing to get wrong in front of players. The two that remain are prep
+/// tasks the DM enters deliberately and leaves again.
+enum PreviewMode { case normal, gridFit, fog }
 
 /// Which of the Control Window preview's two branches runs, and what each one owes the DM.
 ///

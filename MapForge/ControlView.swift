@@ -15,7 +15,9 @@ struct ControlView: View {
     /// declares one as a side effect of moving the value, so cancelling has to put back
     /// the claim as well as the number.
     @State private var hadDeclaredGridBeforeFit = false
-    @State private var viewportOriginBeforePan: CGPoint?
+    /// Whether the Viewport rectangle is showing on the Live View. A toggle, not a mode —
+    /// see `ViewportToggle`.
+    @State private var isShowingViewport = false
     /// Grid Fit's preview zoom/pan. Mode-local view state, not part of the Map — it is
     /// reset to fit-to-window on entering the mode.
     @State private var gridFitTransform: PreviewTransform?
@@ -223,7 +225,7 @@ struct ControlView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            if mode == .viewport {
+            if isShowingViewport {
                 Text("Drag the rectangle to choose what the Player Display shows.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -319,7 +321,10 @@ struct ControlView: View {
         }
         .onChange(of: appState.playerScreen) { _, screen in
             // Losing the Player Display mid-pan would strand the mode with no overlay.
-            if mode == .viewport, screen == nil { mode = .normal }
+            if !ViewportToggle.staysShowing(mapOverflows: mapOverflowsViewport,
+                                            hasDisplay: screen != nil) {
+                isShowingViewport = false
+            }
         }
         .onChange(of: appState.mapURL) { _, _ in
             // Every mode is authored against the Map that was open when it started, and
@@ -406,7 +411,8 @@ struct ControlView: View {
     private var preview: some View {
         if let image = appState.mapImage {
             GeometryReader { geo in
-                if mode == .normal, let map = appState.mapScale, let viewport = resolvedViewport {
+                if mode == .normal, !isShowingViewport,
+                   let map = appState.mapScale, let viewport = resolvedViewport {
                     // Mirror: exactly the portion the Player Display shows, black
                     // letterbox and all — never adjacent map the players can't see.
                     let viewportPx = ViewportMath.viewportRectInImagePixels(originInches: viewport.originInches,
@@ -593,7 +599,9 @@ struct ControlView: View {
                                        onChange: { applyFogEdits() },
                                        onTransform: { fogTransform = $0 })
                         }
-                        if mode == .viewport, let map = appState.mapScale, let viewport = resolvedViewport {
+                        if ViewportToggle.showsWholeMap(isShowingViewport: isShowingViewport,
+                                                        mode: mode),
+                           let map = appState.mapScale, let viewport = resolvedViewport {
                             ViewportOverlay(fittedRect: fitted,
                                             map: map,
                                             viewportSizeInches: viewport.sizeInches,
@@ -671,8 +679,18 @@ struct ControlView: View {
             .help("Pick what to add, then click the Map to place it. Esc cancels.")
             Button("Fit Grid…") { startGridFit() }
                 .disabled(appState.mapImage == nil)
-            Button("Pan Viewport…") { startViewportPan() }
-                .disabled(!mapOverflowsViewport)
+            // A toggle, not a mode: press to show the rectangle, press again to put it
+            // away. There is no Cancel, deliberately — see `ViewportToggle`.
+            Toggle("Viewport", isOn: $isShowingViewport)
+                .toggleStyle(.button)
+                .onChange(of: isShowingViewport) { _, showing in
+                    if ViewportToggle.endsMagnifier(isShowingViewport: showing) {
+                        mirrorZoom.reset()
+                    }
+                }
+                .disabled(!ViewportToggle.isAvailable(mapOverflows: mapOverflowsViewport,
+                                                      hasDisplay: appState.playerScreen != nil))
+                .help("Show the rectangle the players see, and drag it to move their view.")
             Button("Edit Fog…") { startFogEditing() }
                 .disabled(appState.mapImage == nil)
             // Only while magnified, and it says so: the mirror's whole promise is that it
@@ -691,11 +709,6 @@ struct ControlView: View {
             Button("Cancel") { cancelGridFit() }
                 .keyboardShortcut(.cancelAction)
             Button("Done") { endGridFit() }
-                .keyboardShortcut(.defaultAction)
-        case .viewport:
-            Button("Cancel") { cancelViewportPan() }
-                .keyboardShortcut(.cancelAction)
-            Button("Done") { mode = .normal }
                 .keyboardShortcut(.defaultAction)
         case .fog:
             Text(fogSummary)
@@ -1176,16 +1189,6 @@ struct ControlView: View {
                              wasDeclared: hadDeclaredGridBeforeFit)
         appState.flushPendingFogWrites()
         endGridFit()
-    }
-
-    private func startViewportPan() {
-        viewportOriginBeforePan = appState.viewportOrigin
-        mode = .viewport
-    }
-
-    private func cancelViewportPan() {
-        appState.viewportOrigin = viewportOriginBeforePan
-        mode = .normal
     }
 
     /// Suggested, never silent: applying the snap also resizes the overlay to match.
