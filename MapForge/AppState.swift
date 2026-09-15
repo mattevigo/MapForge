@@ -410,8 +410,7 @@ final class AppState: ObservableObject {
     ///
     /// Not undoable, exactly as `setPawnHidden` and `setPawnLight` are not, and for the
     /// same stated reason: a live performance action taken mid-session does not belong in
-    /// the DM's authoring undo stack. It records no live edit either, because it changes no
-    /// Pawn — there is nothing for `carryLiveState` to carry.
+    /// the DM's authoring undo stack. It mutates no Pawn at all — the mode is derived.
     func setSoloSight(id: Pawn.ID?) {
         guard soloSightPawnID != id else { return }
         soloSightPawnID = id
@@ -550,7 +549,6 @@ final class AppState: ObservableObject {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }),
               fog.pawns[index].light.isOn != isOn else { return }
         fog.pawns[index].light.isOn = isOn
-        recordLiveEdit(.torch, on: id)
     }
 
     /// Move a Pawn outside the fog editing mode — the live table action, since the party
@@ -563,7 +561,6 @@ final class AppState: ObservableObject {
         let destination = mapImage.map { PawnBounds.clamp(point, toImage: $0.pixelSize) } ?? point
         guard fog.pawns[index].at != destination else { return }
         fog.pawns[index].at = destination
-        recordLiveEdit(.position, on: id)
     }
 
     /// Rename a Pawn outside the fog editing mode — "3" becomes "Goblin B" in the middle
@@ -578,7 +575,6 @@ final class AppState: ObservableObject {
     func setPawnLabel(id: Pawn.ID, _ label: String) {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
         fog.pawns[index].label = label
-        recordLiveEdit(.label, on: id)
     }
 
     /// Rename a Light outside the fog editing mode — "Light 3" becomes "trapped brazier"
@@ -802,60 +798,25 @@ final class AppState: ObservableObject {
 
     /// Push the fog authored inside the editing mode onto the Map.
     ///
-    /// Merges the mode's **geometry** rather than assigning its document wholesale. The
-    /// document `FogEdits` carries is a snapshot taken when the mode opened, and two kinds
-    /// of live state can change while the mode is open: the Grid, whose field and stepper
-    /// stay enabled, and a Pawn's label, renamed from the live row that also stays on
-    /// screen. Assigning the snapshot back reverted both — and for the Grid the stale value
-    /// is what reached the file, silently losing it on the next relaunch.
+    /// Take the Walls the mode has traced, and only those.
+    ///
+    /// The mode's document is a snapshot taken when it opened, so assigning it back reverts
+    /// everything the table changed underneath it. Walls are the only thing the Wall Editor
+    /// authors (ADR-0013), so they are the only thing taken from it — the Grid, every Pawn
+    /// and every Light stay as `fog` currently has them.
+    ///
+    /// This replaces `carryLiveState`, which pulled the live values back out of `fog` and
+    /// wrote them over the snapshot, property by property, driven by a record of what the
+    /// table had touched. Copying one field in the other direction needs no such record and
+    /// cannot miss a property: a Light rename, which `carryLiveState` never covered because
+    /// it was Pawn-shaped throughout, now survives for free. `WallEditorTests` holds it.
     func applyFogEdits(_ edits: FogEdits) {
         // The mode's document belongs to the Map it opened on. If another Map has been
-        // opened since, this is the outgoing Map's fog and applying it would overwrite
-        // the incoming Map's — on screen and, through the autosave, on its file.
+        // opened since, these are the outgoing Map's Walls and applying them would
+        // overwrite the incoming Map's — on screen and, through the autosave, on its file.
         guard isFogEditingCurrentMap else { return }
-        var merged = edits.document
-        merged.squaresWide = fog.squaresWide
-        merged.pawns = merged.pawns.map { carryLiveState(onto: $0) }
-        fog = merged
+        fog.walls = edits.document.walls
     }
-
-    /// Carry the table's live edits onto a Pawn coming out of the fog editing mode.
-    ///
-    /// Three of a Pawn's properties stay editable at the table while the mode is open: its
-    /// label (the live row's field), its position (`PawnLayer` dragging, deliberately live)
-    /// and its torch (`setPawnLight`, which has no in-mode special case). All three write
-    /// straight to `fog`, so assigning the mode's snapshot back would revert them — a Pawn
-    /// dragged mid-fight would snap back the moment the DM drew a Wall.
-    ///
-    /// Driven by `liveEdits`, which records what the table actually touched, rather than by
-    /// comparing documents. Comparison cannot work: `applyFogEdits` writes the mode's
-    /// values into `fog` too, so by the time Cancel runs, "the live value" and "a value the
-    /// mode wrote" are the same bytes and no diff distinguishes them.
-    private func carryLiveState(onto edited: Pawn) -> Pawn {
-        var pawn = edited
-        guard let live = fog.pawns.first(where: { $0.id == pawn.id }),
-              let touched = liveEdits[pawn.id] else { return pawn }
-        if touched.contains(.label) { pawn.label = live.label }
-        if touched.contains(.position) { pawn.at = live.at }
-        if touched.contains(.torch) { pawn.light.isOn = live.light.isOn }
-        if touched.contains(.hidden) { pawn.isHidden = live.isHidden }
-        return pawn
-    }
-
-    /// What the table edited on each Pawn while the fog mode has been open.
-    ///
-    /// Cleared when the mode opens. A live edit is not undoable and must survive both an
-    /// in-mode edit and Cancel; an in-mode edit is undoable and must not survive Cancel.
-    /// Only recording the live writes as they happen tells the two apart.
-    struct LivePawnEdit: OptionSet {
-        let rawValue: Int
-        static let label = LivePawnEdit(rawValue: 1 << 0)
-        static let position = LivePawnEdit(rawValue: 1 << 1)
-        static let torch = LivePawnEdit(rawValue: 1 << 2)
-        static let hidden = LivePawnEdit(rawValue: 1 << 3)
-    }
-
-    private var liveEdits: [Pawn.ID: LivePawnEdit] = [:]
 
     /// The Map the fog editing mode was opened on, or nil when the mode is closed.
     ///
@@ -869,7 +830,6 @@ final class AppState: ObservableObject {
 
     /// Called as the fog editing mode opens: from here, live edits are the ones to keep.
     func beginFogEditing() {
-        liveEdits = [:]
         fogEditingMapURL = mapURL
         // Fog authoring needs the whole Map lit, and an isolated view would fight the
         // inspector it is being authored through.
@@ -891,9 +851,6 @@ final class AppState: ObservableObject {
         fogEditingMapURL != nil && fogEditingMapURL == mapURL
     }
 
-    private func recordLiveEdit(_ edit: LivePawnEdit, on id: Pawn.ID) {
-        liveEdits[id, default: []].insert(edit)
-    }
 
     /// Discard the fog authored in the editing mode, including anything the autosave
     /// debounce already wrote: restoring the Walls re-triggers `fog`'s didSet, and the
@@ -912,14 +869,10 @@ final class AppState: ObservableObject {
             endFogEditing()
             return
         }
-        var restored = edits.original
-        restored.squaresWide = fog.squaresWide
-        // Same reconciliation as an edit: the table's edits survive Cancel because they
-        // were never part of what the mode was editing, while a rename made through the
-        // in-mode inspector goes through `FogEdits` and is discarded like any other in-mode
-        // edit.
-        restored.pawns = restored.pawns.map { carryLiveState(onto: $0) }
-        fog = restored
+        // The Walls the mode traced go back to what it opened with; nothing else is
+        // touched, for the same reason `applyFogEdits` takes nothing else. A Pawn dragged
+        // mid-fight cannot snap back on Cancel because Cancel never had a Pawn to restore.
+        fog.walls = edits.original.walls
         flushPendingFogWrites()
         endFogEditing()
     }
@@ -936,7 +889,6 @@ final class AppState: ObservableObject {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }),
               fog.pawns[index].isHidden != isHidden else { return }
         fog.pawns[index].isHidden = isHidden
-        recordLiveEdit(.hidden, on: id)
         // The eye takes a Pawn out of the lighting, so hiding the isolated one strands Solo
         // Sight on a Pawn that emits nothing: the fog falls back to lighting the Map with
         // every torch while the token rule keeps the rest of the party under the discovery
