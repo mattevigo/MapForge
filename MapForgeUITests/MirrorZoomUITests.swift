@@ -44,4 +44,39 @@ final class MirrorZoomUITests: XCTestCase {
         XCTAssertFalse(reset.waitForExistence(timeout: 2),
                        "Reset did not return the mirror to a true mirror")
     }
+
+    /// The Viewport toggle: one press shows the rectangle, the same press puts it away. It
+    /// also ends the Magnifier, since only one of the two is on screen at a time.
+    func testTheViewportToggleShowsAndHidesTheRectangle() throws {
+        let app = XCUIApplication()
+        // A Grid declared at 60 squares makes the Map 60 inches wide at True Scale, which
+        // comfortably overflows any Player Display — the condition the toggle needs, since a
+        // Map that fits inside the Viewport has no hidden part to pan to.
+        app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=60",
+                               "--test-player-screen", "--test-fresh-preferences"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Edit Fog…"].waitForExistence(timeout: 5))
+
+        // A `.button`-styled Toggle publishes as a checkBox on macOS, not a button — the
+        // role mistake this suite has made twice before.
+        let viewport = app.checkBoxes["Viewport"]
+        XCTAssertTrue(viewport.waitForExistence(timeout: 3), "no Viewport toggle")
+        XCTAssertEqual(viewport.value as? Int, 0, "the rectangle is showing before any press")
+
+        // Magnify first, so the toggle has something to put away.
+        app.windows["control"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
+            .scroll(byDeltaX: 0, deltaY: 30)
+        XCTAssertTrue(app.buttons["Zoomed — Reset"].waitForExistence(timeout: 3),
+                      "precondition: the mirror did not magnify")
+
+        viewport.click()
+        XCTAssertEqual(app.checkBoxes["Viewport"].value as? Int, 1,
+                       "the toggle did not turn on")
+        XCTAssertFalse(app.buttons["Zoomed — Reset"].exists,
+                       "showing the Viewport left the Magnifier armed underneath")
+
+        app.checkBoxes["Viewport"].click()
+        XCTAssertEqual(app.checkBoxes["Viewport"].value as? Int, 0,
+                       "the same button did not put the rectangle away")
+    }
 }
