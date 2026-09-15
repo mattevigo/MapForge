@@ -79,7 +79,8 @@ have made a DM's campaign roster a property of one battle map.
   makes "can I undo this?" depend on invisible state.
 - **The Party lives next to the campaign folder the DM chose** — rejected: it needs a file
   picker and a persisted security-scoped bookmark, the same machinery that made the Library
-  issue `wontfix`.
+  issue `wontfix`. **Reversed by ADR-0011**: the app is not sandboxed, so the bookmark was
+  never needed and this rejection rested on a cost that did not exist.
 - **Characters carry a portrait** — deferred, not rejected. It reaches into token rendering,
   True Scale sizing and the sidecar format, and deserves its own decision rather than riding
   along with reuse.
