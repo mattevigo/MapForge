@@ -36,6 +36,12 @@ struct ControlView: View {
     /// the Origin from the right-click itself conflated the two, so the DM had to open the
     /// menu at exactly the point they meant to measure from — a menu is not a precise
     /// instrument.
+    /// The DM's private magnifier over the mirror. Never reaches the Player Display — see
+    /// `MirrorZoom`. Session-local and reset with the Map, like every other view transform.
+    @State private var mirrorZoom = MirrorZoom()
+    /// How far the current ⌥-drag has travelled. `DragGesture` reports cumulative
+    /// translation, and `MirrorZoom.pan` takes a step — the difference between them is this.
+    @State private var mirrorPanned: CGSize = .zero
     @State private var armedShape: MeasurementShape?
     /// What `Add` is waiting to place, or nil when nothing is armed.
     ///
@@ -336,6 +342,7 @@ struct ControlView: View {
             // crosshair left hunting on a Map the DM has closed is the same staleness.
             armedShape = nil
             armedAdd = nil
+            mirrorZoom.reset()
             // An Edit sheet holds the outgoing Map's Pawn or Light by ID. Left up, it would
             // sit over a Map it does not belong to and its OK would silently no-op against
             // the `guard` in `updatePawn` — a sheet whose buttons have quietly stopped doing
@@ -405,25 +412,33 @@ struct ControlView: View {
                     let viewportPx = ViewportMath.viewportRectInImagePixels(originInches: viewport.originInches,
                                                                             sizeInches: viewport.sizeInches,
                                                                             map: map)
-                    let frame = ViewportMath.mirrorImageFrame(imagePixelSize: image.pixelSize,
-                                                              viewportRect: viewportPx,
-                                                              container: geo.size)
                     let visible = ViewportMath.mirrorViewportRect(viewportRect: viewportPx,
                                                                   container: geo.size)
-                    // The image frame rebased into the clipped container's coordinates.
+                    // The image frame rebased into the clipped container's coordinates,
+                    // then through the DM's private magnifier.
+                    //
                     // Every overlay on this mirror needs exactly this rect, and each one
                     // spelling it out again is how one of them ends up subtly offset from
-                    // the Pawn it is drawn against — so it is computed in `PreviewBranch`,
-                    // where a test can reach it, rather than open-coded here.
-                    let mirrorFrame = PreviewBranch.liveLayerFrame(imagePixelSize: image.pixelSize,
-                                                                   viewportRect: viewportPx,
-                                                                   container: geo.size)
+                    // the Pawn it is drawn against — so the base is computed in
+                    // `PreviewBranch`, where a test can reach it, rather than open-coded
+                    // here. Magnifying that one rect magnifies the Map, the Pawns, the fog
+                    // tint and any Measurement together, and the hit-tests that read back
+                    // through it stay consistent for free.
+                    let mirrorFrame = mirrorZoom.frame(
+                        mirroring: PreviewBranch.liveLayerFrame(imagePixelSize: image.pixelSize,
+                                                                viewportRect: viewportPx,
+                                                                container: geo.size),
+                        container: geo.size)
                     ZStack {
                         Color.black
+                        // Drawn from `mirrorFrame`, which is the image's rect in this
+                        // container already magnified — the same rect every overlay uses.
+                        // Deriving it here a second way is exactly how a layer ends up
+                        // subtly offset from the Pawns drawn against it.
                         Image(nsImage: image)
                             .resizable()
-                            .frame(width: frame.width, height: frame.height)
-                            .position(x: frame.midX - visible.minX, y: frame.midY - visible.minY)
+                            .frame(width: mirrorFrame.width, height: mirrorFrame.height)
+                            .position(x: mirrorFrame.midX, y: mirrorFrame.midY)
                             // .clipped() below masks drawing only: this Image still owns
                             // its full, overflowing frame for hit-testing and would
                             // swallow clicks on the controls above. Disabled HERE rather
@@ -495,6 +510,26 @@ struct ControlView: View {
                     .simultaneousGesture(
                         TapGesture().onEnded { leftClick(map: map, frame: mirrorFrame) },
                         including: claimsLeftClick ? .all : .subviews
+                    )
+                    // Scroll to look closer. The Viewport is untouched, so the table sees
+                    // nothing change — that is what separates this from "Pan Viewport…".
+                    .onScrollWheel { delta, location in
+                        mirrorZoom.zoom(by: delta, at: location, container: geo.size)
+                    }
+                    // ⌥-drag moves the magnifier, as it does in the Wall Editor and Grid
+                    // Fit. `.modifiers(.option)` also stops a plain drag matching, so
+                    // dragging a Pawn stays unfiltered — that is the live action here.
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 2)
+                            .modifiers(.option)
+                            .onChanged { value in
+                                let step = CGSize(
+                                    width: value.translation.width - mirrorPanned.width,
+                                    height: value.translation.height - mirrorPanned.height)
+                                mirrorZoom.pan(by: step, container: geo.size)
+                                mirrorPanned = value.translation
+                            }
+                            .onEnded { _ in mirrorPanned = .zero }
                     )
                     .onContinuousHover { phase in
                         switch phase {
@@ -640,6 +675,15 @@ struct ControlView: View {
                 .disabled(!mapOverflowsViewport)
             Button("Edit Fog…") { startFogEditing() }
                 .disabled(appState.mapImage == nil)
+            // Only while magnified, and it says so: the mirror's whole promise is that it
+            // shows what the table sees, and a DM who has forgotten they zoomed would read
+            // it as the truth. Placed last so the buttons before it do not move when it
+            // appears — this row is above the preview, and anything that changes width
+            // here is the same class of defect as `fogInspectorRowHeight`'s.
+            if mirrorZoom.isMagnified {
+                Button("Zoomed — Reset") { mirrorZoom.reset() }
+                    .help("The Player Display is unaffected: this magnifies your view only.")
+            }
         case .gridFit:
             if fitSquare != nil, let snap = GridFit.snapSuggestion(for: appState.squaresWide) {
                 Button("Snap to \(snap)") { applySnap(snap) }
