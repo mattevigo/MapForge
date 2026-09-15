@@ -37,6 +37,12 @@ struct ControlView: View {
     /// menu at exactly the point they meant to measure from — a menu is not a precise
     /// instrument.
     @State private var armedShape: MeasurementShape?
+    /// What `Add` is waiting to place, or nil when nothing is armed.
+    ///
+    /// Beside `armedShape` and mutually exclusive with it: at most one tool is armed at a
+    /// time, because a left-click whose meaning depends on which of two armed tools wins is
+    /// unguessable. `arm(_:)` and `startMeasurement` each clear the other.
+    @State private var armedAdd: AddKind?
     /// Where the cursor last was on the mirror, in the mirror's own coordinates.
     ///
     /// SwiftUI reports this; an `NSEvent`'s `locationInWindow` is NOT convertible into it.
@@ -63,6 +69,23 @@ struct ControlView: View {
 
     /// Which row the Combat tab's Stat Block editor is pointed at.
     @State private var selectedCombatant: Pawn.ID?
+
+    /// What `Add` places. A Light, or a Pawn of one Kind — the Kind is settled here, when
+    /// the DM picks from the menu, rather than in a sheet afterwards: adding four goblins is
+    /// four arms and no forms.
+    private enum AddKind: Hashable, CaseIterable {
+        case light
+        case pawn(PawnKind)
+
+        static var allCases: [AddKind] { [.light] + PawnKind.allCases.map(AddKind.pawn) }
+
+        var title: String {
+            switch self {
+            case .light: "Light"
+            case .pawn(let kind): kind.title
+            }
+        }
+    }
 
     /// What an open Edit sheet is pointed at, with the draft it is editing.
     ///
@@ -312,6 +335,7 @@ struct ControlView: View {
             // `AppState` drops the Measurement itself; the armed tool is view state, and a
             // crosshair left hunting on a Map the DM has closed is the same staleness.
             armedShape = nil
+            armedAdd = nil
             typedDistance.clear()
             mode = .normal
         }
@@ -421,7 +445,12 @@ struct ControlView: View {
                         // DM cannot tell it apart from an idle one — and the click that
                         // would place an Origin looks like a click that does nothing.
                         // DM-only: the table has no use for a crosshair hunting a point.
-                        if armedShape != nil, let cursor = mirrorCursor {
+                        // `Add` arms the same way and shows the same crosshair: to the DM
+                        // both are "the app is waiting for me to click somewhere", and two
+                        // different cursors for one state would be a distinction without a
+                        // difference.
+                        if claimsLeftClick, appState.measurement == nil,
+                           let cursor = mirrorCursor {
                             MeasurementCursor().position(cursor)
                         }
                     }
@@ -446,7 +475,7 @@ struct ControlView: View {
                     // break the more common one.
                     .simultaneousGesture(
                         TapGesture().onEnded { leftClick(map: map, frame: mirrorFrame) },
-                        including: isMeasuring ? .all : .subviews
+                        including: claimsLeftClick ? .all : .subviews
                     )
                     .onContinuousHover { phase in
                         switch phase {
@@ -461,7 +490,10 @@ struct ControlView: View {
                     }
                     // Digits are claimed only while a Measurement is armed, the cursor is
                     // over the Map, and no text field has focus. See MeasurementTyping.
-                    .onMeasurementKeys(isArmed: isMeasuring,
+                    // `claimsLeftClick`, not `isMeasuring`: Esc has to back out of an armed
+                    // `Add` too, and that arming is not a Measurement. Digits are still
+                    // refused for it — `handleMeasurementKey` answers only `.abandon` there.
+                    .onMeasurementKeys(isArmed: claimsLeftClick,
                                        isOverMap: mirrorCursor != nil) {
                         handleMeasurementKey($0)
                     }
@@ -572,6 +604,17 @@ struct ControlView: View {
     private var modeControls: some View {
         switch mode {
         case .normal:
+            // In the existing row rather than a new one: anything added above the preview
+            // must reserve constant height or the Map jumps mid-click.
+            Menu("Add") {
+                ForEach(AddKind.allCases, id: \.self) { kind in
+                    Button(kind.title) { arm(kind) }
+                }
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .disabled(appState.mapImage == nil)
+            .help("Pick what to add, then click the Map to place it. Esc cancels.")
             Button("Fit Grid…") { startGridFit() }
                 .disabled(appState.mapImage == nil)
             Button("Pan Viewport…") { startViewportPan() }
@@ -608,6 +651,7 @@ struct ControlView: View {
         // `beginFogEditing` drops the Measurement; the armed tool is view state and has to
         // be dropped alongside it, or the crosshair follows the DM into authoring.
         armedShape = nil
+        armedAdd = nil
         typedDistance.clear()
         fogEdits = FogEdits(document: appState.fog)
         // Open on the whole Map, as Grid Fit does: the zoomed-out view orients, and zoom
@@ -723,6 +767,13 @@ struct ControlView: View {
     /// step: place the Origin, settle the distance, clear it. The DM never has to remember
     /// which button does which.
     private func leftClick(map: MapScale, frame: CGRect) {
+        // `Add` is armed and waiting for a point. First, and unambiguous: the two armings
+        // are mutually exclusive, so this and the Measurement branch below can never both
+        // want the same click.
+        if let kind = armedAdd {
+            placeArmedAdd(kind, map: map, frame: frame)
+            return
+        }
         // An armed tool is waiting for its Origin, and that comes first: until one is
         // placed there is no Measurement to settle.
         if let shape = armedShape {
@@ -872,6 +923,40 @@ struct ControlView: View {
         case pinned(Measurement.ID)
     }
 
+    /// Arm `Add` and wait for the click that says where.
+    ///
+    /// Clears any Measurement, armed or on screen, for the reason `startMeasurement` clears
+    /// the other way: one armed tool at a time, or a left-click means two things at once.
+    private func arm(_ kind: AddKind) {
+        armedAdd = kind
+        armedShape = nil
+        typedDistance.clear()
+        appState.setMeasurement(nil)
+    }
+
+    /// Place what `Add` armed, at the click. Stays armed when the click is refused, so the
+    /// DM can simply aim better rather than reopening the menu.
+    private func placeArmedAdd(_ kind: AddKind, map: MapScale, frame: CGRect) {
+        guard let cursor = mirrorCursor else { return }
+        let point = PlayerPlacement.mapPoint(cursor, map: map, frame: frame)
+
+        switch kind {
+        case .light:
+            appState.addLight(AddPlacement.light(at: point, existing: appState.fog.lights))
+        case .pawn(let pawnKind):
+            guard let pawn = AddPlacement.pawn(kind: pawnKind, at: point,
+                                               existing: appState.fog.pawns,
+                                               imageSize: appState.mapImage?.pixelSize)
+            else { return }   // outside the image: refused, and still armed
+            // Through `addPawnToMap` rather than appending here, so a Creature placed while
+            // a fight is running rolls Initiative and joins the Order. A Treasure is refused
+            // by `joinEncounter` itself, having nothing to do on its turn.
+            appState.addPawnToMap(pawn)
+        }
+        // One click places one thing. The Kind stays on the menu, not on the cursor.
+        armedAdd = nil
+    }
+
     /// Arm the tool with a shape and wait for the click that places it.
     ///
     /// Any Measurement already on screen goes now rather than when the Origin is placed:
@@ -881,6 +966,8 @@ struct ControlView: View {
         // Sticky, so the menu opens on the shape the DM last used.
         measurementShape = shape
         armedShape = shape
+        // One armed tool at a time — see `arm(_:)`.
+        armedAdd = nil
         typedDistance.clear()
         appState.setMeasurement(nil)
     }
@@ -907,10 +994,23 @@ struct ControlView: View {
     }
 
     /// Whether the DM is in the middle of measuring — either waiting to place an Origin,
-    /// or with a Measurement on screen. The gate for the click and key handlers, which
-    /// must stay inert the rest of the time.
+    /// or with a Measurement on screen. The gate for the **key** handler: digits type a
+    /// distance, which only a Measurement has.
     private var isMeasuring: Bool {
-        armedShape != nil || appState.measurement != nil
+        ArmedTool.claimsDigits(hasArmedShape: armedShape != nil,
+                               hasMeasurement: appState.measurement != nil)
+    }
+
+    /// Whether the left-click belongs to the Map rather than to the Pawn drag underneath.
+    ///
+    /// Wider than `isMeasuring` by the armed `Add`, and deliberately one predicate rather
+    /// than a second condition beside the first: this render layer has four gesture
+    /// composition defects on record, and "which of these two flags claimed the click" is
+    /// exactly the shape of question that produced them.
+    private var claimsLeftClick: Bool {
+        ArmedTool.claimsLeftClick(hasArmedAdd: armedAdd != nil,
+                                  hasArmedShape: armedShape != nil,
+                                  hasMeasurement: appState.measurement != nil)
     }
 
     /// Follow the cursor: an armed Measurement rubber-bands as the mouse moves, so the
@@ -931,7 +1031,11 @@ struct ControlView: View {
     /// are is decided by `MeasurementTyping.decide`, not here.
     private func handleMeasurementKey(_ decision: MeasurementTyping.Decision) {
         // An armed tool has no Measurement yet, and the only key that means anything to it
-        // is the one that backs out.
+        // is the one that backs out. `Add` arms the same way and Esc backs out of it too.
+        if armedAdd != nil {
+            if decision == .abandon { armedAdd = nil }
+            return
+        }
         if armedShape != nil, appState.measurement == nil {
             if decision == .abandon { armedShape = nil }
             return

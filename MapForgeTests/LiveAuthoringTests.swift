@@ -160,6 +160,70 @@ final class LiveAuthoringTests: XCTestCase {
         XCTAssertNil(appState.resolvedSoloSightPawnID)
     }
 
+    // MARK: End to end
+
+    /// What the feature is judged on: a Light can be created again, without leaving the
+    /// Live View. Issue 01 removed the only path to one, and this is the path that replaces
+    /// it — the reason 04 had to land before the feature shipped.
+    func testALightCanBeCreatedAndEditedWithoutLeavingTheLiveView() throws {
+        let appState = try loadedAppState()
+        XCTAssertTrue(appState.fog.lights.isEmpty)
+
+        appState.addLight(AddPlacement.light(at: MapPoint(x: 120, y: 80),
+                                             existing: appState.fog.lights))
+        let placed = try XCTUnwrap(appState.fog.lights.first)
+        XCTAssertEqual(placed.name, "Light 1")
+        XCTAssertEqual(placed.at, MapPoint(x: 120, y: 80))
+
+        var draft = EditLightDraft(light: placed)
+        draft.name = "trapped brazier"
+        draft.brightSquares = 6
+        appState.updateLight(id: placed.id, with: draft)
+
+        XCTAssertEqual(appState.fog.lights.first?.name, "trapped brazier")
+        XCTAssertEqual(appState.fog.lights.first?.brightSquares, 6)
+
+        appState.removeLight(id: placed.id)
+        XCTAssertTrue(appState.fog.lights.isEmpty)
+    }
+
+    /// A Creature placed mid-fight joins the Order, exactly as a Stamped Character does —
+    /// the summon case, which is why placement routes through `addPawnToMap`.
+    func testACreaturePlacedDuringAFightJoinsTheOrder() throws {
+        let appState = try loadedAppState()
+        let vex = Pawn(at: MapPoint(x: 20, y: 20), label: "Vex",
+                       colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        appState.fog.pawns = [vex]
+        appState.startEncounter()
+
+        let summon = try XCTUnwrap(AddPlacement.pawn(kind: .creature,
+                                                     at: MapPoint(x: 100, y: 100),
+                                                     existing: appState.fog.pawns,
+                                                     imageSize: CGSize(width: 400, height: 300)))
+        appState.addPawnToMap(summon)
+
+        XCTAssertTrue(appState.encounter?.order.contains(summon.id) ?? false,
+                      "a Creature summoned mid-fight never joined the Order")
+    }
+
+    /// And a Treasure does not, having nothing to do on its turn.
+    func testATreasurePlacedDuringAFightStaysOutOfTheOrder() throws {
+        let appState = try loadedAppState()
+        let vex = Pawn(at: MapPoint(x: 20, y: 20), label: "Vex",
+                       colorHex: Pawn.defaultColorHex, brightSquares: 6)
+        appState.fog.pawns = [vex]
+        appState.startEncounter()
+
+        let chest = try XCTUnwrap(AddPlacement.pawn(kind: .treasure,
+                                                    at: MapPoint(x: 100, y: 100),
+                                                    existing: appState.fog.pawns,
+                                                    imageSize: CGSize(width: 400, height: 300)))
+        appState.addPawnToMap(chest)
+
+        XCTAssertFalse(appState.encounter?.order.contains(chest.id) ?? true,
+                       "a Treasure was given a Turn")
+    }
+
     // MARK: Helpers
 
     private func loadedAppState() throws -> AppState {
