@@ -847,35 +847,38 @@ struct ControlView: View {
     @ViewBuilder
     private func measurementMenu(map: MapScale, frame: CGRect) -> some View {
         let target = liveHit(map: map, frame: frame)
+        let items = LiveMenu.items(target: target,
+                                   measurement: measurementUnderCursor(map: map, frame: frame),
+                                   availability: appState.measurementAvailability)
 
-        if let target {
+        if let target, items.editsTarget {
             Section {
                 Button("Edit…") { beginEditing(target) }
                 Button("Delete") { delete(target) }
             }
         }
 
-        // Pin/unpin replaces the shape list only when the cursor is over a Measurement and
-        // over nothing else: a Pawn standing inside a pinned circle is the Pawn's menu, and
-        // the shape list is what stays underneath.
-        if target == nil, let hit = measurementUnderCursor(map: map, frame: frame) {
-            switch hit {
-            case .pinned(let id):
-                Button("Unpin Measurement") { appState.unpinMeasurement(id: id) }
-            case .live:
-                Button("Pin Measurement") { appState.pinMeasurement() }
+        if let pin = items.pin {
+            Section {
+                switch pin {
+                case .unpin(let id):
+                    Button("Unpin Measurement") { appState.unpinMeasurement(id: id) }
+                case .pin:
+                    Button("Pin Measurement") { appState.pinMeasurement() }
+                }
             }
-        } else if appState.measurementAvailability == .available {
+        }
+
+        if items.shapesOffered {
             Section {
                 ForEach(MeasurementShape.allCases, id: \.self) { shape in
                     Button(shape.label) { startMeasurement(shape) }
                 }
             }
-        } else if case .disabled(let reason) = appState.measurementAvailability {
-            // A menu that is merely empty teaches the DM nothing, and they are reading it
-            // in front of players. Shown even over a Pawn, so "why can I not measure" is
-            // answered wherever the DM happens to have clicked.
-            Text(reason.explanation)
+        }
+
+        if let refusal = items.refusal {
+            Text(refusal.explanation)
         }
     }
 
@@ -915,7 +918,8 @@ struct ControlView: View {
                                gridPixels: gridPixels)
     }
 
-    private func measurementUnderCursor(map: MapScale, frame: CGRect) -> MeasurementHit? {
+    private func measurementUnderCursor(map: MapScale,
+                                        frame: CGRect) -> LiveMenu.MeasurementUnderCursor? {
         guard let cursor = mirrorCursor,
               let pixelsPerSquare = appState.pixelsPerSquare else { return nil }
         let point = PlayerPlacement.mapPoint(cursor, map: map, frame: frame)
@@ -935,11 +939,6 @@ struct ControlView: View {
             return .live
         }
         return nil
-    }
-
-    private enum MeasurementHit {
-        case live
-        case pinned(Measurement.ID)
     }
 
     /// Arm `Add` and wait for the click that says where.
