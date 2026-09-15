@@ -72,3 +72,57 @@ final class LiveViewZoomUITests: XCTestCase {
                        "the same button did not put the rectangle away")
     }
 }
+
+/// The switch that decides whether the table sees a Measurement.
+///
+/// Driven through the real window because the interesting part is that it appears only once
+/// there is a Measurement to hide — a `@ViewBuilder` condition no unit test reaches.
+final class MeasurementVisibilityUITests: XCTestCase {
+    private func fixturePNG() throws -> URL {
+        let size = NSSize(width: 1200, height: 900)
+        let image = NSImage(size: size)
+        image.lockFocus()
+        NSColor.darkGray.setFill()
+        NSRect(origin: .zero, size: size).fill()
+        image.unlockFocus()
+        let rep = NSBitmapImageRep(cgImage: image.cgImage(forProposedRect: nil, context: nil,
+                                                          hints: nil)!)
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("measure-vis-\(UUID().uuidString).png")
+        try rep.representation(using: .png, properties: [:])!.write(to: url)
+        return url
+    }
+
+    func testTheSwitchAppearsOnlyOnceThereIsAMeasurement() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
+                               "--test-player-screen", "--test-fresh-preferences"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Edit Fog…"].waitForExistence(timeout: 5))
+
+        // A `.checkbox` Toggle publishes as a checkBox, addressed by the identifier rather
+        // than the label — the role-and-label mistake this suite has made three times.
+        let visibility = app.checkBoxes["measurement-visibility-switch"]
+        XCTAssertFalse(visibility.exists,
+                       "the switch is offered with no Measurement to hide")
+
+        // Right-click arms a shape; the left-click after it places the Origin, and a second
+        // settles the distance. See the `measurement` spec.
+        let window = app.windows["control"]
+        let point = window.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.7))
+        point.rightClick()
+        let circle = app.menuItems["Circle"]
+        XCTAssertTrue(circle.waitForExistence(timeout: 3), "no shape menu on right-click")
+        circle.click()
+        point.click()
+
+        XCTAssertTrue(visibility.waitForExistence(timeout: 3),
+                      "no switch once a Measurement is on the Map")
+        XCTAssertEqual(visibility.value as? Int, 1,
+                       "the table should see Measurements by default — ADR-0005")
+
+        visibility.click()
+        XCTAssertEqual(app.checkBoxes["measurement-visibility-switch"].value as? Int, 0,
+                       "the switch did not turn off")
+    }
+}
