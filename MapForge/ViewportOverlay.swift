@@ -30,8 +30,13 @@ struct ViewportOverlay: View {
                           height: viewportSizeInches.height * scale)
 
         Rectangle()
-            .fill(Color.white.opacity(0.08))
-            .overlay(Rectangle().stroke(Color.white, lineWidth: 2).shadow(radius: 1))
+            // Green, not white. A battle map is mostly greys and browns with white
+            // highlights, and a white rectangle over one is a shape the DM has to hunt for;
+            // green is the one hue that reads as an instrument rather than as part of the
+            // artwork. It matches the Wall Editor's snap indicator, which is green for the
+            // same reason.
+            .fill(Color.green.opacity(0.12))
+            .overlay(Rectangle().stroke(Color.green, lineWidth: 2).shadow(radius: 1))
             .frame(width: rect.width, height: rect.height)
             .contentShape(Rectangle())
             .gesture(dragGesture)
