@@ -79,8 +79,12 @@ struct PlayerView: View {
                     //
                     // Above the tokens, and not gated on the Fog Overlay: the DM drew this
                     // to be seen, and darkness hiding it would defeat the point.
+                    //
+                    // Gated instead on `playerMeasurements`, the DM's own switch — a
+                    // Measurement taken to plan a monster's next move is not one they drew
+                    // to be seen. See `AppState.showsMeasurementsToPlayers`.
                     if let pixelsPerSquare = appState.pixelsPerSquare {
-                        ForEach(appState.drawableMeasurements, id: \.measurement.id) {
+                        ForEach(appState.playerMeasurements, id: \.measurement.id) {
                             MeasurementLayer(measurement: $0.measurement, origin: $0.origin,
                                              map: map, frame: frame,
                                              pixelsPerSquare: pixelsPerSquare)

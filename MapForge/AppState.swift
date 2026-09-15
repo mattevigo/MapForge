@@ -523,6 +523,32 @@ final class AppState: ObservableObject {
     /// One list so both screens draw from the same answer — two lists is how the Control
     /// Window and the Player Display drift, which is the divergence `PawnToken` and
     /// `PlayerVisibility.showsToPlayers` exist to prevent.
+    /// Whether the Player Display draws the DM's Measurements.
+    ///
+    /// ADR-0005 put them there and argued it well: a Measurement answers a question the
+    /// players are the ones asking, and one only the DM can see answers it for the person
+    /// who could already estimate it. That holds for the Measurement taken *for* the table.
+    ///
+    /// It does not hold for the one a DM takes for themselves — how far the ogre reaches
+    /// next turn, whether the ambush is in range — where the distance is precisely the
+    /// tactical fact they are deciding whether to reveal. The ADR considered "DM-only" and
+    /// rejected it as a global rule, which it still is; this makes it a per-moment choice
+    /// instead, defaulting to shown so the ADR's case stays the one that needs no action.
+    ///
+    /// Live, like the Fog Overlay's switch beside it, and never persisted: it is a decision
+    /// about the moment, not about the Map.
+    @Published var showsMeasurementsToPlayers = true
+
+    /// What the **Player Display** draws: the DM's Measurements, or none of them.
+    ///
+    /// Separate from `drawableMeasurements` rather than filtered at the view, so the two
+    /// screens cannot drift — the same reason `PlayerVisibility.showsToPlayers` is one
+    /// function (ADR-0004). Hiding is about what the table is shown; the DM keeps their own
+    /// either way, because they asked the question and the answer is still theirs.
+    var playerMeasurements: [(measurement: Measurement, origin: MapPoint)] {
+        showsMeasurementsToPlayers ? drawableMeasurements : []
+    }
+
     var drawableMeasurements: [(measurement: Measurement, origin: MapPoint)] {
         var drawable = pinnedMeasurements.compactMap { pinned -> (Measurement, MapPoint)? in
             guard let origin = pinned.originPoint(pawnAt: { id in

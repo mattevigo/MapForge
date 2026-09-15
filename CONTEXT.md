@@ -129,7 +129,7 @@ The dot drawn where a Light stands, so the source of a lit region can be seen ra
 _Avoid_: light source, torch icon, lamp, emitter dot
 
 **Measurement**:
-A distance the DM asks about mid-play, drawn on the Map as a shape from an Origin and labelled with its length. One is being taken at a time; any number can be **Pinned** alongside it. Never persisted — a question asked during a turn, like Solo Sight rather than like a Wall.
+A distance the DM asks about mid-play, drawn on the Map as a shape from an Origin and labelled with its length. One is being taken at a time; any number can be **Pinned** alongside it. Never persisted — a question asked during a turn, like Solo Sight rather than like a Wall. The table sees it by default, because it usually answers a question the players asked; a switch on the Control Window withholds it for the kind a DM takes for themselves, where the distance is the tactical fact they are deciding whether to reveal. The DM sees their own either way.
 _Avoid_: measure, ruler, template, marker
 
 **Pinned**:

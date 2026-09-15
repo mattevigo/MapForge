@@ -265,6 +265,8 @@ struct ControlView: View {
 
             fogSwitch
 
+            measurementVisibilitySwitch
+
             HStack(alignment: .top, spacing: 12) {
                 preview
                 livePanel
@@ -1346,9 +1348,30 @@ struct ControlView: View {
             : "Solo Sight: show the Map as \(pawn.label) alone lights it."
     }
 
-    /// The Fog Overlay's off switch: one control, always reachable, no mode to enter.
-    /// It stays inline rather than joining the side panel because it governs the whole
-    /// Map rather than any one thing in the list.
+    /// Whether the table sees the DM's Measurements.
+    ///
+    /// Beside the Fog switch because it is the same kind of control: a live decision about
+    /// what the Player Display shows, taken mid-session and never persisted. Shown only once
+    /// there is a Measurement to hide, for the same reason the Fog switch waits for fog —
+    /// a control for something that does not exist yet is noise on a window the DM reads in
+    /// front of players.
+    ///
+    /// Default on: ADR-0005 makes the case that the table should see a Measurement, and that
+    /// is the common one. This is the escape for the other kind — the distance a DM takes for
+    /// themselves, where the number is the tactical fact they are deciding whether to reveal.
+    @ViewBuilder
+    private var measurementVisibilitySwitch: some View {
+        if appState.measurement != nil || !appState.pinnedMeasurements.isEmpty {
+            Toggle("Show measurements to players",
+                   isOn: $appState.showsMeasurementsToPlayers)
+                .toggleStyle(.checkbox)
+                // A stable handle for the UI tests, as the Fog switch carries: addressing a
+                // control by its rendered label is what goes stale first.
+                .accessibilityIdentifier("measurement-visibility-switch")
+                .help("Off, the shape and its distance stay on this window only.")
+        }
+    }
+
     @ViewBuilder
     private var fogSwitch: some View {
         if !appState.fog.walls.isEmpty || !appState.fog.lights.isEmpty
