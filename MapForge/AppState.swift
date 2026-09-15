@@ -214,12 +214,31 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Test seam: UI tests load a map via `--test-map <path> [--test-squares N]`,
+    /// The value of a `--flag=value` launch argument, or nil when it was not passed.
+    ///
+    /// **The `=` is load-bearing, and it is why the UI suite runs at all.** The seams below
+    /// were once spelled `--test-map <path>`, two arguments — and a bare argument, one that
+    /// does not begin with `-`, is not a value as far as AppKit is concerned: it is a
+    /// *document to open*. `NSApplication` takes the path, finds no handler for it, and the
+    /// app finishes launching having opened nothing and shown nothing. No window, no crash,
+    /// no log line. Every UI test then sat waiting five seconds for a control on a window
+    /// that was never going to exist, which is the "MapForgeUITests hangs" this app carried
+    /// for months.
+    ///
+    /// Keeping the value welded to its flag keeps every argument flag-shaped, so AppKit reads
+    /// none of them as a document. Anything added here must keep that shape.
+    static func launchArgumentValue(_ flag: String) -> String? {
+        CommandLine.arguments
+            .first { $0.hasPrefix("\(flag)=") }
+            .map { String($0.dropFirst(flag.count + 1)) }
+    }
+
+    /// Test seam: UI tests load a map via `--test-map=<path> [--test-squares=N]`,
     /// bypassing the open panel (NSOpenPanel can't be driven from XCUITest), and pick
-    /// the Player Display via `--test-player-screen auto`.
+    /// the Player Display via `--test-player-screen`.
     /// Opens the Workspace a UI test asked for, so the picker sheet never blocks the suite.
     ///
-    /// Two flags, because the tests split in two. `--test-workspace <path>` names one, for the
+    /// Two flags, because the tests split in two. `--test-workspace=<path>` names one, for the
     /// tests that exercise Workspaces themselves. `--test-fresh-preferences` — which already
     /// existed to keep a developer's remembered Player Display out of the suite — additionally
     /// adopts a throwaway Workspace in a temp directory, so the many tests that do not care
@@ -230,8 +249,8 @@ final class AppState: ObservableObject {
     func openWorkspaceFromLaunchArgumentsIfPresent() {
         let args = CommandLine.arguments
 
-        if let index = args.firstIndex(of: "--test-workspace"), args.indices.contains(index + 1) {
-            let url = URL(fileURLWithPath: args[index + 1])
+        if let path = Self.launchArgumentValue("--test-workspace") {
+            let url = URL(fileURLWithPath: path)
             if let workspace = try? WorkspaceStore().adopt(url) { open(workspace) }
             return
         }
@@ -260,14 +279,13 @@ final class AppState: ObservableObject {
             let away = NSScreen.screens.first { $0 != controlScreen }
             chosenDisplay = (away ?? NSScreen.screens.first)?.displayIdentity
         }
-        guard let idx = args.firstIndex(of: "--test-map"), args.indices.contains(idx + 1) else { return }
-        let url = URL(fileURLWithPath: args[idx + 1])
+        guard let path = Self.launchArgumentValue("--test-map") else { return }
+        let url = URL(fileURLWithPath: path)
         guard let image = NSImage(contentsOf: url) else { return }
         loadMap(image: image, at: url)
         // After loadMap, which clears the declaration for the incoming Map: a test that
         // passes --test-squares has declared this Map's Grid.
-        if let sIdx = args.firstIndex(of: "--test-squares"), args.indices.contains(sIdx + 1),
-           let squares = Double(args[sIdx + 1]) {
+        if let squares = Self.launchArgumentValue("--test-squares").flatMap(Double.init) {
             squaresWide = squares
         }
     }

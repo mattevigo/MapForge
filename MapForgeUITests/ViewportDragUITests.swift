@@ -33,8 +33,8 @@ final class ViewportDragUITests: XCTestCase {
     private func launchApp(squares: Double, pixelsWide: Int, pixelsHigh: Int) throws -> XCUIApplication {
         let map = try fixturePNG(pixelsWide: pixelsWide, pixelsHigh: pixelsHigh)
         let app = XCUIApplication()
-        app.launchArguments = ["--test-map", map.path, "--test-squares", String(squares),
-                               "--test-player-screen", "auto",
+        app.launchArguments = ["--test-map=\(map.path)", "--test-squares=\(squares)",
+                               "--test-player-screen",
                                "--test-fresh-preferences"]
         app.launch()
         return app

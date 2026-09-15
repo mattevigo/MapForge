@@ -40,8 +40,8 @@ final class InitiativeTrackerUITests: XCTestCase {
     /// A Map with two Pawns on it and the Combat tab showing.
     private func launchWithCombatants() throws -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["--test-map", try fixturePNG().path, "--test-squares", "30",
-                               "--test-player-screen", "auto", "--test-fresh-preferences"]
+        app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
+                               "--test-player-screen", "--test-fresh-preferences"]
         app.launch()
 
         // Two Pawns, placed in the fog editing mode as the Pawns tool does.
@@ -125,8 +125,8 @@ final class InitiativeTrackerUITests: XCTestCase {
 
     func testThePlayButtonIsUnavailableWithNobodyToFight() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--test-map", try fixturePNG().path, "--test-squares", "30",
-                               "--test-player-screen", "auto", "--test-fresh-preferences"]
+        app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
+                               "--test-player-screen", "--test-fresh-preferences"]
         app.launch()
         // A Light, so the panel appears at all, but no Pawn to take a Turn.
         app.buttons["Edit Fog…"].click()

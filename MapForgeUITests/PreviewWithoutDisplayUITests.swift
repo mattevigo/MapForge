@@ -1,6 +1,6 @@
 // Whether the DM can see their own party with nothing plugged in.
 //
-// Every other UI test in this suite launches with `--test-player-screen auto`, which is why
+// Every other UI test in this suite launches with `--test-player-screen`, which is why
 // none of them caught `.scratch/pawns-not-drawn/`: the preview has two branches, the live
 // layers were built on the branch that needs a Player Display, and every test asked for a
 // Player Display. A DM prepping on a laptop got the other branch and saw bare artwork.
@@ -44,7 +44,7 @@ final class PreviewWithoutDisplayUITests: XCTestCase {
     private func launchWithoutADisplay() throws -> XCUIApplication {
         let map = try fixture()
         let app = XCUIApplication()
-        app.launchArguments = ["--test-map", map.path, "--test-squares", "30",
+        app.launchArguments = ["--test-map=\(map.path)", "--test-squares=30",
                                "--test-fresh-preferences"]
         app.launch()
         return app

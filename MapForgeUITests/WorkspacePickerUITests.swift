@@ -2,7 +2,7 @@ import XCTest
 
 /// The launch gate.
 ///
-/// Every test here passes a temp folder via `--test-workspace` or lets
+/// Every test here passes a temp folder via `--test-workspace=` or lets
 /// `--test-fresh-preferences` adopt a throwaway one. Neither may ever resolve to a folder the
 /// developer actually uses: a UI test that opened a real Workspace would edit a real roster.
 final class WorkspacePickerUITests: XCTestCase {
@@ -25,7 +25,7 @@ final class WorkspacePickerUITests: XCTestCase {
         let app = XCUIApplication()
         var args = ["--test-fresh-preferences"]
         if let workspace {
-            args += ["--test-workspace", workspace.path]
+            args.append("--test-workspace=\(workspace.path)")
         }
         app.launchArguments = args
         app.launch()

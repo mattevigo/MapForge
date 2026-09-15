@@ -29,8 +29,8 @@ final class FogEditingUITests: XCTestCase {
     private func launchApp() throws -> XCUIApplication {
         let map = try fixturePNG(pixelsWide: 1200, pixelsHigh: 900)
         let app = XCUIApplication()
-        app.launchArguments = ["--test-map", map.path, "--test-squares", "30",
-                               "--test-player-screen", "auto",
+        app.launchArguments = ["--test-map=\(map.path)", "--test-squares=30",
+                               "--test-player-screen",
                                "--test-fresh-preferences"]
         app.launch()
         return app
