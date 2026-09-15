@@ -1,6 +1,6 @@
 # 05 — Delete from the Live View
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 02
 
 `Delete` in the right-click menu removes a Pawn or a Light. Not a new convenience — `01`

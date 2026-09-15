@@ -1,6 +1,6 @@
 # 04 — Add: the armed placement
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 01, 03
 
 An `Add` control in the Control Window chrome offers **Light**, **Player**, **Creature**,

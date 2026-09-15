@@ -1,6 +1,6 @@
 # 03 — The Edit Pawn and Edit Light sheets
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 01
 
 Two modal sheets. `Edit Pawn`: label, colour, Kind, Big, sight. `Edit Light`: name, bright

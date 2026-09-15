@@ -1,6 +1,6 @@
 # 01 — The Wall Editor loses its tools
 
-Status: ready-for-agent
+Status: ready-for-human
 
 The fog-editing mode authors Walls and nothing else. Pawns and Light Markers stay drawn in it
 for reference — a Wall is traced against the room its tokens stand in — but are inert.

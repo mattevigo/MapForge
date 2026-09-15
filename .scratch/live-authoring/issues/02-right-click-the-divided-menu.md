@@ -1,6 +1,6 @@
 # 02 — Right-click on a Pawn or a Light: the divided menu
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 01
 
 Right-click on a Pawn or a Light Marker in the Live View opens one menu: `Edit…` and `Delete`
