@@ -72,6 +72,10 @@ _Avoid_: token, miniature, figure, character, marker
 The Control Window's ordinary state: the Map as the table sees it, with Pawns, Light Markers, the Fog Overlay tint and Measurements drawn over it. Everything a DM does to a Pawn or a Light happens here — adding, editing, moving, deleting — because there is no moment in a session when the DM wants to leave the table's view to change a token. Mirrors the Player Display when one is attached, and falls back to the whole Map fitted when none is.
 _Avoid_: preview, preview mode, normal mode, play mode
 
+**Magnifier**:
+The Live View's private zoom: the DM looks closer at the mirror without the Viewport moving, so the Player Display keeps showing exactly what it showed. It cannot zoom out past the mirror or pan outside it — the mirror's promise is that it shows what the table sees, and a Magnifier that showed more would break it. Distinct from panning the Viewport, which is a deliberate act the table watches. Never persisted, and it says on screen when it is on.
+_Avoid_: zoom, preview zoom, magnification
+
 **Wall Editor**:
 The prep-time mode for tracing Walls, entered deliberately and left again. It is the one place Wall geometry can be authored, and the only thing it authors: Pawns and Light Markers are drawn in it for reference — a Wall is traced against the room its tokens stand in — but cannot be selected, moved or edited there. Its edits are undoable, unlike the Live View's, because tracing is slow precise work and a misplaced vertex is a mistake rather than a move.
 _Avoid_: fog editor, edit fog, fog mode, authoring mode
