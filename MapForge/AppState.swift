@@ -590,6 +590,53 @@ final class AppState: ObservableObject {
             name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : name
     }
 
+    // MARK: Editing in the Live View
+    //
+    // Adding, editing and deleting a Pawn or a Light, from the right-click menu and the Add
+    // button — the only place any of it happens now (ADR-0013). All of it live, beside
+    // `movePawn` and `stamp` rather than beside the Wall Editor's `FogEdits`: **not
+    // undoable**, because a live performance action does not belong in an authoring undo
+    // stack, and the sheets' Cancel is the escape instead.
+
+    /// Apply the Edit Pawn sheet's fields. One write for the whole sheet, so a cancelled
+    /// sheet leaves nothing behind.
+    func updatePawn(id: Pawn.ID, with draft: EditPawnDraft) {
+        guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
+        fog.pawns[index] = draft.applied(to: fog.pawns[index])
+        // A Treasure has nothing to do on its turn (`CONTEXT.md`, **Combatant**), so a
+        // Combatant edited into one leaves the Order — the same removal deleting it does.
+        // The Log keeps naming it, which is the rule for any Pawn that stops being one.
+        if fog.pawns[index].kind == .treasure {
+            benchCombatant(id)
+        }
+        flushPendingFogWrites()
+    }
+
+    /// Apply the Edit Light sheet's fields.
+    func updateLight(id: Light.ID, with draft: EditLightDraft) {
+        guard let index = fog.lights.firstIndex(where: { $0.id == id }) else { return }
+        fog.lights[index] = draft.applied(to: fog.lights[index])
+        flushPendingFogWrites()
+    }
+
+    /// Place a new Light. The only way one is created — there is no roster to stamp from,
+    /// the way a Pawn has.
+    func addLight(_ light: Light) {
+        fog.lights.append(light)
+        flushPendingFogWrites()
+    }
+
+    /// Delete a Light. No confirmation: a live action the DM can simply repeat.
+    ///
+    /// Nothing holds a `Light.ID` the way Solo Sight and a Measurement hold a `Pawn.ID`, so
+    /// unlike `removePawnFromMap` this has nothing to invalidate — `litRegions` recomputes
+    /// from `fog`, and the roster row goes with the Light.
+    func removeLight(id: Light.ID) {
+        guard fog.lights.contains(where: { $0.id == id }) else { return }
+        fog.lights.removeAll { $0.id == id }
+        flushPendingFogWrites()
+    }
+
     // MARK: The Party
 
     /// Stamp a Character onto the Map at a drop point on the mirror.

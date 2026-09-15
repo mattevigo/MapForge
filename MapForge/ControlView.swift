@@ -4,6 +4,11 @@ struct ControlView: View {
     @EnvironmentObject private var appState: AppState
 
     @State private var mode: PreviewMode = .normal
+    /// The Pawn or Light being edited in a sheet, or nil when none is.
+    ///
+    /// One optional rather than two, because at most one sheet is ever up: the DM reached it
+    /// from one right-click on one thing.
+    @State private var editing: EditTarget?
     @State private var fitSquare: GridFitSquare?
     @State private var squaresWideBeforeFit: Double = 0
     /// Whether the Grid was already declared when Grid Fit started. Entering Grid Fit
@@ -58,6 +63,22 @@ struct ControlView: View {
 
     /// Which row the Combat tab's Stat Block editor is pointed at.
     @State private var selectedCombatant: Pawn.ID?
+
+    /// What an open Edit sheet is pointed at, with the draft it is editing.
+    ///
+    /// Carries the draft rather than re-seeding from `appState` on each redraw: the sheet
+    /// buffers, so the half-typed state has to live somewhere that a redraw does not reset.
+    private enum EditTarget: Equatable, Identifiable {
+        case pawn(Pawn.ID, EditPawnDraft)
+        case light(Light.ID, EditLightDraft)
+
+        var id: UUID {
+            switch self {
+            case .pawn(let id, _): id
+            case .light(let id, _): id
+            }
+        }
+    }
 
     /// Renaming an existing Party, or naming a new one. A sum type rather than a name plus a
     /// flag, because the two resolve differently and only one of them has an id.
@@ -222,6 +243,20 @@ struct ControlView: View {
             WorkspacePickerView(isSwitching: appState.workspace != nil)
                 .environmentObject(appState)
                 .interactiveDismissDisabled(appState.workspace == nil)
+        }
+        .sheet(item: $editing) { target in
+            switch target {
+            case .pawn(let id, let draft):
+                EditPawnSheet(draft: draft,
+                              hasDeclaredGrid: appState.hasDeclaredGrid,
+                              onCommit: { appState.updatePawn(id: id, with: $0); editing = nil },
+                              onCancel: { editing = nil })
+            case .light(let id, let draft):
+                EditLightSheet(draft: draft,
+                               hasDeclaredGrid: appState.hasDeclaredGrid,
+                               onCommit: { appState.updateLight(id: id, with: $0); editing = nil },
+                               onCancel: { editing = nil })
+            }
         }
         .alert("End the encounter and switch workspace?",
                isPresented: $confirmSwitchEndsEncounter) {
@@ -726,19 +761,34 @@ struct ControlView: View {
                                             distance: 0, direction: 0))
     }
 
-    /// The shapes offered by the right-click menu. Picking one arms the tool; the next
-    /// left-click says where the Measurement starts.
+    /// The right-click menu on the Live View: what to do with whatever is under the cursor,
+    /// then what to measure.
     ///
-    /// The menu replaced a picker in the window chrome: choosing the shape belongs where
-    /// the DM is already pointing, not at the top of the window, and a menu keeps the whole
-    /// interaction on the Map. `.contextMenu` is a modifier rather than a composed gesture,
-    /// so it does not run into the composition defects this render layer has a record of.
-    /// Right-clicking *on* a Measurement offers to pin or unpin that one instead — the
-    /// menu is about whatever is under the cursor, and over a shape that is the shape
-    /// rather than the Map.
+    /// One menu with a divider rather than two menus. `Edit…` and `Delete` act on the Pawn
+    /// or Light under the cursor and are absent when there is none; the Measurement section
+    /// is always offered, because a DM right-clicking a Pawn may well have meant to measure
+    /// from it, and hiding the shapes there would make the menu's contents depend on
+    /// aim in a way they cannot see.
+    ///
+    /// Left-click is not available for this. It is already the Pawn drag (`PawnLayer`) and,
+    /// while a shape is armed, the Measurement state machine. `.contextMenu` is a modifier
+    /// rather than a composed gesture, so it avoids the composition defects this render
+    /// layer has a record of.
     @ViewBuilder
     private func measurementMenu(map: MapScale, frame: CGRect) -> some View {
-        if let hit = measurementUnderCursor(map: map, frame: frame) {
+        let target = liveHit(map: map, frame: frame)
+
+        if let target {
+            Section {
+                Button("Edit…") { beginEditing(target) }
+                Button("Delete") { delete(target) }
+            }
+        }
+
+        // Pin/unpin replaces the shape list only when the cursor is over a Measurement and
+        // over nothing else: a Pawn standing inside a pinned circle is the Pawn's menu, and
+        // the shape list is what stays underneath.
+        if target == nil, let hit = measurementUnderCursor(map: map, frame: frame) {
             switch hit {
             case .pinned(let id):
                 Button("Unpin Measurement") { appState.unpinMeasurement(id: id) }
@@ -746,19 +796,55 @@ struct ControlView: View {
                 Button("Pin Measurement") { appState.pinMeasurement() }
             }
         } else if appState.measurementAvailability == .available {
-            ForEach(MeasurementShape.allCases, id: \.self) { shape in
-                Button(shape.label) { startMeasurement(shape) }
+            Section {
+                ForEach(MeasurementShape.allCases, id: \.self) { shape in
+                    Button(shape.label) { startMeasurement(shape) }
+                }
             }
         } else if case .disabled(let reason) = appState.measurementAvailability {
             // A menu that is merely empty teaches the DM nothing, and they are reading it
-            // in front of players.
+            // in front of players. Shown even over a Pawn, so "why can I not measure" is
+            // answered wherever the DM happens to have clicked.
             Text(reason.explanation)
         }
     }
 
-    /// Which Measurement the cursor is over, if any. Pinned ones are checked first: they
-    /// are drawn underneath, but they are also the ones the DM is reaching for — the live
-    /// shape is still under the pointer by other means.
+    /// Open the Edit sheet on whatever the menu was opened over.
+    ///
+    /// Seeds the draft here, from the object as it stands now — the sheet edits a copy and
+    /// commits it whole, so nothing reaches `AppState` until OK.
+    private func beginEditing(_ target: LiveHitTest) {
+        switch target {
+        case .pawn(let id):
+            guard let pawn = appState.fog.pawns.first(where: { $0.id == id }) else { return }
+            editing = .pawn(id, EditPawnDraft(pawn: pawn))
+        case .light(let id):
+            guard let light = appState.fog.lights.first(where: { $0.id == id }) else { return }
+            editing = .light(id, EditLightDraft(light: light))
+        }
+    }
+
+    /// Delete whatever the menu was opened over. No confirmation: a live action, and a
+    /// dialog in the middle of a fight costs more than the mistake does.
+    private func delete(_ target: LiveHitTest) {
+        switch target {
+        case .pawn(let id): appState.removePawnFromMap(id)
+        case .light(let id): appState.removeLight(id: id)
+        }
+    }
+
+    /// The Pawn or Light under the cursor, if any.
+    ///
+    /// Reads the cursor from `mirrorCursor` rather than from the `NSEvent`: a right-click
+    /// event carries no location this view can use, and `RightClick.swift` records why.
+    private func liveHit(map: MapScale, frame: CGRect) -> LiveHitTest? {
+        guard let cursor = mirrorCursor else { return nil }
+        return LiveHitTest.hit(at: PlayerPlacement.mapPoint(cursor, map: map, frame: frame),
+                               pawns: appState.fog.pawns,
+                               lights: appState.fog.lights,
+                               gridPixels: gridPixels)
+    }
+
     private func measurementUnderCursor(map: MapScale, frame: CGRect) -> MeasurementHit? {
         guard let cursor = mirrorCursor,
               let pixelsPerSquare = appState.pixelsPerSquare else { return nil }
