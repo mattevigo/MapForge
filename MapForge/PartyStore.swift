@@ -1,9 +1,10 @@
 import Foundation
 
-/// Reads and writes the DM's Parties as `parties.json` in Application Support.
+/// Reads and writes the DM's Parties as `parties.json` in a Workspace's `.mapforge/`.
 ///
-/// App state, not Map state: a campaign's cast outlives the Map a session happens to be run
-/// on, so it cannot live in a `.fog.json` sidecar. See ADR 0007.
+/// Not Map state: a cast outlives the Map a session happens to be run on, so it cannot live
+/// in a `.fog.json` sidecar (ADR-0007). Not machine state either, since ADR-0011 — the
+/// directory is the open Workspace's, which is why there is no default for it.
 ///
 /// The rules are `FogStore`'s, for the same reason — a roster a DM typed in by hand is work
 /// that must never be silently lost. A missing file is normal, an unreadable file is reported
@@ -24,18 +25,7 @@ final class PartyStore {
     /// The last failure from `load`, for the UI to surface. Read after an empty return.
     private(set) var lastLoadFailure: UnreadableFile?
 
-    /// `~/Library/Application Support/MapForge`. The app is ad-hoc signed with no App
-    /// Sandbox, so this needs no security-scoped bookmark — the same footing `FogStore`
-    /// stands on.
-    static var defaultDirectory: URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory,
-                                            in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSHomeDirectory())
-                .appendingPathComponent("Library/Application Support")
-        return base.appendingPathComponent("MapForge")
-    }
-
-    init(directory: URL = PartyStore.defaultDirectory, fileManager: FileManager = .default) {
+    init(directory: URL, fileManager: FileManager = .default) {
         self.directory = directory
         self.fileManager = fileManager
     }

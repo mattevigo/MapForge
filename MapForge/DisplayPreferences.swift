@@ -1,21 +1,27 @@
 import Foundation
 
-/// App-level settings. The app's first persistence of any kind.
+/// What this **machine** knows, as opposed to what a Workspace knows.
+///
+/// ADR-0012 draws the line: `.mapforge/` travels with the game, `UserDefaults` stays with the
+/// Mac. The active Party and the Player Display choice moved into `WorkspaceSettings`, so what
+/// is left here is state that cannot travel — which Workspaces this Mac has opened, and, when
+/// it is built, Calibration keyed by `DisplayIdentity`. Calibration is a ruler held against a
+/// physical screen: the same reading whichever game is open, and meaningless on another Mac.
 ///
 /// A named type rather than `@AppStorage` because the selection policy runs inside
-/// `AppState.presentIfPossible()`, which is not a view context. Shaped so issue 04's
-/// Calibration factor joins it keyed by the same `DisplayIdentity` — not built here.
+/// `AppState.presentIfPossible()`, which is not a view context.
 ///
-/// It began as per-display settings and now also remembers the active Party. The name is
-/// kept rather than churn every call site: what these have in common is that they are small
-/// choices a DM can remake with one click, which is exactly what distinguishes them from the
-/// authored data `FogStore` and `PartyStore` guard.
+/// The name is a holdover twice over — it holds no per-display setting at all until
+/// Calibration arrives. Kept rather than churn every call site, and because Calibration is
+/// what it is shaped for.
 final class DisplayPreferences {
     private enum Key {
-        static let playerDisplayUUID = "playerDisplayUUID"
-        static let playerDisplayName = "playerDisplayName"
-        static let activePartyID = "activePartyID"
+        static let recentWorkspaces = "recentWorkspaces"
     }
+
+    /// Enough to recognise a campaign in the picker, few enough to stay a list and not a
+    /// history.
+    static let recentsLimit = 20
 
     private let defaults: UserDefaults
 
@@ -31,6 +37,11 @@ final class DisplayPreferences {
     /// screen the test never asked for, the Control Window is relocated out from under it,
     /// and every control reports as "not hittable". The suite has to start from a machine
     /// that has never chosen a display, exactly as the unit tests do.
+    ///
+    /// It now also keeps the suite's *recent Workspaces* empty, which matters more: a test
+    /// inheriting the developer's list would open their real game folder and edit their real
+    /// roster. `AppState` pairs this with a throwaway Workspace — see
+    /// `openWorkspaceFromLaunchArgumentsIfPresent`.
     static var forThisLaunch: DisplayPreferences {
         guard CommandLine.arguments.contains("--test-fresh-preferences"),
               let suite = UserDefaults(suiteName: "MapForgeUITests.\(UUID().uuidString)")
@@ -38,32 +49,31 @@ final class DisplayPreferences {
         return DisplayPreferences(defaults: suite)
     }
 
-    /// The Player Display chosen in an earlier session, if any. The name is a label
-    /// only — matching is by UUID, so a renamed display still resolves.
-    var rememberedPlayerDisplay: DisplayIdentity? {
+    /// The Workspaces this Mac has opened, most recent first.
+    ///
+    /// The bootstrap pointer, and the one thing that cannot live inside a Workspace: it is how
+    /// the app finds one at all. Nothing is ever removed automatically — a folder on an
+    /// unplugged drive stays listed, so the DM sees an entry marked unavailable rather than a
+    /// campaign that has silently vanished.
+    var recentWorkspaces: [URL] {
         get {
-            guard let uuid = defaults.string(forKey: Key.playerDisplayUUID) else { return nil }
-            return DisplayIdentity(uuid: uuid,
-                                   name: defaults.string(forKey: Key.playerDisplayName) ?? "")
+            (defaults.array(forKey: Key.recentWorkspaces) as? [String] ?? [])
+                .map { URL(fileURLWithPath: $0) }
         }
-        set {
-            defaults.set(newValue?.uuid, forKey: Key.playerDisplayUUID)
-            defaults.set(newValue?.name, forKey: Key.playerDisplayName)
-        }
+        set { defaults.set(newValue.map(\.path), forKey: Key.recentWorkspaces) }
     }
 
-    /// The Party the Control Window offers, remembered across launches — a DM runs one
-    /// campaign per sitting, so the choice is made rarely and should not be remade daily.
-    ///
-    /// An ID rather than the Party itself: the roster lives in `PartyStore`, and duplicating
-    /// it here would give the app two answers to "what is this Party called". An ID naming a
-    /// Party that no longer exists resolves to nil at the point of use, not here — deleting a
-    /// Party must not have to reach into preferences to stay consistent.
-    var activePartyID: UUID? {
-        get {
-            guard let string = defaults.string(forKey: Key.activePartyID) else { return nil }
-            return UUID(uuidString: string)
-        }
-        set { defaults.set(newValue?.uuidString, forKey: Key.activePartyID) }
+    /// Moves a Workspace to the front of the list, deduplicating and capping.
+    func noteWorkspaceOpened(_ workspace: Workspace) {
+        var recents = recentWorkspaces.filter { Workspace(url: $0) != workspace }
+        recents.insert(workspace.url, at: 0)
+        recentWorkspaces = Array(recents.prefix(Self.recentsLimit))
+    }
+
+    /// Forgets a Workspace. The DM's gesture, never the app's: an unreachable folder stays
+    /// listed until they say otherwise.
+    func forgetWorkspace(_ url: URL) {
+        let target = Workspace(url: url)
+        recentWorkspaces = recentWorkspaces.filter { Workspace(url: $0) != target }
     }
 }

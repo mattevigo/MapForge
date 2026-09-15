@@ -1,6 +1,6 @@
 # 02 — Preferences split, and a roster that arrives late
 
-Status: ready-for-agent
+Status: done
 
 Depends on 01. Moves the Party roster and two preferences into the Workspace, and — the part
 that is more work than it sounds — makes `AppState` able to load a roster it does not have at

@@ -105,11 +105,22 @@ final class AppState: ObservableObject {
     /// Open for as long as an Encounter is running. Appends; never rewrites.
     var logWriter: CombatLogWriter?
 
-    /// The DM's Parties. App state, not Map state — a campaign's cast outlives the Map a
-    /// session is run on. Written straight through on every edit rather than debounced: a
-    /// roster changes when the DM types in it, which is nothing like drag-rate.
+    /// What the one-time migration did, for the picker to report. Nil when nothing happened,
+    /// which is every launch after the first.
+    @Published var migrationOutcome: WorkspaceMigration.Outcome?
+
+    /// The Workspace this session is running out of, or nil before the DM has picked one.
+    ///
+    /// The app is fully alive while this is nil — the Control Window exists behind the picker
+    /// sheet — so everything that reads the roster must tolerate its absence rather than
+    /// assume a Workspace was there at init.
+    @Published private(set) var workspace: Workspace?
+
+    /// The DM's Parties, as they stand in the open Workspace. Empty before one is open.
+    /// Written straight through on every edit rather than debounced: a roster changes when
+    /// the DM types in it, which is nothing like drag-rate.
     @Published private(set) var partyBook = PartyBook()
-    /// Which Party the panel offers. Remembered across launches.
+    /// Which Party the panel offers. Remembered in the Workspace, per ADR-0012.
     @Published private(set) var activePartyID: UUID?
     /// Set when the roster exists but could not be read.
     ///
@@ -128,8 +139,22 @@ final class AppState: ObservableObject {
 
     private let playerWindow = PlayerWindowController()
     private let preferences: DisplayPreferences
+    private let workspaceStore: WorkspaceStore
     private let fogStore: FogStore
-    private let partyStore: PartyStore
+    /// Nil until a Workspace is open: the roster's directory is the Workspace's, so there is
+    /// no store to have before the DM has chosen one.
+    private var partyStore: PartyStore?
+    private var workspacePreferences: WorkspacePreferencesStore?
+    /// The one-time move out of Application Support, or nil when this session must not
+    /// perform it.
+    ///
+    /// Nil by default and supplied only by `MapForgeApp`. The migration *deletes* the DM's
+    /// real roster from a real path, so it must never be something a session acquires by
+    /// omission — a test that constructs an `AppState` and opens a temp Workspace would
+    /// otherwise migrate and destroy the developer's own party. It did, once.
+    private let migration: WorkspaceMigration?
+    /// This Workspace's own settings, held in memory and written through on change.
+    private var settings = WorkspaceSettings()
     /// Recomputes Visibility only when the fog actually changes — never on a Viewport pan,
     /// which is drag-rate. See issue 05 and `VisibilityCache`.
     private let visibilityCache = VisibilityCache()
@@ -138,18 +163,25 @@ final class AppState: ObservableObject {
     private var closeObserver: NSObjectProtocol?
 
     init(preferences: DisplayPreferences = DisplayPreferences(),
+         workspaceStore: WorkspaceStore = WorkspaceStore(),
+         migration: WorkspaceMigration? = nil,
          fogStore: FogStore = FogStore(),
-         partyStore: PartyStore = PartyStore(),
+         partyStore: PartyStore? = nil,
          statsStore: StatsStore = StatsStore()) {
         self.preferences = preferences
+        self.workspaceStore = workspaceStore
+        self.migration = migration
         self.fogStore = fogStore
-        self.partyStore = partyStore
         self.statsStore = statsStore
-        // Read once at launch: the roster is small, changes only when the DM edits it here,
-        // and nothing else on the machine writes it.
-        partyBook = partyStore.load()
-        partyLoadFailure = partyStore.lastLoadFailure
-        activePartyID = preferences.activePartyID
+        // No roster is read here. Until the DM picks a Workspace there is no roster to read —
+        // which is the shape change this feature turns on, and the reason `partyStore` is a
+        // `var` and an Optional. Tests that pass one in get a Workspace-less session with a
+        // roster already wired, which is the old behaviour they were written against.
+        if let partyStore {
+            self.partyStore = partyStore
+            partyBook = partyStore.load()
+            partyLoadFailure = partyStore.lastLoadFailure
+        }
         fogAutosave = FogAutosave { [weak self] document in
             self?.writeFog(document)
         }
@@ -185,6 +217,32 @@ final class AppState: ObservableObject {
     /// Test seam: UI tests load a map via `--test-map <path> [--test-squares N]`,
     /// bypassing the open panel (NSOpenPanel can't be driven from XCUITest), and pick
     /// the Player Display via `--test-player-screen auto`.
+    /// Opens the Workspace a UI test asked for, so the picker sheet never blocks the suite.
+    ///
+    /// Two flags, because the tests split in two. `--test-workspace <path>` names one, for the
+    /// tests that exercise Workspaces themselves. `--test-fresh-preferences` — which already
+    /// existed to keep a developer's remembered Player Display out of the suite — additionally
+    /// adopts a throwaway Workspace in a temp directory, so the many tests that do not care
+    /// about Workspaces simply never see the sheet.
+    ///
+    /// Neither may ever resolve to a folder the developer actually uses. A UI test that opened
+    /// a real Workspace would edit a real roster.
+    func openWorkspaceFromLaunchArgumentsIfPresent() {
+        let args = CommandLine.arguments
+
+        if let index = args.firstIndex(of: "--test-workspace"), args.indices.contains(index + 1) {
+            let url = URL(fileURLWithPath: args[index + 1])
+            if let workspace = try? WorkspaceStore().adopt(url) { open(workspace) }
+            return
+        }
+
+        guard args.contains("--test-fresh-preferences") else { return }
+        let url = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("MapForgeUITests.\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        if let workspace = try? WorkspaceStore().adopt(url) { open(workspace) }
+    }
+
     func loadMapFromLaunchArgumentsIfPresent() {
         let args = CommandLine.arguments
         // Removes the "requires a connected Player Display" constraint: the tests pick a
@@ -222,7 +280,8 @@ final class AppState: ObservableObject {
     /// would engage here so the switch never flashes a Map at players (issue 07).
     func chooseDisplay(_ identity: DisplayIdentity) {
         chosenDisplay = identity
-        preferences.rememberedPlayerDisplay = identity
+        settings.playerDisplay = identity
+        writeSettings()
         presentIfPossible()
     }
 
@@ -572,6 +631,67 @@ final class AppState: ObservableObject {
         }.first
     }
 
+    // MARK: - The Workspace
+
+    /// Opens a Workspace: its roster, its settings, and the recents list.
+    ///
+    /// Everything read here was read at `init` before this feature, which is why it is a
+    /// method at all — the DM picks the folder after the window is on screen.
+    func open(_ workspace: Workspace) {
+        self.workspace = workspace
+
+        let store = PartyStore(directory: workspace.supportDirectory)
+        partyStore = store
+        partyBook = store.load()
+        // Set from *this* Workspace every time, failure or not. Before Workspaces the latch
+        // was set once at init and never cleared, which was safe when a process saw exactly
+        // one roster; now a process sees several, and a failure carried in from a previous
+        // Workspace would silently suppress writes in a healthy one. See issue 05.
+        partyLoadFailure = store.lastLoadFailure
+
+        let preferencesStore = WorkspacePreferencesStore(directory: workspace.supportDirectory)
+        workspacePreferences = preferencesStore
+        settings = preferencesStore.load()
+        activePartyID = settings.activePartyID
+        chosenDisplay = nil
+
+        preferences.noteWorkspaceOpened(workspace)
+        migration?.runIfNeeded(into: workspace) { [weak self] outcome in
+            self?.migrationOutcome = outcome
+            if case .migrated = outcome { self?.reloadRosterAfterMigration() }
+        }
+        presentIfPossible()
+    }
+
+    /// Closes the open Workspace, leaving the app alive with no roster — the state it launches
+    /// in. Switching Workspaces goes through here so nothing from the old one leaks into the
+    /// new one.
+    func closeWorkspace() {
+        workspace = nil
+        partyStore = nil
+        workspacePreferences = nil
+        partyBook = PartyBook()
+        partyLoadFailure = nil
+        activePartyID = nil
+        settings = WorkspaceSettings()
+        chosenDisplay = nil
+        playerWindow.hide()
+        playerScreen = nil
+    }
+
+    /// Re-reads the roster after a migration wrote one into a Workspace that had none.
+    private func reloadRosterAfterMigration() {
+        guard let partyStore else { return }
+        partyBook = partyStore.load()
+        partyLoadFailure = partyStore.lastLoadFailure
+        settings = workspacePreferences?.load() ?? settings
+        activePartyID = settings.activePartyID
+    }
+
+    private func writeSettings() {
+        workspacePreferences?.save(settings)
+    }
+
     /// How many of this Character's Pawns stand on the Map being run.
     func placedCount(of character: PartyCharacter) -> Int {
         PartyRoster.placedCount(of: character, among: fog.pawns)
@@ -600,7 +720,8 @@ final class AppState: ObservableObject {
 
     func setActiveParty(_ id: UUID?) {
         activePartyID = id
-        preferences.activePartyID = id
+        settings.activePartyID = id
+        writeSettings()
     }
 
     func addCharacter(_ character: PartyCharacter) {
@@ -629,7 +750,7 @@ final class AppState: ObservableObject {
         // by refusing to overwrite the bytes it failed to parse; here the refusal has to be
         // at the write, because an unreadable roster still leaves the app running with an
         // empty one that the DM may start typing into.
-        guard partyLoadFailure == nil else { return }
+        guard partyLoadFailure == nil, let partyStore else { return }
         do {
             try partyStore.save(partyBook)
         } catch {
@@ -800,7 +921,7 @@ final class AppState: ObservableObject {
         guard mapImage != nil,
               let chosen = PlayerScreenPolicy.resolve(candidates: displayCandidates,
                                                       explicit: chosenDisplay,
-                                                      remembered: preferences.rememberedPlayerDisplay),
+                                                      remembered: settings.playerDisplay),
               let screen = NSScreen.screens.first(where: { $0.displayIdentity?.uuid == chosen.identity.uuid })
         else {
             playerScreen = nil
