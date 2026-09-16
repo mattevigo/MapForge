@@ -115,6 +115,18 @@ final class AppState: ObservableObject {
     /// Open for as long as a Session is running. Appends; never rewrites.
     var sessionWriter: SessionLogWriter?
 
+    /// Bumped whenever a Line reaches disk, so an open Log View knows to re-read.
+    ///
+    /// A counter rather than the lines themselves: the file is the truth and the Session
+    /// deliberately holds none of it in memory (ADR-0016). Most appends change nothing else
+    /// that is `@Published` — a Comment leaves `session` exactly as it found it — so without
+    /// this a DM typing into the Comment Bar with the Log open would watch their own Comment
+    /// not appear.
+    @Published private(set) var sessionLineCount = 0
+
+    /// Called by `AppState+Session.swift` as it writes.
+    func noteSessionLineWritten() { sessionLineCount += 1 }
+
     /// What the one-time migration did, for the picker to report. Nil when nothing happened,
     /// which is every launch after the first.
     @Published var migrationOutcome: WorkspaceMigration.Outcome?

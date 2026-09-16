@@ -84,6 +84,17 @@ struct ControlView: View {
     /// `PanelTab`.
     @State private var panelTab: PanelTab = .scene
 
+    /// Whether the Log View has the Map's place.
+    ///
+    /// Its own state rather than a fourth `PreviewMode`: nothing about reading the evening is
+    /// exclusive with having Grid Fit armed, and a mode case would grow a branch saying "not
+    /// applicable" in every `switch` over the mode in this file. The Viewport set this
+    /// precedent — a toggle, not a mode.
+    @State private var showingLog = false
+
+    /// The evening as rows, rebuilt on every append. Empty until the Log View is opened.
+    @State private var logRows: [LogRow] = []
+
     /// Which row the Combat tab's Stat Block editor is pointed at.
     @State private var selectedCombatant: Pawn.ID?
 
@@ -331,6 +342,11 @@ struct ControlView: View {
             HStack(spacing: 8) {
                 modeControls
                 Spacer()
+                // The one row in this window with a free right edge, which is where the Log
+                // goes. It is Setup rather than Live because the line between the two
+                // toolbars is the audience: nothing here changes what is on the Player
+                // Display, and reading back over the evening is the DM's alone.
+                logToggle
             }
 
             // ONE reserved row, in every mode, whether or not it has anything to say.
@@ -373,15 +389,26 @@ struct ControlView: View {
             // The Session control sits here rather than beside the Workspace button because
             // starting an evening is a live act, not setup. It changes label, not height, so
             // the row's reserved height is unaffected.
-            HStack(spacing: 16) {
-                fogSwitch
-                measurementVisibilitySwitch
-                viewportToggle
-                Spacer()
-                sessionToggle
-            }
+            // Both the Live Toolbar and the Map give way to the Log View, and they give way
+            // together. Every switch in this row changes what the players are looking at, so
+            // a row of them above a pane that is not the Map would be a row of controls for
+            // something off screen — and a DM reaching for one has already decided to look at
+            // the Map again. That includes the Session control: stopping the evening is done
+            // where the evening is being run.
+            if !showingLog {
+                HStack(spacing: 16) {
+                    fogSwitch
+                    measurementVisibilitySwitch
+                    viewportToggle
+                    Spacer()
+                    sessionToggle
+                }
 
-            preview
+                preview
+            } else {
+                LogView(rows: logRows, hasWorkspace: appState.workspace != nil,
+                        hasSession: appState.session != nil)
+            }
 
             // The Comment Bar, beneath the Map and the width of the Map column — it used to
             // span the whole window, and followed the toolbars inward when the seam moved to
@@ -689,12 +716,16 @@ struct ControlView: View {
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
-            .disabled(appState.mapImage == nil)
+            // Disabled with the Log open along with the two beside it: all three act on a Map
+            // that is not on screen, and `Add` in particular would arm a click invisibly —
+            // the DM would close the Log to find a mode waiting that they had forgotten
+            // starting. The mode hint row says why they are off.
+            .disabled(appState.mapImage == nil || showingLog)
             .help("Pick what to add, then click the Map to place it. Esc cancels.")
             Button("Fit Grid…") { startGridFit() }
-                .disabled(appState.mapImage == nil)
+                .disabled(appState.mapImage == nil || showingLog)
             Button("Edit Fog…") { startFogEditing() }
-                .disabled(appState.mapImage == nil)
+                .disabled(appState.mapImage == nil || showingLog)
             // A "Zoomed — Reset" button used to appear here while magnified. Scrolling back
             // out reaches the same place: `PreviewTransform`'s zoom floor is fit-to-window,
             // so the Map returns to exactly the rect the button restored. The Magnifier
@@ -1227,11 +1258,15 @@ struct ControlView: View {
         "Click to place Wall corners, double-click to end a chain, Esc to cancel. ⇧ frees the angle; corners weld to nearby ends. Click a Wall then ⌫ to delete. Pawns and Lights are shown for reference — edit them from the map."
     static let viewportHint =
         "Drag the rectangle to choose what the Player Display shows."
+    /// The one text that answers "why can't I press Edit Fog", which is a question a greyed
+    /// button raises and cannot itself answer.
+    static let logViewHint =
+        "Reading the Session Log. Close it to edit the Map."
 
     /// Every hint the row can hold, so `ChromeHeightTests` can measure the tallest against
     /// the height reserved for it rather than trusting a number.
     static var everyModeHint: [String] {
-        [liveViewHint, gridFitHint, wallEditorHint, viewportHint]
+        [liveViewHint, gridFitHint, wallEditorHint, viewportHint, logViewHint]
     }
 
     /// What the reserved row says right now.
@@ -1240,10 +1275,13 @@ struct ControlView: View {
     /// rectangle is being told how to use the thing they armed, which is more urgent than
     /// the standing description of the surface.
     private var modeHint: String {
+        // The Log wins over every mode's own hint: it is the reason the buttons beside it are
+        // greyed, and a hint describing a surface that is not on screen explains nothing.
+        if showingLog { return Self.logViewHint }
         switch mode {
-        case .gridFit: Self.gridFitHint
-        case .fog: Self.wallEditorHint
-        case .normal: isShowingViewport ? Self.viewportHint : Self.liveViewHint
+        case .gridFit: return Self.gridFitHint
+        case .fog: return Self.wallEditorHint
+        case .normal: return isShowingViewport ? Self.viewportHint : Self.liveViewHint
         }
     }
 
@@ -1523,6 +1561,48 @@ struct ControlView: View {
         .help(appState.workspace == nil
               ? "A session records into the Workspace. Open one first."
               : "Record this evening's movements and comments.")
+    }
+
+    // MARK: The Log
+
+    /// Opens the Log View in the Map's place.
+    ///
+    /// Always enabled. Not gated on a Map — an evening belongs to the Workspace and needs no
+    /// Map (ADR-0015) — and not gated on a Session either: a disabled button teaches nothing,
+    /// where an empty state saying "press Start Session" teaches what fills it.
+    ///
+    /// Labelled "Log" rather than "Session Log" because this row's own comment warns to keep
+    /// it short, and there is nothing else in the window the word could mean. No ellipsis:
+    /// in this row it promises a Cancel/Done pair, which a toggle does not have.
+    private var logToggle: some View {
+        Toggle("Log", isOn: $showingLog)
+            .toggleStyle(.button)
+            .accessibilityIdentifier("log-toggle")
+            .help("Read back over this evening — comments, movements and every fight.")
+            .onChange(of: showingLog) { _, showing in
+                if showing { reloadLog() }
+            }
+            // Every Line that reaches disk, and every Turn of a live fight — which is held in
+            // memory and never touches `sessionLineCount`. Both are no-ops with the Log shut.
+            .onChange(of: appState.sessionLineCount) { _, _ in reloadLog() }
+            .onChange(of: appState.encounter) { _, _ in reloadLog() }
+    }
+
+    /// Rebuilds the evening's rows from the file.
+    ///
+    /// Wholesale on every append rather than incrementally: the `Session` keeps no lines in
+    /// memory — unlike `Encounter` — so the file is the truth, and a Session is a few hundred
+    /// lines. Caching finished Encounters is a later optimisation that changes no design
+    /// (ADR-0016).
+    private func reloadLog() {
+        guard showingLog,
+              let workspace = appState.workspace,
+              let url = appState.sessionLogURL else {
+            logRows = []
+            return
+        }
+        logRows = LogViewModel().rows(sessionLogAt: url, workspace: workspace,
+                                      liveEncounterLines: appState.encounter?.lines ?? [])
     }
 
     /// `hasEncounter` is read from the Session's own suspension rather than from

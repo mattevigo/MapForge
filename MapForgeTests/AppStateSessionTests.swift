@@ -311,6 +311,40 @@ final class AppStateSessionTests: XCTestCase {
                       "the evening ends on the record, not by being abandoned")
     }
 
+    /// ADR-0016. A bare file name cannot tell two `dungeon.png` apart, and resolving an
+    /// Encounter's Combat Log goes through this field.
+    func testALineNamesItsMapByWorkspaceRelativePath() throws {
+        let nested = directory.appendingPathComponent("maps/crypt", isDirectory: true)
+        try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
+
+        let state = makeAppState()
+        state.mapURL = nested.appendingPathComponent("dungeon.png")
+        state.startSession()
+        state.addComment("the door is stuck")
+
+        let lines = try SessionLogReader().read(at: try XCTUnwrap(state.sessionLogURL))
+        let map = lines.compactMap { line -> String?? in
+            if case let .comment(_, map, _, _) = line { return map } else { return nil }
+        }.first
+        XCTAssertEqual(map, "maps/crypt/dungeon.png",
+                       "two Maps of one name in different folders must be told apart")
+    }
+
+    /// Relative, never absolute: ADR-0012 keeps the Workspace portable, and an absolute path
+    /// is a path that rots the moment the folder is opened on another Mac.
+    func testAMapPathIsRelativeToTheWorkspaceAndNotAbsolute() throws {
+        let state = makeAppState()
+        state.startSession()
+        state.addComment("still here")
+
+        let lines = try SessionLogReader().read(at: try XCTUnwrap(state.sessionLogURL))
+        let map = lines.compactMap { line -> String?? in
+            if case let .comment(_, map, _, _) = line { return map } else { return nil }
+        }.first
+        XCTAssertEqual(map, "dungeon.png", "a Map at the Workspace root has a bare name")
+        XCTAssertFalse((map ?? "")?.hasPrefix("/") ?? false, "an absolute path would rot")
+    }
+
     func testSwitchingWorkspaceWouldEndASession() throws {
         let state = makeAppState()
         XCTAssertFalse(state.switchingWouldEndAnEncounter)
