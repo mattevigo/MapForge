@@ -1,6 +1,6 @@
 # Live Authoring — Pawns and Lights leave the Wall Editor
 
-Status: specced, not started
+Status: shipped to develop
 
 Every Pawn and every Light is added, edited, moved and deleted in the **Live View**. The
 fog-editing mode becomes the **Wall Editor** and authors Walls alone, with Pawns and Light
@@ -116,6 +116,31 @@ expect the real verification to be manual.
 
 `MapForgeUITests` still hangs and has never run — noted in the `fog-of-war` spec and not
 fixed here.
+
+## Status, 2026-09-16
+
+Merged to `develop`. 819 unit tests, and the UI suite at 27 of 28 — which had
+never run at all when this started.
+
+**What shipped beyond the five issues**, each from using it:
+
+- The **Magnifier**: the Live View had no zoom, and a UI test had been asserting
+  otherwise, unrun, for months.
+- The Viewport became a **toggle** rather than a mode, and its rectangle is now
+  permanent, green, and draggable only when armed.
+- The Live View shows the **whole Map**. It mirrored the Player Display until
+  then, which meant a DM could not see what was about to walk into the room, nor
+  place a Pawn outside the Viewport without panning there first — untenable once
+  placing things became this surface's job.
+- A **switch to withhold a Measurement** from the table, amending ADR-0005.
+- **One reserved hint row**, so the Map stops resizing on a mode change. The
+  codebase had a fix for that defect *within* the fog mode; nothing was watching
+  it across modes.
+
+**Two defects of my own**, both caught by using the app rather than by a test: a
+pinned Measurement under a Pawn could not be unpinned, and the preview lost its
+hit-testable shape when the mirror branch went, so the right-click menu stopped
+opening over the margins.
 
 ## What only a human can check
 
