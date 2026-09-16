@@ -1,5 +1,20 @@
 import SwiftUI
 
+/// What the Stat Block editor is pointed at, as a fight starts and stops.
+enum CombatSelectionPolicy {
+    /// The selection that survives an Encounter ending.
+    ///
+    /// None of it. A selection is a row in the Order, and when the fight stops there is no
+    /// Order to be a row of — the panel shows the idle roster instead, where nothing is
+    /// selectable and so nothing can be deselected. Left alone, the editor went on offering
+    /// the last Combatant's hit points under a heading that said the fight was over, and a
+    /// DM who typed into it was editing a Pawn they could no longer see chosen.
+    ///
+    /// Stopping a fight neither heals anyone nor clears their Conditions (`CONTEXT.md`,
+    /// **Encounter**); this clears what is *pointed at*, not anything pointed to.
+    static func afterEncounterEnds() -> Pawn.ID? { nil }
+}
+
 /// The Initiative Tracker: the Order of Combatants and the controls that drive a fight.
 ///
 /// Reads its numbers from the `Encounter`, which derives them from its Combat Log — so
@@ -29,6 +44,13 @@ struct CombatPanel: View {
         .background(Color(nsColor: .textBackgroundColor),
                     in: RoundedRectangle(cornerRadius: 6))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
+        // Watched here rather than cleared in `stopEncounter`, because the selection is this
+        // panel's and `AppState` does not know the editor exists. Covers every way a fight
+        // can end — the button, closing the Map, switching Workspace — since all of them
+        // arrive as `encounter` becoming nil.
+        .onChange(of: appState.encounter == nil) { _, ended in
+            if ended { selection = CombatSelectionPolicy.afterEncounterEnds() }
+        }
     }
 
     // MARK: The header
