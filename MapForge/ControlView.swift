@@ -203,20 +203,32 @@ struct ControlView: View {
             // MARK: Setup Toolbar — what a DM touches before the players arrive.
             //
             // This row and the `modeControls` row below it are the **Setup Toolbar**
-            // (`CONTEXT.md`): Open Map, the Workspace, Grid Fit, the Wall Editor. Named for
-            // the phase it belongs to rather than for what it acts on, so the separation
-            // between preparing and playing is visible in the window rather than merely
-            // intended. Nothing in it is disabled once a Session starts — a DM sometimes must
-            // trace a wall mid-evening, because the party went somewhere never prepared.
+            // (`CONTEXT.md`): Open Map, the Player Display picker, the Workspace, Grid Fit,
+            // the Wall Editor. Named for the phase it belongs to rather than for what it acts
+            // on, so the separation between preparing and playing is visible in the window
+            // rather than merely intended. Nothing in it is disabled once a Session starts —
+            // a DM sometimes must trace a wall mid-evening, because the party went somewhere
+            // never prepared.
+            //
+            // The screen picker rides here rather than on a line of its own: choosing the
+            // Player Display is done once when the cable goes in, and a whole row for it cost
+            // height the preview wanted. Everything in the row is width-bounded except the
+            // file name, which truncates.
             //
             // The two rows are not adjacent and are not merged: that is a fact about the
             // current layout, and merging them is a height change this has no reason to make.
             HStack {
                 Button("Open Map…") { appState.openMap() }
                 if let url = appState.mapURL {
-                    Text(url.lastPathComponent).foregroundStyle(.secondary)
+                    Text(url.lastPathComponent)
+                        .foregroundStyle(.secondary)
+                        // Truncated rather than allowed to push the picker off the row: a
+                        // long file name is the one thing here with no bound on its width.
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
                 Spacer()
+                playerDisplayPicker
                 workspaceButton
             }
 
@@ -257,6 +269,8 @@ struct ControlView: View {
                 .frame(maxWidth: .infinity, minHeight: Self.modeHintRowHeight,
                        maxHeight: Self.modeHintRowHeight, alignment: .topLeading)
 
+            // Warnings only now — the picker moved up beside "Open Map…". This collapses to
+            // nothing when there is nothing to warn about, which is the line the move frees.
             playerDisplayStatus
 
             fogLoadWarning
@@ -1990,8 +2004,13 @@ struct ControlView: View {
 
     // MARK: Player Display
 
-    @ViewBuilder
-    private var playerDisplayStatus: some View {
+    /// The screen picker, which rides in the Setup Toolbar's first row beside "Open Map…".
+    ///
+    /// Split from the warnings below it so it can move without taking them along: they say
+    /// "above", and they are only true where they sit — under the row the picker is in.
+    /// Choosing the Player Display is setup, done once when the HDMI cable goes in, which is
+    /// why it belongs next to opening a Map rather than on a line of its own.
+    private var playerDisplayPicker: some View {
         HStack(spacing: 8) {
             Image(systemName: appState.playerScreen == nil ? "tv.slash" : "tv")
                 .foregroundStyle(appState.playerScreen == nil ? Color.secondary : Color.green)
@@ -2002,8 +2021,21 @@ struct ControlView: View {
                 }
             }
             .labelsHidden()
-            .frame(maxWidth: 420)
+            .frame(maxWidth: Self.playerDisplayPickerWidth)
         }
+    }
+
+    /// Was 420, when the picker had a row to itself.
+    ///
+    /// Sharing the row with "Open Map…", the file name and the Workspace button, a picker
+    /// that wide pushes the rest off a narrow window — the same defect the `modeControls`
+    /// row's comment records from when a "Grid squares wide" field shared it. The file name
+    /// truncates, so this is the row's one hard width claim.
+    static let playerDisplayPickerWidth: CGFloat = 220
+
+    /// What the picker has to warn about, on the line the picker used to occupy.
+    @ViewBuilder
+    private var playerDisplayStatus: some View {
         // Presented, but EDID reports no physical size: True Scale is a guess until
         // Calibration. Said plainly rather than hiding the screen from the picker.
         if appState.playerScreen != nil, appState.playerMetrics == nil {
