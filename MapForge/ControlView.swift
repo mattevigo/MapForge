@@ -289,6 +289,7 @@ struct ControlView: View {
             HStack(spacing: 16) {
                 fogSwitch
                 measurementVisibilitySwitch
+                viewportToggle
                 Spacer()
                 sessionToggle
             }
@@ -645,18 +646,6 @@ struct ControlView: View {
             .help("Pick what to add, then click the Map to place it. Esc cancels.")
             Button("Fit Grid…") { startGridFit() }
                 .disabled(appState.mapImage == nil)
-            // A toggle, not a mode: press to show the rectangle, press again to put it
-            // away. There is no Cancel, deliberately — see `ViewportToggle`.
-            Toggle("Viewport", isOn: $isShowingViewport)
-                .toggleStyle(.button)
-                .onChange(of: isShowingViewport) { _, showing in
-                    if ViewportToggle.endsMagnifier(isShowingViewport: showing) {
-                        liveZoom = nil
-                    }
-                }
-                .disabled(!ViewportToggle.isAvailable(mapOverflows: mapOverflowsViewport,
-                                                      hasDisplay: appState.playerScreen != nil))
-                .help("Show the rectangle the players see, and drag it to move their view.")
             Button("Edit Fog…") { startFogEditing() }
                 .disabled(appState.mapImage == nil)
             // Only while magnified, and it says so: the mirror's whole promise is that it
@@ -1437,6 +1426,41 @@ struct ControlView: View {
             // control by its rendered label is what goes stale first.
             .accessibilityIdentifier("measurement-visibility-switch")
             .help("Show Measurements on the Player Display. Off, the shape and its distance stay on this window only.")
+    }
+
+    /// The Viewport rectangle's toggle, in the Live Toolbar.
+    ///
+    /// Moved here from `modeControls`, where it sat among Grid Fit and the Wall Editor —
+    /// prep controls it has nothing in common with. Moving the Viewport is a live act the
+    /// table watches as it happens (`CONTEXT.md`), which is what this row is for.
+    ///
+    /// A toggle, not a mode: press to show the rectangle, press again to put it away. There
+    /// is no Cancel, deliberately — see `ViewportToggle`.
+    ///
+    /// Drawn only in the Live View, as it was inside `modeControls`' `.normal` case: the
+    /// rectangle is not drawn in Grid Fit or the Wall Editor, so a control for dragging it
+    /// would act on something invisible.
+    ///
+    /// Appearing and vanishing with the mode costs this row **width**, not height, so the
+    /// preview's container is unchanged and the Map does not resize — the defect
+    /// `ChromeHeightTests` guards. `fogSwitch` in the same row already comes and goes this
+    /// way. What a width change does cost is the buttons after it shifting sideways, which
+    /// is why the `Spacer()` sits between these switches and the Session control: the one
+    /// thing on the right stays put.
+    @ViewBuilder
+    private var viewportToggle: some View {
+        if mode == .normal {
+            Toggle("Viewport", isOn: $isShowingViewport)
+                .toggleStyle(.button)
+                .onChange(of: isShowingViewport) { _, showing in
+                    if ViewportToggle.endsMagnifier(isShowingViewport: showing) {
+                        liveZoom = nil
+                    }
+                }
+                .disabled(!ViewportToggle.isAvailable(mapOverflows: mapOverflowsViewport,
+                                                      hasDisplay: appState.playerScreen != nil))
+                .help("Show the rectangle the players see, and drag it to move their view.")
+        }
     }
 
     // MARK: The Session
