@@ -4,6 +4,9 @@ struct ControlView: View {
     @EnvironmentObject private var appState: AppState
 
     @State private var mode: PreviewMode = .normal
+    /// What the DM has typed into the Comment Bar and not yet sent. View-local: an unsent
+    /// Comment is a half-finished thought, not part of the evening's record.
+    @State private var comment = ""
     /// The Pawn or Light being edited in a sheet, or nil when none is.
     ///
     /// One optional rather than two, because at most one sheet is ever up: the DM reached it
@@ -193,76 +196,25 @@ struct ControlView: View {
     }
 
     var body: some View {
-        // `alignment: .top` on the row below, plus the preview claiming the remaining
-        // height, keeps this stack's controls pinned to the top of the window whether or
-        // not a Map is open.
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Button("Open Map…") { appState.openMap() }
-                if let url = appState.mapURL {
-                    Text(url.lastPathComponent).foregroundStyle(.secondary)
-                }
-                Spacer()
-                workspaceButton
-            }
-
-            // One row now. It was two, because a "Grid squares wide" field shared it with
-            // the mode buttons and a single row ran them off the right edge — losing the
-            // only way into every mode the app has, with no scrollbar and nothing to say
-            // they were there. The field is gone (the Grid is declared by Grid Fit), so the
-            // buttons have the row to themselves and the caption rides along in it.
-            //
-            // The old warning still applies to anything added here: a `Spacer()` makes
-            // `ViewThatFits` claim the wide branch fits at any width, so it is always chosen
-            // and always clipped. Keep this row short.
-            HStack(spacing: 8) {
-                modeControls
-                Spacer()
-            }
-
-            // ONE reserved row, in every mode, whether or not it has anything to say.
-            //
-            // Each mode used to contribute its own caption — and the Wall Editor a caption
-            // plus an inspector row — so entering a mode added height to this stack, stole
-            // it from the `GeometryReader` below, and `fitted(container:)` recomputed to a
-            // different scale. The Map visibly resized the moment a DM pressed "Edit Fog…",
-            // and jumped mid-click inside the mode. Same defect, two symptoms.
-            //
-            // Reserving a constant height makes the preview's container a fixed point
-            // across every mode change, which is the property its arithmetic needs. The
-            // hint inside it may change freely; the box may not.
-            //
-            // Guarded by `ChromeHeightTests` and `PreviewContainerStabilityTests`.
-            Text(modeHint)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(Self.modeHintLineLimit)
-                // Wrapped rather than truncated: the Wall Editor's hint is a list of
-                // gestures, and a DM who cannot see the last of them cannot use it.
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, minHeight: Self.modeHintRowHeight,
-                       maxHeight: Self.modeHintRowHeight, alignment: .topLeading)
-
-            playerDisplayStatus
-
-            fogLoadWarning
-
-            undeclaredGridWarning
-
-            // One row: both govern what the Player Display shows, and stacking them cost a
-            // line of height on a window whose vertical space belongs to the preview.
-            HStack(spacing: 16) {
-                fogSwitch
-                measurementVisibilitySwitch
-                Spacer()
-            }
-
-            HStack(alignment: .top, spacing: 12) {
-                preview
-                livePanel
-            }
+        // The window splits into two columns at the very top: the live panel on the left,
+        // running the full height, and everything else — toolbars, Map, Comment Bar — in a
+        // column to its right.
+        //
+        // The split is the outermost thing in the window rather than a row partway down it
+        // because both halves are full-height columns, and a seam that starts below the
+        // toolbars is not a split: it is a Map with something beside it. The panel is the
+        // one part of this window a DM reads *while* looking at the Map, so it gets a column
+        // rather than a corner.
+        //
+        // Every toolbar row now sits inside the right column, which is why they bound to the
+        // Map's width rather than the window's. That is the point: a row of Map controls
+        // stretched across the panel too made the window read as one undivided surface with
+        // a sidebar bolted on below.
+        HStack(alignment: .top, spacing: Self.columnSpacing) {
+            livePanel
+            mapColumn
         }
-        .padding()
+        .padding(Self.windowPadding)
         // The launch gate. There is nothing behind this sheet until a Workspace is open, so
         // it is not dismissible then; when switching, Cancel puts the DM back where they were.
         .sheet(isPresented: Binding(
@@ -305,10 +257,20 @@ struct ControlView: View {
         } message: {
             Text(migrationMessage)
         }
-        // Wide enough for the live panel plus a preview worth looking at. The minimum was
-        // 480 when the panel was 236: at 320 the same window pushed the panel's own
-        // controls past the window's edge, where they draw but cannot be clicked.
-        .frame(minWidth: 480 + (Self.livePanelWidth - 236), minHeight: 400)
+        // Wide enough for the live panel AND a Map column the toolbars still fit in.
+        //
+        // This used to be `480 + (livePanelWidth - 236)`, which was the right sum while the
+        // toolbars spanned the whole window and only the Map row was shortened by the panel.
+        // Once the seam moved to the top the toolbars moved inside the Map column, and that
+        // old minimum left them about 215 pt: "Measurements" broke into four stacked lines,
+        // every button truncated to a stub, and the mode hint clipped. The window was still
+        // "wide enough" by a number that no longer described the thing it constrained.
+        //
+        // So the minimum is now built the way the layout actually is — what the Map column
+        // needs, plus the panel beside it — rather than a window width with a correction
+        // bolted on. `SetupToolbarWidthTests` pins `minimumMapColumnWidth` against the real
+        // toolbar, so the two cannot drift apart again.
+        .frame(minWidth: Self.minimumWindowWidth, minHeight: 400)
         // The Control Window IS the app: its close button kept being hit during mode
         // work (it reads like "exit this mode"), killing the session — every "crash"
         // reported against Grid Fit/panning was this. Minimize stays; quit is ⌘Q.
@@ -317,6 +279,123 @@ struct ControlView: View {
                 window.styleMask.remove(.closable)
             }
         }
+    }
+
+    /// Everything to the right of the seam: the toolbars, the Map, the Comment Bar.
+    ///
+    /// `alignment: .leading` plus the preview claiming the remaining height keeps these
+    /// controls pinned to the top of the column whether or not a Map is open.
+    private var mapColumn: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // MARK: Setup Toolbar — what a DM touches before the players arrive.
+            //
+            // This row and the `modeControls` row below it are the **Setup Toolbar**
+            // (`CONTEXT.md`): Open Map, the Player Display picker, the Workspace, Grid Fit,
+            // the Wall Editor. Named for the phase it belongs to rather than for what it acts
+            // on, so the separation between preparing and playing is visible in the window
+            // rather than merely intended. Nothing in it is disabled once a Session starts —
+            // a DM sometimes must trace a wall mid-evening, because the party went somewhere
+            // never prepared.
+            //
+            // The screen picker rides here rather than on a line of its own: choosing the
+            // Player Display is done once when the cable goes in, and a whole row for it cost
+            // height the preview wanted. Everything in the row is width-bounded except the
+            // file name, which truncates.
+            //
+            // The two rows are not adjacent and are not merged: that is a fact about the
+            // current layout, and merging them is a height change this has no reason to make.
+            HStack {
+                Button("Open Map…") { appState.openMap() }
+                if let url = appState.mapURL {
+                    Text(url.lastPathComponent)
+                        .foregroundStyle(.secondary)
+                        // Truncated rather than allowed to push the picker off the row: a
+                        // long file name is the one thing here with no bound on its width.
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                Spacer()
+                playerDisplayPicker
+                workspaceButton
+            }
+
+            // One row now. It was two, because a "Grid squares wide" field shared it with
+            // the mode buttons and a single row ran them off the right edge — losing the
+            // only way into every mode the app has, with no scrollbar and nothing to say
+            // they were there. The field is gone (the Grid is declared by Grid Fit), so the
+            // buttons have the row to themselves and the caption rides along in it.
+            //
+            // The old warning still applies to anything added here: a `Spacer()` makes
+            // `ViewThatFits` claim the wide branch fits at any width, so it is always chosen
+            // and always clipped. Keep this row short.
+            HStack(spacing: 8) {
+                modeControls
+                Spacer()
+            }
+
+            // ONE reserved row, in every mode, whether or not it has anything to say.
+            //
+            // Each mode used to contribute its own caption — and the Wall Editor a caption
+            // plus an inspector row — so entering a mode added height to this stack, stole
+            // it from the `GeometryReader` below, and `fitted(container:)` recomputed to a
+            // different scale. The Map visibly resized the moment a DM pressed "Edit Fog…",
+            // and jumped mid-click inside the mode. Same defect, two symptoms.
+            //
+            // Reserving a constant height makes the preview's container a fixed point
+            // across every mode change, which is the property its arithmetic needs. The
+            // hint inside it may change freely; the box may not.
+            //
+            // Guarded by `ChromeHeightTests` and `PreviewContainerStabilityTests`.
+            Text(modeHint)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(Self.modeHintLineLimit)
+                // Wrapped rather than truncated: the Wall Editor's hint is a list of
+                // gestures, and a DM who cannot see the last of them cannot use it.
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, minHeight: Self.modeHintRowHeight,
+                       maxHeight: Self.modeHintRowHeight, alignment: .topLeading)
+
+            // Warnings only now — the picker moved up beside "Open Map…". This collapses to
+            // nothing when there is nothing to warn about, which is the line the move frees.
+            playerDisplayStatus
+
+            fogLoadWarning
+
+            undeclaredGridWarning
+
+            // MARK: Live Toolbar — what a DM touches with the players watching.
+            //
+            // The **Live Toolbar** (`CONTEXT.md`): the switches that change what the table
+            // experiences, now. Both govern what the Player Display shows, and stacking them
+            // cost a line of height on a window whose vertical space belongs to the preview.
+            //
+            // The Session control sits here rather than beside the Workspace button because
+            // starting an evening is a live act, not setup. It changes label, not height, so
+            // the row's reserved height is unaffected.
+            HStack(spacing: 16) {
+                fogSwitch
+                measurementVisibilitySwitch
+                viewportToggle
+                Spacer()
+                sessionToggle
+            }
+
+            preview
+
+            // The Comment Bar, beneath the Map and the width of the Map column — it used to
+            // span the whole window, and followed the toolbars inward when the seam moved to
+            // the top so that one unbroken edge runs the window's full height.
+            // Fixed height in all three of its states: `preview` claims whatever this stack
+            // leaves it, so a bar that grew when a fight started would resize the Map
+            // mid-click. Guarded by `CommentBarTests`.
+            // Not gated on a Map. An evening belongs to the Workspace and crosses whatever
+            // Maps the party walks (ADR-0015), so a Comment typed before the crypt is opened
+            // is still part of it — and a bar that appeared with the Map would change the
+            // stack's height, which is the one thing this row must never do.
+            CommentBar(state: commentBarState, text: $comment, onSubmit: sendComment)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onChange(of: appState.playerScreen) { _, screen in
             // Losing the Player Display mid-pan would strand the mode with no overlay.
             if !ViewportToggle.staysShowing(mapOverflows: mapOverflowsViewport,
@@ -564,6 +643,21 @@ struct ControlView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
             .border(.separator)
+            // Named so the UI tests can aim at the Map itself.
+            //
+            // They used to click fractions of the whole Control Window — `dx: 0.3` was
+            // inside the Map only because the Map started at the window's left edge. The
+            // live panel now holds that edge, so those fractions land on the Party list,
+            // and every test that placed a Wall or a Pawn by coordinate broke at once.
+            // An identifier is what makes the aim survive the next layout change too.
+            //
+            // `children: .contain` is load-bearing. A bare `.accessibilityIdentifier` on a
+            // container flattens its subtree into one element, which took the Pawn tokens
+            // off the tree — `PawnLayer` sets `pawn-token-<label>` on each, and
+            // `PreviewWithoutDisplayUITests` reads them to prove the preview draws a Pawn at
+            // all. Naming the container must not cost the names inside it.
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("map-preview")
         } else {
             // With no Map open this used to be a bare `Spacer()`, which inside the
             // preview's HStack pushed sideways instead of filling downwards — the controls
@@ -599,29 +693,13 @@ struct ControlView: View {
             .help("Pick what to add, then click the Map to place it. Esc cancels.")
             Button("Fit Grid…") { startGridFit() }
                 .disabled(appState.mapImage == nil)
-            // A toggle, not a mode: press to show the rectangle, press again to put it
-            // away. There is no Cancel, deliberately — see `ViewportToggle`.
-            Toggle("Viewport", isOn: $isShowingViewport)
-                .toggleStyle(.button)
-                .onChange(of: isShowingViewport) { _, showing in
-                    if ViewportToggle.endsMagnifier(isShowingViewport: showing) {
-                        liveZoom = nil
-                    }
-                }
-                .disabled(!ViewportToggle.isAvailable(mapOverflows: mapOverflowsViewport,
-                                                      hasDisplay: appState.playerScreen != nil))
-                .help("Show the rectangle the players see, and drag it to move their view.")
             Button("Edit Fog…") { startFogEditing() }
                 .disabled(appState.mapImage == nil)
-            // Only while magnified, and it says so: the mirror's whole promise is that it
-            // shows what the table sees, and a DM who has forgotten they zoomed would read
-            // it as the truth. Placed last so the buttons before it do not move when it
-            // appears — this row is above the preview, and anything that changes width
-            // here is the same class of defect as `fogInspectorRowHeight`'s.
-            if liveZoom != nil {
-                Button("Zoomed — Reset") { liveZoom = nil }
-                    .help("The Player Display is unaffected: this magnifies your view only.")
-            }
+            // A "Zoomed — Reset" button used to appear here while magnified. Scrolling back
+            // out reaches the same place: `PreviewTransform`'s zoom floor is fit-to-window,
+            // so the Map returns to exactly the rect the button restored. The Magnifier
+            // never touched the Player Display, so nothing about the table's view depended
+            // on it either.
         case .gridFit:
             if fitSquare != nil, let snap = GridFit.snapSuggestion(for: appState.squaresWide) {
                 Button("Snap to \(snap)") { applySnap(snap) }
@@ -1393,6 +1471,79 @@ struct ControlView: View {
             .help("Show Measurements on the Player Display. Off, the shape and its distance stay on this window only.")
     }
 
+    /// The Viewport rectangle's toggle, in the Live Toolbar.
+    ///
+    /// Moved here from `modeControls`, where it sat among Grid Fit and the Wall Editor —
+    /// prep controls it has nothing in common with. Moving the Viewport is a live act the
+    /// table watches as it happens (`CONTEXT.md`), which is what this row is for.
+    ///
+    /// A toggle, not a mode: press to show the rectangle, press again to put it away. There
+    /// is no Cancel, deliberately — see `ViewportToggle`.
+    ///
+    /// Drawn only in the Live View, as it was inside `modeControls`' `.normal` case: the
+    /// rectangle is not drawn in Grid Fit or the Wall Editor, so a control for dragging it
+    /// would act on something invisible.
+    ///
+    /// Appearing and vanishing with the mode costs this row **width**, not height, so the
+    /// preview's container is unchanged and the Map does not resize — the defect
+    /// `ChromeHeightTests` guards. `fogSwitch` in the same row already comes and goes this
+    /// way. What a width change does cost is the buttons after it shifting sideways, which
+    /// is why the `Spacer()` sits between these switches and the Session control: the one
+    /// thing on the right stays put.
+    @ViewBuilder
+    private var viewportToggle: some View {
+        if mode == .normal {
+            Toggle("Viewport", isOn: $isShowingViewport)
+                .toggleStyle(.button)
+                .onChange(of: isShowingViewport) { _, showing in
+                    if ViewportToggle.endsMagnifier(isShowingViewport: showing) {
+                        liveZoom = nil
+                    }
+                }
+                .disabled(!ViewportToggle.isAvailable(mapOverflows: mapOverflowsViewport,
+                                                      hasDisplay: appState.playerScreen != nil))
+                .help("Show the rectangle the players see, and drag it to move their view.")
+        }
+    }
+
+    // MARK: The Session
+
+    /// Start/Stop Session, in the Live Toolbar.
+    ///
+    /// Disabled without a Workspace: a Session's log lives in `.mapforge/sessions/`, so there
+    /// is nowhere to write without one — the refusal `startEncounter` already makes for a
+    /// missing Map. Stopping asks for no confirmation: starting again is one click, and a
+    /// modal at the table is what this app's decisions keep avoiding.
+    private var sessionToggle: some View {
+        Button(appState.session == nil ? "Start Session" : "Stop Session") {
+            if appState.session == nil { appState.startSession() } else { appState.stopSession() }
+        }
+        .disabled(appState.workspace == nil)
+        .accessibilityIdentifier("session-toggle")
+        .help(appState.workspace == nil
+              ? "A session records into the Workspace. Open one first."
+              : "Record this evening's movements and comments.")
+    }
+
+    /// `hasEncounter` is read from the Session's own suspension rather than from
+    /// `encounter != nil`. The two agree today, but the silence is what the bar is reporting,
+    /// and reading it from the flag that enforces it makes the bar a view of the rule instead
+    /// of a second computation of the same fact.
+    private var commentBarState: CommentBarState {
+        CommentBarPolicy.state(
+            hasSession: appState.session != nil,
+            hasEncounter: appState.session?.isRecordingSuspended == true,
+            activeCombatantName: appState.encounter.flatMap { encounter in
+                encounter.activeCombatantID.flatMap { encounter.name(of: $0) }
+            })
+    }
+
+    private func sendComment() {
+        guard commentBarState.isEnabled else { return }
+        appState.addComment(comment)
+        comment = ""
+    }
+
     @ViewBuilder
     private var fogSwitch: some View {
         if !appState.fog.walls.isEmpty || !appState.fog.lights.isEmpty
@@ -1463,6 +1614,34 @@ struct ControlView: View {
     /// Wide enough for an Order row — Initiative, a name, hit points, armour class and a
     /// run of Condition icons — which 236 points could not hold.
     static let livePanelWidth: CGFloat = 320
+
+    /// The narrowest the Map column may get: the width the Setup and Live Toolbars need to
+    /// stay on one line each, with a Map worth looking at underneath them.
+    ///
+    /// 380 was the obvious number — the width `SetupToolbarWidthTests` and `ChromeHeightTests`
+    /// have always called "a Control Window narrow enough to be uncomfortable" — and it is
+    /// wrong. That figure was only ever checked against the Setup Toolbar's buttons and the
+    /// mode hint. The **Live** Toolbar is wider: "Fog", "Measurements", "Viewport" and
+    /// "Start Session" are words, and a word that does not fit wraps rather than truncating,
+    /// which is how "Measurements" ended up as four stacked lines. It measures 411 pt.
+    ///
+    /// 420 is that, plus a little room so a Toggle's label growing by a few points does not
+    /// immediately re-break the row. Pinned by `testTheLiveToolbarsLabelsFitTheColumnOnOneLine`,
+    /// which measures the real row rather than trusting this comment.
+    static let minimumMapColumnWidth: CGFloat = 420
+
+    /// Both columns, the gap between them and the window's padding.
+    ///
+    /// Derived rather than typed: a hand-picked total is what let the toolbars and the panel
+    /// disagree about how much room there was.
+    static let minimumWindowWidth: CGFloat =
+        minimumMapColumnWidth + livePanelWidth + columnSpacing + windowPadding * 2
+
+    /// The seam between the panel and the Map column.
+    static let columnSpacing: CGFloat = 12
+
+    /// `.padding()`'s default, named so `minimumWindowWidth` can count it.
+    static let windowPadding: CGFloat = 20
 
     /// The Map as it stands: the Party to stamp from, the Lights, and every Pawn on it.
     ///
@@ -1920,8 +2099,13 @@ struct ControlView: View {
 
     // MARK: Player Display
 
-    @ViewBuilder
-    private var playerDisplayStatus: some View {
+    /// The screen picker, which rides in the Setup Toolbar's first row beside "Open Map…".
+    ///
+    /// Split from the warnings below it so it can move without taking them along: they say
+    /// "above", and they are only true where they sit — under the row the picker is in.
+    /// Choosing the Player Display is setup, done once when the HDMI cable goes in, which is
+    /// why it belongs next to opening a Map rather than on a line of its own.
+    private var playerDisplayPicker: some View {
         HStack(spacing: 8) {
             Image(systemName: appState.playerScreen == nil ? "tv.slash" : "tv")
                 .foregroundStyle(appState.playerScreen == nil ? Color.secondary : Color.green)
@@ -1932,8 +2116,21 @@ struct ControlView: View {
                 }
             }
             .labelsHidden()
-            .frame(maxWidth: 420)
+            .frame(maxWidth: Self.playerDisplayPickerWidth)
         }
+    }
+
+    /// Was 420, when the picker had a row to itself.
+    ///
+    /// Sharing the row with "Open Map…", the file name and the Workspace button, a picker
+    /// that wide pushes the rest off a narrow window — the same defect the `modeControls`
+    /// row's comment records from when a "Grid squares wide" field shared it. The file name
+    /// truncates, so this is the row's one hard width claim.
+    static let playerDisplayPickerWidth: CGFloat = 220
+
+    /// What the picker has to warn about, on the line the picker used to occupy.
+    @ViewBuilder
+    private var playerDisplayStatus: some View {
         // Presented, but EDID reports no physical size: True Scale is a guess until
         // Calibration. Said plainly rather than hiding the screen from the picker.
         if appState.playerScreen != nil, appState.playerMetrics == nil {

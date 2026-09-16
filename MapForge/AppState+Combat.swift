@@ -175,6 +175,10 @@ extension AppState {
         openLog(forMapAt: mapURL)
         encounter = started.encounter
         write(started.lines)
+        // After the Log is open, so the Session's pointer names a file that exists.
+        if let logFile = logWriter?.url.lastPathComponent {
+            noteEncounterStarted(logFile: logFile)
+        }
     }
 
     /// Ends the Turn in progress, or walks the correction cursor back towards live play.
@@ -218,15 +222,22 @@ extension AppState {
     /// The Pawn has already moved by the time this is called, and moves whether or not it
     /// is recorded: outside a fight, and while the correction cursor is on a past Turn,
     /// nothing is written. Where a Pawn stands is the Map's own truth.
+    /// Two independent records, and never both: the Combat Log takes the drag while a fight
+    /// runs, and the Session Log takes it the rest of the evening. Which one writes is not
+    /// decided here — `SessionControl` drops the line while an Encounter is running, so this
+    /// call site needs no `if` about fights. See ADR-0014.
     func commitPawnMove(id: Pawn.ID, from origin: MapPoint) {
         flushPendingFogWrites()
-        guard encounter != nil,
-              let pawn = fog.pawns.first(where: { $0.id == id }),
+        guard let pawn = fog.pawns.first(where: { $0.id == id }),
               pawn.at != origin else { return }
-        recordChange(.moved(combatantID: id,
-                            from: origin,
-                            to: pawn.at,
-                            distanceSquares: distanceInSquares(from: origin, to: pawn.at)))
+        let distance = distanceInSquares(from: origin, to: pawn.at)
+        if encounter != nil {
+            recordChange(.moved(combatantID: id,
+                                from: origin,
+                                to: pawn.at,
+                                distanceSquares: distance))
+        }
+        recordSessionMove(pawn: pawn, from: origin, distanceSquares: distance)
     }
 
     /// Straight-line distance in Grid squares — the unit distances are *stored* in, as
@@ -321,6 +332,8 @@ extension AppState {
         syncStatsFromEncounter(live)
         flushPendingStatWrites()
         encounter = nil
+        // Before the Log is closed: the Session reads the Map's name while it is still open.
+        noteEncounterEnded()
         closeLog()
     }
 

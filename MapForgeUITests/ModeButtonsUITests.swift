@@ -98,7 +98,9 @@ final class ModeButtonsUITests: XCTestCase {
 
         let window = controlWindow(app)
         let before = window.screenshot().pngRepresentation
-        window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
+        // Over the Map, not the window's centre — the live panel holds the left third now.
+        app.descendants(matching: .any).matching(identifier: "map-preview").firstMatch
+            .coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
             .scroll(byDeltaX: 0, deltaY: 200)
         Thread.sleep(forTimeInterval: 1.0)
 

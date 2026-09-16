@@ -30,6 +30,16 @@ final class InitiativeTrackerUITests: XCTestCase {
 
     private func controlWindow(_ app: XCUIApplication) -> XCUIElement { app.windows["control"] }
 
+    /// The Map, which is what a Pawn is placed on.
+    ///
+    /// The placements below were fractions of the whole window, which only ever worked
+    /// because the Map held its left edge. The live panel holds that edge now, so `dx: 0.2`
+    /// landed on the Party list and the Pawns were never placed — "both Pawns should be in
+    /// the Order" failed with one.
+    private func mapPreview(_ app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: "map-preview").firstMatch
+    }
+
     private func clickByCoordinate(_ app: XCUIApplication, _ element: XCUIElement) {
         let frame = controlWindow(app).frame
         let dx = (element.frame.midX - frame.minX) / frame.width
@@ -58,7 +68,7 @@ final class InitiativeTrackerUITests: XCTestCase {
             let item = app.menuItems["Creature"]
             XCTAssertTrue(item.waitForExistence(timeout: 2), "Add offers no Creature")
             item.click()
-            controlWindow(app).coordinate(withNormalizedOffset: CGVector(dx: dx, dy: 0.7)).click()
+            mapPreview(app).coordinate(withNormalizedOffset: CGVector(dx: dx, dy: 0.5)).click()
         }
 
         app.radioButtons["Combat"].click()
@@ -146,7 +156,7 @@ final class InitiativeTrackerUITests: XCTestCase {
         let light = app.menuItems["Light"]
         XCTAssertTrue(light.waitForExistence(timeout: 2), "Add offers no Light")
         light.click()
-        controlWindow(app).coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.7)).click()
+        mapPreview(app).coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click()
 
         app.radioButtons["Combat"].click()
         XCTAssertTrue(app.staticTexts["Nobody on the Map to fight"].waitForExistence(timeout: 2))

@@ -73,7 +73,7 @@ The Control Window's ordinary state: the **whole Map**, with Pawns, Light Marker
 _Avoid_: preview, preview mode, normal mode, play mode, mirror
 
 **Magnifier**:
-The Live View's private zoom: the DM looks closer without the Viewport moving, so the Player Display keeps showing exactly what it showed. Distinct from dragging the Viewport, which is a deliberate act the table watches. Never persisted, and it says on screen when it is on.
+The Live View's private zoom: the DM looks closer without the Viewport moving, so the Player Display keeps showing exactly what it showed. Distinct from dragging the Viewport, which is a deliberate act the table watches. Never persisted. Scrolling back out ends it — the zoom's floor is the whole Map, so there is nowhere past it to be stuck. It said so on screen once, in a "Zoomed — Reset" button that appeared beside Grid Fit while it was on; the button is gone and the artwork's own size is what tells the DM.
 _Avoid_: zoom, preview zoom, magnification
 
 **Wall Editor**:
@@ -153,8 +153,8 @@ The unit the table speaks distances in — currently **metres**, at 1.5 m per Gr
 _Avoid_: units, scale, measurement system
 
 **Encounter**:
-One fight on one Map, from the moment the DM starts it to the moment they stop it. It holds an Order of Combatants and a Round number, and it writes a Combat Log. A Map accumulates Encounters over a campaign; at most one is live at a time. Stopping one neither heals anyone nor clears their Conditions — a fight ending is not a rest, and the state a party fought three Rounds to reach is the state they are in.
-_Avoid_: combat, fight, battle, session
+One fight on one Map, from the moment the DM starts it to the moment they stop it. It holds an Order of Combatants and a Round number, and it writes a Combat Log. A Map accumulates Encounters over a campaign; at most one is live at a time. Stopping one neither heals anyone nor clears their Conditions — a fight ending is not a rest, and the state a party fought three Rounds to reach is the state they are in. An Encounter sits *inside* a Session — the evening it is one fight of — and while it runs it is the only thing recording: the Session Log falls silent and resumes when the fight stops.
+_Avoid_: combat, fight, battle
 
 **Combatant**:
 A Pawn taking part in the live Encounter: one with an Initiative and a place in the Order. Not a type but a role — a Pawn is a Combatant only on the Map it stands on and only while that Encounter runs. A Treasure is never one, having nothing to do on its turn. A Pawn taken out of the Order stops being a Combatant and becomes Benched; the Combat Log still names it, because a monster that died in Round 2 is part of what happened whatever the tracker shows now.
@@ -203,3 +203,27 @@ _Avoid_: undo, fix, amend, retcon, revision
 **Condition**:
 One of the fourteen boolean states of DnD 5.5e a Combatant can be under — Prone, Restrained, Blinded, and the rest. Exhaustion is deliberately not one of them: it is a level from 0 to 6 and is tracked apart. Conditions carry no duration and expire on nobody's schedule: encoding "until the end of your next turn" and its cousins is a system in itself, and half of that system is worse than a DM's memory.
 _Avoid_: status, effect, debuff, ailment, state
+
+**Session**:
+One evening at the table, from the moment the DM starts it to the moment they stop it. It is the enclosing thing an Encounter happens inside: a Session may hold several fights, or none, and it spans whatever Maps the party walks across. It belongs to the Workspace rather than to any Map, because an evening outlives the Map it happens to begin on. At most one runs at a time, and it ends only when the DM stops it — quitting the app leaves it running, to be found still open when the app returns, exactly as an unfinished Encounter is. Starting one needs a Workspace, having nowhere to write without one; it does not need a Map.
+_Avoid_: game night, play session, meeting, run, sitting
+
+**Session Log**:
+The append-only record of a Session, held at the Workspace level rather than beside any Map. It records Pawn movements and the DM's Comments, each line naming the Map it happened on so a line can be read without replaying the file above it. It records *only* what happens outside a fight: when an Encounter starts, the Session Log writes one line naming that Encounter's Combat Log and then falls silent, so exactly one recorder is live at any instant and no event is written twice.
+_Avoid_: session file, journal, diary, history, timeline
+
+**Comment**:
+A line of the DM's own text, typed into the Comment Bar and appended to the Session Log. It is about the moment, not about anybody: unlike a Change it carries no target. The line format reserves a place for the Pawn the DM had selected when they typed — recorded beside the text rather than as a subject, so a later reader could see what was being looked at without the Comment claiming to be about it — but nothing fills it yet, there being no Pawn selection in the Live View to read. Distinct from the note taken during a fight, which is a Change on a Combatant's Turn and lands in the Combat Log.
+_Avoid_: note, annotation, message, remark, log entry
+
+**Comment Bar**:
+The row beneath the Map in the Control Window, the width of the Map rather than of the window: one text field and a send button, Return sending. Its one fixed-height row is the whole of it — no scrollback, because the Map must never resize mid-click. It is the only control that enforces the boundary between preparing a Map and running a Session: it is disabled until a Session starts, and disabled again while an Encounter runs, when the Combat tab's note box is the live one instead. Its placeholder says which of the three it is in.
+_Avoid_: comment field, input bar, chat, console, footer
+
+**Setup Toolbar**:
+The rows above the Map — the Map's width, not the window's — holding what a DM touches before the players arrive: Open Map, the Workspace, Grid Fit, the Wall Editor. Named for the phase it belongs to rather than for what it acts on, so the separation between preparing and playing is visible in the window rather than merely intended. Nothing in it is disabled once a Session starts — a DM sometimes must trace a wall mid-evening, because the party went somewhere that was never prepared.
+_Avoid_: map toolbar, top bar, prep bar, controls
+
+**Live Toolbar**:
+The row above the Map holding what a DM touches with the players watching: the Fog switch, the Measurement visibility switch, and the Session control. The counterpart to the Setup Toolbar, and the reason the pair is named for phases — these are the switches that change what the table experiences, now.
+_Avoid_: players toolbar, player bar, table bar, session bar

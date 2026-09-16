@@ -62,14 +62,15 @@ final class ViewportDragUITests: XCTestCase {
         XCTAssertEqual(app.checkBoxes["Viewport"].value as? Int, 1, "the toggle did not arm")
 
         let window = controlWindow(app)
-        // The rectangle sits over the whole Map now rather than filling a cropped mirror,
-        // and the live panel takes 320 points of the window's width — so the preview's
-        // centre is well left of the window's.
-        let start = window.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.72))
+        // The rectangle sits over the whole Map. Aimed at the Map itself rather than at a
+        // fraction of the window: the old offset dodged a live panel on the right, and the
+        // panel is on the left now, so it would land on the panel instead.
+        let map = app.descendants(matching: .any).matching(identifier: "map-preview").firstMatch
+        let start = map.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.5))
 
         // A multi-step drag: press, move in increments, release.
         start.press(forDuration: 0.1,
-                    thenDragTo: window.coordinate(withNormalizedOffset: CGVector(dx: 0.28, dy: 0.72)),
+                    thenDragTo: map.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)),
                     withVelocity: .slow,
                     thenHoldForDuration: 0.3)
         Thread.sleep(forTimeInterval: 0.5)
