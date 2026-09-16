@@ -107,8 +107,34 @@ final class SessionUITests: XCTestCase {
         XCTAssertEqual(toggle.label, "Start Session")
         toggle.click()
         XCTAssertEqual(window.buttons["session-toggle"].label, "Stop Session")
+
+        // Stopping asks first, unlike starting: a restart opens a new file and the Log View
+        // shows only the current Session, so a misclick truncates the evening on screen.
         window.buttons["session-toggle"].click()
+        let confirm = app.buttons["End Session"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 2), "stopping confirms")
+        confirm.click()
+
         XCTAssertEqual(window.buttons["session-toggle"].label, "Start Session")
+    }
+
+    /// The Cancel that makes the alert worth having.
+    func testCancellingTheStopKeepsTheSessionRunning() throws {
+        let app = try launchApp()
+        let window = controlWindow(app)
+
+        let toggle = window.buttons["session-toggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        toggle.click()
+        XCTAssertEqual(window.buttons["session-toggle"].label, "Stop Session")
+
+        window.buttons["session-toggle"].click()
+        let cancel = app.buttons["Cancel"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 2))
+        cancel.click()
+
+        XCTAssertEqual(window.buttons["session-toggle"].label, "Stop Session",
+                       "the evening is still running")
     }
 
     func testSendingACommentClearsTheField() throws {
@@ -136,6 +162,9 @@ final class SessionUITests: XCTestCase {
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
         toggle.click()
         toggle.click()
+        let confirm = app.buttons["End Session"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 2))
+        confirm.click()
 
         XCTAssertFalse(window.textFields["comment-field"].isEnabled)
     }

@@ -205,7 +205,7 @@ One of the fourteen boolean states of DnD 5.5e a Combatant can be under — Pron
 _Avoid_: status, effect, debuff, ailment, state
 
 **Session**:
-One evening at the table, from the moment the DM starts it to the moment they stop it. It is the enclosing thing an Encounter happens inside: a Session may hold several fights, or none, and it spans whatever Maps the party walks across. It belongs to the Workspace rather than to any Map, because an evening outlives the Map it happens to begin on. At most one runs at a time, and it ends only when the DM stops it — quitting the app leaves it running, to be found still open when the app returns, exactly as an unfinished Encounter is. Starting one needs a Workspace, having nowhere to write without one; it does not need a Map.
+One evening at the table, from the moment the DM starts it to the moment they stop it. It is the enclosing thing an Encounter happens inside: a Session may hold several fights, or none, and it spans whatever Maps the party walks across. It belongs to the Workspace rather than to any Map, because an evening outlives the Map it happens to begin on. At most one runs at a time, and it ends only when the DM stops it — quitting the app leaves it running, to be found still open when the app returns, exactly as an unfinished Encounter is. Starting one needs a Workspace, having nowhere to write without one; it does not need a Map. Starting is one click and stopping asks first — not because anything is lost, since the Log is always kept, but because starting again opens a *new* Log and the Log View shows only the current one, so an evening ended by accident leaves the screen.
 _Avoid_: game night, play session, meeting, run, sitting
 
 **Session Log**:

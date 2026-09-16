@@ -161,6 +161,8 @@ struct ControlView: View {
     @State private var isPickingWorkspace = false
     /// Set when switching would end a fight, so the DM is asked before it does.
     @State private var confirmSwitchEndsEncounter = false
+    /// Set when the DM asks to end the evening, so they are asked before it ends.
+    @State private var confirmStopSession = false
     /// Set when the DM asks to set a damaged roster aside and start fresh.
     @State private var confirmNewRoster = false
 
@@ -168,6 +170,11 @@ struct ControlView: View {
         let map = appState.mapURL?.lastPathComponent ?? "this map"
         return "An encounter is running on \(map). Switching workspaces will end it. "
             + "The combat log is kept."
+    }
+
+    private var stopSessionMessage: String {
+        StopSessionPrompt.message(hasEncounter: appState.encounter != nil,
+                                  map: appState.mapURL?.lastPathComponent)
     }
 
     private var migrationTitle: String {
@@ -263,6 +270,14 @@ struct ControlView: View {
             }
         } message: {
             Text(endEncounterMessage)
+        }
+        .alert(StopSessionPrompt.title, isPresented: $confirmStopSession) {
+            Button("Cancel", role: .cancel) {}
+            // Not `.destructive`: nothing is destroyed. The Log is closed and kept, which is
+            // what the message says and what the colour should not contradict.
+            Button("End Session") { appState.stopSession() }
+        } message: {
+            Text(stopSessionMessage)
         }
         .alert(migrationTitle, isPresented: Binding(
             get: { appState.migrationOutcome != nil },
@@ -1554,11 +1569,20 @@ struct ControlView: View {
     ///
     /// Disabled without a Workspace: a Session's log lives in `.mapforge/sessions/`, so there
     /// is nowhere to write without one — the refusal `startEncounter` already makes for a
-    /// missing Map. Stopping asks for no confirmation: starting again is one click, and a
-    /// modal at the table is what this app's decisions keep avoiding.
+    /// missing Map.
+    ///
+    /// Stopping asks first. It did not, on the grounds that "starting again is one click" —
+    /// true when a Session was a flag, and false since the Log View, because a restart opens a
+    /// new file and the Log View shows only the current one. A misclick now visibly truncates
+    /// the evening the DM is reading. Starting is still one click, having nothing to lose.
+    /// See `StopSessionPrompt`.
     private var sessionToggle: some View {
         Button(appState.session == nil ? "Start Session" : "Stop Session") {
-            if appState.session == nil { appState.startSession() } else { appState.stopSession() }
+            if appState.session == nil {
+                appState.startSession()
+            } else {
+                confirmStopSession = true
+            }
         }
         .disabled(appState.workspace == nil)
         .accessibilityIdentifier("session-toggle")

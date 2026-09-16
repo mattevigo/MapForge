@@ -115,3 +115,29 @@ enum SessionFold {
         return session
     }
 }
+
+/// What the DM is asked before the evening ends.
+///
+/// Stopping used to be unconfirmed, on the grounds that "starting again is one click". That
+/// stopped being true when the Log View shipped: a restart opens a *new file*, so an evening
+/// stopped by accident is split in two, and the Log View shows only the current Session — so
+/// the earlier half does not merely move, it leaves the screen. A misclick now visibly
+/// truncates the evening a DM is reading.
+///
+/// Asked every time rather than only when something was recorded. One rule holds at a table
+/// where a modal is a cost: a DM who knows the button always asks never has to wonder whether
+/// this press is the kind that will.
+enum StopSessionPrompt {
+    static let title = "End the session?"
+
+    /// Says what survives, because that is the fear the alert exists to answer. Nothing is
+    /// ever deleted by stopping — the Log is closed, not discarded (ADR-0015) — and a fight
+    /// running inside the evening keeps its own Log too (ADR-0014).
+    static func message(hasEncounter: Bool, map: String?) -> String {
+        let kept = "Tonight's log is kept. Starting again opens a new one."
+        guard hasEncounter else { return kept }
+        let where_ = map.map { " on \($0)" } ?? ""
+        return "An encounter is running\(where_) and ending the session will end it too. "
+            + "Both logs are kept."
+    }
+}
