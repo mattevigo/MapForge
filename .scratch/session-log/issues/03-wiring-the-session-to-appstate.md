@@ -1,6 +1,6 @@
 # 03 — Wiring the Session to AppState
 
-Status: ready-for-agent
+Status: done
 
 `AppState` holds a live Session, opens and closes its file, and feeds it the three events that
 produce lines: a Comment, a completed drag, and an Encounter starting or stopping.

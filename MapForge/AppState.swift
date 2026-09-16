@@ -105,6 +105,16 @@ final class AppState: ObservableObject {
     /// Open for as long as an Encounter is running. Appends; never rewrites.
     var logWriter: CombatLogWriter?
 
+    /// The evening in progress, enclosing whatever fights happen inside it. Nil until the DM
+    /// starts one — before that, a Comment has nowhere to land and the Comment Bar is dead.
+    ///
+    /// Written only by `AppState+Session.swift`, which cannot be `private(set)` from another
+    /// file. Nothing else should assign it: the lines and the flag must move together.
+    @Published var session: Session?
+
+    /// Open for as long as a Session is running. Appends; never rewrites.
+    var sessionWriter: SessionLogWriter?
+
     /// What the one-time migration did, for the picker to report. Nil when nothing happened,
     /// which is every launch after the first.
     @Published var migrationOutcome: WorkspaceMigration.Outcome?
@@ -732,7 +742,9 @@ final class AppState: ObservableObject {
     /// Whether switching Workspaces would end a fight in progress. The picker asks first when
     /// it would: switching is a navigation gesture, and the DM making it is not thinking about
     /// the Encounter.
-    var switchingWouldEndAnEncounter: Bool { encounter != nil }
+    /// Also true of a Session: its file lives in the Workspace it started in, so switching
+    /// ends the evening as surely as it ends a fight.
+    var switchingWouldEndAnEncounter: Bool { encounter != nil || session != nil }
 
 
     /// Opens a Workspace: its roster, its settings, and the recents list.
@@ -740,6 +752,10 @@ final class AppState: ObservableObject {
     /// Everything read here was read at `init` before this feature, which is why it is a
     /// method at all — the DM picks the folder after the window is on screen.
     func open(_ workspace: Workspace) {
+        // Switching comes through here rather than through `closeWorkspace`, so the running
+        // evening is ended here too: its file lives in the Workspace it started in, and a
+        // writer left open would append the next Workspace's lines to the last one's file.
+        stopSession()
         self.workspace = workspace
 
         let store = PartyStore(directory: workspace.supportDirectory)
@@ -758,6 +774,8 @@ final class AppState: ObservableObject {
         chosenDisplay = nil
 
         preferences.noteWorkspaceOpened(workspace)
+        // An evening that was running when the app last quit is still running.
+        resumeSession(in: workspace)
         migration?.runIfNeeded(into: workspace) { [weak self] outcome in
             self?.migrationOutcome = outcome
             if case .migrated = outcome { self?.reloadRosterAfterMigration() }
@@ -769,6 +787,9 @@ final class AppState: ObservableObject {
     /// in. Switching Workspaces goes through here so nothing from the old one leaks into the
     /// new one.
     func closeWorkspace() {
+        // Ended on the record rather than abandoned: a Session's file lives in the Workspace
+        // it started in, and one that outlived its folder would write into the wrong one.
+        stopSession()
         workspace = nil
         partyStore = nil
         workspacePreferences = nil
