@@ -217,49 +217,31 @@ struct ControlView: View {
             // and always clipped. Keep this row short.
             HStack(spacing: 8) {
                 modeControls
-                // The mode's caption sits in the button row rather than under it. It used
-                // to be its own line, which cost a row of height on a window whose vertical
-                // space belongs to the preview — and a caption that appears and disappears
-                // on its own line resizes the preview beneath it, the defect
-                // `fogInspectorRowHeight` exists to prevent. In the row it changes nothing
-                // about the layout.
-                //
-                // Grid Fit's is the exception and stays below: it is three sentences of
-                // instruction and would push every button off a narrow window.
-                if isShowingViewport {
-                    Text("Drag the rectangle to choose what the Player Display shows.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
                 Spacer()
             }
 
-            if mode == .gridFit {
-                Text("Drag a square over one grid square; scroll to zoom, ⌥-drag to pan, arrow keys nudge (⇧ resizes).")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            if mode == .fog {
-                Text(Self.wallEditorHint)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                // The inspector row is ALWAYS here, empty or not.
-                //
-                // It held the Pawn and Light inspectors before those moved to the Live
-                // View; it is kept, reserved and empty, because the height is what is
-                // load-bearing rather than the contents. Anything in this stack that
-                // appears or vanishes steals height from the preview below and shrinks the
-                // GeometryReader every transform is measured against — `fitted(container:)`
-                // then recomputes to a different scale and the Map visibly jumps mid-click.
-                // That is the "the zoom changes while I select" report, and it is the same
-                // defect as the caption above.
-                //
-                // Guarded by `FogInspectorRowHeightTests` and
-                // `PreviewContainerStabilityTests`.
-                Color.clear
-                    .frame(height: Self.fogInspectorRowHeight)
-            }
+            // ONE reserved row, in every mode, whether or not it has anything to say.
+            //
+            // Each mode used to contribute its own caption — and the Wall Editor a caption
+            // plus an inspector row — so entering a mode added height to this stack, stole
+            // it from the `GeometryReader` below, and `fitted(container:)` recomputed to a
+            // different scale. The Map visibly resized the moment a DM pressed "Edit Fog…",
+            // and jumped mid-click inside the mode. Same defect, two symptoms.
+            //
+            // Reserving a constant height makes the preview's container a fixed point
+            // across every mode change, which is the property its arithmetic needs. The
+            // hint inside it may change freely; the box may not.
+            //
+            // Guarded by `ChromeHeightTests` and `PreviewContainerStabilityTests`.
+            Text(modeHint)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(Self.modeHintLineLimit)
+                // Wrapped rather than truncated: the Wall Editor's hint is a list of
+                // gestures, and a DM who cannot see the last of them cannot use it.
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, minHeight: Self.modeHintRowHeight,
+                       maxHeight: Self.modeHintRowHeight, alignment: .topLeading)
 
             playerDisplayStatus
 
@@ -1142,28 +1124,61 @@ struct ControlView: View {
 
     // MARK: Fog
 
-    /// The height the fog inspector row always claims, selected or not.
+    /// The height the hint row always claims, in every mode, whatever it says.
     ///
     /// A constant rather than an intrinsic height, because "however tall it happens to be"
-    /// is exactly what made the preview jump. It held the Pawn and Light inspectors until
-    /// those moved to the Live View (ADR-0013) and is now reserved and empty — the height
-    /// is the load-bearing part, not what sits in it, so removing the row would reintroduce
-    /// the very jump it was added to stop. 24 pt at `.callout`.
-    static let fogInspectorRowHeight: CGFloat = 24
-
-    /// What the Wall Editor is for, stated once. A constant rather than a computed hint per
-    /// tool: there is one tool now.
-    static let wallEditorHint =
-        "Click to place Wall corners, double-click to end a chain, Esc to cancel it. ⇧ frees the angle; corners weld to nearby Wall ends. Click a Wall then ⌫ to delete. Scroll to zoom, ⌥-drag to pan. Pawns and Lights are shown for reference — edit them from the map itself."
-
-    /// The container the fog preview measures its zoom and pan against.
+    /// is exactly what made the preview jump. Two lines at `.caption` — enough for the Wall
+    /// Editor's list of gestures to wrap rather than truncate, and no more, since every
+    /// point reserved here is a point the preview loses.
     ///
-    /// Deliberately ignores `hasInspectorSelection`. The inspector row above the preview is
-    /// reserved unconditionally, so the GeometryReader's size already excludes it and
-    /// selecting something cannot change what the preview is fitted into. Expressed as a
-    /// function taking the flag — rather than not taking it — so the rule is testable and
-    /// stated, instead of being an invariant that holds only by accident of the layout.
-    static func fogPreviewContainer(geometry: CGSize, hasInspectorSelection: Bool) -> CGSize {
+    /// Held against the real SwiftUI layout by `ChromeHeightTests`: a hand-picked number
+    /// that clipped the text it reserves room for would be worse than no reservation.
+    static let modeHintRowHeight: CGFloat = 30
+
+    /// Two lines. One truncates the Wall Editor's gestures, and a DM who cannot read the
+    /// last of them cannot use it; three costs the preview more than the hint is worth.
+    static let modeHintLineLimit = 2
+
+    /// What each mode is for. Every mode has one — an empty hint would reserve a shorter row
+    /// than a real one and make the height depend on the mode again, which is the defect.
+    static let liveViewHint =
+        "Right-click a Pawn or Light to edit it, or the Map to measure. Add places a new one. Scroll to zoom — the players see none of it."
+    static let gridFitHint =
+        "Drag a square over one grid square; scroll to zoom, ⌥-drag to pan, arrow keys nudge (⇧ resizes)."
+    static let wallEditorHint =
+        "Click to place Wall corners, double-click to end a chain, Esc to cancel. ⇧ frees the angle; corners weld to nearby ends. Click a Wall then ⌫ to delete. Pawns and Lights are shown for reference — edit them from the map."
+    static let viewportHint =
+        "Drag the rectangle to choose what the Player Display shows."
+
+    /// Every hint the row can hold, so `ChromeHeightTests` can measure the tallest against
+    /// the height reserved for it rather than trusting a number.
+    static var everyModeHint: [String] {
+        [liveViewHint, gridFitHint, wallEditorHint, viewportHint]
+    }
+
+    /// What the reserved row says right now.
+    ///
+    /// The Viewport's caption wins over the Live View's: a DM who has just armed the
+    /// rectangle is being told how to use the thing they armed, which is more urgent than
+    /// the standing description of the surface.
+    private var modeHint: String {
+        switch mode {
+        case .gridFit: Self.gridFitHint
+        case .fog: Self.wallEditorHint
+        case .normal: isShowingViewport ? Self.viewportHint : Self.liveViewHint
+        }
+    }
+
+    /// The container the preview measures its zoom and pan against.
+    ///
+    /// Deliberately ignores the mode. The chrome above the preview reserves a constant
+    /// height in every mode, so the `GeometryReader`'s size already excludes it and entering
+    /// a mode cannot change what the preview is fitted into. Expressed as a function taking
+    /// the mode — rather than not taking it — so the rule is testable and stated, instead of
+    /// being an invariant that holds only by accident of the layout.
+    ///
+    /// Held by `PreviewContainerStabilityTests`.
+    static func previewContainer(geometry: CGSize, mode: PreviewMode) -> CGSize {
         geometry
     }
 

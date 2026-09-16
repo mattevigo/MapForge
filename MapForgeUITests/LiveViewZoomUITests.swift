@@ -129,3 +129,51 @@ final class MeasurementVisibilityUITests: XCTestCase {
                        "the switch did not turn off")
     }
 }
+
+/// The preview must not resize when the DM changes mode.
+///
+/// Reported from real use: pressing "Edit Fog…" visibly resized the Map, because each mode
+/// contributed its own caption to the stack above the preview. The unit tests hold the
+/// arithmetic; this holds the layout, which is the half they cannot see.
+final class ChromeStabilityUITests: XCTestCase {
+    private func fixturePNG() throws -> URL {
+        let size = NSSize(width: 1200, height: 900)
+        let image = NSImage(size: size)
+        image.lockFocus()
+        NSColor.darkGray.setFill()
+        NSRect(origin: .zero, size: size).fill()
+        image.unlockFocus()
+        let rep = NSBitmapImageRep(cgImage: image.cgImage(forProposedRect: nil, context: nil,
+                                                          hints: nil)!)
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("chrome-\(UUID().uuidString).png")
+        try rep.representation(using: .png, properties: [:])!.write(to: url)
+        return url
+    }
+
+    func testEnteringAndLeavingModesLeavesThePreviewTheSameSize() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
+                               "--test-player-screen", "--test-fresh-preferences"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Edit Fog…"].waitForExistence(timeout: 5))
+
+        // The Player Display picker sits directly below the chrome and above the preview,
+        // so its vertical position moves if and only if the chrome's height changes. It is
+        // always present, unlike the Fog switch, which waits for fog. Measuring the preview
+        // itself is not possible — it publishes no element of its own.
+        let anchor = app.popUpButtons.firstMatch
+        XCTAssertTrue(anchor.waitForExistence(timeout: 3), "nothing below the chrome to measure")
+        let inLiveView = anchor.frame.minY
+
+        app.buttons["Edit Fog…"].click()
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 3), "did not enter the mode")
+        XCTAssertEqual(app.popUpButtons.firstMatch.frame.minY, inLiveView, accuracy: 0.5,
+                       "the chrome changed height entering the Wall Editor, so the Map resized")
+
+        app.buttons["Done"].click()
+        XCTAssertTrue(app.buttons["Edit Fog…"].waitForExistence(timeout: 3), "did not leave the mode")
+        XCTAssertEqual(app.popUpButtons.firstMatch.frame.minY, inLiveView, accuracy: 0.5,
+                       "the chrome did not return to its height on leaving the mode")
+    }
+}
