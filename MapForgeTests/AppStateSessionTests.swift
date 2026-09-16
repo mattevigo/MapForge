@@ -74,6 +74,18 @@ final class AppStateSessionTests: XCTestCase {
         XCTAssertNil(state.sessionLogURL)
     }
 
+    func testTheFileIsNamedForTheTimeItsOpeningLineCarries() throws {
+        let state = makeAppState()
+        state.startSession()
+
+        guard case let .sessionStarted(startedAt) = try sessionLines(state).first else {
+            return XCTFail("expected sessionStarted")
+        }
+        XCTAssertEqual(state.sessionLogURL?.lastPathComponent,
+                       SessionLogFile.name(startedAt: startedAt),
+                       "one Date(), not three — a second boundary must not split them")
+    }
+
     func testStartingWritesTheOpeningLine() throws {
         let state = makeAppState()
         state.startSession()

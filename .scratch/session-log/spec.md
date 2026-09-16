@@ -1,6 +1,6 @@
 # Session Log: record the evening, not just the fight
 
-Status: in progress
+Status: closed 2026-09-16 — all five issues done; 889 unit tests and 7 UI tests green, no at-the-table check
 
 MapForge records a fight in exhaustive detail and records nothing else. The Combat Log holds
 every hit point, every Condition and every completed drag — but only between `startEncounter`
@@ -48,9 +48,12 @@ one. When the Encounter stops, the Session Log resumes and the Comment Bar comes
   during a fight ("Note on Grix's turn — use the Combat tab"). The send button greys with the
   field rather than disappearing: it will work later, and a missing button says it does not
   exist.
-- **A Comment has no target.** Unlike every `Change`, which is keyed on `combatantID`. The
-  selected Pawn is recorded *beside* the text when there is one, so a later reader sees what
-  the DM was looking at without the Comment claiming to be about it.
+- **A Comment has no target.** Unlike every `Change`, which is keyed on `combatantID`. The line
+  format reserves a place for the selected Pawn — *beside* the text, so a later reader could
+  see what the DM was looking at without the Comment claiming to be about it — but **nothing
+  fills it**: the Live View has no Pawn selection to read, and the Combat tab's row selection
+  is meaningful only during a fight, which is exactly when the bar is disabled. Wiring it needs
+  a Live View selection this app does not have.
 - **The Session Log gets its own vocabulary.** Not `Change` (keyed on `combatantID`, and a Pawn
   outside a fight has no Combatant), not `LogLine` (shaped around Rounds and Turns, which a
   Session has neither of). The JSONL *discipline* is shared; the types are not.

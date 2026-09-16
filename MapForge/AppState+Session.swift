@@ -21,9 +21,13 @@ extension AppState {
     /// refusal `startEncounter` makes for a missing Map.
     func startSession() {
         guard let workspace, session == nil else { return }
-        guard let writer = try? SessionLogWriter(in: workspace, startedAt: Date()) else { return }
+        // One `Date()`, not three: the file is named for when the Session started, and two
+        // reads either side of a second boundary would name it for a time its own opening
+        // line disagrees with.
+        let now = Date()
+        guard let writer = try? SessionLogWriter(in: workspace, startedAt: now) else { return }
         sessionWriter = writer
-        let (started, lines) = SessionControl.start(at: Date())
+        let (started, lines) = SessionControl.start(at: now)
         session = started
         writeSession(lines)
     }
@@ -60,7 +64,11 @@ extension AppState {
     /// Appends a Comment to the Session Log.
     ///
     /// `pawnID` is what the DM had selected when they typed, recorded beside the text rather
-    /// than as a subject — a Comment is about the moment, not about anybody.
+    /// than as a subject — a Comment is about the moment, not about anybody. **Nothing passes
+    /// one yet**: the Live View has no Pawn selection, and the Combat tab's row selection is
+    /// meaningful only during a fight, which is exactly when the Comment Bar is disabled. The
+    /// parameter stays because the line format carries the field and `CONTEXT.md` describes
+    /// it; wiring it needs a Live View selection this app does not have.
     ///
     /// Silent during a fight: `SessionControl` drops it, so no caller needs an `if` about
     /// Encounters.

@@ -213,7 +213,7 @@ The append-only record of a Session, held at the Workspace level rather than bes
 _Avoid_: session file, journal, diary, history, timeline
 
 **Comment**:
-A line of the DM's own text, typed into the Comment Bar and appended to the Session Log. It is about the moment, not about anybody: unlike a Change it carries no target, though the selected Pawn is recorded beside it when there is one, so a later reader can see what the DM was looking at without the Comment claiming to be about it. Distinct from the note taken during a fight, which is a Change on a Combatant's Turn and lands in the Combat Log.
+A line of the DM's own text, typed into the Comment Bar and appended to the Session Log. It is about the moment, not about anybody: unlike a Change it carries no target. The line format reserves a place for the Pawn the DM had selected when they typed — recorded beside the text rather than as a subject, so a later reader could see what was being looked at without the Comment claiming to be about it — but nothing fills it yet, there being no Pawn selection in the Live View to read. Distinct from the note taken during a fight, which is a Change on a Combatant's Turn and lands in the Combat Log.
 _Avoid_: note, annotation, message, remark, log entry
 
 **Comment Bar**:

@@ -143,6 +143,14 @@ final class SessionTests: XCTestCase {
                        "a DM who quits mid-fight has ended the evening")
     }
 
+    func testStopLeavesTheSuspensionFlagAsItStands() {
+        // An ended Session is discarded, so clearing the flag would change nothing anybody
+        // reads — but it would hand an inspecting caller a Session that was never mid-fight.
+        var session = suspendedSession()
+        _ = SessionControl.stop(&session, at: later(3600))
+        XCTAssertTrue(session.isRecordingSuspended)
+    }
+
     // MARK: Resuming
 
     func testFoldOfAnEndedSessionIsNil() {

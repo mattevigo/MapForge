@@ -288,9 +288,11 @@ struct ControlView: View {
             // thing ever to sit below the preview. Fixed height in all three of its states:
             // `preview` claims whatever this stack leaves it, so a bar that grew when a fight
             // started would resize the Map mid-click. Guarded by `CommentBarTests`.
-            if appState.mapURL != nil {
-                CommentBar(state: commentBarState, text: $comment, onSubmit: sendComment)
-            }
+            // Not gated on a Map. An evening belongs to the Workspace and crosses whatever
+            // Maps the party walks (ADR-0015), so a Comment typed before the crypt is opened
+            // is still part of it — and a bar that appeared with the Map would change the
+            // stack's height, which is the one thing this row must never do.
+            CommentBar(state: commentBarState, text: $comment, onSubmit: sendComment)
         }
         .padding()
         // The launch gate. There is nothing behind this sheet until a Workspace is open, so
@@ -1423,7 +1425,6 @@ struct ControlView: View {
             .help("Show Measurements on the Player Display. Off, the shape and its distance stay on this window only.")
     }
 
-    @ViewBuilder
     // MARK: The Session
 
     /// Start/Stop Session, in the Live Toolbar.
@@ -1443,10 +1444,14 @@ struct ControlView: View {
               : "Record this evening's movements and comments.")
     }
 
+    /// `hasEncounter` is read from the Session's own suspension rather than from
+    /// `encounter != nil`. The two agree today, but the silence is what the bar is reporting,
+    /// and reading it from the flag that enforces it makes the bar a view of the rule instead
+    /// of a second computation of the same fact.
     private var commentBarState: CommentBarState {
         CommentBarPolicy.state(
             hasSession: appState.session != nil,
-            hasEncounter: appState.encounter != nil,
+            hasEncounter: appState.session?.isRecordingSuspended == true,
             activeCombatantName: appState.encounter.flatMap { encounter in
                 encounter.activeCombatantID.flatMap { encounter.name(of: $0) }
             })

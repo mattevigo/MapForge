@@ -47,9 +47,15 @@ starts — the exact failure `ChromeHeightTests` and `PreviewContainerStabilityT
 the rows above. The placeholder changes; the frame must not. A one-line `TextField` with no
 `axis: .vertical` (unlike `notesBox`, which grows to three lines) is what keeps this true.
 
-**Visibility.** Shown whenever a Map is open, in every mode including the Wall Editor — the
-Setup Toolbar is not disabled by a Session (Q7/soft boundary) and the converse holds too: a
-Comment is typeable while tracing a wall, if a Session is running.
+**Visibility.** Always shown, in every mode including the Wall Editor — the Setup Toolbar is
+not disabled by a Session (Q7/soft boundary) and the converse holds too: a Comment is typeable
+while tracing a wall, if a Session is running.
+
+⚠️ **Not gated on a Map.** An earlier draft of this issue said "whenever a Map is open", which
+contradicts ADR-0015 and the spec: a Session needs a Workspace and not a Map, and *"a Comment
+typed before the crypt is opened is still part of the evening"*. Gating on the Map would also
+make the bar appear and disappear with it — a height change, which is the one thing this row
+must never do.
 
 ## Tests
 

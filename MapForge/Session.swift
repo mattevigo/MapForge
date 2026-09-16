@@ -78,9 +78,13 @@ enum SessionControl {
 
     /// Ends the evening, fight or no fight. The Combat Log's own end line is not this file's
     /// business — a DM who stops while suspended has still stopped.
+    ///
+    /// The suspension flag is left as it stands rather than cleared. An ended Session is
+    /// discarded by its caller, so clearing it would change nothing anybody reads; what it
+    /// would do is hand a caller who inspects the returned value an un-suspended Session
+    /// that was mid-fight when it ended.
     static func stop(_ session: inout Session, at date: Date) -> [SessionLine] {
-        session.resumeRecording()
-        return [.sessionEnded(endedAt: date)]
+        [.sessionEnded(endedAt: date)]
     }
 }
 
