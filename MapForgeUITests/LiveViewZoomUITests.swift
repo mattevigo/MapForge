@@ -75,8 +75,9 @@ final class LiveViewZoomUITests: XCTestCase {
 
 /// The switch that decides whether the table sees a Measurement.
 ///
-/// Driven through the real window because the interesting part is that it appears only once
-/// there is a Measurement to hide — a `@ViewBuilder` condition no unit test reaches.
+/// Driven through the real window because the point of it is that it is *always* there —
+/// present before a Measurement exists, so the DM can decide whether this one is for the
+/// table before they take it rather than after it is already on the big screen.
 final class MeasurementVisibilityUITests: XCTestCase {
     private func fixturePNG() throws -> URL {
         let size = NSSize(width: 1200, height: 900)
@@ -93,7 +94,7 @@ final class MeasurementVisibilityUITests: XCTestCase {
         return url
     }
 
-    func testTheSwitchAppearsOnlyOnceThereIsAMeasurement() throws {
+    func testTheSwitchIsThereBeforeAnyMeasurementAndTurnsOff() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
                                "--test-player-screen", "--test-fresh-preferences"]
@@ -103,15 +104,22 @@ final class MeasurementVisibilityUITests: XCTestCase {
         // A `.checkbox` Toggle publishes as a checkBox, addressed by the identifier rather
         // than the label — the role-and-label mistake this suite has made three times.
         let visibility = app.checkBoxes["measurement-visibility-switch"]
-        XCTAssertFalse(visibility.exists,
-                       "the switch is offered with no Measurement to hide")
+        XCTAssertTrue(visibility.waitForExistence(timeout: 3),
+                      "the switch is missing before a Measurement exists")
+        XCTAssertEqual(visibility.value as? Int, 1,
+                       "the table should see Measurements by default — ADR-0005")
 
-        // Right-click arms a shape; the left-click after it places the Origin, and a second
-        // settles the distance. See the `measurement` spec.
-        let window = app.windows["control"]
+        // Off before taking one: deciding in advance is what "always visible" buys.
+        visibility.click()
+        XCTAssertEqual(app.checkBoxes["measurement-visibility-switch"].value as? Int, 0,
+                       "the switch did not turn off")
+
+        // And it survives taking a Measurement — right-click arms a shape, the left-click
+        // after it places the Origin. See the `measurement` spec.
+        //
         // dx well left of centre: the live panel takes 320 of the window's width, so
-        // anything past about a third of the way across lands on the panel rather than the
-        // preview. This was 0.45 and worked only while the mirror made the preview wider.
+        // anything past about a third of the way across lands on the panel, not the preview.
+        let window = app.windows["control"]
         let point = window.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.7))
         point.rightClick()
         let circle = app.menuItems["Circle"]
@@ -119,14 +127,8 @@ final class MeasurementVisibilityUITests: XCTestCase {
         circle.click()
         point.click()
 
-        XCTAssertTrue(visibility.waitForExistence(timeout: 3),
-                      "no switch once a Measurement is on the Map")
-        XCTAssertEqual(visibility.value as? Int, 1,
-                       "the table should see Measurements by default — ADR-0005")
-
-        visibility.click()
         XCTAssertEqual(app.checkBoxes["measurement-visibility-switch"].value as? Int, 0,
-                       "the switch did not turn off")
+                       "taking a Measurement reset the DM's choice")
     }
 }
 

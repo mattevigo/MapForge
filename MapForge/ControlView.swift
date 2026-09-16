@@ -1372,24 +1372,25 @@ struct ControlView: View {
     /// Whether the table sees the DM's Measurements.
     ///
     /// Beside the Fog switch because it is the same kind of control: a live decision about
-    /// what the Player Display shows, taken mid-session and never persisted. Shown only once
-    /// there is a Measurement to hide, for the same reason the Fog switch waits for fog —
-    /// a control for something that does not exist yet is noise on a window the DM reads in
-    /// front of players.
+    /// what the Player Display shows, taken mid-session and never persisted.
+    ///
+    /// **Always present**, unlike the Fog switch it sits next to. It was conditional on
+    /// there being a Measurement to hide, which was wrong twice over. A DM decides whether a
+    /// distance is for the table *before* they take it, and a control that appears only once
+    /// the shape is already on the big screen offers that choice a moment too late. And a
+    /// control that comes and goes is the layout defect this window has been bitten by three
+    /// times: it shifts the row beside it and the preview below it.
     ///
     /// Default on: ADR-0005 makes the case that the table should see a Measurement, and that
     /// is the common one. This is the escape for the other kind — the distance a DM takes for
     /// themselves, where the number is the tactical fact they are deciding whether to reveal.
-    @ViewBuilder
     private var measurementVisibilitySwitch: some View {
-        if appState.measurement != nil || !appState.pinnedMeasurements.isEmpty {
-            Toggle("Measurements", isOn: $appState.showsMeasurementsToPlayers)
-                .toggleStyle(.checkbox)
-                // A stable handle for the UI tests, as the Fog switch carries: addressing a
-                // control by its rendered label is what goes stale first.
-                .accessibilityIdentifier("measurement-visibility-switch")
-                .help("Show Measurements on the Player Display. Off, the shape and its distance stay on this window only.")
-        }
+        Toggle("Measurements", isOn: $appState.showsMeasurementsToPlayers)
+            .toggleStyle(.checkbox)
+            // A stable handle for the UI tests, as the Fog switch carries: addressing a
+            // control by its rendered label is what goes stale first.
+            .accessibilityIdentifier("measurement-visibility-switch")
+            .help("Show Measurements on the Player Display. Off, the shape and its distance stay on this window only.")
     }
 
     @ViewBuilder
