@@ -134,12 +134,19 @@ final class InitiativeTrackerUITests: XCTestCase {
         app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
                                "--test-player-screen", "--test-fresh-preferences"]
         app.launch()
-        // A Light, so the panel appears at all, but no Pawn to take a Turn.
-        app.buttons["Edit Fog…"].click()
-        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 3))
-        app.radioButtons["Lights"].click()
-        controlWindow(app).coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.7)).click()
-        app.buttons["Done"].click()
+        // A Light, so the panel appears at all, but no Pawn to take a Turn. Placed from
+        // the Live View's Add menu — the fog editor's tool picker is gone (ADR-0013), and a
+        // `Menu` publishes as a MenuButton carrying a title.
+        //
+        // dx well left of centre: the live panel takes 320 of the window's width, so
+        // anything past about a third of the way across lands on the panel, not the preview.
+        let add = app.menuButtons["Add"]
+        XCTAssertTrue(add.waitForExistence(timeout: 3), "no Add menu")
+        add.click()
+        let light = app.menuItems["Light"]
+        XCTAssertTrue(light.waitForExistence(timeout: 2), "Add offers no Light")
+        light.click()
+        controlWindow(app).coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.7)).click()
 
         app.radioButtons["Combat"].click()
         XCTAssertTrue(app.staticTexts["Nobody on the Map to fight"].waitForExistence(timeout: 2))

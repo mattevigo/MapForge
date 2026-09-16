@@ -58,18 +58,20 @@ final class ModeButtonsUITests: XCTestCase {
     }
 
     /// A map that overflows the Player Display on both axes (60 squares = 60 in
-    /// wide) renders the mirror with an Image frame far larger than the preview;
-    /// both mode buttons must still respond.
+    /// wide) renders an Image frame far larger than the preview; the controls above it
+    /// must still respond.
     func testModeButtonsClickableWithOverflowingMap() throws {
         let app = try launchApp(squares: 60, pixelsWide: 3000, pixelsHigh: 2000)
 
-        let pan = app.buttons["Pan Viewport…"]
-        XCTAssertTrue(pan.waitForExistence(timeout: 5), "Pan Viewport… button not found")
-        XCTAssertTrue(pan.isEnabled, "Pan Viewport… disabled with an overflowing map")
-        pan.click()
-        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2),
-                      "Pan Viewport… click did not enter Viewport mode")
-        app.buttons["Cancel"].click()
+        // "Pan Viewport…" was a mode with a Cancel and a Done; it is a toggle now, which a
+        // `.button`-styled Toggle publishes as a checkBox rather than a button.
+        let viewport = app.checkBoxes["Viewport"]
+        XCTAssertTrue(viewport.waitForExistence(timeout: 5), "Viewport toggle not found")
+        XCTAssertTrue(viewport.isEnabled, "Viewport disabled with an overflowing map")
+        viewport.click()
+        XCTAssertEqual(app.checkBoxes["Viewport"].value as? Int, 1,
+                       "the toggle did not show the rectangle")
+        app.checkBoxes["Viewport"].click()
 
         let fit = app.buttons["Fit Grid…"]
         XCTAssertTrue(fit.waitForExistence(timeout: 2), "Fit Grid… button not found")

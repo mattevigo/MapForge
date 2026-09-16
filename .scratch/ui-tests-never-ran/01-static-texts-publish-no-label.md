@@ -44,11 +44,20 @@ query in the suite, not only the fog summary. The identifier-based queries
 (`fog-overlay-switch`, `light-toggle-1`, `pawn-light-toggle`) already work,
 which is a hint at the answer and a template for it.
 
-## Two more, unrelated to each other or to this
+## Resolved since
 
-- `ModeButtonsUITests.testScrollZoomChangesThePreview` — "scrolling did not
-  change the preview — zoom is not wired up". May be a real defect.
-- `WorkspacePickerUITests.testTheRecentsListNamesTheWorkspaceByItsFolder`.
+`ModeButtonsUITests.testScrollZoomChangesThePreview` passes. It was not a defect
+in the test: the Live View genuinely had no zoom, and the test had been asserting
+one for months without ever running. The `live-authoring` branch built it.
+
+The eleven stale tests are fixed too — they drove the fog editor's tool picker
+and "Pan Viewport…", both of which that branch replaced.
+
+## Still open
+
+- `WorkspacePickerUITests.testTheRecentsListNamesTheWorkspaceByItsFolder`, the
+  last failure of twenty-eight. Untouched by `live-authoring`, which changes no
+  Workspace code at all — visible now only because the suite runs.
 
 ## Also noticed, not fixed
 
