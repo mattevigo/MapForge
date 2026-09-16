@@ -15,10 +15,20 @@ enum LogRowText {
     /// A time as a DM reads it mid-evening: the hour, not the date. The date is the Session's,
     /// and a Session is one evening.
     static func time(_ date: Date) -> String {
+        timeFormatter.string(from: date)
+    }
+
+    /// Held rather than built per call, unlike `SessionLogFile.name`'s: that one runs once per
+    /// file, this one runs once per visible row and the whole log rebuilds on every append.
+    ///
+    /// The POSIX locale is what makes `HH` mean 24-hour. Without it a DM whose Mac is set to
+    /// a 12-hour region gets "09:15" for both breakfast and the middle of the session.
+    private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
-        return formatter.string(from: date)
-    }
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
 
     /// One `Change`, named for the Combatant it targets.
     static func describe(_ change: Change, combatantName: String,
@@ -71,10 +81,13 @@ enum LogRowText {
     /// A Session Line, or a row that heads a group.
     static func describe(_ row: LogRow, unit: DistanceUnit = .current) -> String {
         switch row {
-        case let .sessionStarted(at):
-            "Session started \(time(at))"
-        case let .sessionEnded(at):
-            "Session ended \(time(at))"
+        // The time is drawn in its own column by every row that carries one, so these say
+        // only what happened. Embedding it here too printed it twice on the one row that
+        // named it in both places.
+        case .sessionStarted:
+            "Session started"
+        case .sessionEnded:
+            "Session ended"
         case let .comment(text, _):
             text
         case let .pawnMoved(label, distanceSquares, _):
@@ -99,6 +112,8 @@ enum LogRowText {
             describe(change, combatantName: combatantName, unit: unit)
         case let .orphanCorrection(targetRound):
             "Correction to Round \(targetRound), whose Turn is not in this log"
+        case let .liveTurn(round, combatantName):
+            "Round \(round) — \(combatantName)'s turn now"
         case .unreadableLine:
             "A line this version cannot read"
         }

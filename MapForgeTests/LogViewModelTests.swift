@@ -233,6 +233,24 @@ final class LogViewModelTests: XCTestCase {
                        "the first Line establishes the Map; the second announces a change")
     }
 
+    /// `sessionStarted` carries no Map field at all, so it is not a Line that disagrees about
+    /// the Map — it is a Line with no opinion. A change either side of one is still a change.
+    func testALineWithNoMapDoesNotBreakTheAdjacency() throws {
+        let url = try writeSessionLog([
+            .comment(text: "in the crypt", map: "crypt.png", pawnID: nil, at: Date()),
+            .sessionStarted(startedAt: Date()),
+            .comment(text: "in the cavern", map: "cavern.png", pawnID: nil, at: Date()),
+        ])
+
+        let rows = LogViewModel().rows(sessionLogAt: url, workspace: workspace)
+
+        let separators = rows.compactMap { row -> String? in
+            if case let .mapSeparator(path) = row { return path } else { return nil }
+        }
+        XCTAssertEqual(separators, ["cavern.png"],
+                       "a Line with no Map neither announces a change nor hides one")
+    }
+
     func testTheFirstMapDoesNotDrawASeparator() throws {
         let url = try writeSessionLog([
             .sessionStarted(startedAt: Date()),
@@ -293,6 +311,70 @@ final class LogViewModelTests: XCTestCase {
         XCTAssertTrue(isLive, "the running fight is marked in progress")
         XCTAssertTrue(rows.contains { if case .turn = $0 { true } else { false } },
                       "its Turns come from memory — the file may not have them yet")
+    }
+
+    /// The Turns above it are the ones that have *ended*. Without this row the Combatant
+    /// currently acting is the one person the log does not mention.
+    func testALiveEncounterNamesWhoseTurnItIsNow() throws {
+        let grix = UUID(), ogre = UUID()
+        let url = try writeSessionLog([
+            .encounterStarted(map: "dungeon.png", logFile: "fight.jsonl", at: Date()),
+        ])
+
+        let live: [LogLine] = [
+            .encounterStarted(startedAt: Date(), order: [grix, ogre],
+                              combatants: [combatant("Grix", id: grix),
+                                           combatant("Ogre", id: ogre)]),
+            // Grix has acted; the Ogre is up.
+            .turn(round: 1, combatantID: grix, changes: [], endedAt: Date()),
+        ]
+        let rows = LogViewModel().rows(sessionLogAt: url, workspace: workspace,
+                                       liveEncounterLines: live)
+
+        let liveTurn = rows.compactMap { row -> String? in
+            if case let .liveTurn(_, name) = row { return name } else { return nil }
+        }
+        XCTAssertEqual(liveTurn, ["Ogre"], "the fold decides whose Turn it is, here as everywhere")
+        XCTAssertEqual(rows.last, .liveTurn(round: 1, combatantName: "Ogre"),
+                       "it sits at the foot of the fight")
+    }
+
+    /// A fight the DM stopped before anyone acted wrote a real file with nothing in it.
+    /// Reporting that as unreadable would be the silent drop this view exists to avoid.
+    func testAnEmptyButValidCombatLogIsNotReportedAsUnreadable() throws {
+        try writeCombatLog([], forMapAt: mapURL)
+        let url = try writeSessionLog([
+            .encounterStarted(map: "dungeon.png", logFile: "fight.jsonl", at: Date()),
+        ])
+
+        let rows = LogViewModel().rows(sessionLogAt: url, workspace: workspace)
+
+        XCTAssertFalse(rows.contains { if case .encounterUnreadable = $0 { true } else { false } },
+                       "empty is not the same as unreadable")
+        XCTAssertTrue(rows.contains { if case .encounterStarted = $0 { true } else { false } })
+    }
+
+    /// The live pointer is the one nothing closes. Asking "is there any close after me"
+    /// answers correctly only for a file whose opens and closes alternate perfectly.
+    func testAStrayCloseDoesNotMakeTheLivePointerLookFinished() throws {
+        let grix = UUID()
+        let url = try writeSessionLog([
+            .encounterStarted(map: "dungeon.png", logFile: "first.jsonl", at: Date()),
+            .encounterEnded(map: "dungeon.png", at: Date()),
+            // The live fight, followed by a close that belongs to nothing.
+            .encounterStarted(map: "dungeon.png", logFile: "second.jsonl", at: Date()),
+        ])
+
+        let live: [LogLine] = [
+            .encounterStarted(startedAt: Date(), order: [grix],
+                              combatants: [combatant("Grix", id: grix)]),
+            .turn(round: 1, combatantID: grix, changes: [], endedAt: Date()),
+        ]
+        let rows = LogViewModel().rows(sessionLogAt: url, workspace: workspace,
+                                       liveEncounterLines: live)
+
+        XCTAssertTrue(rows.contains { if case .encounterStarted(_, true) = $0 { true } else { false } },
+                      "the last unclosed pointer is the fight happening now")
     }
 
     func testAFinishedEncounterIsReadFromTheFileEvenWhileAnotherRunsLive() throws {

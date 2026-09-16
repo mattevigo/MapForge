@@ -95,6 +95,10 @@ struct ControlView: View {
     /// The evening as rows, rebuilt on every append. Empty until the Log View is opened.
     @State private var logRows: [LogRow] = []
 
+    /// Held rather than built per reload: its readers are injection points, so a caller that
+    /// wants one reader for the session's life can have one.
+    @State private var logModel = LogViewModel()
+
     /// Which row the Combat tab's Stat Block editor is pointed at.
     @State private var selectedCombatant: Pawn.ID?
 
@@ -1601,8 +1605,8 @@ struct ControlView: View {
             logRows = []
             return
         }
-        logRows = LogViewModel().rows(sessionLogAt: url, workspace: workspace,
-                                      liveEncounterLines: appState.encounter?.lines ?? [])
+        logRows = logModel.rows(sessionLogAt: url, workspace: workspace,
+                                liveEncounterLines: appState.encounter?.lines ?? [])
     }
 
     /// `hasEncounter` is read from the Session's own suspension rather than from

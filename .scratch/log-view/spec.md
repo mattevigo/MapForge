@@ -1,6 +1,6 @@
 # Log View: read the evening back
 
-Status: closed 2026-09-16 — all five issues done; 925 unit tests green. UI tests could not run: the runner times out enabling automation mode on this machine.
+Status: closed 2026-09-16 — all five issues done; 933 unit tests green. Reviewed on both axes; the follow-release scroll maths was wrong on first pass and is fixed with `LogViewPolicy.isFollowing` plus four tests. UI tests compile but could not run: the runner times out enabling automation mode on this machine, which blocks the whole existing suite (see `.scratch/ui-tests-never-ran/`).
 
 MapForge writes two logs and shows neither. The Session Log records the evening's Comments and
 movements; the Combat Log records every Turn of every fight. Both are append-only JSONL a human
@@ -73,7 +73,7 @@ drag, and a DM sitting at the bottom always sees the newest.
   Changes beneath that. The structure is free in the data and it is how a DM thinks about a fight.
 - **Before → after, not deltas.** "HP 22 → 15", not "took 7 damage". ADR-0008 refused to store a
   delta and it would be perverse for the view that renders Corrections to invent one.
-  `orderChanged` is the exception: a list of UUIDs renders as "order changed".
+  `orderChanged` is the exception: a list of UUIDs renders as "Order changed".
 - **Empty Turns appear.** A Turn with no Changes is information — a run of them is the answer to
   "when did the ogre stop doing anything" — and hiding them makes the Round's turn count wrong.
 - **Distances in metres**, via Distance Unit. `distanceSquares` is stored in squares; the glossary

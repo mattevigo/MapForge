@@ -9,7 +9,7 @@ import Foundation
 /// visible is a property of the row rather than a shape the view has to walk. A tree would put
 /// the ordering rules in two places — here and in the view's traversal — and ADR-0016's whole
 /// point is that the order is decided once.
-enum LogRow: Equatable, Identifiable {
+enum LogRow: Equatable {
     case sessionStarted(at: Date)
     case sessionEnded(at: Date)
     case comment(text: String, at: Date)
@@ -37,13 +37,21 @@ enum LogRow: Equatable, Identifiable {
     /// which is right for computing state and wrong for reading history.
     case orphanCorrection(targetRound: Int)
 
+    /// Whose Turn it is right now, at the foot of a live fight.
+    ///
+    /// The Turns above it are the ones that have *ended* — a Turn writes its line when it is
+    /// over — so without this the Combatant currently acting is the one person the log does
+    /// not mention.
+    case liveTurn(round: Int, combatantName: String)
+
     /// A Line this version cannot read, or one that would not parse at all. Position is the
     /// only fact it has left — `SessionLine.unrecognised` keeps no timestamp.
     case unreadableLine
 
-    /// Stable only within one read. The log is rebuilt wholesale on every append and rows are
-    /// never diffed across reads, so an index is enough and a synthesised UUID would churn.
-    var id: Int { 0 }
+    // Deliberately not `Identifiable`. The log is rebuilt wholesale on every append and rows
+    // are never diffed across reads, so the view identifies them by position —
+    // `ForEach(Array(rows.enumerated()), id: \.offset)` — and an id on the row itself would
+    // be a second answer to a question the view has already answered.
 }
 
 /// How deep a row sits: Rounds hold Turns, Turns hold Changes.
@@ -53,7 +61,7 @@ enum LogRow: Equatable, Identifiable {
 extension LogRow {
     var indent: Int {
         switch self {
-        case .turn, .correction, .orphanCorrection: 1
+        case .turn, .liveTurn, .correction, .orphanCorrection: 1
         case .change, .correctionChange: 2
         default: 0
         }
@@ -88,17 +96,20 @@ struct LogViewModel {
               workspace: Workspace,
               liveEncounterLines: [LogLine] = []) -> [LogRow] {
         let lines = (try? sessionReader.read(at: url)) ?? []
+        let liveIndex = Self.unclosedEncounterIndex(in: lines)
         var rows: [LogRow] = []
-        var currentMap: String??
+        var currentMap: String?
+        var hasSeenMap = false
 
         for (index, line) in lines.enumerated() {
             // A Map change is inferred, never recorded. The first Line establishes the Map
             // rather than announcing it: a separator above the opening line would be a change
             // from nothing.
-            if let map = line.map, currentMap != nil, currentMap! != map {
-                rows.append(.mapSeparator(path: map))
+            if let map = line.map {
+                if hasSeenMap, currentMap != map { rows.append(.mapSeparator(path: map)) }
+                currentMap = map
+                hasSeenMap = true
             }
-            if let map = line.map { currentMap = map }
 
             switch line {
             case let .sessionStarted(at):
@@ -110,11 +121,10 @@ struct LogViewModel {
             case let .pawnMoved(_, label, _, _, _, distance, at):
                 rows.append(.pawnMoved(label: label, distanceSquares: distance, at: at))
             case let .encounterStarted(map, logFile, _):
-                // The last pointer in the file is the live fight when one is running: the
-                // Session Log falls silent for the fight's whole extent (ADR-0014), so an
-                // unclosed pointer is the fight happening now.
-                let isLive = !liveEncounterLines.isEmpty
-                    && !Self.hasLaterEncounterEnd(in: lines, after: index)
+                // The live fight is the one pointer nothing closes: the Session Log falls
+                // silent for a fight's whole extent (ADR-0014), so a pointer with no close
+                // after it is the fight happening now.
+                let isLive = !liveEncounterLines.isEmpty && index == liveIndex
                 rows.append(contentsOf: encounterRows(map: map, logFile: logFile,
                                                       workspace: workspace,
                                                       liveLines: isLive ? liveEncounterLines : []))
@@ -127,9 +137,22 @@ struct LogViewModel {
         return rows
     }
 
-    /// Whether the fight opened at `index` was closed later in the file.
-    private static func hasLaterEncounterEnd(in lines: [SessionLine], after index: Int) -> Bool {
-        lines.dropFirst(index + 1).contains { if case .encounterEnded = $0 { true } else { false } }
+    /// The pointer no `encounterEnded` closes, if there is one.
+    ///
+    /// Walked forwards once, tracking the open pointer and clearing it on each close, rather
+    /// than asking of each pointer "is there any close after me" — that question answers
+    /// correctly only for a file whose opens and closes alternate perfectly, and says
+    /// "finished" for every pointer the moment a stray close appears anywhere later.
+    private static func unclosedEncounterIndex(in lines: [SessionLine]) -> Int? {
+        var open: Int?
+        for (index, line) in lines.enumerated() {
+            switch line {
+            case .encounterStarted: open = index
+            case .encounterEnded: open = nil
+            default: continue
+            }
+        }
+        return open
     }
 
     /// One fight: its pointer row, then its Turns, then whatever closes it.
@@ -138,17 +161,35 @@ struct LogViewModel {
         // A live fight is read from memory: its last Turn may not be on disk yet, and the
         // Encounter is the authority on a fight still running.
         if !liveLines.isEmpty {
-            return [.encounterStarted(map: map, isLive: true)] + Self.combatRows(liveLines)
+            return [.encounterStarted(map: map, isLive: true)]
+                + Self.combatRows(liveLines)
+                + Self.liveTurnRow(liveLines)
         }
         guard let mapURL = SessionMapPath.resolve(map, in: workspace) else {
             return [.encounterUnreadable(map: map, logFile: logFile)]
         }
         let logURL = StatsStore.combatDirectory(forMapAt: mapURL).appendingPathComponent(logFile)
+        // Missing or unparseable is unreadable; **empty is not**. A fight the DM stopped
+        // before anyone took a Turn wrote a real file with nothing in it, and reporting that
+        // as an error would be the silent drop this view exists to avoid, wearing a warning's
+        // clothes.
         guard fileManager.fileExists(atPath: logURL.path),
-              let lines = try? combatReader.read(at: logURL), !lines.isEmpty else {
+              let lines = try? combatReader.read(at: logURL) else {
             return [.encounterUnreadable(map: map, logFile: logFile)]
         }
         return [.encounterStarted(map: map, isLive: false)] + Self.combatRows(lines)
+    }
+
+    /// Whose Turn it is, for a fight still running.
+    ///
+    /// Folded from the same lines the rows came from rather than read off the `Encounter`:
+    /// the fold is what decides whose Turn it is everywhere else in this app, and a second
+    /// answer computed differently would be a second truth.
+    static func liveTurnRow(_ lines: [LogLine]) -> [LogRow] {
+        let state = CombatLogFold.fold(lines)
+        guard !state.hasEnded, let active = state.activeCombatantID else { return [] }
+        return [.liveTurn(round: state.round,
+                          combatantName: state.name(of: active) ?? "Unknown combatant")]
     }
 
     /// A Combat Log as rows: Rounds grouping Turns, Turns grouping Changes, Corrections drawn

@@ -123,6 +123,40 @@ final class LogViewUITests: XCTestCase {
                       "with no Session the pane says what fills it")
     }
 
+    /// Issue 05's last "Done when": open → scroll up → append → the view stays put.
+    ///
+    /// The decision itself is `LogViewPolicy.isFollowing`, unit-tested against the geometry.
+    /// What only the real window can show is that the numbers reaching it are the ones that
+    /// function expects — the bug this test exists for was a viewport height that was never
+    /// measured, which no unit test could have caught.
+    func testScrollingUpStopsTheViewFollowingNewLines() throws {
+        let app = try launchApp()
+        let window = controlWindow(app)
+
+        window.buttons["session-toggle"].click()
+        window.checkBoxes["log-toggle"].click()
+        XCTAssertTrue(window.otherElements["log-view"].waitForExistence(timeout: 2))
+
+        let field = window.textFields["comment-field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 2))
+        field.click()
+        // Enough Lines to overflow the pane, so there is somewhere to scroll up to.
+        for index in 0..<40 { field.typeText("line \(index)\n") }
+
+        let rows = window.descendants(matching: .any).matching(identifier: "log-row")
+        let first = rows.element(boundBy: 0)
+        XCTAssertTrue(first.waitForExistence(timeout: 3))
+
+        window.otherElements["log-view"].scroll(byDeltaX: 0, deltaY: 600)
+        let restingY = first.frame.origin.y
+
+        field.click()
+        field.typeText("one more\n")
+
+        XCTAssertEqual(first.frame.origin.y, restingY, accuracy: 2,
+                       "a DM reading back must not be yanked to the bottom by a new Line")
+    }
+
     /// A Comment typed with the Log open must appear: the bar stays visible precisely so it
     /// can be typed into, and a Comment that does not show up is a bug to the DM.
     func testACommentTypedWhileReadingAppearsInTheLog() throws {

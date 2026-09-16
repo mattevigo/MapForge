@@ -44,4 +44,31 @@ final class LogViewTests: XCTestCase {
         let state = LogViewPolicy.state(hasWorkspace: false, hasSession: true, isEmpty: false)
         XCTAssertEqual(state, .noWorkspace)
     }
+
+    // MARK: Following the newest Line
+
+    /// At the bottom the content's last pixel is level with the clip's last pixel, so
+    /// `contentMaxY` equals the viewport's height — **not** zero. Comparing it against zero
+    /// is the bug this test exists to prevent: it is false for every log taller than its
+    /// pane, so following latches off exactly when it starts to matter.
+    func testTheViewFollowsWhenScrolledToTheBottom() {
+        XCTAssertTrue(LogViewPolicy.isFollowing(contentMaxY: 400, viewportHeight: 400),
+                      "at the bottom the content's edge is level with the clip's")
+    }
+
+    func testTheViewStopsFollowingWhenTheDMScrollsUp() {
+        // Scrolled up 300pt: the content's bottom edge is that far below the fold.
+        XCTAssertFalse(LogViewPolicy.isFollowing(contentMaxY: 700, viewportHeight: 400),
+                       "a DM reading Round 2 must not be yanked away by a Pawn drag")
+    }
+
+    func testFollowingSurvivesAFewPixelsOfRubberBanding() {
+        XCTAssertTrue(LogViewPolicy.isFollowing(contentMaxY: 410, viewportHeight: 400),
+                      "an exact comparison would drop following on a single pixel")
+    }
+
+    func testALogShorterThanItsPaneAlwaysFollows() {
+        // Nothing to scroll: the content ends well above the clip's bottom edge.
+        XCTAssertTrue(LogViewPolicy.isFollowing(contentMaxY: 80, viewportHeight: 400))
+    }
 }

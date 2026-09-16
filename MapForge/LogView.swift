@@ -37,6 +37,25 @@ enum LogViewPolicy {
         guard hasSession else { return .noSession }
         return isEmpty ? .recordingNothingYet : .lines
     }
+
+    /// A row's height of slack, so rubber-banding does not drop following.
+    static let followSlop: CGFloat = 24
+
+    /// Whether the view should still follow the newest Line.
+    ///
+    /// Both measurements are taken in the ScrollView's own coordinate space: `contentMaxY` is
+    /// the bottom edge of the content, and `viewportHeight` is the height of the clip it
+    /// scrolls inside. At the bottom the two coincide — the content's last pixel is level with
+    /// the clip's last pixel — and scrolling up pushes `contentMaxY` below the fold, past the
+    /// viewport's height.
+    ///
+    /// The difference is what matters, never `contentMaxY` alone: it equals the viewport's
+    /// height at the bottom rather than zero, so a bare `contentMaxY <= slop` is false for
+    /// every log taller than its pane and following latches off exactly when it starts to
+    /// matter. A content shorter than its viewport never scrolls and always follows.
+    static func isFollowing(contentMaxY: CGFloat, viewportHeight: CGFloat) -> Bool {
+        contentMaxY <= viewportHeight + followSlop
+    }
 }
 
 /// The evening, read back: the Log View.
@@ -60,7 +79,10 @@ struct LogView: View {
     /// always see the newest.
     @State private var isFollowing = true
 
+    /// What `scrollTo` aims at. Distinct from `scrollSpace`: one names a view to scroll to,
+    /// the other the coordinate space positions are measured in.
     private static let bottomAnchor = "log-bottom"
+    private static let scrollSpace = "log-scroll"
 
     var body: some View {
         Group {
@@ -93,6 +115,15 @@ struct LogView: View {
     }
 
     private var log: some View {
+        // The viewport's own height, which `isFollowing` measures the content against. Read
+        // out here rather than inside the ScrollView: in there a GeometryReader measures the
+        // content, which is the whole scrollable length and not the window onto it.
+        GeometryReader { viewport in
+            scrollingLog(viewportHeight: viewport.size.height)
+        }
+    }
+
+    private func scrollingLog(viewportHeight: CGFloat) -> some View {
         ScrollViewReader { proxy in
             ScrollView(.vertical) {
                 // The house pattern — there is no `List` and no `Table` in this app. Rows are
@@ -115,20 +146,19 @@ struct LogView: View {
                 }
                 .padding(8)
                 .background(
-                    // Reports where the content sits inside the clip, which is how the view
-                    // learns the DM scrolled up. SwiftUI has no scroll-offset binding on
+                    // Where the content's bottom edge sits inside the clip, which is how the
+                    // view learns the DM scrolled up. SwiftUI has no scroll-offset binding on
                     // macOS 15, so the position is read from the geometry instead.
                     GeometryReader { geometry in
                         Color.clear.preference(
                             key: LogScrollOffset.self,
-                            value: geometry.frame(in: .named(Self.bottomAnchor)).maxY)
+                            value: geometry.frame(in: .named(Self.scrollSpace)).maxY)
                     })
             }
-            .coordinateSpace(name: Self.bottomAnchor)
-            .onPreferenceChange(LogScrollOffset.self) { maxY in
-                // Within a row's height of the end counts as being at the end: an exact
-                // comparison would drop following on a single pixel of rubber-banding.
-                isFollowing = maxY <= LogScrollOffset.followSlop
+            .coordinateSpace(name: Self.scrollSpace)
+            .onPreferenceChange(LogScrollOffset.self) { contentMaxY in
+                isFollowing = LogViewPolicy.isFollowing(contentMaxY: contentMaxY,
+                                                        viewportHeight: viewportHeight)
             }
             .onAppear { scrollToBottom(proxy) }
             .onChange(of: rows.count) { _, _ in
@@ -147,15 +177,15 @@ struct LogView: View {
     }
 }
 
-/// How far past the clip's bottom edge the content sits.
+/// Where the content's bottom edge sits in the ScrollView's coordinate space.
+///
+/// `LogViewPolicy.isFollowing` is what reads it, and it needs the viewport's height to mean
+/// anything — at the bottom this value *is* the viewport's height, not zero.
 private struct LogScrollOffset: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
     }
-
-    /// A row's height of slack, so rubber-banding does not drop following.
-    static let followSlop: CGFloat = 24
 }
 
 /// One row. Indentation carries the grouping; colour carries what kind of thing it is.
@@ -164,10 +194,10 @@ struct LogRowView: View {
 
     var body: some View {
         switch row {
-        case let .mapSeparator(path):
-            separator(LogRowText.describe(.mapSeparator(path: path)))
-        case let .roundHeading(round):
-            heading("Round \(round)")
+        case .mapSeparator:
+            separator(LogRowText.describe(row))
+        case .roundHeading:
+            heading(LogRowText.describe(row))
         default:
             line
         }
@@ -225,7 +255,7 @@ struct LogRowView: View {
 
     private var font: Font {
         switch row {
-        case .turn: .callout.weight(.medium)
+        case .turn, .liveTurn: .callout.weight(.medium)
         case .encounterStarted, .encounterEnded, .sessionStarted, .sessionEnded:
             .caption.weight(.semibold)
         default: .callout

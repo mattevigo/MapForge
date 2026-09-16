@@ -13,11 +13,12 @@ and the view that draws Corrections beside their Turns cannot be the one that in
 - `hpChanged` → "HP 22 → 15"; a `nil` side reads as "—"
 - `tempHPChanged`, `maxHPChanged`, `acChanged`, `exhaustionChanged`, `initiativeChanged` → same shape
 - `conditionAdded` → "Prone applied"; `conditionRemoved` → "Prone removed" (`Condition.title`)
-- `concentrationChanged` → "Concentrating" / "Concentration ended"
+- `concentrationChanged` → "Grix — concentrating" / "Grix — concentration ended". Name-prefixed like
+  every other Change: a row that led with the verb would read as belonging to nobody
 - `noteAdded` → the text
 - `moved` → "moved 7.5 m" — see distances below
 - `combatantJoined` → "joined, initiative 14"; `combatantRemoved` → "removed from the Order"
-- `orderChanged` → **"order changed"**, the one exception. It carries `[UUID]`; rendering
+- `orderChanged` → **"Order changed"**, the one exception. It carries `[UUID]`; rendering
   fourteen names is a wall and the fact that matters is that it happened.
 - `unrecognised` → a marked placeholder
 
