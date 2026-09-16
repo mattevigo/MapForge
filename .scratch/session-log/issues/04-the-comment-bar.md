@@ -1,6 +1,6 @@
 # 04 — The Comment Bar
 
-Status: ready-for-agent
+Status: done
 
 The full-width row beneath the Map: one text field, one send button, three states.
 

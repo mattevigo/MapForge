@@ -4,6 +4,9 @@ struct ControlView: View {
     @EnvironmentObject private var appState: AppState
 
     @State private var mode: PreviewMode = .normal
+    /// What the DM has typed into the Comment Bar and not yet sent. View-local: an unsent
+    /// Comment is a half-finished thought, not part of the evening's record.
+    @State private var comment = ""
     /// The Pawn or Light being edited in a sheet, or nil when none is.
     ///
     /// One optional rather than two, because at most one sheet is ever up: the DM reached it
@@ -197,6 +200,17 @@ struct ControlView: View {
         // height, keeps this stack's controls pinned to the top of the window whether or
         // not a Map is open.
         VStack(alignment: .leading, spacing: 14) {
+            // MARK: Setup Toolbar — what a DM touches before the players arrive.
+            //
+            // This row and the `modeControls` row below it are the **Setup Toolbar**
+            // (`CONTEXT.md`): Open Map, the Workspace, Grid Fit, the Wall Editor. Named for
+            // the phase it belongs to rather than for what it acts on, so the separation
+            // between preparing and playing is visible in the window rather than merely
+            // intended. Nothing in it is disabled once a Session starts — a DM sometimes must
+            // trace a wall mid-evening, because the party went somewhere never prepared.
+            //
+            // The two rows are not adjacent and are not merged: that is a fact about the
+            // current layout, and merging them is a height change this has no reason to make.
             HStack {
                 Button("Open Map…") { appState.openMap() }
                 if let url = appState.mapURL {
@@ -249,17 +263,33 @@ struct ControlView: View {
 
             undeclaredGridWarning
 
-            // One row: both govern what the Player Display shows, and stacking them cost a
-            // line of height on a window whose vertical space belongs to the preview.
+            // MARK: Live Toolbar — what a DM touches with the players watching.
+            //
+            // The **Live Toolbar** (`CONTEXT.md`): the switches that change what the table
+            // experiences, now. Both govern what the Player Display shows, and stacking them
+            // cost a line of height on a window whose vertical space belongs to the preview.
+            //
+            // The Session control sits here rather than beside the Workspace button because
+            // starting an evening is a live act, not setup. It changes label, not height, so
+            // the row's reserved height is unaffected.
             HStack(spacing: 16) {
                 fogSwitch
                 measurementVisibilitySwitch
                 Spacer()
+                sessionToggle
             }
 
             HStack(alignment: .top, spacing: 12) {
                 preview
                 livePanel
+            }
+
+            // The Comment Bar, beneath the Map and the full width of the window — the first
+            // thing ever to sit below the preview. Fixed height in all three of its states:
+            // `preview` claims whatever this stack leaves it, so a bar that grew when a fight
+            // started would resize the Map mid-click. Guarded by `CommentBarTests`.
+            if appState.mapURL != nil {
+                CommentBar(state: commentBarState, text: $comment, onSubmit: sendComment)
             }
         }
         .padding()
@@ -1391,6 +1421,41 @@ struct ControlView: View {
             // control by its rendered label is what goes stale first.
             .accessibilityIdentifier("measurement-visibility-switch")
             .help("Show Measurements on the Player Display. Off, the shape and its distance stay on this window only.")
+    }
+
+    @ViewBuilder
+    // MARK: The Session
+
+    /// Start/Stop Session, in the Live Toolbar.
+    ///
+    /// Disabled without a Workspace: a Session's log lives in `.mapforge/sessions/`, so there
+    /// is nowhere to write without one — the refusal `startEncounter` already makes for a
+    /// missing Map. Stopping asks for no confirmation: starting again is one click, and a
+    /// modal at the table is what this app's decisions keep avoiding.
+    private var sessionToggle: some View {
+        Button(appState.session == nil ? "Start Session" : "Stop Session") {
+            if appState.session == nil { appState.startSession() } else { appState.stopSession() }
+        }
+        .disabled(appState.workspace == nil)
+        .accessibilityIdentifier("session-toggle")
+        .help(appState.workspace == nil
+              ? "A session records into the Workspace. Open one first."
+              : "Record this evening's movements and comments.")
+    }
+
+    private var commentBarState: CommentBarState {
+        CommentBarPolicy.state(
+            hasSession: appState.session != nil,
+            hasEncounter: appState.encounter != nil,
+            activeCombatantName: appState.encounter.flatMap { encounter in
+                encounter.activeCombatantID.flatMap { encounter.name(of: $0) }
+            })
+    }
+
+    private func sendComment() {
+        guard commentBarState.isEnabled else { return }
+        appState.addComment(comment)
+        comment = ""
     }
 
     @ViewBuilder

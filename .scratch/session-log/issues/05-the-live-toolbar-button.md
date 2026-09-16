@@ -1,6 +1,6 @@
 # 05 — The Live Toolbar button
 
-Status: ready-for-agent
+Status: done
 
 Start/Stop Session joins the switch row, and the two toolbars get their names in the code.
 
