@@ -11,9 +11,14 @@ import XCTest
 /// this row is the same hazard, so the widths are pinned rather than trusted.
 final class SetupToolbarWidthTests: XCTestCase {
 
-    /// A Control Window narrow enough to be uncomfortable. `ChromeHeightTests` uses 380 for
-    /// the same purpose; the window's own default is 560.
-    private let narrowWindow: CGFloat = 380
+    /// The narrowest the toolbars can ever be asked to draw in.
+    ///
+    /// This was a bare 380 standing for "a Control Window narrow enough to be uncomfortable",
+    /// which was the right measure while the toolbars spanned the whole window. They now sit
+    /// in the Map column, beside the live panel, so the width they get is the column's — and
+    /// the constant is read off the view rather than restated here, or the two drift and the
+    /// tests keep passing while the real toolbar wraps.
+    private let narrowWindow = ControlView.minimumMapColumnWidth
 
     @MainActor
     private func width(of view: some View) -> CGFloat {
@@ -52,5 +57,52 @@ final class SetupToolbarWidthTests: XCTestCase {
                              "precondition: this name is long enough to be a hazard")
         XCTAssertLessThan(width(of: asTheRowDrawsIt.frame(maxWidth: 200)), 201,
                           "a long file name must truncate, not push the picker off the row")
+    }
+
+    // MARK: The window minimum and the column must agree
+
+    /// The defect this pins: the toolbars moved into the Map column when the seam moved to
+    /// the top of the window, but the window's minimum width still described the old layout
+    /// — window minus nothing. At that minimum the column came out around 215 pt, and the
+    /// Live Toolbar's "Measurements" broke into four stacked one-word lines while every
+    /// button truncated to a stub.
+    ///
+    /// Nothing caught it: the width tests measured the toolbar against a 380 pt window, and
+    /// a 380 pt window was no longer a 380 pt toolbar. So the arithmetic is asserted here,
+    /// against the same constant the `.frame` uses.
+    func testTheWindowMinimumLeavesTheMapColumnWideEnoughForItsToolbars() {
+        let columnAtMinimum = ControlView.minimumWindowWidth
+            - ControlView.livePanelWidth
+            - ControlView.columnSpacing
+            - ControlView.windowPadding * 2
+
+        XCTAssertGreaterThanOrEqual(
+            columnAtMinimum, ControlView.minimumMapColumnWidth,
+            "at its minimum width the window leaves the Map column \(columnAtMinimum) pt, "
+            + "under the \(ControlView.minimumMapColumnWidth) pt its toolbars are tested at — "
+            + "the toolbars will wrap and truncate")
+    }
+
+    /// And the Live Toolbar specifically, because it is the row that failed visibly: its
+    /// labels are words, not glyphs, and a word that does not fit wraps rather than
+    /// truncating — four stacked lines where there should be one.
+    @MainActor
+    func testTheLiveToolbarsLabelsFitTheColumnOnOneLine() {
+        // The row as `ControlView` builds it, minus the state it needs a live AppState for:
+        // two labelled switches, a button, and the Session button pushed to the far end.
+        let row = HStack(spacing: 16) {
+            Toggle("Fog", isOn: .constant(true))
+            Toggle("Measurements", isOn: .constant(true))
+            Button("Viewport") {}
+            Spacer()
+            Button("Start Session") {}
+        }
+
+        let needed = width(of: row)
+        XCTAssertLessThanOrEqual(
+            needed, ControlView.minimumMapColumnWidth,
+            "the Live Toolbar needs \(needed) pt but the Map column can be as narrow as "
+            + "\(ControlView.minimumMapColumnWidth) pt — \"Measurements\" wraps instead of "
+            + "sitting on one line")
     }
 }

@@ -73,7 +73,7 @@ The Control Window's ordinary state: the **whole Map**, with Pawns, Light Marker
 _Avoid_: preview, preview mode, normal mode, play mode, mirror
 
 **Magnifier**:
-The Live View's private zoom: the DM looks closer without the Viewport moving, so the Player Display keeps showing exactly what it showed. Distinct from dragging the Viewport, which is a deliberate act the table watches. Never persisted, and it says on screen when it is on.
+The Live View's private zoom: the DM looks closer without the Viewport moving, so the Player Display keeps showing exactly what it showed. Distinct from dragging the Viewport, which is a deliberate act the table watches. Never persisted. Scrolling back out ends it — the zoom's floor is the whole Map, so there is nowhere past it to be stuck. It said so on screen once, in a "Zoomed — Reset" button that appeared beside Grid Fit while it was on; the button is gone and the artwork's own size is what tells the DM.
 _Avoid_: zoom, preview zoom, magnification
 
 **Wall Editor**:
@@ -217,11 +217,11 @@ A line of the DM's own text, typed into the Comment Bar and appended to the Sess
 _Avoid_: note, annotation, message, remark, log entry
 
 **Comment Bar**:
-The full-width row beneath the Map in the Control Window: one text field and a send button, Return sending. Its one fixed-height row is the whole of it — no scrollback, because the Map must never resize mid-click. It is the only control that enforces the boundary between preparing a Map and running a Session: it is disabled until a Session starts, and disabled again while an Encounter runs, when the Combat tab's note box is the live one instead. Its placeholder says which of the three it is in.
+The row beneath the Map in the Control Window, the width of the Map rather than of the window: one text field and a send button, Return sending. Its one fixed-height row is the whole of it — no scrollback, because the Map must never resize mid-click. It is the only control that enforces the boundary between preparing a Map and running a Session: it is disabled until a Session starts, and disabled again while an Encounter runs, when the Combat tab's note box is the live one instead. Its placeholder says which of the three it is in.
 _Avoid_: comment field, input bar, chat, console, footer
 
 **Setup Toolbar**:
-The rows above the Map holding what a DM touches before the players arrive: Open Map, the Workspace, Grid Fit, the Wall Editor. Named for the phase it belongs to rather than for what it acts on, so the separation between preparing and playing is visible in the window rather than merely intended. Nothing in it is disabled once a Session starts — a DM sometimes must trace a wall mid-evening, because the party went somewhere that was never prepared.
+The rows above the Map — the Map's width, not the window's — holding what a DM touches before the players arrive: Open Map, the Workspace, Grid Fit, the Wall Editor. Named for the phase it belongs to rather than for what it acts on, so the separation between preparing and playing is visible in the window rather than merely intended. Nothing in it is disabled once a Session starts — a DM sometimes must trace a wall mid-evening, because the party went somewhere that was never prepared.
 _Avoid_: map toolbar, top bar, prep bar, controls
 
 **Live Toolbar**:

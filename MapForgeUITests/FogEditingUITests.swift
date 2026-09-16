@@ -44,6 +44,18 @@ final class FogEditingUITests: XCTestCase {
         app.windows["control"]
     }
 
+    /// The Map itself, which is what every coordinate click in this file is aiming at.
+    ///
+    /// These used to be fractions of the whole Control Window, which worked only while the
+    /// Map held the window's left edge: `dx: 0.3` was inside the Map because there was
+    /// nothing to its left. The live panel took that edge when the window split into two
+    /// columns, so the same fraction started landing on the Party list and every placement
+    /// test failed at once. Addressing the Map directly means the offsets say what they
+    /// mean — a fraction of the Map — and survive the next layout change.
+    private func mapPreview(_ app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: "map-preview").firstMatch
+    }
+
     /// Arm `Add` with one kind, then click the preview to place it.
     ///
     /// Replaces a `tool()` helper that clicked the fog editor's segmented picker. That
@@ -62,7 +74,7 @@ final class FogEditingUITests: XCTestCase {
         XCTAssertTrue(item.waitForExistence(timeout: 2), "Add offers no \(kind)",
                       file: file, line: line)
         item.click()
-        controlWindow(app).coordinate(withNormalizedOffset: offset).click()
+        mapPreview(app).coordinate(withNormalizedOffset: offset).click()
     }
 
 
@@ -98,12 +110,12 @@ final class FogEditingUITests: XCTestCase {
         app.buttons["Edit Fog…"].click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
-        let window = controlWindow(app)
-        // Three points across the lower half of the window, safely inside the preview
-        // and clear of the controls above it.
-        let first = window.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.7))
-        let second = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
-        let third = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85))
+        let map = mapPreview(app)
+        // Three points spread across the Map. Fractions of the Map now, not of the window,
+        // so they stay inside it wherever the Map sits.
+        let first = map.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.4))
+        let second = map.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.4))
+        let third = map.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.7))
 
         first.click()
         second.click()
@@ -120,10 +132,10 @@ final class FogEditingUITests: XCTestCase {
         app.buttons["Edit Fog…"].click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
-        let window = controlWindow(app)
-        window.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.7)).click()
-        window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)).click()
-        window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)).doubleClick()
+        let map = mapPreview(app)
+        map.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.4)).click()
+        map.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.4)).click()
+        map.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.4)).doubleClick()
         XCTAssertTrue(app.staticTexts["1 Wall, 0 Lights, 0 Pawns"].waitForExistence(timeout: 2))
 
         app.buttons["Cancel"].click()
@@ -165,8 +177,9 @@ final class FogEditingUITests: XCTestCase {
         let window = controlWindow(app)
         let windowFrame = window.frame
 
-        // Scroll well past the point where the image exceeds the preview.
-        let centre = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
+        // Scroll well past the point where the image exceeds the preview. The point must be
+        // over the Map — the window's centre is no longer inside it.
+        let centre = mapPreview(app).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         for _ in 1...40 { centre.scroll(byDeltaX: 0, deltaY: 10) }
 
         // The window must not have been resized by its own content, and the controls must
@@ -191,9 +204,11 @@ final class FogEditingUITests: XCTestCase {
 
         // Dragging is a live action, and always was — the difference is that placing is one
         // now too, so the whole test happens in one mode.
-        let window = controlWindow(app)
-        let from = window.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.7))
-        let to = window.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.7))
+        // The same Map-relative offset the Pawn was placed at, or the drag starts somewhere
+        // the Pawn is not.
+        let map = mapPreview(app)
+        let from = map.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.7))
+        let to = map.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.7))
         from.press(forDuration: 0.1, thenDragTo: to)
 
         // The Pawn survived the drag rather than being duplicated or dropped. The fog

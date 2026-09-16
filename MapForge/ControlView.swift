@@ -196,9 +196,96 @@ struct ControlView: View {
     }
 
     var body: some View {
-        // `alignment: .top` on the row below, plus the preview claiming the remaining
-        // height, keeps this stack's controls pinned to the top of the window whether or
-        // not a Map is open.
+        // The window splits into two columns at the very top: the live panel on the left,
+        // running the full height, and everything else — toolbars, Map, Comment Bar — in a
+        // column to its right.
+        //
+        // The split is the outermost thing in the window rather than a row partway down it
+        // because both halves are full-height columns, and a seam that starts below the
+        // toolbars is not a split: it is a Map with something beside it. The panel is the
+        // one part of this window a DM reads *while* looking at the Map, so it gets a column
+        // rather than a corner.
+        //
+        // Every toolbar row now sits inside the right column, which is why they bound to the
+        // Map's width rather than the window's. That is the point: a row of Map controls
+        // stretched across the panel too made the window read as one undivided surface with
+        // a sidebar bolted on below.
+        HStack(alignment: .top, spacing: Self.columnSpacing) {
+            livePanel
+            mapColumn
+        }
+        .padding(Self.windowPadding)
+        // The launch gate. There is nothing behind this sheet until a Workspace is open, so
+        // it is not dismissible then; when switching, Cancel puts the DM back where they were.
+        .sheet(isPresented: Binding(
+            get: { isPickingWorkspace || appState.workspace == nil },
+            set: { isPickingWorkspace = $0 }
+        )) {
+            WorkspacePickerView(isSwitching: appState.workspace != nil)
+                .environmentObject(appState)
+                .interactiveDismissDisabled(appState.workspace == nil)
+        }
+        .sheet(item: $editing) { target in
+            switch target {
+            case .pawn(let id, let draft):
+                EditPawnSheet(draft: draft,
+                              hasDeclaredGrid: appState.hasDeclaredGrid,
+                              onCommit: { appState.updatePawn(id: id, with: $0); editing = nil },
+                              onCancel: { editing = nil })
+            case .light(let id, let draft):
+                EditLightSheet(draft: draft,
+                               hasDeclaredGrid: appState.hasDeclaredGrid,
+                               onCommit: { appState.updateLight(id: id, with: $0); editing = nil },
+                               onCancel: { editing = nil })
+            }
+        }
+        .alert("End the encounter and switch workspace?",
+               isPresented: $confirmSwitchEndsEncounter) {
+            Button("Cancel", role: .cancel) {}
+            Button("Switch") {
+                appState.stopEncounter()
+                isPickingWorkspace = true
+            }
+        } message: {
+            Text(endEncounterMessage)
+        }
+        .alert(migrationTitle, isPresented: Binding(
+            get: { appState.migrationOutcome != nil },
+            set: { if !$0 { appState.migrationOutcome = nil } }
+        )) {
+            Button("OK") { appState.migrationOutcome = nil }
+        } message: {
+            Text(migrationMessage)
+        }
+        // Wide enough for the live panel AND a Map column the toolbars still fit in.
+        //
+        // This used to be `480 + (livePanelWidth - 236)`, which was the right sum while the
+        // toolbars spanned the whole window and only the Map row was shortened by the panel.
+        // Once the seam moved to the top the toolbars moved inside the Map column, and that
+        // old minimum left them about 215 pt: "Measurements" broke into four stacked lines,
+        // every button truncated to a stub, and the mode hint clipped. The window was still
+        // "wide enough" by a number that no longer described the thing it constrained.
+        //
+        // So the minimum is now built the way the layout actually is — what the Map column
+        // needs, plus the panel beside it — rather than a window width with a correction
+        // bolted on. `SetupToolbarWidthTests` pins `minimumMapColumnWidth` against the real
+        // toolbar, so the two cannot drift apart again.
+        .frame(minWidth: Self.minimumWindowWidth, minHeight: 400)
+        // The Control Window IS the app: its close button kept being hit during mode
+        // work (it reads like "exit this mode"), killing the session — every "crash"
+        // reported against Grid Fit/panning was this. Minimize stays; quit is ⌘Q.
+        .onAppear {
+            if let window = NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix("control") == true }) {
+                window.styleMask.remove(.closable)
+            }
+        }
+    }
+
+    /// Everything to the right of the seam: the toolbars, the Map, the Comment Bar.
+    ///
+    /// `alignment: .leading` plus the preview claiming the remaining height keeps these
+    /// controls pinned to the top of the column whether or not a Map is open.
+    private var mapColumn: some View {
         VStack(alignment: .leading, spacing: 14) {
             // MARK: Setup Toolbar — what a DM touches before the players arrive.
             //
@@ -294,76 +381,21 @@ struct ControlView: View {
                 sessionToggle
             }
 
-            HStack(alignment: .top, spacing: 12) {
-                preview
-                livePanel
-            }
+            preview
 
-            // The Comment Bar, beneath the Map and the full width of the window — the first
-            // thing ever to sit below the preview. Fixed height in all three of its states:
-            // `preview` claims whatever this stack leaves it, so a bar that grew when a fight
-            // started would resize the Map mid-click. Guarded by `CommentBarTests`.
+            // The Comment Bar, beneath the Map and the width of the Map column — it used to
+            // span the whole window, and followed the toolbars inward when the seam moved to
+            // the top so that one unbroken edge runs the window's full height.
+            // Fixed height in all three of its states: `preview` claims whatever this stack
+            // leaves it, so a bar that grew when a fight started would resize the Map
+            // mid-click. Guarded by `CommentBarTests`.
             // Not gated on a Map. An evening belongs to the Workspace and crosses whatever
             // Maps the party walks (ADR-0015), so a Comment typed before the crypt is opened
             // is still part of it — and a bar that appeared with the Map would change the
             // stack's height, which is the one thing this row must never do.
             CommentBar(state: commentBarState, text: $comment, onSubmit: sendComment)
         }
-        .padding()
-        // The launch gate. There is nothing behind this sheet until a Workspace is open, so
-        // it is not dismissible then; when switching, Cancel puts the DM back where they were.
-        .sheet(isPresented: Binding(
-            get: { isPickingWorkspace || appState.workspace == nil },
-            set: { isPickingWorkspace = $0 }
-        )) {
-            WorkspacePickerView(isSwitching: appState.workspace != nil)
-                .environmentObject(appState)
-                .interactiveDismissDisabled(appState.workspace == nil)
-        }
-        .sheet(item: $editing) { target in
-            switch target {
-            case .pawn(let id, let draft):
-                EditPawnSheet(draft: draft,
-                              hasDeclaredGrid: appState.hasDeclaredGrid,
-                              onCommit: { appState.updatePawn(id: id, with: $0); editing = nil },
-                              onCancel: { editing = nil })
-            case .light(let id, let draft):
-                EditLightSheet(draft: draft,
-                               hasDeclaredGrid: appState.hasDeclaredGrid,
-                               onCommit: { appState.updateLight(id: id, with: $0); editing = nil },
-                               onCancel: { editing = nil })
-            }
-        }
-        .alert("End the encounter and switch workspace?",
-               isPresented: $confirmSwitchEndsEncounter) {
-            Button("Cancel", role: .cancel) {}
-            Button("Switch") {
-                appState.stopEncounter()
-                isPickingWorkspace = true
-            }
-        } message: {
-            Text(endEncounterMessage)
-        }
-        .alert(migrationTitle, isPresented: Binding(
-            get: { appState.migrationOutcome != nil },
-            set: { if !$0 { appState.migrationOutcome = nil } }
-        )) {
-            Button("OK") { appState.migrationOutcome = nil }
-        } message: {
-            Text(migrationMessage)
-        }
-        // Wide enough for the live panel plus a preview worth looking at. The minimum was
-        // 480 when the panel was 236: at 320 the same window pushed the panel's own
-        // controls past the window's edge, where they draw but cannot be clicked.
-        .frame(minWidth: 480 + (Self.livePanelWidth - 236), minHeight: 400)
-        // The Control Window IS the app: its close button kept being hit during mode
-        // work (it reads like "exit this mode"), killing the session — every "crash"
-        // reported against Grid Fit/panning was this. Minimize stays; quit is ⌘Q.
-        .onAppear {
-            if let window = NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix("control") == true }) {
-                window.styleMask.remove(.closable)
-            }
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onChange(of: appState.playerScreen) { _, screen in
             // Losing the Player Display mid-pan would strand the mode with no overlay.
             if !ViewportToggle.staysShowing(mapOverflows: mapOverflowsViewport,
@@ -611,6 +643,21 @@ struct ControlView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
             .border(.separator)
+            // Named so the UI tests can aim at the Map itself.
+            //
+            // They used to click fractions of the whole Control Window — `dx: 0.3` was
+            // inside the Map only because the Map started at the window's left edge. The
+            // live panel now holds that edge, so those fractions land on the Party list,
+            // and every test that placed a Wall or a Pawn by coordinate broke at once.
+            // An identifier is what makes the aim survive the next layout change too.
+            //
+            // `children: .contain` is load-bearing. A bare `.accessibilityIdentifier` on a
+            // container flattens its subtree into one element, which took the Pawn tokens
+            // off the tree — `PawnLayer` sets `pawn-token-<label>` on each, and
+            // `PreviewWithoutDisplayUITests` reads them to prove the preview draws a Pawn at
+            // all. Naming the container must not cost the names inside it.
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("map-preview")
         } else {
             // With no Map open this used to be a bare `Spacer()`, which inside the
             // preview's HStack pushed sideways instead of filling downwards — the controls
@@ -648,15 +695,11 @@ struct ControlView: View {
                 .disabled(appState.mapImage == nil)
             Button("Edit Fog…") { startFogEditing() }
                 .disabled(appState.mapImage == nil)
-            // Only while magnified, and it says so: the mirror's whole promise is that it
-            // shows what the table sees, and a DM who has forgotten they zoomed would read
-            // it as the truth. Placed last so the buttons before it do not move when it
-            // appears — this row is above the preview, and anything that changes width
-            // here is the same class of defect as `fogInspectorRowHeight`'s.
-            if liveZoom != nil {
-                Button("Zoomed — Reset") { liveZoom = nil }
-                    .help("The Player Display is unaffected: this magnifies your view only.")
-            }
+            // A "Zoomed — Reset" button used to appear here while magnified. Scrolling back
+            // out reaches the same place: `PreviewTransform`'s zoom floor is fit-to-window,
+            // so the Map returns to exactly the rect the button restored. The Magnifier
+            // never touched the Player Display, so nothing about the table's view depended
+            // on it either.
         case .gridFit:
             if fitSquare != nil, let snap = GridFit.snapSuggestion(for: appState.squaresWide) {
                 Button("Snap to \(snap)") { applySnap(snap) }
@@ -1571,6 +1614,34 @@ struct ControlView: View {
     /// Wide enough for an Order row — Initiative, a name, hit points, armour class and a
     /// run of Condition icons — which 236 points could not hold.
     static let livePanelWidth: CGFloat = 320
+
+    /// The narrowest the Map column may get: the width the Setup and Live Toolbars need to
+    /// stay on one line each, with a Map worth looking at underneath them.
+    ///
+    /// 380 was the obvious number — the width `SetupToolbarWidthTests` and `ChromeHeightTests`
+    /// have always called "a Control Window narrow enough to be uncomfortable" — and it is
+    /// wrong. That figure was only ever checked against the Setup Toolbar's buttons and the
+    /// mode hint. The **Live** Toolbar is wider: "Fog", "Measurements", "Viewport" and
+    /// "Start Session" are words, and a word that does not fit wraps rather than truncating,
+    /// which is how "Measurements" ended up as four stacked lines. It measures 411 pt.
+    ///
+    /// 420 is that, plus a little room so a Toggle's label growing by a few points does not
+    /// immediately re-break the row. Pinned by `testTheLiveToolbarsLabelsFitTheColumnOnOneLine`,
+    /// which measures the real row rather than trusting this comment.
+    static let minimumMapColumnWidth: CGFloat = 420
+
+    /// Both columns, the gap between them and the window's padding.
+    ///
+    /// Derived rather than typed: a hand-picked total is what let the toolbars and the panel
+    /// disagree about how much room there was.
+    static let minimumWindowWidth: CGFloat =
+        minimumMapColumnWidth + livePanelWidth + columnSpacing + windowPadding * 2
+
+    /// The seam between the panel and the Map column.
+    static let columnSpacing: CGFloat = 12
+
+    /// `.padding()`'s default, named so `minimumWindowWidth` can count it.
+    static let windowPadding: CGFloat = 20
 
     /// The Map as it stands: the Party to stamp from, the Lights, and every Pawn on it.
     ///

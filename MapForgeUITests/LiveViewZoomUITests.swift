@@ -23,26 +23,39 @@ final class LiveViewZoomUITests: XCTestCase {
         return url
     }
 
-    func testScrollingZoomsTheLiveViewAndResetPutsItBack() throws {
+    /// Scrolling in magnifies the Map, and scrolling back out returns it.
+    ///
+    /// This was `…AndResetPutsItBack`, and it read both halves off a "Zoomed — Reset" button:
+    /// the button appearing meant zoomed, clicking it meant reset. That button is gone, so
+    /// the test asks the Map instead — which is the better question anyway. A DM sees the
+    /// artwork change size; they never saw a boolean.
+    ///
+    /// The floor is what makes the second half work: `PreviewTransform`'s zoom bottoms out at
+    /// fit-to-window, so scrolling out far enough lands back on the same rect rather than
+    /// continuing to shrink.
+    func testScrollingZoomsTheLiveViewAndScrollingBackOutReturnsIt() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
                                "--test-player-screen", "--test-fresh-preferences"]
         app.launch()
-
-        let reset = app.buttons["Zoomed — Reset"]
         XCTAssertTrue(app.buttons["Edit Fog…"].waitForExistence(timeout: 5))
-        XCTAssertFalse(reset.exists, "the preview claims to be zoomed before any scroll")
 
-        let window = app.windows["control"]
-        window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
-            .scroll(byDeltaX: 0, deltaY: 30)
+        let map = app.descendants(matching: .any).matching(identifier: "map-preview").firstMatch
+        XCTAssertTrue(map.waitForExistence(timeout: 5))
+        let point = map.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
 
-        XCTAssertTrue(reset.waitForExistence(timeout: 3),
-                      "scrolling did not zoom the preview")
+        let atRest = map.screenshot().pngRepresentation
 
-        reset.click()
-        XCTAssertFalse(reset.waitForExistence(timeout: 2),
-                       "Reset did not return the preview to the whole Map")
+        for _ in 1...5 { point.scroll(byDeltaX: 0, deltaY: 30) }
+        Thread.sleep(forTimeInterval: 0.5)
+        XCTAssertNotEqual(atRest, map.screenshot().pngRepresentation,
+                          "scrolling did not zoom the preview")
+
+        // Well past the floor, so the result is the floor rather than some middle scale.
+        for _ in 1...20 { point.scroll(byDeltaX: 0, deltaY: -30) }
+        Thread.sleep(forTimeInterval: 0.5)
+        XCTAssertEqual(atRest, map.screenshot().pngRepresentation,
+                       "scrolling back out did not return the preview to the whole Map")
     }
 
     /// The Viewport toggle: one press shows the rectangle, the same press puts it away. It
@@ -117,10 +130,11 @@ final class MeasurementVisibilityUITests: XCTestCase {
         // And it survives taking a Measurement — right-click arms a shape, the left-click
         // after it places the Origin. See the `measurement` spec.
         //
-        // dx well left of centre: the live panel takes 320 of the window's width, so
-        // anything past about a third of the way across lands on the panel, not the preview.
-        let window = app.windows["control"]
-        let point = window.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.7))
+        // Aimed at the Map rather than at a fraction of the window. The old offset was
+        // "well left of centre" to dodge a live panel on the RIGHT; the panel is on the left
+        // now, so that same point lands on it — the comment had become the opposite of true.
+        let point = app.descendants(matching: .any).matching(identifier: "map-preview").firstMatch
+            .coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         point.rightClick()
         let circle = app.menuItems["Circle"]
         XCTAssertTrue(circle.waitForExistence(timeout: 3), "no shape menu on right-click")
