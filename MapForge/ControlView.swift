@@ -206,33 +206,37 @@ struct ControlView: View {
                 workspaceButton
             }
 
-            // Two rows, always. A single row with a `Spacer()` between the two halves ran
-            // the mode buttons off the right edge — and they are the only way into every
-            // mode the app has, so losing the last of them with no scrollbar and nothing to
-            // say it was there is not a cosmetic problem.
+            // One row now. It was two, because a "Grid squares wide" field shared it with
+            // the mode buttons and a single row ran them off the right edge — losing the
+            // only way into every mode the app has, with no scrollbar and nothing to say
+            // they were there. The field is gone (the Grid is declared by Grid Fit), so the
+            // buttons have the row to themselves and the caption rides along in it.
             //
-            // `ViewThatFits` cannot rescue that arrangement either: a `Spacer()` makes the
-            // wide branch claim to fit at any width, so it is always chosen and always
-            // clipped. Splitting them unconditionally is what actually keeps every button
-            // on screen.
-            HStack {
-                gridSquaresField
-                Spacer()
-            }
+            // The old warning still applies to anything added here: a `Spacer()` makes
+            // `ViewThatFits` claim the wide branch fits at any width, so it is always chosen
+            // and always clipped. Keep this row short.
             HStack(spacing: 8) {
                 modeControls
+                // The mode's caption sits in the button row rather than under it. It used
+                // to be its own line, which cost a row of height on a window whose vertical
+                // space belongs to the preview — and a caption that appears and disappears
+                // on its own line resizes the preview beneath it, the defect
+                // `fogInspectorRowHeight` exists to prevent. In the row it changes nothing
+                // about the layout.
+                //
+                // Grid Fit's is the exception and stays below: it is three sentences of
+                // instruction and would push every button off a narrow window.
+                if isShowingViewport {
+                    Text("Drag the rectangle to choose what the Player Display shows.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
                 Spacer()
             }
 
-            // Shown for the whole mode, not just before the first drag: the caption
-            // vanishing mid-drag resized the preview under the cursor.
             if mode == .gridFit {
                 Text("Drag a square over one grid square; scroll to zoom, ⌥-drag to pan, arrow keys nudge (⇧ resizes).")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            if isShowingViewport {
-                Text("Drag the rectangle to choose what the Player Display shows.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -392,14 +396,6 @@ struct ControlView: View {
 
     /// The Map's width in Grid squares — the one number that pins its physical size.
     @ViewBuilder
-    private var gridSquaresField: some View {
-        Text("Grid squares wide:")
-        TextField("squares", value: $appState.squaresWide, format: .number)
-            .textFieldStyle(.roundedBorder)
-            .frame(width: 64)
-        Stepper("squares", value: $appState.squaresWide, in: 1...500)
-            .labelsHidden()
-    }
 
     // MARK: Preview
 
