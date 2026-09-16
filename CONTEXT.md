@@ -45,7 +45,7 @@ The stable key for a physical display, used to remember which screen is the Play
 _Avoid_: screen ID, display number, monitor name
 
 **Viewport**:
-The region of a Map currently visible on the Player Display. At True Scale most Maps exceed the screen, so the DM pans the Viewport from the Control Window.
+The region of a Map currently visible on the Player Display. At True Scale most Maps exceed the screen, so the DM moves the Viewport from the Live View, where it is always drawn as a green rectangle over the whole Map — knowing what the players can see is not a question a DM should press a button to answer. A toggle decides whether that rectangle can be **dragged**, not whether it is drawn: idle it is an outline the clicks pass through, armed it is filled and moves. Moving it is a live action the table watches as it happens, so it has no Cancel, exactly as dragging a Pawn has none.
 _Avoid_: camera, crop, window
 
 **Sidecar**:
@@ -61,12 +61,28 @@ A two-sided line segment that blocks Light. Stored in the Map's image pixels, so
 _Avoid_: barrier, occluder, edge, boundary
 
 **Light**:
-A point source that illuminates the Map out to a bright radius and a dim radius, measured in Grid squares. Blocked by Walls, and independently switchable on or off. Drawn as a Light Marker where players can see it. It carries a **name** — the DM's own, like a Pawn's label and never drawn on the Player Display, so a Light can be called "trapped brazier" without the name crossing the room. The name is assigned when the Light is placed and is what the roster identifies it by; before names existed a Light was known by its position in that list, so deleting one silently renamed another.
+A point source that illuminates the Map out to a bright radius and a dim radius, measured in Grid squares. Blocked by Walls, and independently switchable on or off. Drawn as a Light Marker where players can see it. It carries a **name** — the DM's own, like a Pawn's label and never drawn on the Player Display, so a Light can be called "trapped brazier" without the name crossing the room. The name is assigned when the Light is placed and is what the roster identifies it by; before names existed a Light was known by its position in that list, so deleting one silently renamed another. Like a Pawn, a Light is placed and edited in the Live View, never in the Wall Editor.
 _Avoid_: lamp, torch, emitter, light source
 
 **Pawn**:
-A token on the Map with a label and a colour, drawn for players whether or not the Fog Overlay is active — unless its Pawn Kind is one the players must discover, or Solo Sight is on. Its **colour** is what the table identifies it by; its **label** is the DM's own bookkeeping and is never drawn on the Player Display, so a Pawn can be named for the DM's notes without the name crossing the room. A Pawn is also a Light: its range of sight and its range of illumination are the same thing, except under Solo Sight, where one Pawn's sight decides what the whole table can see. It has **one** radius — its sight — unlike a Light, which has a bright and a dim band; DnD gives a character a sight range, not a band of dim vision. The region fades out over one further square purely so its edge is not a hard cut. Moving a Pawn during play is a live action and is not undoable; moving one while authoring fog is an edit and is. Either way a Pawn never leaves the Map: a drag past the image edge stops at the edge, as a Stamp outside it is refused, because a Pawn beyond the implicit Walls is meaningless to Visibility and, on the clipped mirror, unreachable. A Pawn Stamped from a Character remembers which one, but only so the roster can show how many of its Pawns are on this Map — the memory is advisory, and a Pawn whose Character is gone is in no way diminished.
+A token on the Map with a label and a colour, drawn for players whether or not the Fog Overlay is active — unless its Pawn Kind is one the players must discover, or Solo Sight is on. Its **colour** is what the table identifies it by; its **label** is the DM's own bookkeeping and is never drawn on the Player Display, so a Pawn can be named for the DM's notes without the name crossing the room. A Pawn is also a Light: its range of sight and its range of illumination are the same thing, except under Solo Sight, where one Pawn's sight decides what the whole table can see. It has **one** radius — its sight — unlike a Light, which has a bright and a dim band; DnD gives a character a sight range, not a band of dim vision. The region fades out over one further square purely so its edge is not a hard cut. Every change to a Pawn — moving it, adding it, editing its fields, deleting it — is a live action in the Live View and is not undoable; the Edit Pawn sheet's Cancel is the escape instead. A Pawn cannot be edited in the Wall Editor at all. A Pawn never leaves the Map: a drag past the image edge stops at the edge, as a Stamp outside it is refused, because a Pawn beyond the implicit Walls is meaningless to Visibility and, on the clipped mirror, unreachable. A Pawn Stamped from a Character remembers which one, but only so the roster can show how many of its Pawns are on this Map — the memory is advisory, and a Pawn whose Character is gone is in no way diminished.
 _Avoid_: token, miniature, figure, character, marker
+
+**Live View**:
+The Control Window's ordinary state: the **whole Map**, with Pawns, Light Markers, the Fog Overlay tint and Measurements drawn over it, and the Viewport drawn on it as a green rectangle. Everything a DM does to a Pawn or a Light happens here — adding, editing, moving, deleting — because there is no moment in a session when the DM wants to leave the table's view to change a token. It showed only what the Player Display showed until the rectangle replaced that: a DM who can see just the Viewport cannot see what is about to walk into the room, and cannot place anything outside it without panning there first.
+_Avoid_: preview, preview mode, normal mode, play mode, mirror
+
+**Magnifier**:
+The Live View's private zoom: the DM looks closer without the Viewport moving, so the Player Display keeps showing exactly what it showed. Distinct from dragging the Viewport, which is a deliberate act the table watches. Never persisted, and it says on screen when it is on.
+_Avoid_: zoom, preview zoom, magnification
+
+**Wall Editor**:
+The prep-time mode for tracing Walls, entered deliberately and left again. It is the one place Wall geometry can be authored, and the only thing it authors: Pawns and Light Markers are drawn in it for reference — a Wall is traced against the room its tokens stand in — but cannot be selected, moved or edited there. Its edits are undoable, unlike the Live View's, because tracing is slow precise work and a misplaced vertex is a mistake rather than a move.
+_Avoid_: fog editor, edit fog, fog mode, authoring mode
+
+**Add**:
+Arming the Live View to place one new thing — a Light, or a Pawn of any Kind — chosen before it is placed and landed by the next click on the Map. The Kind is settled at the moment of arming rather than in an editor afterwards, so a DM adding four goblins arms once per goblin and never opens a form. What is placed inherits from the last thing of that Kind placed, so the second goblin is already the right colour and size. At most one thing is armed at a time, Measurement included, and Esc backs out.
+_Avoid_: create, insert, new, place, spawn
 
 **Character**:
 A member of the party, defined once and reused across every Map: a name, a colour, a sight range and whether it is Big. Always a Player — the cast a DM re-places every session — never a Creature or a Treasure, which are per-encounter and stay placed by hand. It carries no portrait: a Character is drawn exactly as the Pawn it stamps is. It is a definition, not a token; it is never on a Map, and a Pawn is what appears there.
@@ -113,7 +129,7 @@ The dot drawn where a Light stands, so the source of a lit region can be seen ra
 _Avoid_: light source, torch icon, lamp, emitter dot
 
 **Measurement**:
-A distance the DM asks about mid-play, drawn on the Map as a shape from an Origin and labelled with its length. One is being taken at a time; any number can be **Pinned** alongside it. Never persisted — a question asked during a turn, like Solo Sight rather than like a Wall.
+A distance the DM asks about mid-play, drawn on the Map as a shape from an Origin and labelled with its length. One is being taken at a time; any number can be **Pinned** alongside it. Never persisted — a question asked during a turn, like Solo Sight rather than like a Wall. The table sees it by default, because it usually answers a question the players asked; a switch on the Control Window withholds it for the kind a DM takes for themselves, where the distance is the tactical fact they are deciding whether to reveal. The DM sees their own either way.
 _Avoid_: measure, ruler, template, marker
 
 **Pinned**:

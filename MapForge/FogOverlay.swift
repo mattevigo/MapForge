@@ -1,50 +1,23 @@
 import SwiftUI
 
-/// Which fog concept a click places.
+/// Wall authoring on the Control Window preview: Walls traced as chains, and nothing else.
 ///
-/// One mode for all of them rather than a mode each: the DM needs to see a torch against
-/// the room they traced to know the room works, and the Control Window's top row should
-/// not grow a button per fog concept.
-enum FogTool: CaseIterable, Hashable {
-    case walls, lights, pawns
-
-    var label: String {
-        switch self {
-        case .walls: "Walls"
-        case .lights: "Lights"
-        case .pawns: "Pawns"
-        }
-    }
-
-    var hint: String {
-        switch self {
-        case .walls:
-            "Click to place Wall corners, double-click to end a chain, Esc to cancel it. ⇧ frees the angle; corners weld to nearby Wall ends. Click a Wall then ⌫ to delete. Scroll to zoom, ⌥-drag to pan."
-        case .lights:
-            "Click to place a Light exactly where you click, drag one to move it. Click a Light then ⌫ to delete; radii are set below. Scroll to zoom, ⌥-drag to pan."
-        case .pawns:
-            "Click to place a Pawn, drag one to move it — dragging works outside this mode too. Click a Pawn then ⌫ to delete; label, colour and range are set below."
-        }
-    }
-}
-
-/// Fog authoring on the Control Window preview: Walls traced as chains, Lights placed and
-/// dragged. All fog is drawn whatever the tool — the tool decides only what a click does.
+/// Pawns and Light Markers are still drawn — a Wall is traced against the room its tokens
+/// stand in, and hiding them would make tracing harder — but they are **inert**: no
+/// hit-testing at all, so a click meant for a Wall corner is never eaten by a token
+/// standing on it. That is what lets the mode drop its tool picker: with only one thing
+/// clickable there is nothing for a click to be ambiguous between. See ADR-0013 for why
+/// Pawn and Light authoring left for the Live View.
 ///
 /// Zoom and pan come from `PreviewTransform`, exactly as Grid Fit uses them — precision is
 /// the point here, and one Grid square of a 3000 px Map is ~15 pt at fit-to-window.
 struct FogOverlay: View {
     let transform: PreviewTransform
     let containerSize: CGSize
-    let tool: FogTool
     /// Grid square side in image pixels, or nil when no Grid has been declared. Sizes a
     /// Pawn token, which reads as occupying its square — nothing snaps to it.
     let gridPixels: CGFloat?
     @Binding var edits: FogEdits
-    /// Bound out to the Control Window, which shows the selected Light's radii beside the
-    /// preview — there is no room for a numeric editor inside the overlay itself.
-    @Binding var selectedLight: Light.ID?
-    @Binding var selectedPawn: Pawn.ID?
     /// Whether a Pawn is currently invisible to players. Drawn faded rather than dropped:
     /// this is the DM's surface, and it is while authoring an encounter that they most
     /// need to see which Creatures the table can and cannot see.
@@ -59,8 +32,6 @@ struct FogOverlay: View {
     @State private var chain = WallChain()
     @State private var cursor: CGPoint?
     @State private var selectedWall: Wall.ID?
-    @State private var lightDragStart: MapPoint?
-    @State private var pawnDragStart: MapPoint?
     @State private var panStart: PreviewTransform?
     @State private var pinchStart: PreviewTransform?
     /// Escapes the angle constraint, which is otherwise held: most Walls on a battle map
@@ -146,12 +117,13 @@ struct FogOverlay: View {
                 // a chain, and off for the very first click too: selection is what the DM
                 // wants between chains, placement is what they want during one.
                 .gesture(TapGesture().onEnded { select(wall: wall.id) })
-                .allowsHitTesting(tool == .walls && !chain.isDrawing)
+                .allowsHitTesting(!chain.isDrawing)
         }
     }
 
-    /// Every Light, whatever the tool — a DM tracing a room needs to see the torch in it.
-    /// Draggable only with the Light tool, so a Wall click near one is not stolen.
+    /// Every Light, drawn so a DM tracing a room can see the torch in it — and inert, so a
+    /// Wall corner placed near one is never stolen by it. Lights are placed, moved and
+    /// edited in the Live View (ADR-0013).
     private var lightMarkers: some View {
         ForEach(lights) { light in
             let p = viewPoint(light.at)
@@ -159,58 +131,25 @@ struct FogOverlay: View {
                 Circle()
                     .fill(light.isOn ? Color.yellow.opacity(0.9) : Color.gray.opacity(0.6))
                 Circle()
-                    .stroke(light.id == selectedLight ? Color.accentColor : Color.black.opacity(0.5),
-                            lineWidth: light.id == selectedLight ? 3 : 1.5)
+                    .stroke(Color.black.opacity(0.5), lineWidth: 1.5)
             }
             .frame(width: 14, height: 14)
             .position(x: p.x, y: p.y)
-            .gesture(lightDragGesture(light))
-            .allowsHitTesting(tool == .lights)
+            .allowsHitTesting(false)
         }
     }
 
-    /// Drag to reposition. `beginLightDrag`/`endLightDrag` bracket it so the whole drag is
-    /// one undo step rather than one per frame.
-    private func lightDragGesture(_ light: Light) -> some Gesture {
-        DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.coordinateSpace))
-            .onChanged { value in
-                if lightDragStart == nil {
-                    lightDragStart = light.at
-                    select(light: light.id)
-                    edits.beginLightDrag()
-                }
-                guard let start = lightDragStart else { return }
-                // minimumDistance is 0 so a plain click selects, which means .onChanged
-                // fires on mouse-down with zero translation. This guard originally stopped
-                // a select-click silently snapping an unsnapped Light onto the Grid; grid
-                // snapping is gone, so that bug cannot recur, but the guard still earns its
-                // place — without it selecting a Light writes a no-op move into the undo
-                // stack, and the DM presses undo on a click that changed nothing.
-                guard value.translation != .zero else { return }
-                let moved = MapPoint(x: start.x + value.translation.width / transform.scale,
-                                     y: start.y + value.translation.height / transform.scale)
-                edits.moveLight(id: light.id, to: moved)
-                onChange()
-            }
-            .onEnded { _ in
-                lightDragStart = nil
-                edits.endLightDrag()
-                onChange()
-            }
-    }
-
-    /// Every Pawn, whatever the tool — a Pawn is a token first and a Light second, so it
-    /// is drawn even with the Fog Overlay off. Draggable only with the Pawn tool here;
-    /// `PawnLayer` handles dragging outside the mode, where the party actually moves.
+    /// Every Pawn, drawn as the reference a Wall is traced against — and inert, for the
+    /// same reason a Light is: a token standing on a corner must not eat the click that
+    /// places it. `PawnLayer` handles dragging in the Live View, which is now the only
+    /// place a Pawn is touched at all (ADR-0013).
     private var pawnMarkers: some View {
         ForEach(pawns) { pawn in
             let p = viewPoint(pawn.at)
-            PawnToken(pawn: pawn, squareSide: pawnDiameter,
-                      isSelected: pawn.id == selectedPawn)
+            PawnToken(pawn: pawn, squareSide: pawnDiameter, isSelected: false)
                 .opacity(isDimmed(pawn) ? 0.4 : 1)
                 .position(x: p.x, y: p.y)
-                .gesture(pawnDragGesture(pawn))
-                .allowsHitTesting(tool == .pawns)
+                .allowsHitTesting(false)
         }
     }
 
@@ -219,31 +158,6 @@ struct FogOverlay: View {
     private var pawnDiameter: CGFloat {
         guard let grid = gridPixels else { return 18 }
         return max(10, grid * transform.scale)
-    }
-
-    private func pawnDragGesture(_ pawn: Pawn) -> some Gesture {
-        DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.coordinateSpace))
-            .onChanged { value in
-                if pawnDragStart == nil {
-                    pawnDragStart = pawn.at
-                    select(pawn: pawn.id)
-                    edits.beginPawnDrag()
-                }
-                guard let start = pawnDragStart, value.translation != .zero else { return }
-                // Clamped to the image, as the live drag in `PawnLayer` is through
-                // `AppState.movePawn`: a token pulled off the Map here would be just as
-                // unreachable once the mode closes. See `PawnBounds`.
-                let dragged = MapPoint(x: start.x + value.translation.width / transform.scale,
-                                       y: start.y + value.translation.height / transform.scale)
-                edits.movePawn(id: pawn.id,
-                               to: PawnBounds.clamp(dragged, toImage: transform.imagePixelSize))
-                onChange()
-            }
-            .onEnded { _ in
-                pawnDragStart = nil
-                edits.endPawnDrag()
-                onChange()
-            }
     }
 
     /// The chain placed so far, plus a rubber band to the cursor.
@@ -274,7 +188,7 @@ struct FogOverlay: View {
     /// weld is the only thing that moves a vertex now, and it stays visible, never silent.
     @ViewBuilder
     private var snapIndicator: some View {
-        if let cursor, tool == .walls {
+        if let cursor {
             let resolved = resolve(viewPoint: cursor)
             if resolved.target == .endpoint {
                 let p = viewPoint(resolved.point)
@@ -292,7 +206,6 @@ struct FogOverlay: View {
     private var doubleTapGesture: some Gesture {
         SpatialTapGesture(count: 2, coordinateSpace: .named(Self.coordinateSpace))
             .onEnded { value in
-                guard tool == .walls else { return }
                 // The second click still places its vertex before committing — a DM who
                 // double-clicks the last corner means to include it.
                 place(at: value.location)
@@ -338,42 +251,8 @@ struct FogOverlay: View {
 
     private func place(at location: CGPoint) {
         focused = true
-        switch tool {
-        case .walls:
-            selectedWall = nil
-            chain.place(resolve(viewPoint: location).point)
-        case .pawns:
-            selectedPawn = nil
-            // Free-form. Pawns never snapped; Walls and Lights no longer do either.
-            let point = MapPoint(transform.imagePoint(from: location))
-            // A new Pawn copies the last one placed, its `kind` included: a DM populating
-            // an encounter places six goblins in a row — or stocks a vault with chests —
-            // and toggling each one afterwards is six chances to miss one and light the
-            // room with it.
-            let previous = pawns.last
-            edits.addPawn(Pawn(at: point,
-                               label: Pawn.nextLabel(after: pawns),
-                               colorHex: previous?.colorHex ?? Pawn.defaultColorHex,
-                               brightSquares: previous?.light.brightSquares ?? 6,
-                               kind: previous?.kind ?? .player,
-                               isBig: previous?.isBig ?? false))
-            onChange()
-        case .lights:
-            selectedLight = nil
-            // Placed exactly where clicked. A new Light takes the radii of the last one
-            // placed: a DM lighting a dungeon is usually placing the same torch over and
-            // over.
-            let point = MapPoint(transform.imagePoint(from: location))
-            let previous = lights.last
-            // Named on placement, mirroring `Pawn.nextLabel(after:)` one case below. An
-            // unnamed Light would leave the roster falling back to its list position, which
-            // is the renumbering defect this feature exists to fix.
-            edits.addLight(Light(at: point,
-                                 brightSquares: previous?.brightSquares ?? 4,
-                                 dimSquares: previous?.dimSquares,
-                                 name: Light.nextName(after: lights)))
-            onChange()
-        }
+        selectedWall = nil
+        chain.place(resolve(viewPoint: location).point)
     }
 
     private func finishChain() {
@@ -398,50 +277,20 @@ struct FogOverlay: View {
     private func select(wall id: Wall.ID) {
         focused = true
         selectedWall = id
-        selectedLight = nil
-        selectedPawn = nil
-    }
-
-    private func select(light id: Light.ID) {
-        focused = true
-        selectedLight = id
-        selectedWall = nil
-        selectedPawn = nil
-    }
-
-    private func select(pawn id: Pawn.ID) {
-        focused = true
-        selectedPawn = id
-        selectedWall = nil
-        selectedLight = nil
     }
 
     /// Whether ⌫ has anything to act on. Gates the event monitor, which is global to the
     /// process — with nothing selected the key must pass through to whatever else wants it.
     private var hasSelection: Bool {
-        selectedWall != nil || selectedLight != nil || selectedPawn != nil
+        selectedWall != nil
     }
 
     private func deleteSelected() -> KeyPress.Result {
-        if let id = selectedWall {
-            edits.deleteWall(id: id)
-            selectedWall = nil
-            onChange()
-            return .handled
-        }
-        if let id = selectedLight {
-            edits.deleteLight(id: id)
-            selectedLight = nil
-            onChange()
-            return .handled
-        }
-        if let id = selectedPawn {
-            edits.deletePawn(id: id)
-            selectedPawn = nil
-            onChange()
-            return .handled
-        }
-        return .ignored
+        guard let id = selectedWall else { return .ignored }
+        edits.deleteWall(id: id)
+        selectedWall = nil
+        onChange()
+        return .handled
     }
 
     // MARK: Zoom and pan

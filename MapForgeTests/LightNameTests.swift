@@ -55,48 +55,40 @@ final class LightNameTests: XCTestCase {
     }
 
     // MARK: Editing
+    //
+    // Through `AppState`: a Light is renamed in the Live View in every mode (ADR-0013), and
+    // the fog-mode path that made a rename undoable is gone with the inspector that offered
+    // it. The tests that asserted undo-coalescing went with it; the naming rules did not.
 
-    func testRenamingALightIsUndoable() {
-        var edits = FogEdits(document: FogDocument())
+    @MainActor
+    func testRenamingALight() {
+        let appState = AppState(preferences: isolatedPreferences())
         let torch = light("Light 1")
-        edits.addLight(torch)
-        edits.setLightName(id: torch.id, "trapped brazier")
-        XCTAssertEqual(edits.document.lights.first?.name, "trapped brazier")
+        appState.fog.lights = [torch]
 
-        edits.undo()
-        XCTAssertEqual(edits.document.lights.first?.name, "Light 1",
-                       "undo did not put the old name back")
+        appState.setLightName(id: torch.id, "trapped brazier")
+
+        XCTAssertEqual(appState.fog.lights.first?.name, "trapped brazier")
     }
 
-    /// Renaming shares one history with Walls and Lights, so a DM undoing their way out of a
-    /// mistake does not have to know which kind of edit they are unwinding.
-    func testRenamingJoinsTheSameUndoHistory() {
-        var edits = FogEdits(document: FogDocument())
-        let torch = light("Light 1")
-        edits.addLight(torch)
-        edits.setLightName(id: torch.id, "brazier")
-        edits.setLightRadii(id: torch.id, brightSquares: 6, dimSquares: 12)
-
-        edits.undo()    // the radii
-        XCTAssertEqual(edits.document.lights.first?.name, "brazier")
-        edits.undo()    // the name
-        XCTAssertEqual(edits.document.lights.first?.name, "Light 1")
-    }
-
+    @MainActor
     func testRenamingAMissingLightDoesNothing() {
-        var edits = FogEdits(document: FogDocument())
-        edits.setLightName(id: UUID(), "nowhere")
-        XCTAssertTrue(edits.document.lights.isEmpty)
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.setLightName(id: UUID(), "nowhere")
+        XCTAssertTrue(appState.fog.lights.isEmpty)
     }
 
     /// An empty field means "no name", not a Light called "". The roster then falls back to
     /// its position, which is what a Light placed before this feature does.
+    @MainActor
     func testClearingTheFieldLeavesNoName() {
-        var edits = FogEdits(document: FogDocument())
+        let appState = AppState(preferences: isolatedPreferences())
         let torch = light("Light 1")
-        edits.addLight(torch)
-        edits.setLightName(id: torch.id, "")
-        XCTAssertNil(edits.document.lights.first?.name,
+        appState.fog.lights = [torch]
+
+        appState.setLightName(id: torch.id, "")
+
+        XCTAssertNil(appState.fog.lights.first?.name,
                      "an empty name should be nil, not an empty string")
     }
 
@@ -104,65 +96,74 @@ final class LightNameTests: XCTestCase {
     /// "trapped" and then cannot type the space, because each keystroke trims the field back.
     /// Setting the name once is not the same test — it is how the first version of these
     /// tests passed while the feature was unusable at the keyboard.
+    ///
+    /// Through `AppState` now rather than `FogEdits`: a Light is renamed in the Live View in
+    /// every mode (ADR-0013), so the live path is the only path.
+    @MainActor
     func testANameCanContainSpacesAsItIsTyped() {
-        var edits = FogEdits(document: FogDocument())
+        let appState = AppState(preferences: isolatedPreferences())
         let torch = light("Light 1")
-        edits.addLight(torch)
+        appState.fog.lights = [torch]
 
         // One call per keystroke, as the TextField's binding makes.
         let typed = "trapped brazier"
         for end in 1...typed.count {
-            edits.setLightName(id: torch.id, String(typed.prefix(end)))
+            appState.setLightName(id: torch.id, String(typed.prefix(end)))
         }
-        XCTAssertEqual(edits.document.lights.first?.name, "trapped brazier",
+        XCTAssertEqual(appState.fog.lights.first?.name, "trapped brazier",
                        "the space could not be typed")
     }
 
-    /// Typing a name is ONE edit to undo, not one per character.
-    func testTypingANameIsASingleUndo() {
-        var edits = FogEdits(document: FogDocument())
+    /// Undo-coalescing per keystroke went with the mode that had an undo stack: renaming a
+    /// Light is a live action now and is not undoable at all, so there is no run of
+    /// keystrokes to collapse. What remains is that the *last* keystroke is what sticks.
+    @MainActor
+    func testTheNameTypedIsTheNameKept() {
+        let appState = AppState(preferences: isolatedPreferences())
         let torch = light("Light 1")
-        edits.addLight(torch)
+        appState.fog.lights = [torch]
 
         let typed = "brazier"
         for end in 1...typed.count {
-            edits.setLightName(id: torch.id, String(typed.prefix(end)))
+            appState.setLightName(id: torch.id, String(typed.prefix(end)))
         }
-        edits.undo()
-        XCTAssertEqual(edits.document.lights.first?.name, "Light 1",
-                       "undo unwound one keystroke instead of the whole rename")
+        XCTAssertEqual(appState.fog.lights.first?.name, "brazier")
     }
 
-    /// Undo then place again: the gap-filling scheme hands out the name the undone Light had,
-    /// which is correct — that name is free again. The question is whether a *redo* can then
-    /// produce two Lights sharing one name.
-    func testUndoingAPlacementFreesItsNameForReuse() {
-        var edits = FogEdits(document: FogDocument())
-        edits.addLight(Light(at: MapPoint(x: 0, y: 0), brightSquares: 4,
-                             name: Light.nextName(after: edits.document.lights)))
-        edits.addLight(Light(at: MapPoint(x: 1, y: 0), brightSquares: 4,
-                             name: Light.nextName(after: edits.document.lights)))
-        XCTAssertEqual(edits.document.lights.map(\.name), ["Light 1", "Light 2"])
+    /// The gap-filling scheme hands out the lowest free number, so deleting a Light in the
+    /// middle frees its name for the next one placed — and two Lights never share one.
+    @MainActor
+    func testDeletingALightFreesItsNameForReuse() {
+        let appState = AppState(preferences: isolatedPreferences())
+        let first = light("Light 1", x: 0)
+        let second = light("Light 2", x: 1)
+        appState.fog.lights = [first, second]
 
-        edits.undo()
-        XCTAssertEqual(edits.document.lights.map(\.name), ["Light 1"])
+        appState.fog.lights.removeAll { $0.id == second.id }
+        XCTAssertEqual(appState.fog.lights.map(\.name), ["Light 1"])
 
-        // The freed name is reused, and there is still exactly one of it.
-        edits.addLight(Light(at: MapPoint(x: 2, y: 0), brightSquares: 4,
-                             name: Light.nextName(after: edits.document.lights)))
-        XCTAssertEqual(edits.document.lights.map(\.name), ["Light 1", "Light 2"])
-        XCTAssertEqual(Set(edits.document.lights.compactMap(\.name)).count,
-                       edits.document.lights.count,
+        appState.fog.lights.append(light(Light.nextName(after: appState.fog.lights), x: 2))
+
+        XCTAssertEqual(appState.fog.lights.map(\.name), ["Light 1", "Light 2"])
+        XCTAssertEqual(Set(appState.fog.lights.compactMap(\.name)).count,
+                       appState.fog.lights.count,
                        "two Lights ended up sharing a name")
     }
 
     /// Whitespace is the same thing typed differently.
+    @MainActor
     func testAWhitespaceOnlyNameIsNoName() {
-        var edits = FogEdits(document: FogDocument())
+        let appState = AppState(preferences: isolatedPreferences())
         let torch = light("Light 1")
-        edits.addLight(torch)
-        edits.setLightName(id: torch.id, "   ")
-        XCTAssertNil(edits.document.lights.first?.name,
+        appState.fog.lights = [torch]
+
+        appState.setLightName(id: torch.id, "   ")
+
+        XCTAssertNil(appState.fog.lights.first?.name,
                      "a name of nothing but spaces should read as unnamed")
+    }
+
+    private func isolatedPreferences() -> DisplayPreferences {
+        DisplayPreferences(defaults: UserDefaults(suiteName: "LightNameTests.\(UUID().uuidString)")!)
     }
 }

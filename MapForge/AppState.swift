@@ -214,12 +214,31 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Test seam: UI tests load a map via `--test-map <path> [--test-squares N]`,
+    /// The value of a `--flag=value` launch argument, or nil when it was not passed.
+    ///
+    /// **The `=` is load-bearing, and it is why the UI suite runs at all.** The seams below
+    /// were once spelled `--test-map <path>`, two arguments — and a bare argument, one that
+    /// does not begin with `-`, is not a value as far as AppKit is concerned: it is a
+    /// *document to open*. `NSApplication` takes the path, finds no handler for it, and the
+    /// app finishes launching having opened nothing and shown nothing. No window, no crash,
+    /// no log line. Every UI test then sat waiting five seconds for a control on a window
+    /// that was never going to exist, which is the "MapForgeUITests hangs" this app carried
+    /// for months.
+    ///
+    /// Keeping the value welded to its flag keeps every argument flag-shaped, so AppKit reads
+    /// none of them as a document. Anything added here must keep that shape.
+    static func launchArgumentValue(_ flag: String) -> String? {
+        CommandLine.arguments
+            .first { $0.hasPrefix("\(flag)=") }
+            .map { String($0.dropFirst(flag.count + 1)) }
+    }
+
+    /// Test seam: UI tests load a map via `--test-map=<path> [--test-squares=N]`,
     /// bypassing the open panel (NSOpenPanel can't be driven from XCUITest), and pick
-    /// the Player Display via `--test-player-screen auto`.
+    /// the Player Display via `--test-player-screen`.
     /// Opens the Workspace a UI test asked for, so the picker sheet never blocks the suite.
     ///
-    /// Two flags, because the tests split in two. `--test-workspace <path>` names one, for the
+    /// Two flags, because the tests split in two. `--test-workspace=<path>` names one, for the
     /// tests that exercise Workspaces themselves. `--test-fresh-preferences` — which already
     /// existed to keep a developer's remembered Player Display out of the suite — additionally
     /// adopts a throwaway Workspace in a temp directory, so the many tests that do not care
@@ -230,8 +249,8 @@ final class AppState: ObservableObject {
     func openWorkspaceFromLaunchArgumentsIfPresent() {
         let args = CommandLine.arguments
 
-        if let index = args.firstIndex(of: "--test-workspace"), args.indices.contains(index + 1) {
-            let url = URL(fileURLWithPath: args[index + 1])
+        if let path = Self.launchArgumentValue("--test-workspace") {
+            let url = URL(fileURLWithPath: path)
             if let workspace = try? WorkspaceStore().adopt(url) { open(workspace) }
             return
         }
@@ -260,14 +279,13 @@ final class AppState: ObservableObject {
             let away = NSScreen.screens.first { $0 != controlScreen }
             chosenDisplay = (away ?? NSScreen.screens.first)?.displayIdentity
         }
-        guard let idx = args.firstIndex(of: "--test-map"), args.indices.contains(idx + 1) else { return }
-        let url = URL(fileURLWithPath: args[idx + 1])
+        guard let path = Self.launchArgumentValue("--test-map") else { return }
+        let url = URL(fileURLWithPath: path)
         guard let image = NSImage(contentsOf: url) else { return }
         loadMap(image: image, at: url)
         // After loadMap, which clears the declaration for the incoming Map: a test that
         // passes --test-squares has declared this Map's Grid.
-        if let sIdx = args.firstIndex(of: "--test-squares"), args.indices.contains(sIdx + 1),
-           let squares = Double(args[sIdx + 1]) {
+        if let squares = Self.launchArgumentValue("--test-squares").flatMap(Double.init) {
             squaresWide = squares
         }
     }
@@ -410,8 +428,7 @@ final class AppState: ObservableObject {
     ///
     /// Not undoable, exactly as `setPawnHidden` and `setPawnLight` are not, and for the
     /// same stated reason: a live performance action taken mid-session does not belong in
-    /// the DM's authoring undo stack. It records no live edit either, because it changes no
-    /// Pawn — there is nothing for `carryLiveState` to carry.
+    /// the DM's authoring undo stack. It mutates no Pawn at all — the mode is derived.
     func setSoloSight(id: Pawn.ID?) {
         guard soloSightPawnID != id else { return }
         soloSightPawnID = id
@@ -506,6 +523,32 @@ final class AppState: ObservableObject {
     /// One list so both screens draw from the same answer — two lists is how the Control
     /// Window and the Player Display drift, which is the divergence `PawnToken` and
     /// `PlayerVisibility.showsToPlayers` exist to prevent.
+    /// Whether the Player Display draws the DM's Measurements.
+    ///
+    /// ADR-0005 put them there and argued it well: a Measurement answers a question the
+    /// players are the ones asking, and one only the DM can see answers it for the person
+    /// who could already estimate it. That holds for the Measurement taken *for* the table.
+    ///
+    /// It does not hold for the one a DM takes for themselves — how far the ogre reaches
+    /// next turn, whether the ambush is in range — where the distance is precisely the
+    /// tactical fact they are deciding whether to reveal. The ADR considered "DM-only" and
+    /// rejected it as a global rule, which it still is; this makes it a per-moment choice
+    /// instead, defaulting to shown so the ADR's case stays the one that needs no action.
+    ///
+    /// Live, like the Fog Overlay's switch beside it, and never persisted: it is a decision
+    /// about the moment, not about the Map.
+    @Published var showsMeasurementsToPlayers = true
+
+    /// What the **Player Display** draws: the DM's Measurements, or none of them.
+    ///
+    /// Separate from `drawableMeasurements` rather than filtered at the view, so the two
+    /// screens cannot drift — the same reason `PlayerVisibility.showsToPlayers` is one
+    /// function (ADR-0004). Hiding is about what the table is shown; the DM keeps their own
+    /// either way, because they asked the question and the answer is still theirs.
+    var playerMeasurements: [(measurement: Measurement, origin: MapPoint)] {
+        showsMeasurementsToPlayers ? drawableMeasurements : []
+    }
+
     var drawableMeasurements: [(measurement: Measurement, origin: MapPoint)] {
         var drawable = pinnedMeasurements.compactMap { pinned -> (Measurement, MapPoint)? in
             guard let origin = pinned.originPoint(pawnAt: { id in
@@ -550,7 +593,6 @@ final class AppState: ObservableObject {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }),
               fog.pawns[index].light.isOn != isOn else { return }
         fog.pawns[index].light.isOn = isOn
-        recordLiveEdit(.torch, on: id)
     }
 
     /// Move a Pawn outside the fog editing mode — the live table action, since the party
@@ -563,7 +605,6 @@ final class AppState: ObservableObject {
         let destination = mapImage.map { PawnBounds.clamp(point, toImage: $0.pixelSize) } ?? point
         guard fog.pawns[index].at != destination else { return }
         fog.pawns[index].at = destination
-        recordLiveEdit(.position, on: id)
     }
 
     /// Rename a Pawn outside the fog editing mode — "3" becomes "Goblin B" in the middle
@@ -578,7 +619,6 @@ final class AppState: ObservableObject {
     func setPawnLabel(id: Pawn.ID, _ label: String) {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
         fog.pawns[index].label = label
-        recordLiveEdit(.label, on: id)
     }
 
     /// Rename a Light outside the fog editing mode — "Light 3" becomes "trapped brazier"
@@ -592,6 +632,53 @@ final class AppState: ObservableObject {
         guard let index = fog.lights.firstIndex(where: { $0.id == id }) else { return }
         fog.lights[index].name =
             name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : name
+    }
+
+    // MARK: Editing in the Live View
+    //
+    // Adding, editing and deleting a Pawn or a Light, from the right-click menu and the Add
+    // button — the only place any of it happens now (ADR-0013). All of it live, beside
+    // `movePawn` and `stamp` rather than beside the Wall Editor's `FogEdits`: **not
+    // undoable**, because a live performance action does not belong in an authoring undo
+    // stack, and the sheets' Cancel is the escape instead.
+
+    /// Apply the Edit Pawn sheet's fields. One write for the whole sheet, so a cancelled
+    /// sheet leaves nothing behind.
+    func updatePawn(id: Pawn.ID, with draft: EditPawnDraft) {
+        guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
+        fog.pawns[index] = draft.applied(to: fog.pawns[index])
+        // A Treasure has nothing to do on its turn (`CONTEXT.md`, **Combatant**), so a
+        // Combatant edited into one leaves the Order — the same removal deleting it does.
+        // The Log keeps naming it, which is the rule for any Pawn that stops being one.
+        if fog.pawns[index].kind == .treasure {
+            benchCombatant(id)
+        }
+        flushPendingFogWrites()
+    }
+
+    /// Apply the Edit Light sheet's fields.
+    func updateLight(id: Light.ID, with draft: EditLightDraft) {
+        guard let index = fog.lights.firstIndex(where: { $0.id == id }) else { return }
+        fog.lights[index] = draft.applied(to: fog.lights[index])
+        flushPendingFogWrites()
+    }
+
+    /// Place a new Light. The only way one is created — there is no roster to stamp from,
+    /// the way a Pawn has.
+    func addLight(_ light: Light) {
+        fog.lights.append(light)
+        flushPendingFogWrites()
+    }
+
+    /// Delete a Light. No confirmation: a live action the DM can simply repeat.
+    ///
+    /// Nothing holds a `Light.ID` the way Solo Sight and a Measurement hold a `Pawn.ID`, so
+    /// unlike `removePawnFromMap` this has nothing to invalidate — `litRegions` recomputes
+    /// from `fog`, and the roster row goes with the Light.
+    func removeLight(id: Light.ID) {
+        guard fog.lights.contains(where: { $0.id == id }) else { return }
+        fog.lights.removeAll { $0.id == id }
+        flushPendingFogWrites()
     }
 
     // MARK: The Party
@@ -802,60 +889,25 @@ final class AppState: ObservableObject {
 
     /// Push the fog authored inside the editing mode onto the Map.
     ///
-    /// Merges the mode's **geometry** rather than assigning its document wholesale. The
-    /// document `FogEdits` carries is a snapshot taken when the mode opened, and two kinds
-    /// of live state can change while the mode is open: the Grid, whose field and stepper
-    /// stay enabled, and a Pawn's label, renamed from the live row that also stays on
-    /// screen. Assigning the snapshot back reverted both — and for the Grid the stale value
-    /// is what reached the file, silently losing it on the next relaunch.
+    /// Take the Walls the mode has traced, and only those.
+    ///
+    /// The mode's document is a snapshot taken when it opened, so assigning it back reverts
+    /// everything the table changed underneath it. Walls are the only thing the Wall Editor
+    /// authors (ADR-0013), so they are the only thing taken from it — the Grid, every Pawn
+    /// and every Light stay as `fog` currently has them.
+    ///
+    /// This replaces `carryLiveState`, which pulled the live values back out of `fog` and
+    /// wrote them over the snapshot, property by property, driven by a record of what the
+    /// table had touched. Copying one field in the other direction needs no such record and
+    /// cannot miss a property: a Light rename, which `carryLiveState` never covered because
+    /// it was Pawn-shaped throughout, now survives for free. `WallEditorTests` holds it.
     func applyFogEdits(_ edits: FogEdits) {
         // The mode's document belongs to the Map it opened on. If another Map has been
-        // opened since, this is the outgoing Map's fog and applying it would overwrite
-        // the incoming Map's — on screen and, through the autosave, on its file.
+        // opened since, these are the outgoing Map's Walls and applying them would
+        // overwrite the incoming Map's — on screen and, through the autosave, on its file.
         guard isFogEditingCurrentMap else { return }
-        var merged = edits.document
-        merged.squaresWide = fog.squaresWide
-        merged.pawns = merged.pawns.map { carryLiveState(onto: $0) }
-        fog = merged
+        fog.walls = edits.document.walls
     }
-
-    /// Carry the table's live edits onto a Pawn coming out of the fog editing mode.
-    ///
-    /// Three of a Pawn's properties stay editable at the table while the mode is open: its
-    /// label (the live row's field), its position (`PawnLayer` dragging, deliberately live)
-    /// and its torch (`setPawnLight`, which has no in-mode special case). All three write
-    /// straight to `fog`, so assigning the mode's snapshot back would revert them — a Pawn
-    /// dragged mid-fight would snap back the moment the DM drew a Wall.
-    ///
-    /// Driven by `liveEdits`, which records what the table actually touched, rather than by
-    /// comparing documents. Comparison cannot work: `applyFogEdits` writes the mode's
-    /// values into `fog` too, so by the time Cancel runs, "the live value" and "a value the
-    /// mode wrote" are the same bytes and no diff distinguishes them.
-    private func carryLiveState(onto edited: Pawn) -> Pawn {
-        var pawn = edited
-        guard let live = fog.pawns.first(where: { $0.id == pawn.id }),
-              let touched = liveEdits[pawn.id] else { return pawn }
-        if touched.contains(.label) { pawn.label = live.label }
-        if touched.contains(.position) { pawn.at = live.at }
-        if touched.contains(.torch) { pawn.light.isOn = live.light.isOn }
-        if touched.contains(.hidden) { pawn.isHidden = live.isHidden }
-        return pawn
-    }
-
-    /// What the table edited on each Pawn while the fog mode has been open.
-    ///
-    /// Cleared when the mode opens. A live edit is not undoable and must survive both an
-    /// in-mode edit and Cancel; an in-mode edit is undoable and must not survive Cancel.
-    /// Only recording the live writes as they happen tells the two apart.
-    struct LivePawnEdit: OptionSet {
-        let rawValue: Int
-        static let label = LivePawnEdit(rawValue: 1 << 0)
-        static let position = LivePawnEdit(rawValue: 1 << 1)
-        static let torch = LivePawnEdit(rawValue: 1 << 2)
-        static let hidden = LivePawnEdit(rawValue: 1 << 3)
-    }
-
-    private var liveEdits: [Pawn.ID: LivePawnEdit] = [:]
 
     /// The Map the fog editing mode was opened on, or nil when the mode is closed.
     ///
@@ -869,7 +921,6 @@ final class AppState: ObservableObject {
 
     /// Called as the fog editing mode opens: from here, live edits are the ones to keep.
     func beginFogEditing() {
-        liveEdits = [:]
         fogEditingMapURL = mapURL
         // Fog authoring needs the whole Map lit, and an isolated view would fight the
         // inspector it is being authored through.
@@ -891,9 +942,6 @@ final class AppState: ObservableObject {
         fogEditingMapURL != nil && fogEditingMapURL == mapURL
     }
 
-    private func recordLiveEdit(_ edit: LivePawnEdit, on id: Pawn.ID) {
-        liveEdits[id, default: []].insert(edit)
-    }
 
     /// Discard the fog authored in the editing mode, including anything the autosave
     /// debounce already wrote: restoring the Walls re-triggers `fog`'s didSet, and the
@@ -912,14 +960,10 @@ final class AppState: ObservableObject {
             endFogEditing()
             return
         }
-        var restored = edits.original
-        restored.squaresWide = fog.squaresWide
-        // Same reconciliation as an edit: the table's edits survive Cancel because they
-        // were never part of what the mode was editing, while a rename made through the
-        // in-mode inspector goes through `FogEdits` and is discarded like any other in-mode
-        // edit.
-        restored.pawns = restored.pawns.map { carryLiveState(onto: $0) }
-        fog = restored
+        // The Walls the mode traced go back to what it opened with; nothing else is
+        // touched, for the same reason `applyFogEdits` takes nothing else. A Pawn dragged
+        // mid-fight cannot snap back on Cancel because Cancel never had a Pawn to restore.
+        fog.walls = edits.original.walls
         flushPendingFogWrites()
         endFogEditing()
     }
@@ -936,7 +980,6 @@ final class AppState: ObservableObject {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }),
               fog.pawns[index].isHidden != isHidden else { return }
         fog.pawns[index].isHidden = isHidden
-        recordLiveEdit(.hidden, on: id)
         // The eye takes a Pawn out of the lighting, so hiding the isolated one strands Solo
         // Sight on a Pawn that emits nothing: the fog falls back to lighting the Map with
         // every torch while the token rule keeps the rest of the party under the discovery

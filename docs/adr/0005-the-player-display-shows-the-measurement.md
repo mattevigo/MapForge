@@ -56,3 +56,26 @@ cannot be left on the table's screen across sessions the way an authored mistake
   and it is a second dismissal mechanism competing with right-click.
 - **DM-only, Control Window entirely** — rejected for the reason ADR-0004 rejected the same
   option for Solo Sight: it is a diagnostic for the person who needed it least.
+
+## Amended: the DM can withhold one
+
+The decision above stands as the **default** and no longer as the rule. A switch on the
+Control Window hides Measurements from the Player Display; it starts on, so the case argued
+here is still the one that needs no action.
+
+What the original missed is that it reasoned from one kind of Measurement. "A Measurement
+exists to settle a question the players are the ones asking" is true of the fireball and the
+dragon's breath — and false of the distance a DM takes to plan a monster's next move, or to
+check whether an ambush is in range. For those, the number is not evidence the table is owed;
+it is the tactical fact the DM is deciding whether to reveal, and putting it on the big
+screen answers a question nobody asked.
+
+"DM-only" was considered here and rejected — correctly, as a global rule, for the reason
+given: it is a diagnostic for the person who needed it least. Making it per-moment is not
+that option. The DM chooses, once, in the moment they know which kind of Measurement they
+are taking, which is the only place the answer exists.
+
+The consequence for this document's replacement rule is narrower than it looks. "The Player
+Display may draw what the table is entitled to know" survives intact; what changes is that
+the DM, not the app, decides whether a given Measurement is in that class. Hidden Creatures
+and the fog tint are still inadmissible, and no switch offers them.

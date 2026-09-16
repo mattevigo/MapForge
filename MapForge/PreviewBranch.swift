@@ -5,14 +5,22 @@ import CoreGraphics
 /// `.normal` is the DM watching the table; the other three each take the preview over for a
 /// prep task. Lifted out of `ControlView` so `PreviewBranch` can be asked about a mode
 /// without standing up the view.
-enum PreviewMode { case normal, gridFit, viewport, fog }
+/// `.viewport` was a fourth case until panning became a toggle on the Live View
+/// (`ViewportToggle`): a DM moves what the table sees mid-sentence, and a mode with a Cancel
+/// and a Done is a thing to get wrong in front of players. The two that remain are prep
+/// tasks the DM enters deliberately and leaves again.
+enum PreviewMode { case normal, gridFit, fog }
 
 /// Which of the Control Window preview's two branches runs, and what each one owes the DM.
 ///
-/// The preview draws the Map one of two ways. **The mirror** shows exactly the portion the
-/// Player Display shows, letterbox and all, and needs a resolved Viewport to know what that
-/// portion is. **The fitted** branch shows the whole Map aspect-fitted into the preview, and
-/// is what every editing mode is authored against.
+/// The preview draws the whole Map, aspect-fitted, in every mode.
+///
+/// It used to have a second branch: **the mirror**, which cropped the Live View to exactly
+/// what the Player Display showed, letterbox and all. That was exact and it was the wrong
+/// trade — a DM looking at the mirror could not see what was about to walk into the room,
+/// and could not place a Pawn or a Light outside the Viewport without panning there first.
+/// The green Viewport rectangle answers "what do the players see" instead, drawn over a Map
+/// the DM can see all of.
 ///
 /// The two were separated by what they draw the Map *for*, and the live layers — Pawns,
 /// Light Markers, the Fog tint, Measurements — were built on the mirror because the mirror

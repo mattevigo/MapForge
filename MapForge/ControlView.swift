@@ -4,13 +4,20 @@ struct ControlView: View {
     @EnvironmentObject private var appState: AppState
 
     @State private var mode: PreviewMode = .normal
+    /// The Pawn or Light being edited in a sheet, or nil when none is.
+    ///
+    /// One optional rather than two, because at most one sheet is ever up: the DM reached it
+    /// from one right-click on one thing.
+    @State private var editing: EditTarget?
     @State private var fitSquare: GridFitSquare?
     @State private var squaresWideBeforeFit: Double = 0
     /// Whether the Grid was already declared when Grid Fit started. Entering Grid Fit
     /// declares one as a side effect of moving the value, so cancelling has to put back
     /// the claim as well as the number.
     @State private var hadDeclaredGridBeforeFit = false
-    @State private var viewportOriginBeforePan: CGPoint?
+    /// Whether the Viewport rectangle is showing on the Live View. A toggle, not a mode —
+    /// see `ViewportToggle`.
+    @State private var isShowingViewport = false
     /// Grid Fit's preview zoom/pan. Mode-local view state, not part of the Map — it is
     /// reset to fit-to-window on entering the mode.
     @State private var gridFitTransform: PreviewTransform?
@@ -21,14 +28,6 @@ struct ControlView: View {
     /// same revert Grid Fit does with `squaresWideBeforeFit`. `FogEdits` also carries the
     /// undo history, which is mode-local and cannot unwind past this.
     @State private var fogEdits = FogEdits(document: FogDocument())
-    /// Which fog concept a click places. One mode for all of them: the DM needs to see a
-    /// torch against the room they traced to know the room works.
-    @State private var tool: FogTool = .walls
-    /// The Light whose radii the inspector edits. Owned here, not in the overlay, because
-    /// the numeric editor lives beside the preview.
-    @State private var selectedLight: Light.ID?
-    /// The Pawn whose label, colour and range the inspector edits.
-    @State private var selectedPawn: Pawn.ID?
     /// Which shape the last Measurement took, so the right-click menu opens on it.
     /// Session-local, like the Measurement itself.
     @State private var measurementShape: MeasurementShape = .circle
@@ -39,7 +38,25 @@ struct ControlView: View {
     /// the Origin from the right-click itself conflated the two, so the DM had to open the
     /// menu at exactly the point they meant to measure from — a menu is not a precise
     /// instrument.
+    /// The Live View's own zoom — the Magnifier. Nil is the plain aspect fit, so the DM
+    /// sees the whole Map until they ask for more.
+    ///
+    /// The same `PreviewTransform` Grid Fit and the Wall Editor use, rather than a type of
+    /// its own: the Magnifier zoomed a cropped mirror when it needed different rules about
+    /// how far out it could go, and the mirror is gone. Never reaches the Player Display,
+    /// which is what makes it the DM's alone.
+    @State private var liveZoom: PreviewTransform?
+    /// The transform an ⌥-drag started from. `DragGesture` reports cumulative translation,
+    /// so panning from the live value would compound it — the same reason
+    /// `GridFitOverlay` and `FogOverlay` each hold one.
+    @State private var livePanStart: PreviewTransform?
     @State private var armedShape: MeasurementShape?
+    /// What `Add` is waiting to place, or nil when nothing is armed.
+    ///
+    /// Beside `armedShape` and mutually exclusive with it: at most one tool is armed at a
+    /// time, because a left-click whose meaning depends on which of two armed tools wins is
+    /// unguessable. `arm(_:)` and `startMeasurement` each clear the other.
+    @State private var armedAdd: AddKind?
     /// Where the cursor last was on the mirror, in the mirror's own coordinates.
     ///
     /// SwiftUI reports this; an `NSEvent`'s `locationInWindow` is NOT convertible into it.
@@ -64,10 +81,41 @@ struct ControlView: View {
     /// `PanelTab`.
     @State private var panelTab: PanelTab = .scene
 
-    /// Which row the Combat tab's Stat Block editor is pointed at. Separate from
-    /// `selectedPawn`, which is the fog editor's selection: a DM editing a monster's hit
-    /// points is not selecting it for a Wall.
+    /// Which row the Combat tab's Stat Block editor is pointed at.
     @State private var selectedCombatant: Pawn.ID?
+
+    /// What `Add` places. A Light, or a Pawn of one Kind — the Kind is settled here, when
+    /// the DM picks from the menu, rather than in a sheet afterwards: adding four goblins is
+    /// four arms and no forms.
+    private enum AddKind: Hashable, CaseIterable {
+        case light
+        case pawn(PawnKind)
+
+        static var allCases: [AddKind] { [.light] + PawnKind.allCases.map(AddKind.pawn) }
+
+        var title: String {
+            switch self {
+            case .light: "Light"
+            case .pawn(let kind): kind.title
+            }
+        }
+    }
+
+    /// What an open Edit sheet is pointed at, with the draft it is editing.
+    ///
+    /// Carries the draft rather than re-seeding from `appState` on each redraw: the sheet
+    /// buffers, so the half-typed state has to live somewhere that a redraw does not reset.
+    private enum EditTarget: Equatable, Identifiable {
+        case pawn(Pawn.ID, EditPawnDraft)
+        case light(Light.ID, EditLightDraft)
+
+        var id: UUID {
+            switch self {
+            case .pawn(let id, _): id
+            case .light(let id, _): id
+            }
+        }
+    }
 
     /// Renaming an existing Party, or naming a new one. A sum type rather than a name plus a
     /// flag, because the two resolve differently and only one of them has an id.
@@ -158,58 +206,42 @@ struct ControlView: View {
                 workspaceButton
             }
 
-            // Two rows, always. A single row with a `Spacer()` between the two halves ran
-            // the mode buttons off the right edge — and they are the only way into every
-            // mode the app has, so losing the last of them with no scrollbar and nothing to
-            // say it was there is not a cosmetic problem.
+            // One row now. It was two, because a "Grid squares wide" field shared it with
+            // the mode buttons and a single row ran them off the right edge — losing the
+            // only way into every mode the app has, with no scrollbar and nothing to say
+            // they were there. The field is gone (the Grid is declared by Grid Fit), so the
+            // buttons have the row to themselves and the caption rides along in it.
             //
-            // `ViewThatFits` cannot rescue that arrangement either: a `Spacer()` makes the
-            // wide branch claim to fit at any width, so it is always chosen and always
-            // clipped. Splitting them unconditionally is what actually keeps every button
-            // on screen.
-            HStack {
-                gridSquaresField
-                Spacer()
-            }
+            // The old warning still applies to anything added here: a `Spacer()` makes
+            // `ViewThatFits` claim the wide branch fits at any width, so it is always chosen
+            // and always clipped. Keep this row short.
             HStack(spacing: 8) {
                 modeControls
                 Spacer()
             }
 
-            // Shown for the whole mode, not just before the first drag: the caption
-            // vanishing mid-drag resized the preview under the cursor.
-            if mode == .gridFit {
-                Text("Drag a square over one grid square; scroll to zoom, ⌥-drag to pan, arrow keys nudge (⇧ resizes).")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            if mode == .viewport {
-                Text("Drag the rectangle to choose what the Player Display shows.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            if mode == .fog {
-                Text(tool.hint)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                // The inspector row is ALWAYS here, empty or not.
-                //
-                // Both inspectors draw nothing until something is selected, so selecting a
-                // Pawn used to insert a row into this VStack, steal its height from the
-                // preview below, and shrink the GeometryReader the preview measures every
-                // transform against — `fitted(container:)` then recomputed to a different
-                // scale and the Map visibly jumped mid-click. That is the "the zoom changes
-                // while I select" report, and it is the same defect as the caption above:
-                // anything in this stack that appears or vanishes resizes the preview.
-                //
-                // Reserving the height unconditionally makes the container a constant
-                // across selection, which is the property the preview's arithmetic needs.
-                ZStack(alignment: .leading) {
-                    lightInspector
-                    pawnInspector
-                }
-                .frame(height: Self.fogInspectorRowHeight, alignment: .leading)
-            }
+            // ONE reserved row, in every mode, whether or not it has anything to say.
+            //
+            // Each mode used to contribute its own caption — and the Wall Editor a caption
+            // plus an inspector row — so entering a mode added height to this stack, stole
+            // it from the `GeometryReader` below, and `fitted(container:)` recomputed to a
+            // different scale. The Map visibly resized the moment a DM pressed "Edit Fog…",
+            // and jumped mid-click inside the mode. Same defect, two symptoms.
+            //
+            // Reserving a constant height makes the preview's container a fixed point
+            // across every mode change, which is the property its arithmetic needs. The
+            // hint inside it may change freely; the box may not.
+            //
+            // Guarded by `ChromeHeightTests` and `PreviewContainerStabilityTests`.
+            Text(modeHint)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(Self.modeHintLineLimit)
+                // Wrapped rather than truncated: the Wall Editor's hint is a list of
+                // gestures, and a DM who cannot see the last of them cannot use it.
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, minHeight: Self.modeHintRowHeight,
+                       maxHeight: Self.modeHintRowHeight, alignment: .topLeading)
 
             playerDisplayStatus
 
@@ -217,7 +249,13 @@ struct ControlView: View {
 
             undeclaredGridWarning
 
-            fogSwitch
+            // One row: both govern what the Player Display shows, and stacking them cost a
+            // line of height on a window whose vertical space belongs to the preview.
+            HStack(spacing: 16) {
+                fogSwitch
+                measurementVisibilitySwitch
+                Spacer()
+            }
 
             HStack(alignment: .top, spacing: 12) {
                 preview
@@ -234,6 +272,20 @@ struct ControlView: View {
             WorkspacePickerView(isSwitching: appState.workspace != nil)
                 .environmentObject(appState)
                 .interactiveDismissDisabled(appState.workspace == nil)
+        }
+        .sheet(item: $editing) { target in
+            switch target {
+            case .pawn(let id, let draft):
+                EditPawnSheet(draft: draft,
+                              hasDeclaredGrid: appState.hasDeclaredGrid,
+                              onCommit: { appState.updatePawn(id: id, with: $0); editing = nil },
+                              onCancel: { editing = nil })
+            case .light(let id, let draft):
+                EditLightSheet(draft: draft,
+                               hasDeclaredGrid: appState.hasDeclaredGrid,
+                               onCommit: { appState.updateLight(id: id, with: $0); editing = nil },
+                               onCancel: { editing = nil })
+            }
         }
         .alert("End the encounter and switch workspace?",
                isPresented: $confirmSwitchEndsEncounter) {
@@ -267,7 +319,10 @@ struct ControlView: View {
         }
         .onChange(of: appState.playerScreen) { _, screen in
             // Losing the Player Display mid-pan would strand the mode with no overlay.
-            if mode == .viewport, screen == nil { mode = .normal }
+            if !ViewportToggle.staysShowing(mapOverflows: mapOverflowsViewport,
+                                            hasDisplay: screen != nil) {
+                isShowingViewport = false
+            }
         }
         .onChange(of: appState.mapURL) { _, _ in
             // Every mode is authored against the Map that was open when it started, and
@@ -286,13 +341,32 @@ struct ControlView: View {
             fitSquare = nil
             gridFitTransform = nil
             fogTransform = nil
-            selectedLight = nil
-            selectedPawn = nil
             // `AppState` drops the Measurement itself; the armed tool is view state, and a
             // crosshair left hunting on a Map the DM has closed is the same staleness.
             armedShape = nil
+            armedAdd = nil
+            liveZoom = nil
+            // An Edit sheet holds the outgoing Map's Pawn or Light by ID. Left up, it would
+            // sit over a Map it does not belong to and its OK would silently no-op against
+            // the `guard` in `updatePawn` — a sheet whose buttons have quietly stopped doing
+            // anything, which is the staleness this whole block exists to prevent.
+            editing = nil
             typedDistance.clear()
             mode = .normal
+        }
+        // The other half: the subject can go while the Map stays — a Pawn deleted from the
+        // roster, or from this very menu. Follows the `resolved…` guard pattern
+        // (`AppState.swift`, `resolvedSoloSightPawnID`): never hold an ID that matches
+        // nothing, rather than checking for staleness at the point of use.
+        .onChange(of: appState.fog) { _, fog in
+            switch editing {
+            case .pawn(let id, _) where !fog.pawns.contains(where: { $0.id == id }):
+                editing = nil
+            case .light(let id, _) where !fog.lights.contains(where: { $0.id == id }):
+                editing = nil
+            default:
+                break
+            }
         }
         .onChange(of: fitSquare) { _, square in
             guard let square, let image = appState.mapImage,
@@ -304,14 +378,6 @@ struct ControlView: View {
 
     /// The Map's width in Grid squares — the one number that pins its physical size.
     @ViewBuilder
-    private var gridSquaresField: some View {
-        Text("Grid squares wide:")
-        TextField("squares", value: $appState.squaresWide, format: .number)
-            .textFieldStyle(.roundedBorder)
-            .frame(width: 64)
-        Stepper("squares", value: $appState.squaresWide, in: 1...500)
-            .labelsHidden()
-    }
 
     // MARK: Preview
 
@@ -335,122 +401,14 @@ struct ControlView: View {
     private var preview: some View {
         if let image = appState.mapImage {
             GeometryReader { geo in
-                if mode == .normal, let map = appState.mapScale, let viewport = resolvedViewport {
-                    // Mirror: exactly the portion the Player Display shows, black
-                    // letterbox and all — never adjacent map the players can't see.
-                    let viewportPx = ViewportMath.viewportRectInImagePixels(originInches: viewport.originInches,
-                                                                            sizeInches: viewport.sizeInches,
-                                                                            map: map)
-                    let frame = ViewportMath.mirrorImageFrame(imagePixelSize: image.pixelSize,
-                                                              viewportRect: viewportPx,
-                                                              container: geo.size)
-                    let visible = ViewportMath.mirrorViewportRect(viewportRect: viewportPx,
-                                                                  container: geo.size)
-                    // The image frame rebased into the clipped container's coordinates.
-                    // Every overlay on this mirror needs exactly this rect, and each one
-                    // spelling it out again is how one of them ends up subtly offset from
-                    // the Pawn it is drawn against — so it is computed in `PreviewBranch`,
-                    // where a test can reach it, rather than open-coded here.
-                    let mirrorFrame = PreviewBranch.liveLayerFrame(imagePixelSize: image.pixelSize,
-                                                                   viewportRect: viewportPx,
-                                                                   container: geo.size)
-                    ZStack {
-                        Color.black
-                        Image(nsImage: image)
-                            .resizable()
-                            .frame(width: frame.width, height: frame.height)
-                            .position(x: frame.midX - visible.minX, y: frame.midY - visible.minY)
-                            // .clipped() below masks drawing only: this Image still owns
-                            // its full, overflowing frame for hit-testing and would
-                            // swallow clicks on the controls above. Disabled HERE rather
-                            // than on the container, which would also disable the Pawn
-                            // dragging overlaid on it — that is the live table action and
-                            // the whole reason PawnLayer exists.
-                            .allowsHitTesting(false)
-                    }
-                    .frame(width: visible.width, height: visible.height)
-                    .overlay {
-                        // The DM's view of the same Visibility, the party, and anything
-                        // being measured. Shared with the fitted branch below so the two
-                        // cannot drift: the mirror is not the only place a DM looks at
-                        // their own Pawns, and for a long time it behaved as though it
-                        // were. See `liveLayers`.
-                        //
-                        // Dragging a Pawn is a LIVE action — the party moves during play,
-                        // not during prep — so it works here, outside the fog editing mode
-                        // entirely.
-                        liveLayers(map: map, frame: mirrorFrame)
-                    }
-                    // Stamping a Character is a LIVE action too, so the drop target is this
-                    // mirror rather than the fog editing mode's overlay.
-                    //
-                    // `location` arrives in this view's own space, which is the clipped
-                    // container `mirrorFrame` is already rebased into — the pairing
-                    // `PlayerPlacement.mapPoint` warns about at length. Attached here,
-                    // alongside the overlays drawn with the same frame, and never above a
-                    // `.position()` that would re-parent it into the outer GeometryReader.
-                    .dropDestination(for: CharacterDragPayload.self) { payloads, location in
-                        guard let payload = payloads.first,
-                              let character = appState.character(id: payload.characterID)
-                        else { return false }
-                        return appState.stamp(character, at: location, frame: mirrorFrame)
-                    }
-                    .overlay {
-                        // An armed tool has nothing on the Map yet, so without this the
-                        // DM cannot tell it apart from an idle one — and the click that
-                        // would place an Origin looks like a click that does nothing.
-                        // DM-only: the table has no use for a crosshair hunting a point.
-                        if armedShape != nil, let cursor = mirrorCursor {
-                            MeasurementCursor().position(cursor)
-                        }
-                    }
-                    // Measuring is a live play action, so it lives on the mirror rather
-                    // than behind an editing mode — beside dragging a Pawn, not beside
-                    // authoring Walls.
-                    //
-                    // Every point these handlers use comes from `mirrorCursor`, never from
-                    // an event's own location: an `NSEvent` position cannot be converted
-                    // into the space `mirrorFrame` is expressed in. See `mirrorCursor`.
-                    //
-                    // Right-click only opens the menu — picking a shape arms the tool, and
-                    // the left-click after that says where the Measurement starts.
-                    .onRightClick { rightClick() }
-                    // While a chain is being drawn right-click FINISHES it rather than
-                    // offering the menu, so the menu is withheld for that one state — a
-                    // menu appearing over the chain the DM just completed would bury it.
-                    .contextMenu { if !isChaining { measurementMenu(map: map, frame: mirrorFrame) } }
-                    // Live only while the tool is armed or a Measurement is up, and lower
-                    // priority than the Pawn drag underneath: dragging a token is the
-                    // other live action on this surface, and a tap that swallowed it would
-                    // break the more common one.
-                    .simultaneousGesture(
-                        TapGesture().onEnded { leftClick(map: map, frame: mirrorFrame) },
-                        including: isMeasuring ? .all : .subviews
-                    )
-                    .onContinuousHover { phase in
-                        switch phase {
-                        case .active(let location):
-                            // The only reliable cursor position on this surface — every
-                            // measuring handler reads it rather than an event's own.
-                            mirrorCursor = location
-                            aim(at: location, map: map, frame: mirrorFrame)
-                        case .ended:
-                            mirrorCursor = nil
-                        }
-                    }
-                    // Digits are claimed only while a Measurement is armed, the cursor is
-                    // over the Map, and no text field has focus. See MeasurementTyping.
-                    .onMeasurementKeys(isArmed: isMeasuring,
-                                       isOverMap: mirrorCursor != nil) {
-                        handleMeasurementKey($0)
-                    }
-                    .clipped()
-                    .position(x: visible.midX, y: visible.midY)
-                } else {
+                do {
                     // Only Grid Fit carries a zoom; every other use of this branch is the
                     // plain aspect fit, which is that transform's floor.
+                    // The Live View carries one too now: the Magnifier, which used to zoom
+                    // a cropped mirror and zooms the whole Map since that mirror went.
                     let modeTransform = mode == .gridFit ? gridFitTransform
-                                      : mode == .fog ? fogTransform : nil
+                                      : mode == .fog ? fogTransform
+                                      : liveZoom
                     // The container every transform is measured against. Captured once
                     // from the GeometryReader and then FORCED onto the ZStack below: an
                     // unconstrained ZStack grows to hold the zoomed Image, the reader
@@ -480,20 +438,26 @@ struct ControlView: View {
                             let fogRegions = appState.litRegions
                             FogOverlay(transform: transform,
                                        containerSize: previewSize,
-                                       tool: tool,
                                        gridPixels: gridPixels,
                                        edits: $fogEdits,
-                                       selectedLight: $selectedLight,
-                                       selectedPawn: $selectedPawn,
                                        isDimmed: { isInvisibleToPlayers($0, regions: fogRegions) },
                                        onChange: { applyFogEdits() },
                                        onTransform: { fogTransform = $0 })
                         }
-                        if mode == .viewport, let map = appState.mapScale, let viewport = resolvedViewport {
+                        // Always drawn on the Live View: the rectangle is how the DM knows
+                        // what their players are being shown, which is the question the
+                        // whole window exists to answer. The toggle decides whether it can
+                        // be *dragged* — idle it is a readout with hit-testing off, so the
+                        // clicks that drag a Pawn or open the menu pass straight through.
+                        if ViewportToggle.drawsRectangle(mode: mode,
+                                                         hasViewport: resolvedViewport != nil),
+                           let map = appState.mapScale, let viewport = resolvedViewport {
                             ViewportOverlay(fittedRect: fitted,
                                             map: map,
                                             viewportSizeInches: viewport.sizeInches,
-                                            originInches: viewport.originInches) { desired in
+                                            originInches: viewport.originInches,
+                                            isDraggable: ViewportToggle.isDraggable(
+                                                isShowingViewport: isShowingViewport)) { desired in
                                 appState.viewportOrigin = desired
                             }
                         }
@@ -523,6 +487,74 @@ struct ControlView: View {
                     // `previewSize` a fixed point rather than a function of the zoom.
                     .frame(width: previewSize.width, height: previewSize.height)
                     .clipped()
+                    // The preview has to be hit-testable as a whole for the modifiers below
+                    // to see a click at all. The mirror branch got this for free from the
+                    // `Color.black` letterbox filling its ZStack; this one is transparent
+                    // wherever the artwork is not, so the right-click menu simply never
+                    // opened over the margins — and `.clipped()` does not restore a shape.
+                    .contentShape(Rectangle())
+                    // Everything below was attached to the mirror until the Live View
+                    // started showing the whole Map. It moved wholesale rather than being
+                    // rewritten: these read against `fitted` instead of `mirrorFrame`, and
+                    // nothing else about measuring, stamping or the right-click menu
+                    // changed. Gated on `.normal` because the authoring modes own their own
+                    // gestures — `FogOverlay` and `GridFitOverlay` are underneath here.
+                    .onRightClick { if mode == .normal { rightClick() } }
+                    .contextMenu {
+                        if mode == .normal, !isChaining, let map = appState.mapScale {
+                            measurementMenu(map: map, frame: fitted)
+                        }
+                    }
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            if mode == .normal, let map = appState.mapScale {
+                                leftClick(map: map, frame: fitted)
+                            }
+                        },
+                        including: mode == .normal && claimsLeftClick ? .all : .subviews
+                    )
+                    // Scroll to look closer. The Viewport is untouched, so the table sees
+                    // nothing change — the Magnifier is the DM's alone.
+                    .onScrollWheel { delta, location in
+                        guard mode == .normal, delta != 0 else { return }
+                        liveZoom = transform.zoomed(to: transform.scale * exp(delta * 0.01),
+                                                    anchoringViewPoint: location,
+                                                    container: previewSize)
+                    }
+                    // ⌥-drag moves the magnifier, as it does in the Wall Editor and Grid
+                    // Fit. `.modifiers(.option)` also stops a plain drag matching, so
+                    // dragging a Pawn stays unfiltered — that is the live action here.
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 2)
+                            .modifiers(.option)
+                            .onChanged { value in
+                                guard mode == .normal else { return }
+                                let start = livePanStart ?? transform
+                                livePanStart = start
+                                liveZoom = start.panned(by: value.translation,
+                                                        container: previewSize)
+                            }
+                            .onEnded { _ in livePanStart = nil }
+                    )
+                    .onContinuousHover { phase in
+                        switch phase {
+                        case .active(let location):
+                            // The only reliable cursor position on this surface — every
+                            // measuring handler reads it rather than an event's own.
+                            mirrorCursor = location
+                            if mode == .normal, let map = appState.mapScale {
+                                aim(at: location, map: map, frame: fitted)
+                            }
+                        case .ended:
+                            mirrorCursor = nil
+                        }
+                    }
+                    // Digits are claimed only while a Measurement is armed, the cursor is
+                    // over the Map, and no text field has focus. See MeasurementTyping.
+                    .onMeasurementKeys(isArmed: mode == .normal && claimsLeftClick,
+                                       isOverMap: mirrorCursor != nil) {
+                        handleMeasurementKey($0)
+                    }
                     // The Viewport drag measures itself here. Without this space the
                     // gesture falls back to the dragged rectangle's own coordinates,
                     // which move with it — see ViewportOverlay.dragGesture.
@@ -554,12 +586,42 @@ struct ControlView: View {
     private var modeControls: some View {
         switch mode {
         case .normal:
+            // In the existing row rather than a new one: anything added above the preview
+            // must reserve constant height or the Map jumps mid-click.
+            Menu("Add") {
+                ForEach(AddKind.allCases, id: \.self) { kind in
+                    Button(kind.title) { arm(kind) }
+                }
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .disabled(appState.mapImage == nil)
+            .help("Pick what to add, then click the Map to place it. Esc cancels.")
             Button("Fit Grid…") { startGridFit() }
                 .disabled(appState.mapImage == nil)
-            Button("Pan Viewport…") { startViewportPan() }
-                .disabled(!mapOverflowsViewport)
+            // A toggle, not a mode: press to show the rectangle, press again to put it
+            // away. There is no Cancel, deliberately — see `ViewportToggle`.
+            Toggle("Viewport", isOn: $isShowingViewport)
+                .toggleStyle(.button)
+                .onChange(of: isShowingViewport) { _, showing in
+                    if ViewportToggle.endsMagnifier(isShowingViewport: showing) {
+                        liveZoom = nil
+                    }
+                }
+                .disabled(!ViewportToggle.isAvailable(mapOverflows: mapOverflowsViewport,
+                                                      hasDisplay: appState.playerScreen != nil))
+                .help("Show the rectangle the players see, and drag it to move their view.")
             Button("Edit Fog…") { startFogEditing() }
                 .disabled(appState.mapImage == nil)
+            // Only while magnified, and it says so: the mirror's whole promise is that it
+            // shows what the table sees, and a DM who has forgotten they zoomed would read
+            // it as the truth. Placed last so the buttons before it do not move when it
+            // appears — this row is above the preview, and anything that changes width
+            // here is the same class of defect as `fogInspectorRowHeight`'s.
+            if liveZoom != nil {
+                Button("Zoomed — Reset") { liveZoom = nil }
+                    .help("The Player Display is unaffected: this magnifies your view only.")
+            }
         case .gridFit:
             if fitSquare != nil, let snap = GridFit.snapSuggestion(for: appState.squaresWide) {
                 Button("Snap to \(snap)") { applySnap(snap) }
@@ -568,18 +630,7 @@ struct ControlView: View {
                 .keyboardShortcut(.cancelAction)
             Button("Done") { endGridFit() }
                 .keyboardShortcut(.defaultAction)
-        case .viewport:
-            Button("Cancel") { cancelViewportPan() }
-                .keyboardShortcut(.cancelAction)
-            Button("Done") { mode = .normal }
-                .keyboardShortcut(.defaultAction)
         case .fog:
-            Picker("Tool", selection: $tool) {
-                ForEach(FogTool.allCases, id: \.self) { Text($0.label).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 160)
             Text(fogSummary)
                 .foregroundStyle(.secondary)
             Button("Undo") { fogEdits.undo(); applyFogEdits() }
@@ -596,6 +647,7 @@ struct ControlView: View {
         // `beginFogEditing` drops the Measurement; the armed tool is view state and has to
         // be dropped alongside it, or the crosshair follows the DM into authoring.
         armedShape = nil
+        armedAdd = nil
         typedDistance.clear()
         fogEdits = FogEdits(document: appState.fog)
         // Open on the whole Map, as Grid Fit does: the zoomed-out view orients, and zoom
@@ -711,6 +763,13 @@ struct ControlView: View {
     /// step: place the Origin, settle the distance, clear it. The DM never has to remember
     /// which button does which.
     private func leftClick(map: MapScale, frame: CGRect) {
+        // `Add` is armed and waiting for a point. First, and unambiguous: the two armings
+        // are mutually exclusive, so this and the Measurement branch below can never both
+        // want the same click.
+        if let kind = armedAdd {
+            placeArmedAdd(kind, map: map, frame: frame)
+            return
+        }
         // An armed tool is waiting for its Origin, and that comes first: until one is
         // placed there is no Measurement to settle.
         if let shape = armedShape {
@@ -749,40 +808,95 @@ struct ControlView: View {
                                             distance: 0, direction: 0))
     }
 
-    /// The shapes offered by the right-click menu. Picking one arms the tool; the next
-    /// left-click says where the Measurement starts.
+    /// The right-click menu on the Live View: what to do with whatever is under the cursor,
+    /// then what to measure.
     ///
-    /// The menu replaced a picker in the window chrome: choosing the shape belongs where
-    /// the DM is already pointing, not at the top of the window, and a menu keeps the whole
-    /// interaction on the Map. `.contextMenu` is a modifier rather than a composed gesture,
-    /// so it does not run into the composition defects this render layer has a record of.
-    /// Right-clicking *on* a Measurement offers to pin or unpin that one instead — the
-    /// menu is about whatever is under the cursor, and over a shape that is the shape
-    /// rather than the Map.
+    /// One menu with a divider rather than two menus. `Edit…` and `Delete` act on the Pawn
+    /// or Light under the cursor and are absent when there is none; the Measurement section
+    /// is always offered, because a DM right-clicking a Pawn may well have meant to measure
+    /// from it, and hiding the shapes there would make the menu's contents depend on
+    /// aim in a way they cannot see.
+    ///
+    /// Left-click is not available for this. It is already the Pawn drag (`PawnLayer`) and,
+    /// while a shape is armed, the Measurement state machine. `.contextMenu` is a modifier
+    /// rather than a composed gesture, so it avoids the composition defects this render
+    /// layer has a record of.
     @ViewBuilder
     private func measurementMenu(map: MapScale, frame: CGRect) -> some View {
-        if let hit = measurementUnderCursor(map: map, frame: frame) {
-            switch hit {
-            case .pinned(let id):
-                Button("Unpin Measurement") { appState.unpinMeasurement(id: id) }
-            case .live:
-                Button("Pin Measurement") { appState.pinMeasurement() }
+        let target = liveHit(map: map, frame: frame)
+        let items = LiveMenu.items(target: target,
+                                   measurement: measurementUnderCursor(map: map, frame: frame),
+                                   availability: appState.measurementAvailability)
+
+        if let target, items.editsTarget {
+            Section {
+                Button("Edit…") { beginEditing(target) }
+                Button("Delete") { delete(target) }
             }
-        } else if appState.measurementAvailability == .available {
-            ForEach(MeasurementShape.allCases, id: \.self) { shape in
-                Button(shape.label) { startMeasurement(shape) }
+        }
+
+        if let pin = items.pin {
+            Section {
+                switch pin {
+                case .unpin(let id):
+                    Button("Unpin Measurement") { appState.unpinMeasurement(id: id) }
+                case .pin:
+                    Button("Pin Measurement") { appState.pinMeasurement() }
+                }
             }
-        } else if case .disabled(let reason) = appState.measurementAvailability {
-            // A menu that is merely empty teaches the DM nothing, and they are reading it
-            // in front of players.
-            Text(reason.explanation)
+        }
+
+        if items.shapesOffered {
+            Section {
+                ForEach(MeasurementShape.allCases, id: \.self) { shape in
+                    Button(shape.label) { startMeasurement(shape) }
+                }
+            }
+        }
+
+        if let refusal = items.refusal {
+            Text(refusal.explanation)
         }
     }
 
-    /// Which Measurement the cursor is over, if any. Pinned ones are checked first: they
-    /// are drawn underneath, but they are also the ones the DM is reaching for — the live
-    /// shape is still under the pointer by other means.
-    private func measurementUnderCursor(map: MapScale, frame: CGRect) -> MeasurementHit? {
+    /// Open the Edit sheet on whatever the menu was opened over.
+    ///
+    /// Seeds the draft here, from the object as it stands now — the sheet edits a copy and
+    /// commits it whole, so nothing reaches `AppState` until OK.
+    private func beginEditing(_ target: LiveHitTest) {
+        switch target {
+        case .pawn(let id):
+            guard let pawn = appState.fog.pawns.first(where: { $0.id == id }) else { return }
+            editing = .pawn(id, EditPawnDraft(pawn: pawn))
+        case .light(let id):
+            guard let light = appState.fog.lights.first(where: { $0.id == id }) else { return }
+            editing = .light(id, EditLightDraft(light: light))
+        }
+    }
+
+    /// Delete whatever the menu was opened over. No confirmation: a live action, and a
+    /// dialog in the middle of a fight costs more than the mistake does.
+    private func delete(_ target: LiveHitTest) {
+        switch target {
+        case .pawn(let id): appState.removePawnFromMap(id)
+        case .light(let id): appState.removeLight(id: id)
+        }
+    }
+
+    /// The Pawn or Light under the cursor, if any.
+    ///
+    /// Reads the cursor from `mirrorCursor` rather than from the `NSEvent`: a right-click
+    /// event carries no location this view can use, and `RightClick.swift` records why.
+    private func liveHit(map: MapScale, frame: CGRect) -> LiveHitTest? {
+        guard let cursor = mirrorCursor else { return nil }
+        return LiveHitTest.hit(at: PlayerPlacement.mapPoint(cursor, map: map, frame: frame),
+                               pawns: appState.fog.pawns,
+                               lights: appState.fog.lights,
+                               gridPixels: gridPixels)
+    }
+
+    private func measurementUnderCursor(map: MapScale,
+                                        frame: CGRect) -> LiveMenu.MeasurementUnderCursor? {
         guard let cursor = mirrorCursor,
               let pixelsPerSquare = appState.pixelsPerSquare else { return nil }
         let point = PlayerPlacement.mapPoint(cursor, map: map, frame: frame)
@@ -804,9 +918,41 @@ struct ControlView: View {
         return nil
     }
 
-    private enum MeasurementHit {
-        case live
-        case pinned(Measurement.ID)
+    /// Arm `Add` and wait for the click that says where.
+    ///
+    /// Clears any Measurement, armed or on screen, for the reason `startMeasurement` clears
+    /// the other way: one armed tool at a time, or a left-click means two things at once.
+    private func arm(_ kind: AddKind) {
+        armedAdd = kind
+        armedShape = nil
+        typedDistance.clear()
+        appState.setMeasurement(nil)
+    }
+
+    /// Place what `Add` armed, at the click. Stays armed when the click is refused, so the
+    /// DM can simply aim better rather than reopening the menu.
+    private func placeArmedAdd(_ kind: AddKind, map: MapScale, frame: CGRect) {
+        guard let cursor = mirrorCursor else { return }
+        let point = PlayerPlacement.mapPoint(cursor, map: map, frame: frame)
+
+        switch kind {
+        case .light:
+            guard let light = AddPlacement.light(at: point, existing: appState.fog.lights,
+                                                 imageSize: appState.mapImage?.pixelSize)
+            else { return }   // outside the image: refused, and still armed
+            appState.addLight(light)
+        case .pawn(let pawnKind):
+            guard let pawn = AddPlacement.pawn(kind: pawnKind, at: point,
+                                               existing: appState.fog.pawns,
+                                               imageSize: appState.mapImage?.pixelSize)
+            else { return }   // outside the image: refused, and still armed
+            // Through `addPawnToMap` rather than appending here, so a Creature placed while
+            // a fight is running rolls Initiative and joins the Order. A Treasure is refused
+            // by `joinEncounter` itself, having nothing to do on its turn.
+            appState.addPawnToMap(pawn)
+        }
+        // One click places one thing. The Kind stays on the menu, not on the cursor.
+        armedAdd = nil
     }
 
     /// Arm the tool with a shape and wait for the click that places it.
@@ -818,6 +964,8 @@ struct ControlView: View {
         // Sticky, so the menu opens on the shape the DM last used.
         measurementShape = shape
         armedShape = shape
+        // One armed tool at a time — see `arm(_:)`.
+        armedAdd = nil
         typedDistance.clear()
         appState.setMeasurement(nil)
     }
@@ -844,10 +992,23 @@ struct ControlView: View {
     }
 
     /// Whether the DM is in the middle of measuring — either waiting to place an Origin,
-    /// or with a Measurement on screen. The gate for the click and key handlers, which
-    /// must stay inert the rest of the time.
+    /// or with a Measurement on screen. The gate for the **key** handler: digits type a
+    /// distance, which only a Measurement has.
     private var isMeasuring: Bool {
-        armedShape != nil || appState.measurement != nil
+        ArmedTool.claimsDigits(hasArmedShape: armedShape != nil,
+                               hasMeasurement: appState.measurement != nil)
+    }
+
+    /// Whether the left-click belongs to the Map rather than to the Pawn drag underneath.
+    ///
+    /// Wider than `isMeasuring` by the armed `Add`, and deliberately one predicate rather
+    /// than a second condition beside the first: this render layer has four gesture
+    /// composition defects on record, and "which of these two flags claimed the click" is
+    /// exactly the shape of question that produced them.
+    private var claimsLeftClick: Bool {
+        ArmedTool.claimsLeftClick(hasArmedAdd: armedAdd != nil,
+                                  hasArmedShape: armedShape != nil,
+                                  hasMeasurement: appState.measurement != nil)
     }
 
     /// Follow the cursor: an armed Measurement rubber-bands as the mouse moves, so the
@@ -868,7 +1029,11 @@ struct ControlView: View {
     /// are is decided by `MeasurementTyping.decide`, not here.
     private func handleMeasurementKey(_ decision: MeasurementTyping.Decision) {
         // An armed tool has no Measurement yet, and the only key that means anything to it
-        // is the one that backs out.
+        // is the one that backs out. `Add` arms the same way and Esc backs out of it too.
+        if armedAdd != nil {
+            if decision == .abandon { armedAdd = nil }
+            return
+        }
         if armedShape != nil, appState.measurement == nil {
             if decision == .abandon { armedShape = nil }
             return
@@ -946,16 +1111,6 @@ struct ControlView: View {
         endGridFit()
     }
 
-    private func startViewportPan() {
-        viewportOriginBeforePan = appState.viewportOrigin
-        mode = .viewport
-    }
-
-    private func cancelViewportPan() {
-        appState.viewportOrigin = viewportOriginBeforePan
-        mode = .normal
-    }
-
     /// Suggested, never silent: applying the snap also resizes the overlay to match.
     private func applySnap(_ squares: Int) {
         appState.squaresWide = Double(squares)
@@ -969,117 +1124,85 @@ struct ControlView: View {
 
     // MARK: Fog
 
-    /// The height the fog inspector row always claims, selected or not.
+    /// The height the hint row always claims, in every mode, whatever it says.
     ///
     /// A constant rather than an intrinsic height, because "however tall it happens to be"
-    /// is exactly what made the preview jump: the row has to cost the same whether it is
-    /// empty, showing a Light's two fields, or showing a Pawn's six controls. 24 pt is the
-    /// measured fitting height of the taller of the two (the Pawn inspector, whose
-    /// rounded-border text fields set the floor) at `.callout`.
-    static let fogInspectorRowHeight: CGFloat = 24
-
-    /// The container the fog preview measures its zoom and pan against.
+    /// is exactly what made the preview jump. Two lines at `.caption` — enough for the Wall
+    /// Editor's list of gestures to wrap rather than truncate, and no more, since every
+    /// point reserved here is a point the preview loses.
     ///
-    /// Deliberately ignores `hasInspectorSelection`. The inspector row above the preview is
-    /// reserved unconditionally, so the GeometryReader's size already excludes it and
-    /// selecting something cannot change what the preview is fitted into. Expressed as a
-    /// function taking the flag — rather than not taking it — so the rule is testable and
-    /// stated, instead of being an invariant that holds only by accident of the layout.
-    static func fogPreviewContainer(geometry: CGSize, hasInspectorSelection: Bool) -> CGSize {
-        geometry
+    /// Held against the real SwiftUI layout by `ChromeHeightTests`: a hand-picked number
+    /// that clipped the text it reserves room for would be worse than no reservation.
+    static let modeHintRowHeight: CGFloat = 30
+
+    /// Two lines. One truncates the Wall Editor's gestures, and a DM who cannot read the
+    /// last of them cannot use it; three costs the preview more than the hint is worth.
+    static let modeHintLineLimit = 2
+
+    /// What each mode is for. Every mode has one — an empty hint would reserve a shorter row
+    /// than a real one and make the height depend on the mode again, which is the defect.
+    static let liveViewHint =
+        "Right-click a Pawn or Light to edit it, or the Map to measure. Add places a new one. Scroll to zoom — the players see none of it."
+    static let gridFitHint =
+        "Drag a square over one grid square; scroll to zoom, ⌥-drag to pan, arrow keys nudge (⇧ resizes)."
+    static let wallEditorHint =
+        "Click to place Wall corners, double-click to end a chain, Esc to cancel. ⇧ frees the angle; corners weld to nearby ends. Click a Wall then ⌫ to delete. Pawns and Lights are shown for reference — edit them from the map."
+    static let viewportHint =
+        "Drag the rectangle to choose what the Player Display shows."
+
+    /// Every hint the row can hold, so `ChromeHeightTests` can measure the tallest against
+    /// the height reserved for it rather than trusting a number.
+    static var everyModeHint: [String] {
+        [liveViewHint, gridFitHint, wallEditorHint, viewportHint]
     }
 
-    /// Label, colour and range for the Pawn selected in the fog mode.
-    @ViewBuilder
-    private var pawnInspector: some View {
-        if mode == .fog, tool == .pawns,
-           let pawn = appState.fog.pawns.first(where: { $0.id == selectedPawn }) {
-            HStack(spacing: 10) {
-                TextField("label", text: Binding(
-                    get: { pawn.label },
-                    set: { fogEdits.setPawnLabel(id: pawn.id, $0); applyFogEdits() }
-                ))
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 90)
-
-                ColorPicker("", selection: Binding(
-                    get: { Color(hex: pawn.colorHex) ?? .red },
-                    set: { fogEdits.setPawnColor(id: pawn.id, hex: $0.hexString); applyFogEdits() }
-                ), supportsOpacity: false)
-                .labelsHidden()
-
-                // A picker, not two toggles: the three kinds are mutually exclusive, and a
-                // pair of checkboxes would let a DM tick both and leave the token in a
-                // state the model cannot represent.
-                Picker("", selection: Binding(
-                    get: { pawn.kind },
-                    set: { fogEdits.setPawnKind(id: pawn.id, $0); applyFogEdits() }
-                )) {
-                    ForEach(PawnKind.allCases, id: \.self) { Text($0.title).tag($0) }
-                }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .frame(width: 104)
-                .help("A Creature or a Treasure emits no Light and is hidden from players by darkness.")
-
-                Toggle("Big", isOn: Binding(
-                    get: { pawn.isBig },
-                    set: { fogEdits.setPawnIsBig(id: pawn.id, $0); applyFogEdits() }
-                ))
-                .help("Occupies 2×2 squares instead of 1×1. Visual only — its light and sight are unchanged.")
-
-                Text("Sight:")
-                TextField("range", value: Binding(
-                    get: { Double(pawn.light.brightSquares) },
-                    set: {
-                        fogEdits.setPawnSight(id: pawn.id, squares: CGFloat($0))
-                        applyFogEdits()
-                    }
-                ), format: .number)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 52)
-                // A Pawn has one radius. The extra square the region fades over is not a
-                // second number the DM sets — it is there so the edge is not a hard cut —
-                // so it is not offered as one.
-                Text(pawn.isDiscovered
-                     ? "squares — unused, a \(pawn.kind.title) emits no Light"
-                     : "squares")
-                    .foregroundStyle(.secondary)
-            }
-            .font(.callout)
+    /// What the reserved row says right now.
+    ///
+    /// The Viewport's caption wins over the Live View's: a DM who has just armed the
+    /// rectangle is being told how to use the thing they armed, which is more urgent than
+    /// the standing description of the surface.
+    private var modeHint: String {
+        switch mode {
+        case .gridFit: Self.gridFitHint
+        case .fog: Self.wallEditorHint
+        case .normal: isShowingViewport ? Self.viewportHint : Self.liveViewHint
         }
+    }
+
+    /// The container the preview measures its zoom and pan against.
+    ///
+    /// Deliberately ignores the mode. The chrome above the preview reserves a constant
+    /// height in every mode, so the `GeometryReader`'s size already excludes it and entering
+    /// a mode cannot change what the preview is fitted into. Expressed as a function taking
+    /// the mode — rather than not taking it — so the rule is testable and stated, instead of
+    /// being an invariant that holds only by accident of the layout.
+    ///
+    /// Held by `PreviewContainerStabilityTests`.
+    static func previewContainer(geometry: CGSize, mode: PreviewMode) -> CGSize {
+        geometry
     }
 
     /// Rename a Light from the roster, which is reachable in every mode.
     ///
-    /// Routed like `setLight(id:isOn:)`: through `FogEdits` while the fog mode owns the
-    /// document, through `AppState` otherwise. Unlike a Pawn's live rename this is undoable
-    /// in the mode, because `carryLiveState` is Pawn-shaped throughout — `LivePawnEdit`,
-    /// `liveEdits: [Pawn.ID: …]`, applied per Pawn — and a live Light rename would be
-    /// silently discarded the next time the DM opened fog editing. The issue anticipated this
-    /// and named it as the fallback; the alternative is a parallel live-edit structure for one
-    /// field, which is more machinery than the asymmetry costs.
+    /// Straight to `AppState`, in every mode, because a Light is never edited through
+    /// `FogEdits` any more (ADR-0013). That also fixes the asymmetry the split created: the
+    /// old routing made an in-mode rename undoable and a live one not, and `carryLiveState`
+    /// was Pawn-shaped throughout, so a Light renamed from the roster while the mode was
+    /// open was silently discarded by Cancel. With one path there is nothing to discard.
+    /// `WallEditorTests.testCancellingWallEditsKeepsALiveLightRename` holds it.
     private func setLightName(id: Light.ID, _ name: String) {
-        if mode == .fog {
-            fogEdits.setLightName(id: id, name)
-            applyFogEdits()
-        } else {
-            appState.setLightName(id: id, name)
-        }
+        appState.setLightName(id: id, name)
     }
 
-    /// Set a Light's state, from the live row. In the fog mode the write has to go
-    /// through `FogEdits`, or the next edit would overwrite `appState.fog` wholesale from
-    /// the edit buffer and silently revert the toggle.
+    /// Set a Light's state, from the live row.
+    ///
+    /// Straight to `AppState` in every mode, beside `setLightName`. This had a fog-mode
+    /// branch through `FogEdits` because an in-mode edit used to overwrite `fog` wholesale
+    /// from the mode's snapshot and silently revert the toggle; `applyFogEdits` now copies
+    /// only Walls, so there is nothing left to revert it.
+    /// `WallEditorTests.testDousingALightDuringWallEditingSurvivesTheNextWall` holds it.
     private func setLight(id: Light.ID, isOn: Bool) {
-        if mode == .fog {
-            if fogEdits.document.lights.first(where: { $0.id == id })?.isOn != isOn {
-                fogEdits.toggleLight(id: id)
-                applyFogEdits()
-            }
-        } else {
-            appState.setLight(id: id, isOn: isOn)
-        }
+        appState.setLight(id: id, isOn: isOn)
     }
 
     /// Light radii are in Grid squares, so an undeclared Grid renders every Light at a
@@ -1246,9 +1369,30 @@ struct ControlView: View {
             : "Solo Sight: show the Map as \(pawn.label) alone lights it."
     }
 
-    /// The Fog Overlay's off switch: one control, always reachable, no mode to enter.
-    /// It stays inline rather than joining the side panel because it governs the whole
-    /// Map rather than any one thing in the list.
+    /// Whether the table sees the DM's Measurements.
+    ///
+    /// Beside the Fog switch because it is the same kind of control: a live decision about
+    /// what the Player Display shows, taken mid-session and never persisted.
+    ///
+    /// **Always present**, unlike the Fog switch it sits next to. It was conditional on
+    /// there being a Measurement to hide, which was wrong twice over. A DM decides whether a
+    /// distance is for the table *before* they take it, and a control that appears only once
+    /// the shape is already on the big screen offers that choice a moment too late. And a
+    /// control that comes and goes is the layout defect this window has been bitten by three
+    /// times: it shifts the row beside it and the preview below it.
+    ///
+    /// Default on: ADR-0005 makes the case that the table should see a Measurement, and that
+    /// is the common one. This is the escape for the other kind — the distance a DM takes for
+    /// themselves, where the number is the tactical fact they are deciding whether to reveal.
+    private var measurementVisibilitySwitch: some View {
+        Toggle("Measurements", isOn: $appState.showsMeasurementsToPlayers)
+            .toggleStyle(.checkbox)
+            // A stable handle for the UI tests, as the Fog switch carries: addressing a
+            // control by its rendered label is what goes stale first.
+            .accessibilityIdentifier("measurement-visibility-switch")
+            .help("Show Measurements on the Player Display. Off, the shape and its distance stay on this window only.")
+    }
+
     @ViewBuilder
     private var fogSwitch: some View {
         if !appState.fog.walls.isEmpty || !appState.fog.lights.isEmpty
@@ -1748,50 +1892,6 @@ struct ControlView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .help("Bright \(Int(light.brightSquares)), dim \(Int(light.dimSquares)) squares")
-        }
-    }
-
-    /// Radii for the Light selected in the fog mode. In **Grid squares**, because a Light
-    /// is a physical thing — every 5e stat block reads "bright 20 ft, dim 40 ft".
-    @ViewBuilder
-    private var lightInspector: some View {
-        if mode == .fog, tool == .lights, let light = appState.fog.lights.first(where: { $0.id == selectedLight }) {
-            HStack(spacing: 10) {
-                // The name leads, as a Pawn's label does in its own inspector: it is what
-                // the DM identifies the Light by, and the radii are what they tune.
-                TextField("name", text: Binding(
-                    get: { light.name ?? "" },
-                    set: { fogEdits.setLightName(id: light.id, $0); applyFogEdits() }
-                ))
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 110)
-
-                Text("Bright:")
-                TextField("bright", value: Binding(
-                    get: { Double(light.brightSquares) },
-                    set: { fogEdits.setLightRadii(id: light.id, brightSquares: CGFloat($0),
-                                                  dimSquares: light.dimSquares); applyFogEdits() }
-                ), format: .number)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 52)
-
-                Text("Dim:")
-                TextField("dim", value: Binding(
-                    get: { Double(light.dimSquares) },
-                    set: { fogEdits.setLightRadii(id: light.id, brightSquares: light.brightSquares,
-                                                  dimSquares: CGFloat($0)); applyFogEdits() }
-                ), format: .number)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 52)
-
-                Text("squares").foregroundStyle(.secondary)
-                if gridPixels == nil {
-                    Text("— no Grid declared, so these have no physical size yet")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                }
-            }
-            .font(.callout)
         }
     }
 

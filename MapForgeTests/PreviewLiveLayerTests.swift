@@ -55,7 +55,6 @@ final class PreviewLiveLayerTests: XCTestCase {
     func testTheEditingModesKeepTheirOwnOverlays() {
         XCTAssertFalse(PreviewBranch.drawsLiveLayers(mode: .fog))
         XCTAssertFalse(PreviewBranch.drawsLiveLayers(mode: .gridFit))
-        XCTAssertFalse(PreviewBranch.drawsLiveLayers(mode: .viewport))
     }
 
     // MARK: The frame the live layers are placed against
