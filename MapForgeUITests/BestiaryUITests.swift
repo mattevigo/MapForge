@@ -94,11 +94,17 @@ final class BestiaryUITests: XCTestCase {
         XCTAssertTrue(search.waitForExistence(timeout: 3), "a Creature's sheet has no search box")
         XCTAssertTrue(app.buttons["bestiary-caption"].exists,
                       "the note with no name was skipped without a word")
+        let ok = app.buttons["edit-pawn-ok"]
+        let restingOK = ok.frame
         search.click()
-        search.typeText("gno")
+        search.typeText("g")
         XCTAssertTrue(app.buttons["monster-result-0"].waitForExistence(timeout: 2),
                       "typing offered no Monsters")
+        // Reported from real use: the results used to be laid out in the form, so the sheet
+        // grew with every keystroke and OK moved under the cursor. They float now.
+        XCTAssertEqual(ok.frame, restingOK, "the open results moved the OK button")
         shoot(app, "1-searching")
+        search.typeText("no")
 
         // The point of the test: Return picks, and the sheet is still up afterwards.
         search.typeText("\r")

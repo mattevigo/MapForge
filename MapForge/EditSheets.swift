@@ -62,7 +62,10 @@ struct EditPawnSheet: View {
                     ), supportsOpacity: false)
                     .labelsHidden()
                 }
-                GridRow {
+                // Aligned on the baseline rather than centred: the Monster's cell grows a
+                // caption when the Bestiary has something to say, and a centred picker would
+                // drift down beside it.
+                GridRow(alignment: .firstTextBaseline) {
                     Text("Kind")
                     // A picker, not two toggles: the three kinds are mutually exclusive, and
                     // a pair of checkboxes would let a DM tick both and leave the token in a
@@ -83,6 +86,8 @@ struct EditPawnSheet: View {
                                            onPick: { draft.pick($0, among: pawns) },
                                            onClear: { draft.clearMonster() })
                             .gridCellAnchor(.topLeading)
+                            // Above the rows below it, which the open results float over.
+                            .zIndex(1)
                     }
                 }
                 GridRow {
@@ -105,6 +110,9 @@ struct EditPawnSheet: View {
                         .gridCellColumns(2)
                 }
             }
+
+            // Above the buttons as well, for the same reason.
+            .zIndex(1)
 
             if !hasDeclaredGrid {
                 Text("No Grid declared, so this sight has no physical size yet.")
@@ -152,9 +160,11 @@ struct EditPawnSheet: View {
 
 /// The search box beside the Kind: which Monster this Creature is.
 ///
-/// The app's first search field. Results are listed inline beneath it rather than in a
-/// popover, which on macOS takes key focus from the field it belongs to — the DM would type
-/// one letter and then be typing into nothing. The sheet simply grows, which a sheet can.
+/// The app's first search field. The results **float** beneath it, over the rows below, and
+/// take no room of their own: a sheet that grew and shrank with every keystroke moved the OK
+/// button under the DM's cursor as they typed. Drawn as an overlay rather than a popover,
+/// which on macOS takes key focus from the field it belongs to — the DM would type one letter
+/// and then be typing into nothing.
 ///
 /// Holds no draft: it reports a pick or a clear and the sheet decides what that means.
 private struct MonsterSearchField: View {
@@ -169,9 +179,11 @@ private struct MonsterSearchField: View {
     @State private var highlighted = 0
     @FocusState private var isFocused: Bool
 
-    /// Enough to choose from without the sheet outgrowing the window; typing one more
-    /// letter is quicker than scrolling a list in a modal.
-    private static let resultLimit = 6
+    /// As many as fit between the field and the sheet's bottom edge, which is where a
+    /// floating list is clipped. Typing one more letter is quicker than scrolling a list in
+    /// a modal.
+    private static let resultLimit = 5
+    private static let width: CGFloat = 250
 
     private var results: [Monster] {
         guard !query.trimmingCharacters(in: .whitespaces).isEmpty else { return [] }
@@ -184,11 +196,19 @@ private struct MonsterSearchField: View {
                 chosen(monsterName)
             } else {
                 field
-                if !results.isEmpty { list }
+                    .overlay(alignment: .topLeading) {
+                        if !results.isEmpty {
+                            list
+                                .frame(width: Self.width)
+                                .fixedSize(horizontal: false, vertical: true)
+                                // Just under the field: its height and a small gap.
+                                .offset(y: 26)
+                        }
+                    }
             }
             caption
         }
-        .frame(width: 250, alignment: .leading)
+        .frame(width: Self.width, alignment: .leading)
         .onChange(of: query) { _, query in
             highlighted = 0
             isSearching = !query.trimmingCharacters(in: .whitespaces).isEmpty
@@ -245,7 +265,7 @@ private struct MonsterSearchField: View {
                             .lineLimit(1)
                     }
                     .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
+                    .padding(.vertical, 2)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .foregroundStyle(index == highlighted ? .white : .primary)
                     .background(index == highlighted ? Color.accentColor : .clear,
@@ -257,8 +277,10 @@ private struct MonsterSearchField: View {
             }
         }
         .padding(3)
+        // Opaque, and lifted: it sits on top of other controls now, not between them.
         .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
+        .shadow(color: .black.opacity(0.18), radius: 6, y: 2)
     }
 
     /// The Bestiary's one line, and the only place a skipped note is ever mentioned. Silent
