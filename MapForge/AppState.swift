@@ -142,6 +142,14 @@ final class AppState: ObservableObject {
     /// Written straight through on every edit rather than debounced: a roster changes when
     /// the DM types in it, which is nothing like drag-rate.
     @Published private(set) var partyBook = PartyBook()
+
+    /// Every Monster read from the open Workspace's notes. Read when the Workspace opens and
+    /// at no other time, and never written anywhere — see `BestiaryStore` and ADR-0020.
+    /// Settable so a test can hand one over without a folder of notes.
+    @Published var bestiary = Bestiary.closed
+
+    /// The read in flight, kept so a test can wait for it and a switch can abandon it.
+    private(set) var bestiaryLoad: Task<Void, Never>?
     /// Which Party the panel offers. Remembered in the Workspace, per ADR-0012.
     @Published private(set) var activePartyID: UUID?
     /// Set when the roster exists but could not be read.
@@ -669,6 +677,17 @@ final class AppState: ObservableObject {
     func updatePawn(id: Pawn.ID, with draft: EditPawnDraft) {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
         fog.pawns[index] = draft.applied(to: fog.pawns[index])
+        // The one thing this sheet does to a Stat Block: a Monster that *changed* is stamped,
+        // whole (ADR-0021). Through `editStatBlock`, so mid-fight the stamp is recorded as
+        // Changes like any other edit (ADR-0008) — which also means an initiative bonus
+        // stamped mid-fight is not carried, there being no Change for one; Initiative has
+        // been rolled by then, and the DM overtypes it. A Monster that left the Bestiary
+        // while the sheet was open stamps nothing, and the Pawn simply remembers its name.
+        if let monster = bestiary.monster(named: draft.monsterToStamp) {
+            editStatBlock(for: id) { $0 = MonsterStamp.statBlock(from: monster, over: $0) }
+            // OK commits both files, so neither waits out a debounce.
+            flushPendingStatWrites()
+        }
         // A Treasure has nothing to do on its turn (`CONTEXT.md`, **Combatant**), so a
         // Combatant edited into one leaves the Order — the same removal deleting it does.
         // The Log keeps naming it, which is the rule for any Pawn that stops being one.
@@ -769,6 +788,7 @@ final class AppState: ObservableObject {
         // writer left open would append the next Workspace's lines to the last one's file.
         stopSession()
         self.workspace = workspace
+        readBestiary(of: workspace)
 
         let store = PartyStore(directory: workspace.supportDirectory)
         partyStore = store
@@ -803,6 +823,9 @@ final class AppState: ObservableObject {
         // it started in, and one that outlived its folder would write into the wrong one.
         stopSession()
         workspace = nil
+        bestiaryLoad?.cancel()
+        bestiaryLoad = nil
+        bestiary = .closed
         partyStore = nil
         workspacePreferences = nil
         partyBook = PartyBook()
@@ -812,6 +835,24 @@ final class AppState: ObservableObject {
         chosenDisplay = nil
         playerWindow.hide()
         playerScreen = nil
+    }
+
+    /// Reads the Workspace's Monsters, off the main thread.
+    ///
+    /// The one moment the DM's notes are read (ADR-0020): no rescan, no watching. Off the
+    /// main thread because it is a walk over a folder of the DM's choosing, and a vault is
+    /// not a size the app controls; the search box says "Reading…" until it lands. A read
+    /// that finishes after the DM has switched Workspace is dropped rather than shown.
+    private func readBestiary(of workspace: Workspace) {
+        bestiaryLoad?.cancel()
+        bestiary = .reading
+        bestiaryLoad = Task { [weak self] in
+            let read = await Task.detached(priority: .userInitiated) {
+                BestiaryStore.load(for: workspace)
+            }.value
+            guard let self, !Task.isCancelled, self.workspace == workspace else { return }
+            self.bestiary = read
+        }
     }
 
     /// Re-reads the roster after a migration wrote one into a Workspace that had none.

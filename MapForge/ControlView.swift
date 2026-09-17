@@ -1105,7 +1105,8 @@ struct ControlView: View {
         case .pawn(let pawnKind):
             guard let pawn = AddPlacement.pawn(kind: pawnKind, at: point,
                                                existing: appState.fog.pawns,
-                                               imageSize: appState.mapImage?.pixelSize)
+                                               imageSize: appState.mapImage?.pixelSize,
+                                               bestiary: appState.bestiary)
             else { return }   // outside the image: refused, and still armed
             // Through `addPawnToMap` rather than appending here, so a Creature placed while
             // a fight is running rolls Initiative and joins the Order. A Treasure is refused

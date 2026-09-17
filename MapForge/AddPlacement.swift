@@ -21,17 +21,27 @@ enum AddPlacement {
     ///
     /// `imageSize` nil skips the bounds check, for callers that have no image loaded to
     /// check against.
+    ///
+    /// A Creature also inherits the last Creature's **Monster**, so the second gnoll is a
+    /// gnoll without a form being opened — labelled "GG2", and stamped afresh at full hit
+    /// points by `AppState.addPawnToMap`, never with its sibling's wounds. Only when
+    /// `bestiary` still has that Monster: with nothing to copy the numbers from, the new Pawn
+    /// claims to be nothing.
     static func pawn(kind: PawnKind, at point: MapPoint, existing: [Pawn],
-                     imageSize: CGSize? = nil) -> Pawn? {
+                     imageSize: CGSize? = nil, bestiary: Bestiary = Bestiary()) -> Pawn? {
         guard isInside(point, imageSize) else { return nil }
         // The last of this Kind, not the last placed. See the type's note.
         let previous = existing.last { $0.kind == kind }
+        let monster = kind == .creature ? bestiary.monster(named: previous?.monsterName) : nil
+        let born = Pawn.nextLabel(after: existing)
         return Pawn(at: point,
-                    label: Pawn.nextLabel(after: existing),
+                    label: monster.map { MonsterStamp.label(for: $0, replacing: born,
+                                                            among: existing) } ?? born,
                     colorHex: previous?.colorHex ?? Pawn.defaultColorHex,
                     brightSquares: previous?.light.brightSquares ?? defaultSightSquares,
                     kind: kind,
-                    isBig: previous?.isBig ?? false)
+                    isBig: previous?.isBig ?? false,
+                    monsterName: monster?.name)
     }
 
     /// A new Light at `point`, or nil when the point is outside the image.

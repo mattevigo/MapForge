@@ -253,6 +253,19 @@ struct Pawn: Codable, Equatable, Identifiable {
     /// `docs/adr/0007-characters-are-stamped-not-linked.md` for why a reference was rejected.
     var characterID: UUID?
 
+    /// Which `Monster` this Creature was said to be, by the `name:` its note gives it.
+    ///
+    /// **Advisory**, in `characterID`'s sense, and read by exactly two things: the Combat
+    /// tab's reference view, which looks the Monster's actions up by it, and `AddPlacement`,
+    /// which gives the next Creature the same Monster. The Pawn's numbers were *copied* into
+    /// its Stat Block when the Monster was chosen (`MonsterStamp`), so a Creature whose note
+    /// has been renamed or deleted loses a page of reference and nothing else.
+    ///
+    /// A name, not a path and not an ID: the notes carry no IDs, a path would write the DM's
+    /// vault layout into a file meant to be portable, and a name is something a DM opening
+    /// this file can read. See `docs/adr/0020-monsters-are-read-from-the-dms-notes.md`.
+    var monsterName: String?
+
     /// How many Grid squares a token spans. The one place the 2 lives, so every surface
     /// that sizes a token agrees.
     static func squaresAcross(isBig: Bool) -> CGFloat { isBig ? 2 : 1 }
@@ -287,7 +300,7 @@ struct Pawn: Codable, Equatable, Identifiable {
     init(id: UUID = UUID(), at: MapPoint, label: String, colorHex: String,
          brightSquares: CGFloat,
          kind: PawnKind = .player, isHidden: Bool = false, isBig: Bool = false,
-         characterID: UUID? = nil) {
+         characterID: UUID? = nil, monsterName: String? = nil) {
         self.id = id
         self.label = label
         self.colorHex = colorHex
@@ -297,6 +310,7 @@ struct Pawn: Codable, Equatable, Identifiable {
         self.isHidden = isHidden
         self.isBig = isBig
         self.characterID = characterID
+        self.monsterName = monsterName
     }
 
     /// Written by hand for the three flags, which decode as false when absent.
@@ -322,6 +336,7 @@ struct Pawn: Codable, Equatable, Identifiable {
         isHidden = try container.decodeIfPresent(Bool.self, forKey: .isHidden) ?? false
         isBig = try container.decodeIfPresent(Bool.self, forKey: .isBig) ?? false
         characterID = try container.decodeIfPresent(UUID.self, forKey: .characterID)
+        monsterName = try container.decodeIfPresent(String.self, forKey: .monsterName)
     }
 
     /// Written by hand because `CodingKeys` carries the legacy `isCreature` key that has
@@ -344,6 +359,8 @@ struct Pawn: Codable, Equatable, Identifiable {
         // should see no trace of the feature in their map files, and `"characterID": null`
         // in every Pawn would be exactly that.
         try container.encodeIfPresent(characterID, forKey: .characterID)
+        // Omitted when absent for the same reason.
+        try container.encodeIfPresent(monsterName, forKey: .monsterName)
     }
 
     /// Reads `kind`, falling back to the `isCreature` boolean it replaces.
@@ -365,7 +382,8 @@ struct Pawn: Codable, Equatable, Identifiable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, label, colorHex, light, kind, isCreature, isHidden, isBig, characterID
+        case id, label, colorHex, light, kind, isCreature, isHidden, isBig, characterID,
+             monsterName
     }
 }
 

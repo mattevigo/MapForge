@@ -179,3 +179,41 @@ final class ArmedToolTests: XCTestCase {
         XCTAssertTrue(ArmedTool.claimsDigits(hasArmedShape: false, hasMeasurement: true))
     }
 }
+
+/// `Add` and the Bestiary: the second gnoll is a gnoll.
+///
+/// Without this a DM stocking a room opens the Edit Pawn sheet once per Creature, which is
+/// the form `Add` exists to avoid (`CONTEXT.md`, **Add**).
+final class AddPlacementMonsterTests: XCTestCase {
+    private let bestiary = Bestiary(monsters: [Monster(name: "Gnoll Guerriero", hitPoints: 27)])
+
+    private func gnoll(_ label: String) -> Pawn {
+        Pawn(at: MapPoint(x: 10, y: 10), label: label, colorHex: "#228B22",
+             brightSquares: 6, kind: .creature, monsterName: "Gnoll Guerriero")
+    }
+
+    func testTheNextCreatureIsTheSameMonster() throws {
+        let placed = try XCTUnwrap(AddPlacement.pawn(kind: .creature, at: MapPoint(x: 5, y: 5),
+                                                     existing: [gnoll("GG1")],
+                                                     bestiary: bestiary))
+        XCTAssertEqual(placed.monsterName, "Gnoll Guerriero")
+        XCTAssertEqual(placed.label, "GG2")
+    }
+
+    func testAMonsterThatHasLeftTheNotesIsNotInherited() throws {
+        // Nothing to copy numbers from, so nothing to claim to be.
+        let placed = try XCTUnwrap(AddPlacement.pawn(kind: .creature, at: MapPoint(x: 5, y: 5),
+                                                     existing: [gnoll("GG1")],
+                                                     bestiary: Bestiary()))
+        XCTAssertNil(placed.monsterName)
+        XCTAssertEqual(placed.label, "1")
+    }
+
+    func testAPlayerNeverInheritsAMonster() throws {
+        var ally = gnoll("GG1")
+        ally.kind = .player
+        let placed = try XCTUnwrap(AddPlacement.pawn(kind: .player, at: MapPoint(x: 5, y: 5),
+                                                     existing: [ally], bestiary: bestiary))
+        XCTAssertNil(placed.monsterName)
+    }
+}

@@ -286,7 +286,17 @@ extension AppState {
     /// A summon, or a Character Stamped mid-Encounter, joins at its rolled Initiative with
     /// no prompt — it is what a DM wants almost every time, and removing it from the
     /// tracker is one click if not.
+    ///
+    /// A Creature that arrives already a Monster — `AddPlacement` giving the second gnoll
+    /// the first one's — is stamped here, afresh and at full hit points, and **before** it
+    /// joins: joining rolls Initiative from the Stat Block's bonus and snapshots the block
+    /// into the Log. Never over numbers that already exist, which is what keeps a Stamped
+    /// Character's block its own.
     func addPawnToMap(_ pawn: Pawn) {
+        if statsDocument.blocks[pawn.id] == nil,
+           let monster = bestiary.monster(named: pawn.monsterName) {
+            setStatBlock(MonsterStamp.statBlock(from: monster, over: StatBlock()), for: pawn.id)
+        }
         fog.pawns.append(pawn)
         flushPendingFogWrites()
         joinEncounter(pawn)
