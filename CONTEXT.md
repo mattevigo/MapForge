@@ -81,7 +81,7 @@ The prep-time mode for tracing Walls, entered deliberately and left again. It is
 _Avoid_: fog editor, edit fog, fog mode, authoring mode
 
 **Add**:
-Arming the Live View to place one new thing — a Light, or a Pawn of any Kind — chosen before it is placed and landed by the next click on the Map. The Kind is settled at the moment of arming rather than in an editor afterwards, so a DM adding four goblins arms once per goblin and never opens a form. What is placed inherits from the last thing of that Kind placed, so the second goblin is already the right colour and size. At most one thing is armed at a time, Measurement included, and Esc backs out.
+Arming the Live View to place one new thing — a Light, or a Pawn of any Kind — chosen before it is placed and landed by the next click on the Map. The Kind is settled at the moment of arming rather than in an editor afterwards, so a DM adding four goblins arms once per goblin and never opens a form. What is placed inherits from the last thing of that Kind placed, so the second goblin is already the right colour and size — and the same Monster, taken afresh from the Bestiary at full hit points rather than copied from its sibling's wounds. At most one thing is armed at a time, Measurement included, and Esc backs out.
 _Avoid_: create, insert, new, place, spawn
 
 **Character**:
@@ -102,7 +102,15 @@ _Avoid_: type, category, role
 
 **Creature**:
 A Pawn the players discover rather than one they carry: it emits no Light, and it is drawn under the Fog Overlay so darkness hides it from players. The DM always sees Creatures, and can hide one outright — a hidden Creature is invisible to players however well lit it is. A Pawn Kind, not a separate type.
-_Avoid_: monster, enemy, NPC, mob
+_Avoid_: monster (that is the definition, not the Pawn), enemy, NPC, mob
+
+**Monster**:
+A kind of creature as the DM's notes define it — a Gnoll Guerriero, a Wraith — with the numbers and actions the rulebook gives it. It is a definition, not a token: it is never on a Map, never wounded, and four gnoll Pawns share one Monster while each keeps its own Stat Block. It stands to a Creature as a Character stands to a Player's Pawn, and is taken the same way: saying which Monster a Creature is **copies** the Monster's armour class, hit points and initiative bonus into that Pawn's Stat Block, and its size into whether the Pawn is Big, and from then on the Pawn leads its own life. Becoming a Monster means arriving whole — hit points at their maximum — so making a Pawn that already has hit points into a Monster heals it, and the app asks before it does; Conditions, exhaustion and temporary hit points are the fight's and are left alone. A Pawn still labelled with the bare number it was born with is relabelled from the Monster's initials — GG1, GG2 for two Gnoll Guerrieri — numbered so that no two labels on the Map match; a label the DM typed is never touched. The Pawn remembers which Monster it was, but only so the DM can be shown the Monster's actions while it fights — the memory is advisory, and a Creature whose Monster has left the notes loses a page of reference and nothing else. Only a Creature can be a Monster: a Player's numbers come from its Character, and a Treasure has none. The word covers whatever the notes define this way, a human guard included — it names the role in the app, not the thing's nature. The DM writes a Monster in their own notes, in the `statblock` notation those notes already use; that word is the file's syntax and is never a **Stat Block**, which is a Pawn's live numbers.
+_Avoid_: statblock, stat block, creature template, bestiary entry, NPC
+
+**Bestiary**:
+Every Monster the app has read from the Workspace — the collection a DM searches when saying what a Creature is. It belongs to the Workspace, as a Party does, but unlike a Party it is never authored in the app: the DM's notes are the only place a Monster is written, and the Bestiary is only ever a reading of them. It is read from one folder inside the Workspace when the Workspace opens and at no other time — a Monster written mid-evening is met the next time the Workspace is opened — and it is never kept on disk, because a second copy of the notes is a second thing to keep in step with them.
+_Avoid_: monster library, compendium, monster cache, catalog, manual
 
 **Treasure**:
 A chest, a hoard, a body — something the players find rather than fight. Discovered exactly as a Creature is: no Light, hidden by darkness, revealed where the light reaches it. It differs only in being drawn as a rounded square rather than a disc, and in being listed in its own group, because a DM reasons about loot and monsters separately. Size stays orthogonal — a Treasure can be Big.
