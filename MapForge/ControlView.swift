@@ -882,7 +882,9 @@ struct ControlView: View {
                   onMove: { appState.movePawn(id: $0, to: $1) },
                   onCommit: { id, origin in
                       appState.commitPawnMove(id: id, from: origin)
-                  })
+                  },
+                  onMoveLight: { appState.moveLight(id: $0, to: $1) },
+                  onCommitLight: { appState.commitLightMove() })
         // Above the tokens: a Measurement is what the DM is pointing at, and a cone
         // half-hidden behind the party is unreadable.
         if let pixelsPerSquare = appState.pixelsPerSquare {

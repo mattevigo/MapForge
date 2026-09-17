@@ -637,6 +637,30 @@ final class AppState: ObservableObject {
         fog.pawns[index].at = destination
     }
 
+    /// Move a Light in the Live View — the DM carrying a lantern down a corridor, or nudging
+    /// a brazier they placed a square out.
+    ///
+    /// Beside `movePawn` and on its terms: live, watched by the table as it happens because
+    /// the Fog Overlay follows, and **not undoable**. Held inside the image for a sharper
+    /// reason than a Pawn is — `LiveHitTest` only reaches what the DM can click, so a Light
+    /// dragged past the edge could never be dragged back, edited or deleted (the rule
+    /// `AddPlacement.light` already keeps).
+    func moveLight(id: Light.ID, to point: MapPoint) {
+        guard let index = fog.lights.firstIndex(where: { $0.id == id }) else { return }
+        let destination = mapImage.map { PawnBounds.clamp(point, toImage: $0.pixelSize) } ?? point
+        guard fog.lights[index].at != destination else { return }
+        fog.lights[index].at = destination
+    }
+
+    /// A Light's drag has ended: on disk now, not after the debounce.
+    ///
+    /// Nothing else, unlike `commitPawnMove`. The Logs record what *happened* at the table,
+    /// and they are about Pawns; a torch is the room, and where the DM stood it is prep even
+    /// when it is done mid-evening.
+    func commitLightMove() {
+        flushPendingFogWrites()
+    }
+
     /// Rename a Pawn outside the fog editing mode — "3" becomes "Goblin B" in the middle
     /// of a fight, without leaving the table for authoring mode.
     ///
