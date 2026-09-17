@@ -22,6 +22,12 @@ struct StatEditor: View {
             if let combatant, let pawn = pawn(combatant) {
                 Divider()
                 editor(for: combatant, named: pawn.label)
+                // The Monster's page, for a Creature that is one — so the DM reads its
+                // actions here rather than alt-tabbing to their notes mid-fight.
+                if let monsterName = pawn.monsterName {
+                    Divider()
+                    MonsterReferenceView(monsterName: monsterName, bestiary: appState.bestiary)
+                }
             }
             if appState.encounter != nil {
                 Divider()

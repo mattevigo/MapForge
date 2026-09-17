@@ -116,4 +116,21 @@ final class EditPawnDraftMonsterTests: XCTestCase {
         other.kind = .player
         XCTAssertNil(other.monsterToStamp)
     }
+
+    // MARK: Asking before healing
+
+    private let shelf = Bestiary(monsters: [Monster(name: "Gnoll Guerriero", hitPoints: 27),
+                                            Monster(name: "Ogre", hitPoints: 68, isBig: true)])
+
+    func testOKAsksOnlyWhenTheStampWouldOverwriteHitPoints() {
+        var draft = EditPawnDraft(pawn: creature("GG1", monsterName: "Gnoll Guerriero"))
+        let wounded = StatBlock(currentHP: 12, maxHP: 27)
+        XCTAssertNil(draft.healing(over: wounded, in: shelf), "the Monster is untouched")
+
+        draft.pick(ogre, among: [])
+        XCTAssertEqual(draft.healing(over: wounded, in: shelf),
+                       MonsterStamp.Healing(before: "12/27", after: "68/68"))
+        XCTAssertNil(draft.healing(over: StatBlock(), in: shelf), "nothing to lose")
+        XCTAssertNil(draft.healing(over: wounded, in: Bestiary()), "nothing will be stamped")
+    }
 }

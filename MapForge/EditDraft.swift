@@ -80,6 +80,14 @@ struct EditPawnDraft: Equatable {
         return monsterName
     }
 
+    /// What OK would do to hit points that already exist, or nil when there is nothing to
+    /// ask: the Monster is untouched, it has left the Bestiary, or nothing would be lost.
+    /// `existing` is the Pawn's Stat Block as it stands — the fight's copy, mid-Encounter.
+    func healing(over existing: StatBlock, in bestiary: Bestiary) -> MonsterStamp.Healing? {
+        bestiary.monster(named: monsterToStamp)
+            .flatMap { MonsterStamp.healing(from: $0, over: existing) }
+    }
+
     /// The Pawn as this draft would leave it. Everything the sheet does not offer — its
     /// identity, where it stands, its torch, the eye, the Character it was stamped from —
     /// comes through untouched.

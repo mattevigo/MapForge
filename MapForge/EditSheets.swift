@@ -17,13 +17,30 @@ import SwiftUI
 /// **Buffered.** The draft is edited and committed in one write on OK, because Live View
 /// edits are not undoable (ADR-0013): Cancel is the only way back, so it has to discard
 /// rather than un-apply.
+///
+/// **A Creature can be said to be a Monster here**, in a search box beside the Kind. That
+/// makes OK stamp the Monster's numbers into the Stat Block as well — still one commit, and
+/// still nothing on Cancel — and because a stamp arrives at full hit points, OK asks first
+/// when that would overwrite hit points that exist. See ADR-0021.
 struct EditPawnSheet: View {
     @State var draft: EditPawnDraft
     /// Whether a Grid has been declared. Sight is measured in Grid squares, so without one
     /// the number is inert — said plainly rather than by refusing the edit.
     let hasDeclaredGrid: Bool
+    /// What the search box searches.
+    var bestiary = Bestiary.closed
+    /// The Map as it stands, for numbering a picked Monster's label.
+    var pawns: [Pawn] = []
+    /// The Pawn's Stat Block as it stands, for knowing whether a stamp would heal it.
+    var statBlock = StatBlock()
     let onCommit: (EditPawnDraft) -> Void
     let onCancel: () -> Void
+
+    /// Whether the search box has results open. While it does, Return picks a Monster and
+    /// must not also press OK.
+    @State private var isSearching = false
+    /// The heal OK is waiting on the DM to confirm.
+    @State private var confirming: MonsterStamp.Healing?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -56,6 +73,16 @@ struct EditPawnSheet: View {
                     .pickerStyle(.menu)
                     .frame(width: 140)
                     .help("A Creature or a Treasure emits no Light and is hidden from players by darkness.")
+                    // Only a Creature can be a Monster: a Player's numbers come from its
+                    // Character, and a Treasure has none.
+                    if draft.kind == .creature {
+                        MonsterSearchField(bestiary: bestiary,
+                                           monsterName: draft.monsterName,
+                                           isSearching: $isSearching,
+                                           onPick: { draft.pick($0, among: pawns) },
+                                           onClear: { draft.clearMonster() })
+                            .gridCellAnchor(.topLeading)
+                    }
                 }
                 GridRow {
                     Text("Size")
@@ -71,6 +98,10 @@ struct EditPawnSheet: View {
                                  unit: draft.kind.isDiscovered
                                      ? "squares — unused, a \(draft.kind.title) emits no Light"
                                      : "squares")
+                        // Across the Monster's column too, or this caption — the longest
+                        // thing in the form — would set the second column's width and push
+                        // the search box off the sheet.
+                        .gridCellColumns(2)
                 }
             }
 
@@ -84,12 +115,208 @@ struct EditPawnSheet: View {
                 Spacer()
                 Button("Cancel", action: onCancel)
                     .keyboardShortcut(.cancelAction)
-                Button("OK") { onCommit(draft) }
-                    .keyboardShortcut(.defaultAction)
+                Button("OK", action: commit)
+                    // Return belongs to the search results while they are open.
+                    .keyboardShortcut(isSearching ? nil : .defaultAction)
+                    .accessibilityIdentifier("edit-pawn-ok")
             }
         }
         .padding(20)
-        .frame(width: 420)
+        // Wider than the Light's sheet by the Monster's column.
+        .frame(width: 540)
+        .alert("Heal \(draft.label)?",
+               isPresented: Binding(get: { confirming != nil },
+                                    set: { if !$0 { confirming = nil } }),
+               presenting: confirming) { _ in
+            Button("Become \(draft.monsterName ?? "it")") { onCommit(draft) }
+            // Back to the open sheet, where the pick can be undone — not out of it.
+            Button("Cancel", role: .cancel) {}
+        } message: { healing in
+            Text("Becoming a \(draft.monsterName ?? "Monster") means arriving whole: "
+                 + "\(healing.before) becomes \(healing.after). "
+                 + "Conditions and temporary hit points are kept.")
+        }
+    }
+
+    /// OK. Asks first only when the stamp would overwrite hit points that exist — a dialog
+    /// that appears when nothing can be lost is one the DM learns to click through.
+    private func commit() {
+        if let healing = draft.healing(over: statBlock, in: bestiary) {
+            confirming = healing
+        } else {
+            onCommit(draft)
+        }
+    }
+}
+
+/// The search box beside the Kind: which Monster this Creature is.
+///
+/// The app's first search field. Results are listed inline beneath it rather than in a
+/// popover, which on macOS takes key focus from the field it belongs to — the DM would type
+/// one letter and then be typing into nothing. The sheet simply grows, which a sheet can.
+///
+/// Holds no draft: it reports a pick or a clear and the sheet decides what that means.
+private struct MonsterSearchField: View {
+    let bestiary: Bestiary
+    /// The Monster already chosen, shown instead of the field.
+    let monsterName: String?
+    @Binding var isSearching: Bool
+    let onPick: (Monster) -> Void
+    let onClear: () -> Void
+
+    @State private var query = ""
+    @State private var highlighted = 0
+    @FocusState private var isFocused: Bool
+
+    /// Enough to choose from without the sheet outgrowing the window; typing one more
+    /// letter is quicker than scrolling a list in a modal.
+    private static let resultLimit = 6
+
+    private var results: [Monster] {
+        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else { return [] }
+        return Array(bestiary.search(query).prefix(Self.resultLimit))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let monsterName {
+                chosen(monsterName)
+            } else {
+                field
+                if !results.isEmpty { list }
+            }
+            caption
+        }
+        .frame(width: 250, alignment: .leading)
+        .onChange(of: results.isEmpty) { _, isEmpty in isSearching = !isEmpty }
+        .onChange(of: query) { _, _ in highlighted = 0 }
+        .onDisappear { isSearching = false }
+    }
+
+    private func chosen(_ name: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "pawprint.fill").foregroundStyle(.secondary)
+            Text(name).lineLimit(1)
+            if bestiary.unavailable == nil, bestiary.monster(named: name) == nil {
+                Text("— not in the Bestiary").foregroundStyle(.secondary).lineLimit(1)
+            }
+            Spacer(minLength: 0)
+            Button(action: { onClear(); query = "" }) {
+                Image(systemName: "xmark.circle.fill")
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("Forget the Monster. The Stat Block keeps its numbers.")
+            .accessibilityIdentifier("monster-clear")
+        }
+        .padding(.horizontal, 6)
+        .frame(height: 22)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 5))
+        .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color(nsColor: .separatorColor)))
+        .accessibilityIdentifier("monster-chosen")
+    }
+
+    private var field: some View {
+        TextField("Search Monsters", text: $query)
+            .textFieldStyle(.roundedBorder)
+            .focused($isFocused)
+            .disabled(!bestiary.isAvailable)
+            .accessibilityIdentifier("monster-search")
+            .onKeyPress(.downArrow) { move(1) }
+            .onKeyPress(.upArrow) { move(-1) }
+            .onKeyPress(.return) { pickHighlighted() }
+            .onSubmit { _ = pickHighlighted() }
+    }
+
+    private var list: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(results.enumerated()), id: \.element.id) { index, monster in
+                Button { pick(monster) } label: {
+                    HStack(spacing: 6) {
+                        Text(monster.name).lineLimit(1)
+                        Spacer(minLength: 4)
+                        Text([monster.challengeRating.map { "CR \($0)" }, monster.type]
+                            .compactMap { $0 }.joined(separator: " · "))
+                            .font(.caption)
+                            .foregroundStyle(index == highlighted ? .white.opacity(0.85) : .secondary)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .foregroundStyle(index == highlighted ? .white : .primary)
+                    .background(index == highlighted ? Color.accentColor : .clear,
+                                in: RoundedRectangle(cornerRadius: 4))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("monster-result-\(index)")
+            }
+        }
+        .padding(3)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
+    }
+
+    /// The Bestiary's one line, and the only place a skipped note is ever mentioned. Silent
+    /// when everything was read.
+    @ViewBuilder private var caption: some View {
+        if let text = bestiary.caption {
+            if bestiary.skipped.isEmpty {
+                Text(text).font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("bestiary-caption")
+            } else {
+                SkippedNotesButton(caption: text, skipped: bestiary.skipped)
+            }
+        }
+    }
+
+    private func move(_ step: Int) -> KeyPress.Result {
+        guard !results.isEmpty else { return .ignored }
+        highlighted = min(max(highlighted + step, 0), results.count - 1)
+        return .handled
+    }
+
+    private func pickHighlighted() -> KeyPress.Result {
+        guard results.indices.contains(highlighted) else { return .ignored }
+        pick(results[highlighted])
+        return .handled
+    }
+
+    private func pick(_ monster: Monster) {
+        onPick(monster)
+        query = ""
+    }
+}
+
+/// "37 Monsters · 1 file skipped", opening onto which files and why.
+private struct SkippedNotesButton: View {
+    let caption: String
+    let skipped: [Bestiary.Skipped]
+    @State private var isShowing = false
+
+    var body: some View {
+        Button(caption) { isShowing = true }
+            .buttonStyle(.link)
+            .font(.caption)
+            .accessibilityIdentifier("bestiary-caption")
+            .popover(isPresented: $isShowing, arrowEdge: .bottom) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Notes with a statblock the Bestiary could not take")
+                        .font(.caption.weight(.semibold))
+                    ForEach(skipped) { note in
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(note.file).font(.caption.monospaced())
+                            Text(note.reason).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Text("The Bestiary is read when the Workspace opens.")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+                .padding(12)
+                .frame(width: 320, alignment: .leading)
+            }
     }
 }
 

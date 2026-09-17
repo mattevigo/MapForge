@@ -277,6 +277,12 @@ struct ControlView: View {
             case .pawn(let id, let draft):
                 EditPawnSheet(draft: draft,
                               hasDeclaredGrid: appState.hasDeclaredGrid,
+                              bestiary: appState.bestiary,
+                              pawns: appState.fog.pawns,
+                              // The fight's copy while one runs: that is the one a stamp
+                              // would overwrite, and so the one to ask about.
+                              statBlock: appState.encounter?.blocks[id]
+                                  ?? appState.statBlock(for: id),
                               onCommit: { appState.updatePawn(id: id, with: $0); editing = nil },
                               onCancel: { editing = nil })
             case .light(let id, let draft):
