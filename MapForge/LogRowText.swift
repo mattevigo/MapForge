@@ -81,16 +81,22 @@ enum LogRowText {
     /// The arithmetic is shown because the die is the part the table remembers — "21" alone
     /// loses the 16 that everyone watched land.
     static func describe(_ roll: Roll) -> String {
-        let arithmetic = roll.modifier < 0
-            ? "\(roll.d20) - \(abs(roll.modifier))"
-            : "\(roll.d20) + \(roll.modifier)"
-        var text = "\(roll.total) (\(arithmetic))"
+        var text = "\(roll.total) (\(arithmetic(of: roll)))"
         if let difficultyClass = roll.difficultyClass {
             text += " vs DC \(difficultyClass)"
             // `succeeded` is non-nil exactly when there is a DC.
             text += roll.succeeded == true ? " — succeeded" : " — failed"
         }
         return text
+    }
+
+    /// Just the sum that produced the total — "16 + 5", or "9 - 1" for a negative Modifier,
+    /// which is the shape a DM would have said out loud. The Roll sheet shows this beside a
+    /// large total, where the Log shows it in parentheses after one.
+    static func arithmetic(of roll: Roll) -> String {
+        roll.modifier < 0
+            ? "\(roll.d20) - \(abs(roll.modifier))"
+            : "\(roll.d20) + \(roll.modifier)"
     }
 
     /// A hit point total that may be unset. "—", never "0": a Pawn with no hit points recorded
