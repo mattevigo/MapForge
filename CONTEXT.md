@@ -193,7 +193,9 @@ The append-only record of an Encounter, one line per Turn. Never rewritten and n
 _Avoid_: history, journal, transcript, audit, replay
 
 **Change**:
-One recorded mutation during a Turn — a hit point edit, a Condition applied, a Pawn moved, a note taken. Carries the Combatant it targets and the value both **before and after**, never a delta, so the Combat Log can be replayed exactly and a Correction is unambiguous about what it corrects.
+One thing recorded during a Turn — a hit point edit, a Condition applied, a Pawn moved, a note taken, a Roll made. Carries the Combatant it is about.
+
+Where a Change *mutates* a value it carries that value both **before and after**, never a delta, so the Combat Log can be replayed exactly and a Correction is unambiguous about what it corrects. Not every Change mutates one: a movement, a note and a Roll are **records rather than mutations** — the fold skips them, because where a Pawn stands is the Map's own truth, a note is something to read, and a Roll changes nothing at all. The name is older than the distinction and is kept, because renaming it would rename it on disk in every Log already beside a DM's Maps.
 _Avoid_: event, mutation, delta, edit, update
 
 **Correction**:
@@ -235,3 +237,31 @@ _Avoid_: map toolbar, top bar, prep bar, controls
 **Live Toolbar**:
 The row above the Map holding what the table sees the result of: the Fog switch, the Measurement visibility switch, the Viewport toggle, and the Session control. The counterpart to the Setup Toolbar, and the reason the pair is named at all — these are the switches that change what the players are looking at, now. It is replaced along with the Map when the Log View opens, so there is no Session control while reading: every switch here is about the Player Display, and a DM reaching for one has already decided to look at the Map again.
 _Avoid_: players toolbar, player bar, table bar, session bar
+
+**Roll**:
+A d20 result the DM records at the table, with the number it showed, the Modifier added to it and the Difficulty Class it was against. A Roll is a **record, not a resolution**: the app never generates the number and never applies what the result implies. The dice are the table's; remembering them is the app's. Two kinds exist — a Saving Throw and an Ability Check — and they differ only in what is being rolled against, never in how they are recorded. A Roll changes nothing, which is why it is recorded beside the Changes of a Turn rather than folded into the tracker's state, exactly as a note is.
+_Avoid_: dice roll, check, throw, d20, result
+
+**Saving Throw**:
+A Roll a Pawn makes to resist something happening to it, named by the Ability it uses — a Dexterity save against a fireball, a Wisdom save against fear. One of the six Abilities, chosen at the moment of rolling. Distinct from an Ability Check in what it means at the table, not in what is stored: both carry a Difficulty Class, a d20 and a Modifier.
+_Avoid_: save, ST, resistance roll
+
+**Ability Check**:
+A Roll a Pawn makes to attempt something, named by the Skill it uses — Stealth to hide, Perception to notice. The Skill implies its Ability (Stealth is Dexterity), so the Ability is never chosen separately and never stored separately: it is a fact about the Skill, and a Skill that changed its Ability would change it for every Roll ever recorded, which is what makes it derived rather than copied.
+_Avoid_: skill check, ability roll, test
+
+**Ability**:
+One of the six: Strength, Dexterity, Constitution, Intelligence, Wisdom, Charisma. Named in full in the domain and abbreviated only where a control is too narrow for the word. The app holds no Ability *scores* — a Pawn has no Strength number — because what a DM needs mid-fight is the total bonus that applied to this Roll, which they already know, not a character sheet they must first fill in. The Modifier is typed, not computed.
+_Avoid_: stat, attribute, ability score
+
+**Skill**:
+One of the eighteen proficiencies of DnD 5.5e — Acrobatics, Athletics, Stealth, and the rest — each permanently tied to one Ability. Named in an Ability Check and never anywhere else.
+_Avoid_: proficiency, expertise, talent
+
+**Difficulty Class**:
+The number a Roll's total must reach to succeed. **Optional**: a DM who asks for a Perception check before deciding what it beats, or who keeps the number secret, records the Roll without one, and the Log reports the total with no verdict. Forcing a number here would invite a made-up one.
+_Avoid_: DC, target number, threshold
+
+**Modifier**:
+Everything added to the d20 on a Roll — ability bonus, proficiency, expertise, active effects — as a single number the DM types. One number rather than its parts, because the parts are on the player's character sheet and the total is what was said aloud at the table.
+_Avoid_: bonus, adjustment, plus

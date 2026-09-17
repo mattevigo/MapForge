@@ -66,9 +66,31 @@ enum LogRowText {
             // A list of UUIDs. Fourteen names is a wall, and the fact that matters is that
             // the DM rearranged the Order.
             "Order changed"
+        case let .savingThrow(_, ability, roll):
+            "\(combatantName) — \(ability.abbreviation) save \(describe(roll))"
+        case let .abilityCheck(_, skill, roll):
+            "\(combatantName) — \(skill.title) (\(skill.ability.abbreviation)) \(describe(roll))"
         case .unrecognised:
             "A change this version cannot read"
         }
+    }
+
+    /// A Roll's numbers: the total, the arithmetic that produced it, and the verdict where
+    /// there is a Difficulty Class to have one.
+    ///
+    /// The arithmetic is shown because the die is the part the table remembers — "21" alone
+    /// loses the 16 that everyone watched land.
+    static func describe(_ roll: Roll) -> String {
+        let arithmetic = roll.modifier < 0
+            ? "\(roll.d20) - \(abs(roll.modifier))"
+            : "\(roll.d20) + \(roll.modifier)"
+        var text = "\(roll.total) (\(arithmetic))"
+        if let difficultyClass = roll.difficultyClass {
+            text += " vs DC \(difficultyClass)"
+            // `succeeded` is non-nil exactly when there is a DC.
+            text += roll.succeeded == true ? " — succeeded" : " — failed"
+        }
+        return text
     }
 
     /// A hit point total that may be unset. "—", never "0": a Pawn with no hit points recorded
