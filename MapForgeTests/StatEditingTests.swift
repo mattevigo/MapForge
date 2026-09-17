@@ -97,6 +97,29 @@ final class StatEditingTests: XCTestCase {
             .conditionAdded(combatantID: goblin.id, condition: .prone)))
     }
 
+    func testEditingTheInitiativeBonusMidFightRecordsItAndMovesNobody() throws {
+        // The editor's "Init" is the bonus. The rolled number is the Encounter's, edited in
+        // the Order's own column — and a bonus changing does not by itself move anyone.
+        let (state, goblin) = fighting()
+        let rolled = try XCTUnwrap(state.encounter?.initiative(of: goblin.id))
+
+        state.editStatBlock(for: goblin.id) { $0.initiativeBonus = 3 }
+
+        XCTAssertTrue(state.encounter?.pendingChanges.contains(
+            .initiativeBonusChanged(combatantID: goblin.id, from: 0, to: 3)) ?? false)
+        XCTAssertEqual(state.encounter?.blocks[goblin.id]?.initiativeBonus, 3)
+        XCTAssertEqual(state.encounter?.initiative(of: goblin.id), rolled)
+    }
+
+    func testTheInitiativeBonusIsSetInPrepStraightToTheStatBlock() {
+        // Before a fight is when a bonus matters most: it is what the roll adds.
+        let state = makeAppState()
+        let goblin = pawn("Goblin")
+        state.fog.pawns = [goblin]
+        state.editStatBlock(for: goblin.id) { $0.initiativeBonus = 2 }
+        XCTAssertEqual(state.statBlock(for: goblin.id).initiativeBonus, 2)
+    }
+
     func testRemovingAConditionRecordsIt() {
         let (state, goblin) = fighting()
         state.editStatBlock(for: goblin.id) { $0.conditions.insert(.prone) }

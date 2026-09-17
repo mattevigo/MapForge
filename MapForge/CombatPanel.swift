@@ -4,11 +4,12 @@ import SwiftUI
 enum CombatSelectionPolicy {
     /// The selection that survives an Encounter ending.
     ///
-    /// None of it. A selection is a row in the Order, and when the fight stops there is no
-    /// Order to be a row of — the panel shows the idle roster instead, where nothing is
-    /// selectable and so nothing can be deselected. Left alone, the editor went on offering
-    /// the last Combatant's hit points under a heading that said the fight was over, and a
-    /// DM who typed into it was editing a Pawn they could no longer see chosen.
+    /// None of it. A selection made during a fight is a row in the Order, and when the fight
+    /// stops there is no Order to be a row of. Left alone, the editor went on offering the
+    /// last Combatant's hit points under a heading that said the fight was over, and a DM
+    /// who typed into it was editing a Pawn they had not chosen *here*. The idle roster's
+    /// rows are selectable in their own right, and show it — so the DM who wants that Pawn
+    /// again clicks it, and the one who does not is not left editing it by accident.
     ///
     /// Stopping a fight neither heals anyone nor clears their Conditions (`CONTEXT.md`,
     /// **Encounter**); this clears what is *pointed at*, not anything pointed to.
@@ -280,10 +281,20 @@ struct CombatPanel: View {
             // On its own ground rather than as bold text beside the name: at the table
             // "13  2" read as one number and a stray digit, and the Initiative is the
             // column the DM's eye runs down.
-            Text("\(encounter.initiative(of: id) ?? 0)")
+            //
+            // Edited in place. The players call their numbers out down this column as the
+            // fight starts, and overtyping them here — Tab from one to the next — is the
+            // whole job; the Stat Block editor's "Init" is the *bonus*. Committed on Return
+            // or on leaving the field, and **not** re-sorted: ties and their order are the
+            // DM's, so the row stays put until it is dragged (`CONTEXT.md`, **Initiative**).
+            NumberField(value: encounter.initiative(of: id),
+                        identifier: "combatant-initiative",
+                        width: 30,
+                        isPlain: true) { new in
+                // Cleared is not zero: an emptied field means the DM backed out.
+                if let new { appState.setInitiative(new, for: id) }
+            }
                 .font(.system(.body, design: .rounded).weight(.semibold))
-                .monospacedDigit()
-                .frame(width: 30)
                 .padding(.vertical, 1)
                 .background(Color.secondary.opacity(0.14),
                             in: RoundedRectangle(cornerRadius: 4))
@@ -350,6 +361,39 @@ struct CombatPanel: View {
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("combatant-row")
         .accessibilityLabel(Text(encounter.name(of: id) ?? "?"))
+    }
+
+    /// One Pawn of the roster, before the fight — selectable, so the Stat Block editor
+    /// below can be pointed at it.
+    ///
+    /// Prep is when a Stat Block most needs an editor and for a long time had none: the
+    /// initiative bonus is what Play is about to roll with, and hit points typed after the
+    /// fight starts are typed while six people wait. The bonus is shown on the row because
+    /// it is the one number here the DM cannot see anywhere else before rolling. Clicking
+    /// the selected row again lets go of it.
+    private func rosterRow(_ pawn: Pawn) -> some View {
+        let block = appState.statBlock(for: pawn.id)
+        return HStack(spacing: 4) {
+            kindMark(pawn.kind)
+            Text(pawn.label).lineLimit(1)
+            Spacer(minLength: 8)
+            Text(block.initiativeBonus < 0 ? "−\(-block.initiativeBonus)"
+                                           : "+\(block.initiativeBonus)")
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .help("Initiative bonus")
+            hitPoints(block)
+        }
+        .font(.caption)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .overlay(RoundedRectangle(cornerRadius: 4)
+            .stroke(selection == pawn.id ? Color.accentColor : .clear))
+        .contentShape(Rectangle())
+        .onTapGesture { selection = selection == pawn.id ? nil : pawn.id }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("roster-row")
+        .accessibilityLabel(Text(pawn.label))
     }
 
     /// Players and Creatures must be distinguishable at a glance, and never by colour
@@ -477,11 +521,7 @@ struct CombatPanel: View {
                     .foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(rostered) { pawn in
-                        HStack(spacing: 4) {
-                            kindMark(pawn.kind)
-                            Text(pawn.label).lineLimit(1)
-                        }
-                        .font(.caption)
+                        rosterRow(pawn)
                     }
                 }
                 .accessibilityIdentifier("roster-preview")

@@ -88,11 +88,15 @@ struct StatEditor: View {
                         $0.armorClass = new ?? StatBlock.defaultArmorClass
                     }
                 }
-                // Initiative is not on the Stat Block — it belongs to the Encounter — so
-                // it commits through its own door.
-                field("Init", value: appState.encounter?.initiative(of: id), id: "initiative") { new in
-                    if let new { appState.setInitiative(new, for: id) }
+                // The *bonus* — what the d20 is added to — because that is the number that
+                // belongs to the Stat Block. The rolled Initiative is the Encounter's, and
+                // is overtyped where it is read: in the Order's own column. This field was
+                // the rolled number once, which left a Pawn's bonus with no editor at all.
+                field("Init", value: current.initiativeBonus, id: "initiative-bonus") { new in
+                    appState.editStatBlock(for: id) { $0.initiativeBonus = new ?? 0 }
                 }
+                .help("Initiative bonus: added to the d20 when Initiative is rolled. "
+                      + "The rolled number is edited in the Order.")
                 field("Exh", value: current.exhaustion, id: "exhaustion") { new in
                     appState.editStatBlock(for: id) { $0.exhaustion = new ?? 0 }
                 }
@@ -220,6 +224,9 @@ struct NumberField: View {
     /// The field's width. 42 suits a Stat Block's two-digit numbers; a Difficulty Class
     /// typed beside a segmented control wants a little more.
     var width: CGFloat = 42
+    /// Drawn without a border and centred, for a number edited in place — the Order's
+    /// Initiative column — where the ground behind it is the caller's.
+    var isPlain = false
     let commit: (Int?) -> Void
 
     @State private var text: String = ""
@@ -229,8 +236,7 @@ struct NumberField: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        TextField("", text: $text)
-            .textFieldStyle(.roundedBorder)
+        field
             .frame(width: width)
             .monospacedDigit()
             .focused($isFocused)
@@ -246,6 +252,18 @@ struct NumberField: View {
                 if wasFocused && !nowFocused { commitText() }
             }
             .onSubmit { commitText() }
+    }
+
+    /// Two styles cannot share one expression — `TextFieldStyle` is not existential.
+    @ViewBuilder private var field: some View {
+        if isPlain {
+            TextField("", text: $text)
+                .textFieldStyle(.plain)
+                .multilineTextAlignment(.center)
+        } else {
+            TextField("", text: $text)
+                .textFieldStyle(.roundedBorder)
+        }
     }
 
     private func adopt(_ value: Int?) {
