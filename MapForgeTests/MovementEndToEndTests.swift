@@ -24,6 +24,7 @@ final class MovementEndToEndTests: XCTestCase {
                              fogStore: FogStore(),
                              partyStore: PartyStore(directory: directory),
                              statsStore: StatsStore())
+        state.beginEvening(in: directory)
         state.mapURL = mapURL
         state.mapImage = NSImage(size: NSSize(width: 1000, height: 800))
         state.squaresWide = 20

@@ -110,8 +110,9 @@ struct CombatPanel: View {
                     Label("Play", systemImage: "play.fill")
                 }
                 .accessibilityIdentifier("encounter-play")
-                .disabled(!hasRosteredCombatants)
-                .help("Roll Initiative for everyone on the Map and begin.")
+                .disabled(!hasRosteredCombatants || appState.encounterRefusal != nil)
+                .help(appState.encounterRefusal
+                      ?? "Roll Initiative for everyone on the Map and begin.")
             } else {
                 Button {
                     appState.stepBackForCorrection()
@@ -450,6 +451,14 @@ struct CombatPanel: View {
             Image(systemName: "shield.lefthalf.filled")
                 .font(.largeTitle)
                 .foregroundStyle(.tertiary)
+            // Why Play is grey, where the DM is looking when they wonder.
+            if let refusal = appState.encounterRefusal {
+                Text(refusal)
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("encounter-refusal")
+            }
             if rostered.isEmpty {
                 Text(hasCombatants
                      ? "Nobody on the Map is in the next fight"

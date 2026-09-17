@@ -35,6 +35,7 @@ final class BestiaryAppStateTests: XCTestCase {
         let state = AppState(preferences: DisplayPreferences(defaults: defaults),
                              fogStore: FogStore(),
                              partyStore: PartyStore(directory: directory))
+        state.beginEvening(in: directory)
         state.mapURL = directory.appendingPathComponent("dungeon.png")
         state.bestiary = Bestiary(monsters: [capo, gnoll])
         return state

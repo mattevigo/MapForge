@@ -71,8 +71,36 @@ final class InitiativeTrackerUITests: XCTestCase {
             mapPreview(app).coordinate(withNormalizedOffset: CGVector(dx: dx, dy: 0.5)).click()
         }
 
+        // The evening, before the fight: Play is refused until a Session is running.
+        let session = app.windows["control"].buttons["session-toggle"]
+        XCTAssertTrue(session.waitForExistence(timeout: 3), "no Session control")
+        session.click()
+
         app.radioButtons["Combat"].click()
         return app
+    }
+
+    func testPlayWaitsForTheEveningToStart() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
+                               "--test-player-screen", "--test-fresh-preferences"]
+        app.launch()
+        let menu = app.menuButtons["Add"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 3), "no Add menu")
+        menu.click()
+        app.menuItems["Creature"].click()
+        mapPreview(app).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+        app.radioButtons["Combat"].click()
+
+        // Somebody to fight and no Session: grey, and saying why.
+        let play = app.buttons["encounter-play"]
+        XCTAssertTrue(play.waitForExistence(timeout: 2), "no play button")
+        XCTAssertFalse(play.isEnabled, "a fight could be started before the evening had")
+        XCTAssertTrue(app.staticTexts["encounter-refusal"].exists, "Play is grey without a word")
+
+        app.windows["control"].buttons["session-toggle"].click()
+        XCTAssertTrue(app.buttons["encounter-play"].isEnabled,
+                      "starting the Session did not free Play")
     }
 
     func testPlayRollsInitiativeAndShowsTheOrder() throws {

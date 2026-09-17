@@ -118,6 +118,7 @@ final class BestiaryUITests: XCTestCase {
                        "a first stamp has nothing to lose and should ask nothing")
 
         // Its page is in the Combat tab once a fight makes it the active Combatant.
+        app.windows["control"].buttons["session-toggle"].click()
         app.radioButtons["Combat"].click()
         let play = app.buttons["encounter-play"]
         XCTAssertTrue(play.waitForExistence(timeout: 2), "no play button")

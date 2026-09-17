@@ -35,6 +35,7 @@ final class StatEditingTests: XCTestCase {
         let state = AppState(preferences: DisplayPreferences(defaults: defaults),
                              fogStore: FogStore(),
                              partyStore: PartyStore(directory: directory))
+        state.beginEvening(in: directory)
         state.mapURL = mapURL
         return state
     }

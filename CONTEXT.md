@@ -161,7 +161,7 @@ The unit the table speaks distances in — currently **metres**, at 1.5 m per Gr
 _Avoid_: units, scale, measurement system
 
 **Encounter**:
-One fight on one Map, from the moment the DM starts it to the moment they stop it. It holds an Order of Combatants and a Round number, and it writes a Combat Log. A Map accumulates Encounters over a campaign; at most one is live at a time. Stopping one neither heals anyone nor clears their Conditions — a fight ending is not a rest, and the state a party fought three Rounds to reach is the state they are in. An Encounter sits *inside* a Session — the evening it is one fight of — and while it runs it is the only thing recording: the Session Log falls silent and resumes when the fight stops.
+One fight on one Map, from the moment the DM starts it to the moment they stop it. It holds an Order of Combatants and a Round number, and it writes a Combat Log. A Map accumulates Encounters over a campaign; at most one is live at a time. Stopping one neither heals anyone nor clears their Conditions — a fight ending is not a rest, and the state a party fought three Rounds to reach is the state they are in. An Encounter sits *inside* a Session — the evening it is one fight of — so one cannot be started before the Session has: a fight begun during prep would be a Combat Log no evening points at, and the Log View could never show it. The rule is about starting; a fight already running is not ended by it. While it runs it is the only thing recording: the Session Log falls silent and resumes when the fight stops.
 _Avoid_: combat, fight, battle
 
 **Combatant**:

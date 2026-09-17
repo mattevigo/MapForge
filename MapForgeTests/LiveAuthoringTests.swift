@@ -323,6 +323,7 @@ final class LiveAuthoringTests: XCTestCase {
         let appState = AppState(preferences: DisplayPreferences(
             defaults: UserDefaults(suiteName: "LiveAuthoringTests.\(UUID().uuidString)")!))
         appState.loadMap(image: image, at: url)
+        appState.beginEvening(in: directory)
         return appState
     }
 }

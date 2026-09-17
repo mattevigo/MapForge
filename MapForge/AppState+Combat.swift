@@ -164,6 +164,14 @@ extension AppState {
         return encounter.benched.union(onMap.subtracting(Set(encounter.order)))
     }
 
+    /// Why a fight cannot start right now, in words for the DM — or nil when it can.
+    ///
+    /// Said rather than only enforced: a Play button that is merely grey leaves a DM
+    /// wondering what they forgot, five minutes before the players arrive.
+    var encounterRefusal: String? {
+        session == nil ? "Start a Session first — a fight is part of an evening." : nil
+    }
+
     /// Rolls Initiative for every rostered Player and Creature on the Map and opens a
     /// Combat Log.
     ///
@@ -171,8 +179,13 @@ extension AppState {
     /// no tracker. A Pawn left off the roster is not refused so much as not asked — it
     /// stays on the Map, is listed as not in combat, and the same button that returns a
     /// Benched Pawn will bring it in.
+    ///
+    /// Refused before the evening has started: an Encounter is one fight *of* a Session
+    /// (`CONTEXT.md`), and one started without would leave a Combat Log no Session Log
+    /// points at — a fight the Log View could never show. About starting only: a fight
+    /// resumed from its Log, or one whose Session the DM stopped mid-fight, carries on.
     func startEncounter() {
-        guard let mapURL, encounter == nil else { return }
+        guard let mapURL, encounter == nil, encounterRefusal == nil else { return }
         let entrants = fog.pawns
             .filter { $0.kind != .treasure && isInCombat($0.id) }
             .map { EncounterControl.Entrant(id: $0.id, name: $0.label, kind: $0.kind,
