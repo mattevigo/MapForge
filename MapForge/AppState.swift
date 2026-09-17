@@ -750,6 +750,23 @@ final class AppState: ObservableObject {
         return true
     }
 
+    /// A Party drag landing on the Map: the pasteboard's payload, resolved and Stamped.
+    ///
+    /// The Map's `.dropDestination` calls this and nothing else. It is a method rather than
+    /// three lines in the view because those three lines were once deleted along with the
+    /// view they sat in (`9767de0`, when the cropped mirror went), and the Party could not be
+    /// placed for weeks while every test of `stamp` stayed green. A drop handler cannot be
+    /// unit-tested; what it *does* can, so as much of it as possible is here.
+    ///
+    /// `location` and `frame` must share a coordinate space — see `Stamp.pawn`.
+    @discardableResult
+    func stampDropped(_ payloads: [CharacterDragPayload], at location: CGPoint,
+                      frame: CGRect) -> Bool {
+        guard let payload = payloads.first,
+              let character = character(id: payload.characterID) else { return false }
+        return stamp(character, at: location, frame: frame)
+    }
+
     /// The Character a drag is carrying. Searched across every Party, not just the active
     /// one: a drag that began before the DM switched Party is still a drag of a real
     /// Character, and refusing it would be a puzzle rather than a rule.

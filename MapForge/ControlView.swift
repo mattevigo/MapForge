@@ -664,6 +664,21 @@ struct ControlView: View {
                     // changed. Gated on `.normal` because the authoring modes own their own
                     // gestures — `FogOverlay` and `GridFitOverlay` are underneath here.
                     .onRightClick { if mode == .normal { rightClick() } }
+                    // Stamping a Character: the Party panel's drag lands here. The comment
+                    // above says stamping "moved wholesale" with the rest, and it did not —
+                    // the mirror's drop target was deleted with the mirror and never
+                    // re-attached, so the roster offered a drag nothing would accept.
+                    //
+                    // `location` arrives in this container's own space, which is the space
+                    // `fitted` is expressed in — the pairing `PlayerPlacement.mapPoint`
+                    // warns about at length, and the same one `leftClick` relies on. A drop
+                    // on the letterbox margin is outside the image and is refused by
+                    // `Stamp.pawn`. Refused in the authoring modes too: the Wall Editor draws
+                    // Pawns for reference and places none (ADR-0013).
+                    .dropDestination(for: CharacterDragPayload.self) { payloads, location in
+                        guard mode == .normal else { return false }
+                        return appState.stampDropped(payloads, at: location, frame: fitted)
+                    }
                     .contextMenu {
                         if mode == .normal, !isChaining, let map = appState.mapScale {
                             measurementMenu(map: map, frame: fitted)
