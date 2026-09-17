@@ -203,9 +203,17 @@ struct StatEditor: View {
 /// The field also has to follow the model when something *else* moves the number — damage
 /// applied from the box beside it, or a Correction — which is why the external value is
 /// mirrored back in whenever it changes and the field is not being typed in.
-private struct NumberField: View {
+/// A whole number that may be absent, committed on Return and on focus loss.
+///
+/// Not private: the Roll sheet's Difficulty Class and Modifier want exactly this contract,
+/// and a second near-copy of it would be a second place for the two guards below to be
+/// forgotten — both of which are here because a real bug reached the table.
+struct NumberField: View {
     let value: Int?
     let identifier: String
+    /// The field's width. 42 suits a Stat Block's two-digit numbers; a Difficulty Class
+    /// typed beside a segmented control wants a little more.
+    var width: CGFloat = 42
     let commit: (Int?) -> Void
 
     @State private var text: String = ""
@@ -217,7 +225,7 @@ private struct NumberField: View {
     var body: some View {
         TextField("", text: $text)
             .textFieldStyle(.roundedBorder)
-            .frame(width: 42)
+            .frame(width: width)
             .monospacedDigit()
             .focused($isFocused)
             .accessibilityIdentifier(identifier)

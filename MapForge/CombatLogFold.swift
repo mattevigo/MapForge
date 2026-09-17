@@ -182,10 +182,11 @@ enum CombatLogFold {
             // already beside a DM's Maps still read.
             state.benched.insert(id)
             state.order.removeAll { $0 == id }
-        case .moved, .noteAdded:
+        case .moved, .noteAdded, .savingThrow, .abilityCheck:
             // Recorded for the record, not for the state: where a Pawn stands is the
-            // Map's own truth, and a note is something to read rather than something the
-            // tracker shows a number for.
+            // Map's own truth, a note is something to read rather than something the
+            // tracker shows a number for, and a Roll changes nothing at all — the app
+            // records what the dice showed and never applies what it implies.
             break
         case .unrecognised:
             // Written by a later version. Skipped so the rest of the Log still reads.

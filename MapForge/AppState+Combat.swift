@@ -240,6 +240,38 @@ extension AppState {
         recordSessionMove(pawn: pawn, from: origin, distanceSquares: distance)
     }
 
+    // MARK: Rolls
+
+    /// Records a d20 the DM took at the table.
+    ///
+    /// Two independent records, and never both, exactly as `commitPawnMove` is: the Combat
+    /// Log takes the Roll while a fight runs and the Session Log takes it the rest of the
+    /// evening. Which one writes is not decided here — `SessionControl` drops the line while
+    /// an Encounter is running, so this call site needs no `if` about fights. See ADR-0014.
+    ///
+    /// The Pawn need not be a Combatant: a save against the dragon's breath is made by
+    /// whoever the breath reached, and the NPC in the corner rolls without ever joining the
+    /// Order. A Roll is about the Pawn, not about whose Turn it is.
+    ///
+    /// Nothing here touches a Stat Block. A Roll changes nothing — what a failed save
+    /// implies is the DM's to apply. See
+    /// `docs/adr/0017-a-roll-is-recorded-not-resolved.md`.
+    func recordRoll(pawn: Pawn, ability: Ability, roll: Roll) {
+        if encounter != nil {
+            recordChange(.savingThrow(combatantID: pawn.id, name: pawn.label,
+                                      ability: ability, roll: roll))
+        }
+        recordSessionRoll(pawn: pawn, ability: ability, roll: roll)
+    }
+
+    func recordRoll(pawn: Pawn, skill: Skill, roll: Roll) {
+        if encounter != nil {
+            recordChange(.abilityCheck(combatantID: pawn.id, name: pawn.label,
+                                       skill: skill, roll: roll))
+        }
+        recordSessionRoll(pawn: pawn, skill: skill, roll: roll)
+    }
+
     /// Straight-line distance in Grid squares — the unit distances are *stored* in, as
     /// `Measurement` does. Metres are what `DistanceUnit` turns it into for display.
     private func distanceInSquares(from: MapPoint, to: MapPoint) -> CGFloat {

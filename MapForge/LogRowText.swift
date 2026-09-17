@@ -66,9 +66,40 @@ enum LogRowText {
             // A list of UUIDs. Fourteen names is a wall, and the fact that matters is that
             // the DM rearranged the Order.
             "Order changed"
+        // The Roll's own snapshot, not the resolved `combatantName`: a Pawn that never
+        // joined the Order resolves to nothing, and its own line is the only thing that
+        // knows who rolled.
+        case let .savingThrow(_, name, ability, roll):
+            "\(name) — \(ability.abbreviation) save \(describe(roll))"
+        case let .abilityCheck(_, name, skill, roll):
+            "\(name) — \(skill.title) (\(skill.ability.abbreviation)) \(describe(roll))"
         case .unrecognised:
             "A change this version cannot read"
         }
+    }
+
+    /// A Roll's numbers: the total, the arithmetic that produced it, and the verdict where
+    /// there is a Difficulty Class to have one.
+    ///
+    /// The arithmetic is shown because the die is the part the table remembers — "21" alone
+    /// loses the 16 that everyone watched land.
+    static func describe(_ roll: Roll) -> String {
+        var text = "\(roll.total) (\(arithmetic(of: roll)))"
+        if let difficultyClass = roll.difficultyClass {
+            text += " vs DC \(difficultyClass)"
+            // `succeeded` is non-nil exactly when there is a DC.
+            text += roll.succeeded == true ? " — succeeded" : " — failed"
+        }
+        return text
+    }
+
+    /// Just the sum that produced the total — "16 + 5", or "9 - 1" for a negative Modifier,
+    /// which is the shape a DM would have said out loud. The Roll sheet shows this beside a
+    /// large total, where the Log shows it in parentheses after one.
+    static func arithmetic(of roll: Roll) -> String {
+        roll.modifier < 0
+            ? "\(roll.d20) - \(abs(roll.modifier))"
+            : "\(roll.d20) + \(roll.modifier)"
     }
 
     /// A hit point total that may be unset. "—", never "0": a Pawn with no hit points recorded
@@ -92,6 +123,12 @@ enum LogRowText {
             text
         case let .pawnMoved(label, distanceSquares, _):
             "\(label) moved \(unit.format(squares: distanceSquares))"
+        case let .savingThrow(label, ability, roll, _):
+            // The same wording the Combat Log's own row uses, so a Roll reads identically
+            // on either side of an Encounter's splice.
+            "\(label) — \(ability.abbreviation) save \(describe(roll))"
+        case let .abilityCheck(label, skill, roll, _):
+            "\(label) — \(skill.title) (\(skill.ability.abbreviation)) \(describe(roll))"
         case let .mapSeparator(path):
             (path as NSString).lastPathComponent
         case let .encounterStarted(map, isLive):

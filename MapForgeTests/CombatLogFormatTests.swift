@@ -52,10 +52,81 @@ final class CombatLogFormatTests: XCTestCase {
             .combatantJoined(combatantID: grog, name: "Grog", kind: .player,
                              initiative: 18, block: StatBlock(currentHP: 26, maxHP: 26)),
             .combatantRemoved(combatantID: grog),
+            .savingThrow(combatantID: grog, name: "Grix", ability: .dexterity,
+                         roll: Roll(d20: 16, modifier: 5, difficultyClass: 15)),
+            .savingThrow(combatantID: grog, name: "Grix", ability: .wisdom,
+                         roll: Roll(d20: 3, modifier: -1)),
+            .abilityCheck(combatantID: grog, name: "Grix", skill: .stealth,
+                          roll: Roll(d20: 12, modifier: 7, difficultyClass: 15)),
+            .abilityCheck(combatantID: grog, name: "Grix", skill: .perception,
+                          roll: Roll(d20: 20, modifier: 0)),
         ]
         for change in changes {
             XCTAssertEqual(try roundTrip(change), change, "\(change) did not survive the round trip")
         }
+    }
+
+    // MARK: Rolls
+
+    /// The `Roll` is written flat rather than nested, because a DM opens this file and
+    /// reads it: `"d20": 16, "modifier": 5` on the line itself, not under a sub-object.
+    func testARollIsWrittenFlatAndTaggedByType() throws {
+        let change = Change.savingThrow(combatantID: grog, name: "Grix", ability: .dexterity,
+                                        roll: Roll(d20: 16, modifier: 5, difficultyClass: 15))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: try JSONEncoder().encode(change)) as? [String: Any])
+
+        XCTAssertEqual(json["type"] as? String, "savingThrow")
+        XCTAssertEqual(json["ability"] as? String, "dexterity")
+        XCTAssertEqual(json["d20"] as? Int, 16)
+        XCTAssertEqual(json["modifier"] as? Int, 5)
+        XCTAssertEqual(json["difficultyClass"] as? Int, 15)
+    }
+
+    /// Success is `d20 + modifier >= DC`, computed on read. A stored derivable fact is the
+    /// drift ADR-0008 was written against.
+    func testARollNeverStoresItsVerdict() throws {
+        let change = Change.abilityCheck(combatantID: grog, name: "Grix", skill: .stealth,
+                                         roll: Roll(d20: 12, modifier: 7, difficultyClass: 15))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: try JSONEncoder().encode(change)) as? [String: Any])
+
+        XCTAssertNil(json["succeeded"], "the verdict is derived and must never be written")
+        XCTAssertNil(json["total"], "the total is derived and must never be written")
+    }
+
+    /// An Ability Check stores its Skill and not its Ability: the Skill implies it, and a
+    /// stored copy would let a Log disagree with itself.
+    func testAnAbilityCheckStoresItsSkillAndNotItsAbility() throws {
+        let change = Change.abilityCheck(combatantID: grog, name: "Grix", skill: .stealth,
+                                         roll: Roll(d20: 12, modifier: 7))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: try JSONEncoder().encode(change)) as? [String: Any])
+
+        XCTAssertEqual(json["skill"] as? String, "stealth")
+        XCTAssertNil(json["ability"], "the Ability is derived from the Skill, never stored")
+    }
+
+    /// Absent rather than null: a Roll with no Difficulty Class has no key for one, so the
+    /// line reads as what it is — a number recorded before anyone decided what it beat.
+    func testARollWithoutADifficultyClassOmitsTheKey() throws {
+        let change = Change.savingThrow(combatantID: grog, name: "Grix", ability: .constitution,
+                                        roll: Roll(d20: 11, modifier: 2))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: try JSONEncoder().encode(change)) as? [String: Any])
+
+        XCTAssertNil(json["difficultyClass"])
+        XCTAssertEqual(try roundTrip(change), change)
+    }
+
+    /// A Roll names the Combatant it is about, like every other targeted Change.
+    func testARollNamesItsCombatant() {
+        XCTAssertEqual(
+            Change.savingThrow(combatantID: grog, name: "Grix", ability: .dexterity,
+                               roll: Roll(d20: 16, modifier: 5)).combatantID, grog)
+        XCTAssertEqual(
+            Change.abilityCheck(combatantID: grog, name: "Grix", skill: .stealth,
+                                roll: Roll(d20: 12, modifier: 7)).combatantID, grog)
     }
 
     func testAnUnknownChangeTypeDecodesAsUnrecognised() throws {

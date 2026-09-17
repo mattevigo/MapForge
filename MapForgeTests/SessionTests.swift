@@ -102,6 +102,39 @@ final class SessionTests: XCTestCase {
                        "a drag during a fight belongs to the Combat Log alone")
     }
 
+    /// ADR-0014's rule applied to a Roll: during a fight the Combat Log's `Change` is the
+    /// one record, so the Session Log writes nothing and the button needs no `if`.
+    func testARollWhileSuspendedRecordsNothing() {
+        var session = suspendedSession()
+        XCTAssertEqual(SessionControl.savingThrow(pawnID: UUID(), label: "Grix",
+                                                  map: "crypt.png", ability: .dexterity,
+                                                  roll: Roll(d20: 16, modifier: 5,
+                                                             difficultyClass: 15),
+                                                  at: later(120), in: &session), [],
+                       "a Roll during a fight belongs to the Combat Log alone")
+        XCTAssertEqual(SessionControl.abilityCheck(pawnID: UUID(), label: "Grix",
+                                                   map: "crypt.png", skill: .stealth,
+                                                   roll: Roll(d20: 12, modifier: 7),
+                                                   at: later(120), in: &session), [],
+                       "a Roll during a fight belongs to the Combat Log alone")
+    }
+
+    /// And outside a fight it is the Session Log that has it, because otherwise the Roll is
+    /// recorded nowhere at all.
+    func testARollOutsideAFightIsRecorded() {
+        var (session, _) = SessionControl.start(at: when)
+        let pawn = UUID()
+        XCTAssertEqual(
+            SessionControl.savingThrow(pawnID: pawn, label: "Grix", map: "crypt.png",
+                                       ability: .dexterity,
+                                       roll: Roll(d20: 16, modifier: 5, difficultyClass: 15),
+                                       at: later(120), in: &session),
+            [.savingThrow(pawnID: pawn, label: "Grix", map: "crypt.png",
+                          ability: .dexterity,
+                          roll: Roll(d20: 16, modifier: 5, difficultyClass: 15),
+                          at: later(120))])
+    }
+
     func testEncounterEndedResumesRecording() {
         var session = suspendedSession()
         let lines = SessionControl.encounterEnded(map: "crypt.png", at: later(180), in: &session)

@@ -27,6 +27,16 @@ enum SessionLine: Equatable {
     case pawnMoved(pawnID: UUID, label: String, map: String?,
                    from: MapPoint, to: MapPoint, distanceSquares: CGFloat, at: Date)
 
+    /// A d20 recorded outside a fight.
+    ///
+    /// Unlike `comment`'s `pawnID`, this one **is** the subject: a Roll is unambiguously
+    /// about the Pawn that made it. `label` is a snapshot for the reason `pawnMoved`'s is.
+    /// See `docs/adr/0017-a-roll-is-recorded-not-resolved.md`.
+    case savingThrow(pawnID: UUID, label: String, map: String?,
+                     ability: Ability, roll: Roll, at: Date)
+    case abilityCheck(pawnID: UUID, label: String, map: String?,
+                      skill: Skill, roll: Roll, at: Date)
+
     /// The pointer that opens a hole in this file. `logFile` names the Combat Log that holds
     /// what happened next — the Session Log records nothing until `encounterEnded`.
     case encounterStarted(map: String?, logFile: String, at: Date)
@@ -45,10 +55,13 @@ extension SessionLine: Codable {
     private enum CodingKeys: String, CodingKey {
         case line, startedAt, endedAt, at, text, map, pawnID, label
         case from, to, distanceSquares, logFile
+        // A Roll, written flat: a DM opens this file and reads it.
+        case ability, skill, d20, modifier, difficultyClass
     }
 
     private enum Kind: String {
         case sessionStarted, comment, pawnMoved, encounterStarted, encounterEnded, sessionEnded
+        case savingThrow, abilityCheck
     }
 
     init(from decoder: Decoder) throws {
@@ -76,6 +89,22 @@ extension SessionLine: Codable {
                 from: try container.decode(MapPoint.self, forKey: .from),
                 to: try container.decode(MapPoint.self, forKey: .to),
                 distanceSquares: try container.decode(CGFloat.self, forKey: .distanceSquares),
+                at: try container.decode(Date.self, forKey: .at))
+        case .savingThrow:
+            self = .savingThrow(
+                pawnID: try container.decode(UUID.self, forKey: .pawnID),
+                label: try container.decode(String.self, forKey: .label),
+                map: map,
+                ability: try container.decode(Ability.self, forKey: .ability),
+                roll: try Self.decodeRoll(from: container),
+                at: try container.decode(Date.self, forKey: .at))
+        case .abilityCheck:
+            self = .abilityCheck(
+                pawnID: try container.decode(UUID.self, forKey: .pawnID),
+                label: try container.decode(String.self, forKey: .label),
+                map: map,
+                skill: try container.decode(Skill.self, forKey: .skill),
+                roll: try Self.decodeRoll(from: container),
                 at: try container.decode(Date.self, forKey: .at))
         case .encounterStarted:
             self = .encounterStarted(map: map,
@@ -109,6 +138,23 @@ extension SessionLine: Codable {
             try container.encode(to, forKey: .to)
             try container.encode(distanceSquares, forKey: .distanceSquares)
             try container.encode(at, forKey: .at)
+        case let .savingThrow(pawnID, label, map, ability, roll, at):
+            try container.encode(Kind.savingThrow.rawValue, forKey: .line)
+            try container.encode(pawnID, forKey: .pawnID)
+            try container.encode(label, forKey: .label)
+            try container.encodeIfPresent(map, forKey: .map)
+            try container.encode(ability, forKey: .ability)
+            try Self.encode(roll, into: &container)
+            try container.encode(at, forKey: .at)
+        case let .abilityCheck(pawnID, label, map, skill, roll, at):
+            try container.encode(Kind.abilityCheck.rawValue, forKey: .line)
+            try container.encode(pawnID, forKey: .pawnID)
+            try container.encode(label, forKey: .label)
+            try container.encodeIfPresent(map, forKey: .map)
+            // The Skill only: its Ability is derived, and a stored copy could disagree.
+            try container.encode(skill, forKey: .skill)
+            try Self.encode(roll, into: &container)
+            try container.encode(at, forKey: .at)
         case let .encounterStarted(map, logFile, at):
             try container.encode(Kind.encounterStarted.rawValue, forKey: .line)
             try container.encodeIfPresent(map, forKey: .map)
@@ -126,6 +172,22 @@ extension SessionLine: Codable {
                 codingPath: container.codingPath,
                 debugDescription: "an unrecognised line is read-only and is never written back"))
         }
+    }
+
+    /// The flat half of a Roll. `succeeded` and `total` are derived and never on disk.
+    private static func decodeRoll(
+        from container: KeyedDecodingContainer<CodingKeys>) throws -> Roll {
+        Roll(d20: try container.decode(Int.self, forKey: .d20),
+             modifier: try container.decode(Int.self, forKey: .modifier),
+             difficultyClass: try container.decodeIfPresent(Int.self, forKey: .difficultyClass))
+    }
+
+    private static func encode(_ roll: Roll,
+                               into container: inout KeyedEncodingContainer<CodingKeys>) throws {
+        try container.encode(roll.d20, forKey: .d20)
+        try container.encode(roll.modifier, forKey: .modifier)
+        // Absent rather than null when the DM did not set one.
+        try container.encodeIfPresent(roll.difficultyClass, forKey: .difficultyClass)
     }
 }
 

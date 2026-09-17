@@ -243,6 +243,33 @@ final class CombatLogFoldTests: XCTestCase {
         XCTAssertEqual(state.initiative(of: grog), 11)
     }
 
+    /// A Roll is a record, not a mutation: it folds to nothing, exactly as `.moved` and
+    /// `.noteAdded` do. See `docs/adr/0017-a-roll-is-recorded-not-resolved.md`.
+    func testARollChangesNothingTheTrackerShows() {
+        let lines: [LogLine] = [
+            started(),
+            .turn(round: 1, combatantID: grog, changes: [
+                .hpChanged(combatantID: grog, from: 26, to: 20),
+            ], endedAt: at),
+        ]
+        let withoutRolls = CombatLogFold.fold(lines)
+
+        var withRolls = lines
+        withRolls.append(.turn(round: 1, combatantID: goblin, changes: [
+            .savingThrow(combatantID: grog, name: "Grix", ability: .dexterity,
+                         roll: Roll(d20: 3, modifier: 1, difficultyClass: 18)),
+            .abilityCheck(combatantID: grog, name: "Grix", skill: .stealth,
+                          roll: Roll(d20: 19, modifier: 7, difficultyClass: 15)),
+        ], endedAt: at))
+        let folded = CombatLogFold.fold(withRolls)
+
+        // Even a failed save leaves hit points, conditions and the Order untouched: the DM
+        // applies what a result implies, the app does not.
+        XCTAssertEqual(folded.blocks[grog], withoutRolls.blocks[grog])
+        XCTAssertEqual(folded.order, withoutRolls.order)
+        XCTAssertEqual(folded.benched, withoutRolls.benched)
+    }
+
     func testAnUnrecognisedChangeIsSkippedNotFatal() {
         // A Log written by a later version stays readable by this one.
         let state = CombatLogFold.fold([

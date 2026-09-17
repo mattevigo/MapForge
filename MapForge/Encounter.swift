@@ -181,7 +181,15 @@ enum EncounterControl {
             return []
         }
 
-        if case .moved = change { return [] }
+        // A movement cannot be corrected: where a Pawn stands is the Map's truth and cannot
+        // retroactively have been elsewhere. A Roll cannot either, for the mirror reason —
+        // it is a record of something that happened *now*, at the table, and filing it
+        // against a Turn three Rounds ago would put it permanently in the wrong Round of an
+        // append-only file.
+        switch change {
+        case .moved, .savingThrow, .abilityCheck: return []
+        default: break
+        }
         let line = LogLine.correction(targetRound: target.round,
                                       targetCombatantID: target.combatantID,
                                       changes: changes,

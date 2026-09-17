@@ -45,6 +45,20 @@ enum Change: Equatable {
                          initiative: Int, block: StatBlock)
     case combatantRemoved(combatantID: UUID)
 
+    /// A d20 recorded at the table. Changes nothing — the fold skips it, as it skips
+    /// `.moved` and `.noteAdded` — and is here rather than in `LogLine` because `Change`
+    /// is the vocabulary an older build can read past. See
+    /// `docs/adr/0017-a-roll-is-recorded-not-resolved.md`.
+    ///
+    /// `name` is a snapshot, as `Combatant`'s is and as `SessionLine.pawnMoved`'s `label`
+    /// is. Alone among the Changes a Roll can be made by a Pawn the Log never names: one
+    /// kept off the roster entirely is in no `encounterStarted` snapshot and in no
+    /// `combatantJoined`, yet it rolls — the NPC in the corner is exactly who gets asked
+    /// for a Persuasion check. Without the name its line would read "Unknown combatant"
+    /// forever.
+    case savingThrow(combatantID: UUID, name: String, ability: Ability, roll: Roll)
+    case abilityCheck(combatantID: UUID, name: String, skill: Skill, roll: Roll)
+
     /// A Change this version does not understand, read from a Log a later version wrote.
     ///
     /// Kept as a case rather than thrown away silently so the fold can count what it
@@ -68,7 +82,9 @@ enum Change: Equatable {
              let .noteAdded(id, _),
              let .initiativeChanged(id, _, _),
              let .combatantJoined(id, _, _, _, _),
-             let .combatantRemoved(id):
+             let .combatantRemoved(id),
+             let .savingThrow(id, _, _, _),
+             let .abilityCheck(id, _, _, _):
             return id
         case .orderChanged, .unrecognised:
             return nil
@@ -80,12 +96,15 @@ extension Change: Codable {
     private enum CodingKeys: String, CodingKey {
         case type, combatantID, from, to, distanceSquares, condition
         case isConcentrating, text, order, name, kind, initiative, block
+        // A Roll, written flat: a DM opens this file and reads it.
+        case ability, skill, d20, modifier, difficultyClass
     }
 
     private enum Kind: String {
         case moved, hpChanged, tempHPChanged, maxHPChanged, acChanged
         case conditionAdded, conditionRemoved, exhaustionChanged, concentrationChanged
         case noteAdded, initiativeChanged, orderChanged, combatantJoined, combatantRemoved
+        case savingThrow, abilityCheck
     }
 
     init(from decoder: Decoder) throws {
@@ -161,7 +180,33 @@ extension Change: Codable {
                                     block: try container.decode(StatBlock.self, forKey: .block))
         case .combatantRemoved:
             self = .combatantRemoved(combatantID: try requiredID())
+        case .savingThrow:
+            self = .savingThrow(combatantID: try requiredID(),
+                                name: try container.decode(String.self, forKey: .name),
+                                ability: try container.decode(Ability.self, forKey: .ability),
+                                roll: try Self.decodeRoll(from: container))
+        case .abilityCheck:
+            self = .abilityCheck(combatantID: try requiredID(),
+                                 name: try container.decode(String.self, forKey: .name),
+                                 skill: try container.decode(Skill.self, forKey: .skill),
+                                 roll: try Self.decodeRoll(from: container))
         }
+    }
+
+    /// The flat half of a Roll. `succeeded` and `total` are derived and never on disk.
+    private static func decodeRoll(
+        from container: KeyedDecodingContainer<CodingKeys>) throws -> Roll {
+        Roll(d20: try container.decode(Int.self, forKey: .d20),
+             modifier: try container.decode(Int.self, forKey: .modifier),
+             difficultyClass: try container.decodeIfPresent(Int.self, forKey: .difficultyClass))
+    }
+
+    private static func encode(_ roll: Roll,
+                               into container: inout KeyedEncodingContainer<CodingKeys>) throws {
+        try container.encode(roll.d20, forKey: .d20)
+        try container.encode(roll.modifier, forKey: .modifier)
+        // Absent rather than null when the DM did not set one.
+        try container.encodeIfPresent(roll.difficultyClass, forKey: .difficultyClass)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -232,6 +277,19 @@ extension Change: Codable {
         case let .combatantRemoved(id):
             try container.encode(Kind.combatantRemoved.rawValue, forKey: .type)
             try container.encode(id, forKey: .combatantID)
+        case let .savingThrow(id, name, ability, roll):
+            try container.encode(Kind.savingThrow.rawValue, forKey: .type)
+            try container.encode(id, forKey: .combatantID)
+            try container.encode(name, forKey: .name)
+            try container.encode(ability, forKey: .ability)
+            try Self.encode(roll, into: &container)
+        case let .abilityCheck(id, name, skill, roll):
+            try container.encode(Kind.abilityCheck.rawValue, forKey: .type)
+            try container.encode(id, forKey: .combatantID)
+            try container.encode(name, forKey: .name)
+            // The Skill only: its Ability is derived, and a stored copy could disagree.
+            try container.encode(skill, forKey: .skill)
+            try Self.encode(roll, into: &container)
         case .unrecognised:
             // Re-encoding a Change this version never understood would either invent a
             // type or drop the line's meaning. The reader keeps such a Change in memory;
