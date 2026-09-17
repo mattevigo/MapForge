@@ -36,8 +36,9 @@ struct EditPawnSheet: View {
     let onCommit: (EditPawnDraft) -> Void
     let onCancel: () -> Void
 
-    /// Whether the search box has results open. While it does, Return picks a Monster and
-    /// must not also press OK.
+    /// Whether the DM is in the middle of a search. While they are, Return belongs to the
+    /// search box — it picks a Monster, or does nothing when the query matches none — and
+    /// must not also press OK on a half-typed name.
     @State private var isSearching = false
     /// The heal OK is waiting on the DM to confirm.
     @State private var confirming: MonsterStamp.Healing?
@@ -75,7 +76,7 @@ struct EditPawnSheet: View {
                     .help("A Creature or a Treasure emits no Light and is hidden from players by darkness.")
                     // Only a Creature can be a Monster: a Player's numbers come from its
                     // Character, and a Treasure has none.
-                    if draft.kind == .creature {
+                    if draft.kind.canBeMonster {
                         MonsterSearchField(bestiary: bestiary,
                                            monsterName: draft.monsterName,
                                            isSearching: $isSearching,
@@ -188,8 +189,10 @@ private struct MonsterSearchField: View {
             caption
         }
         .frame(width: 250, alignment: .leading)
-        .onChange(of: results.isEmpty) { _, isEmpty in isSearching = !isEmpty }
-        .onChange(of: query) { _, _ in highlighted = 0 }
+        .onChange(of: query) { _, query in
+            highlighted = 0
+            isSearching = !query.trimmingCharacters(in: .whitespaces).isEmpty
+        }
         .onDisappear { isSearching = false }
     }
 

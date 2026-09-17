@@ -37,6 +37,11 @@ enum Change: Equatable {
     case concentrationChanged(combatantID: UUID, isConcentrating: Bool)
     case noteAdded(combatantID: UUID, text: String)
     case initiativeChanged(combatantID: UUID, from: Int, to: Int)
+    /// The *bonus*, not the rolled number above. Nothing in the tracker edits one; it moves
+    /// mid-fight only when a Creature is said to be a different Monster (ADR-0021). Recorded
+    /// because `stats.json` follows the fold: a bonus the Log never heard of would be
+    /// overwritten by the old one, and every later roll would use it.
+    case initiativeBonusChanged(combatantID: UUID, from: Int, to: Int)
     /// Carries no combatant: it is about the Order itself. The whole new Order, because
     /// ADR-0008 forbids recomputing it — two Combatants on 14 would sort arbitrarily and a
     /// replay could not reproduce what the table saw.
@@ -81,6 +86,7 @@ enum Change: Equatable {
              let .concentrationChanged(id, _),
              let .noteAdded(id, _),
              let .initiativeChanged(id, _, _),
+             let .initiativeBonusChanged(id, _, _),
              let .combatantJoined(id, _, _, _, _),
              let .combatantRemoved(id),
              let .savingThrow(id, _, _, _),
@@ -105,6 +111,7 @@ extension Change: Codable {
         case conditionAdded, conditionRemoved, exhaustionChanged, concentrationChanged
         case noteAdded, initiativeChanged, orderChanged, combatantJoined, combatantRemoved
         case savingThrow, abilityCheck
+        case initiativeBonusChanged
     }
 
     init(from decoder: Decoder) throws {
@@ -147,6 +154,10 @@ extension Change: Codable {
             self = .acChanged(combatantID: try requiredID(),
                               from: try container.decode(Int.self, forKey: .from),
                               to: try container.decode(Int.self, forKey: .to))
+        case .initiativeBonusChanged:
+            self = .initiativeBonusChanged(combatantID: try requiredID(),
+                                           from: try container.decode(Int.self, forKey: .from),
+                                           to: try container.decode(Int.self, forKey: .to))
         case .conditionAdded:
             self = .conditionAdded(combatantID: try requiredID(),
                                    condition: try container.decode(Condition.self,
@@ -235,6 +246,11 @@ extension Change: Codable {
             try container.encodeIfPresent(to, forKey: .to)
         case let .acChanged(id, from, to):
             try container.encode(Kind.acChanged.rawValue, forKey: .type)
+            try container.encode(id, forKey: .combatantID)
+            try container.encode(from, forKey: .from)
+            try container.encode(to, forKey: .to)
+        case let .initiativeBonusChanged(id, from, to):
+            try container.encode(Kind.initiativeBonusChanged.rawValue, forKey: .type)
             try container.encode(id, forKey: .combatantID)
             try container.encode(from, forKey: .from)
             try container.encode(to, forKey: .to)

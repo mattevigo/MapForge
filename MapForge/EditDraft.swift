@@ -76,7 +76,7 @@ struct EditPawnDraft: Equatable {
     /// Only a Monster that *changed*: OK with it untouched leaves the Stat Block untouched,
     /// or opening a wounded gnoll to change its colour would heal it.
     var monsterToStamp: String? {
-        guard kind == .creature, monsterName != openedWithMonster else { return nil }
+        guard kind.canBeMonster, monsterName != openedWithMonster else { return nil }
         return monsterName
     }
 
@@ -99,7 +99,7 @@ struct EditPawnDraft: Equatable {
         edited.isBig = isBig
         // Only a Creature can be a Monster (`CONTEXT.md`). The search box is hidden for the
         // other Kinds, and the memory goes with it rather than lingering unseen.
-        edited.monsterName = kind == .creature ? monsterName : nil
+        edited.monsterName = kind.canBeMonster ? monsterName : nil
         // Sight is one number, and the dim value is the cosmetic feather derived from it —
         // never set independently, because a character's sight is not a light source. Both
         // move together or the halo stays at whatever the Pawn was created with.

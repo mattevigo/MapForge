@@ -107,6 +107,18 @@ final class BestiaryTests: XCTestCase {
                        ".mapforge/bestiary.json could not be read.")
     }
 
+    func testAFileFromANewerAppIsNotGuessedAt() throws {
+        try write("{ \"version\": 2, \"folder\": \"Bestiario\" }", to: ".mapforge/bestiary.json")
+        XCTAssertEqual(BestiaryStore.load(for: workspace).unavailable,
+                       ".mapforge/bestiary.json was written for a newer MapForge.")
+    }
+
+    func testAHandTypedFileNeedsNoVersion() throws {
+        try write("{ \"folder\": \"Bestiario\" }", to: ".mapforge/bestiary.json")
+        try write(note("Lich"), to: "Bestiario/Lich.md")
+        XCTAssertEqual(BestiaryStore.load(for: workspace).monsters.map(\.name), ["Lich"])
+    }
+
     func testAFolderThatIsNotThereIsNamed() throws {
         try configure(folder: "03_Bestario")
         XCTAssertEqual(BestiaryStore.load(for: workspace).unavailable,
@@ -122,6 +134,17 @@ final class BestiaryTests: XCTestCase {
         XCTAssertEqual(BestiaryStore.load(for: workspace).unavailable, outside)
         try configure(folder: "Bestiario/../../Altrove")
         XCTAssertEqual(BestiaryStore.load(for: workspace).unavailable, outside)
+    }
+
+    func testAWorkspaceUnderPrivateIsNotMistakenForOutside() throws {
+        // `standardizingPath` strips a leading /private. Done to one side of the comparison
+        // only, every folder of a Workspace spelled with it would be "outside".
+        try configure(folder: "Bestiario")
+        try write(note("Lich"), to: "Bestiario/Lich.md")
+        let spelledOut = Workspace(url: URL(fileURLWithPath: "/private" + root.path))
+        let url = try XCTUnwrap(BestiaryStore.folderURL("Bestiario", in: spelledOut))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        XCTAssertEqual(BestiaryStore.load(for: spelledOut).monsters.map(\.name), ["Lich"])
     }
 
     // MARK: Searching

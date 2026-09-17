@@ -32,7 +32,7 @@ enum AddPlacement {
         guard isInside(point, imageSize) else { return nil }
         // The last of this Kind, not the last placed. See the type's note.
         let previous = existing.last { $0.kind == kind }
-        let monster = kind == .creature ? bestiary.monster(named: previous?.monsterName) : nil
+        let monster = kind.canBeMonster ? bestiary.monster(named: previous?.monsterName) : nil
         let born = Pawn.nextLabel(after: existing)
         return Pawn(at: point,
                     label: monster.map { MonsterStamp.label(for: $0, replacing: born,

@@ -43,7 +43,11 @@ extension AppState {
         edit(&after)
         guard after != before else { return }
 
-        guard encounter != nil else {
+        // Straight to `stats.json` outside a fight — and for a bystander during one. A Pawn
+        // the Encounter holds no block for is not in it: recording its numbers into the Log
+        // would have the fold invent a fresh block for it, which `syncStatsFromEncounter`
+        // then writes over the real one, rostering it and stripping its Conditions.
+        guard let encounter, encounter.blocks[pawn] != nil else {
             setStatBlock(after, for: pawn)
             return
         }
@@ -96,6 +100,11 @@ extension AppState {
         if before.armorClass != after.armorClass {
             changes.append(.acChanged(combatantID: pawn,
                                       from: before.armorClass, to: after.armorClass))
+        }
+        if before.initiativeBonus != after.initiativeBonus {
+            changes.append(.initiativeBonusChanged(combatantID: pawn,
+                                                   from: before.initiativeBonus,
+                                                   to: after.initiativeBonus))
         }
         if before.exhaustion != after.exhaustion {
             changes.append(.exhaustionChanged(combatantID: pawn,

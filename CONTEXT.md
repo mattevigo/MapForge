@@ -93,7 +93,7 @@ A named roster of Characters — a campaign's cast, defined once. Parties belong
 _Avoid_: group, team, roster, campaign
 
 **Stamp**:
-Creating a Pawn from a Character by dragging the Character onto the Map. The Pawn is a **copy**, not a link: it takes the Character's name, colour, sight and size at that moment and then leads its own life. Renaming or deleting the Character afterwards leaves every Pawn already stamped from it untouched — the Map's own file stays self-contained and readable without the roster. Stamping is a live action like moving a Pawn, not an edit like tracing a Wall: it needs no mode and is not undoable. The same Character may be stamped any number of times, and each Pawn bears the same label.
+Creating a Pawn from a Character by dragging the Character onto the Map. The Pawn is a **copy**, not a link: it takes the Character's name, colour, sight and size at that moment and then leads its own life. Renaming or deleting the Character afterwards leaves every Pawn already stamped from it untouched — the Map's own file stays self-contained and readable without the roster. Stamping is a live action like moving a Pawn, not an edit like tracing a Wall: it needs no mode and is not undoable. The same Character may be stamped any number of times, and each Pawn bears the same label. The word is also used of a Monster: a Creature said to be one is **stamped** with the Monster's numbers — the same copy-not-link, landing on a Pawn that already exists rather than creating one.
 _Avoid_: instantiate, spawn, place, drop, add to map
 
 **Pawn Kind**:

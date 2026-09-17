@@ -679,10 +679,10 @@ final class AppState: ObservableObject {
         fog.pawns[index] = draft.applied(to: fog.pawns[index])
         // The one thing this sheet does to a Stat Block: a Monster that *changed* is stamped,
         // whole (ADR-0021). Through `editStatBlock`, so mid-fight the stamp is recorded as
-        // Changes like any other edit (ADR-0008) — which also means an initiative bonus
-        // stamped mid-fight is not carried, there being no Change for one; Initiative has
-        // been rolled by then, and the DM overtypes it. A Monster that left the Bestiary
-        // while the sheet was open stamps nothing, and the Pawn simply remembers its name.
+        // Changes like any other edit (ADR-0008); the rolled Initiative is not among them,
+        // because changing a bonus does not by itself move anyone. A Monster that left the
+        // Bestiary while the sheet was open stamps nothing, and the Pawn simply remembers
+        // its name.
         if let monster = bestiary.monster(named: draft.monsterToStamp) {
             editStatBlock(for: id) { $0 = MonsterStamp.statBlock(from: monster, over: $0) }
             // OK commits both files, so neither waits out a debounce.

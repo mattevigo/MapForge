@@ -50,8 +50,9 @@ stamps a Stat Block). This file is the agreed design from the grilling session, 
 - **Confirmation only when an existing current HP would be overwritten** (from an earlier
   Monster or typed by hand), naming the change ("12/27 → 45/45"); declining returns to the
   open sheet. A first stamp asks nothing.
-- During an Encounter the stamp goes through `editStatBlock`, so it is logged as Changes.
-  Initiative is not re-rolled.
+- During an Encounter the stamp goes through `editStatBlock`, so it is logged as Changes —
+  including the bonus, as the new `initiativeBonusChanged`. Initiative is not re-rolled. A
+  Pawn on the Map but not in the running fight is stamped straight to `stats.json`.
 - × , or changing Kind away from Creature, drops the memory and leaves the Stat Block as it is.
 - `Pawn` gains optional, advisory `monsterName` (`decodeIfPresent`, omitted when nil) in
   `<map>.fog.json`. A copy, not a link: combat never reads the Bestiary.

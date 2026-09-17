@@ -38,6 +38,16 @@ During a live Encounter the stamp goes through the same path as any Stat Block e
 Combat Log records it as Changes with before and after (ADR-0008). Initiative is not
 re-rolled: changing a bonus does not by itself move anyone.
 
+That needed one new Change, `initiativeBonusChanged`. Nothing in the tracker edits a bonus, so
+none had existed — and `stats.json` follows the fold, so a bonus the Log never heard of would
+have been overwritten by the old one and used by every later roll. `Change` decodes an unknown
+`type` to `.unrecognised` (ADR-0017), so an older build reading a newer Log loses the bonus and
+nothing else.
+
+A Pawn on the Map that is not *in* the running fight — left off the roster — is stamped
+straight to `stats.json`, as in prep. It has no block in the Encounter, and recording it would
+have the fold invent one: rostered, and stripped of its Conditions.
+
 ## Considered Options
 
 - **Picking applies immediately, outside OK/Cancel** — rejected: it makes Cancel lie.

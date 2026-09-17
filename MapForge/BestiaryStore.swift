@@ -6,6 +6,11 @@ import Foundation
 /// rather than a key in `preferences.json`, whose store forgives an unreadable file by
 /// overwriting it. A typo here can cost the DM the Bestiary and nothing else. See ADR-0020.
 struct BestiaryConfig: Decodable, Equatable {
+    static let current = 1
+
+    /// Absent in a file typed by hand is `current`: the DM is the only writer, and one who
+    /// left the line out meant nothing by it.
+    var version: Int?
     /// Relative to the Workspace root, so it travels with the Workspace (ADR-0012).
     var folder: String
 }
@@ -26,6 +31,9 @@ enum BestiaryStore {
               let config = try? JSONDecoder().decode(BestiaryConfig.self, from: data) else {
             return Bestiary(unavailable: "\(configName) could not be read.")
         }
+        guard (config.version ?? BestiaryConfig.current) <= BestiaryConfig.current else {
+            return Bestiary(unavailable: "\(configName) was written for a newer MapForge.")
+        }
         guard let folder = folderURL(config.folder, in: workspace) else {
             return Bestiary(unavailable: "The Bestiary folder must be inside this Workspace.")
         }
@@ -45,7 +53,9 @@ enum BestiaryStore {
     static func folderURL(_ folder: String, in workspace: Workspace) -> URL? {
         let trimmed = folder.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, !trimmed.hasPrefix("/"), !trimmed.hasPrefix("~") else { return nil }
-        let root = workspace.url.path
+        // Both sides standardised, or a root spelled `/private/…` would disown its own
+        // folders. `Workspace.init` already does it; this does not lean on that.
+        let root = (workspace.url.path as NSString).standardizingPath
         let resolved = (root as NSString).appendingPathComponent(trimmed)
         let standardised = (resolved as NSString).standardizingPath
         guard standardised == root || standardised.hasPrefix(root + "/") else { return nil }

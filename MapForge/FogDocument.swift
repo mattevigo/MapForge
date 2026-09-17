@@ -416,6 +416,18 @@ enum PawnKind: String, Codable, CaseIterable, Equatable {
         }
     }
 
+    /// Whether a Pawn of this kind can be said to be a `Monster`.
+    ///
+    /// Only a Creature (`CONTEXT.md`, **Monster**): a Player's numbers come from its
+    /// Character, and a Treasure has none. One place, so the search box, the draft and `Add`
+    /// cannot come to disagree about it. A `switch` with no `default`, as above.
+    var canBeMonster: Bool {
+        switch self {
+        case .creature: return true
+        case .player, .treasure: return false
+        }
+    }
+
     /// The heading this kind is listed under in the live panel.
     var pluralTitle: String {
         switch self {

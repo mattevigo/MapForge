@@ -111,8 +111,47 @@ final class BestiaryAppStateTests: XCTestCase {
         XCTAssertEqual(block.currentHP, 45)
         XCTAssertEqual(block.maxHP, 45)
         XCTAssertEqual(block.armorClass, 17)
+        XCTAssertEqual(block.initiativeBonus, 2,
+                       "the bonus is what the next re-roll and the next fight roll with")
         XCTAssertEqual(state.encounter?.initiative(of: pawn.id), initiative,
                        "changing a bonus does not by itself move anyone")
+        state.stopEncounter()
+    }
+
+    func testTheStampedBonusOutlivesTheFight() {
+        // `stats.json` follows the fold, so a bonus the Log never heard of would be
+        // overwritten by the old one the moment anything else was recorded.
+        let state = makeAppState()
+        let pawn = creature("GG1", monsterName: "Gnoll Guerriero")
+        state.fog.pawns = [pawn]
+        state.setStatBlock(StatBlock(initiativeBonus: 1, armorClass: 15), for: pawn.id)
+        state.startEncounter()
+        state.updatePawn(id: pawn.id, with: draft(for: pawn, picking: capo, in: state))
+        state.stopEncounter()
+        XCTAssertEqual(state.statBlock(for: pawn.id).initiativeBonus, 2)
+    }
+
+    func testStampingABystanderMidFightLeavesItABystander() {
+        // On the Map, off the roster, while somebody else fights: it has no block in the
+        // Encounter, so its numbers are prep and go straight to `stats.json` — through the
+        // Log they would come back as a fresh block, rostered and stripped.
+        let state = makeAppState()
+        let fighter = creature("GG1")
+        let innkeeper = creature("7")
+        state.fog.pawns = [fighter, innkeeper]
+        state.setStatBlock(StatBlock(temporaryHP: 4, conditions: [.prone], isInCombat: false),
+                           for: innkeeper.id)
+        state.startEncounter()
+
+        state.updatePawn(id: innkeeper.id, with: draft(for: innkeeper, picking: gnoll, in: state))
+
+        let block = state.statBlock(for: innkeeper.id)
+        XCTAssertEqual(block.maxHP, 27)
+        XCTAssertEqual(block.initiativeBonus, 1)
+        XCTAssertFalse(block.isInCombat)
+        XCTAssertEqual(block.temporaryHP, 4)
+        XCTAssertEqual(block.conditions, [.prone])
+        XCTAssertNil(state.encounter?.blocks[innkeeper.id])
         state.stopEncounter()
     }
 

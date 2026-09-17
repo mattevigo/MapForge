@@ -16,7 +16,7 @@ enum MonsterReference {
         var features: [Monster.Feature]
     }
 
-    /// The one-line facts above the actions, in the order a printed stat block gives them.
+    /// The one-line facts above the actions, in the order the rulebook prints them.
     /// Only what the note has. Armour class and hit points are not repeated: the Stat Block
     /// editor directly above shows the Pawn's own, which are the ones that are true now.
     static func lines(of monster: Monster) -> [Line] {
@@ -102,6 +102,13 @@ struct MonsterReferenceView: View {
     var body: some View {
         if let monster = bestiary.monster(named: monsterName) {
             page(monster)
+        } else if let unavailable = bestiary.unavailable {
+            // Still being read, or not configured: not the same thing as this Monster
+            // having left the notes, and not to be reported as it.
+            Text(unavailable)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         } else {
             Text("“\(monsterName)” is not in the Bestiary. Its numbers above are its own and are unaffected.")
                 .font(.caption)
