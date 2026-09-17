@@ -83,6 +83,14 @@ final class SetupToolbarWidthTests: XCTestCase {
             + "the toolbars will wrap and truncate")
     }
 
+    /// The floor itself, which is a judgement rather than a measurement: below this the
+    /// Control Window stops being usable for what it is for. Asserted here so that widening
+    /// the live panel again cannot quietly spend it. See
+    /// `docs/adr/0018-the-control-window-has-a-thousand-point-floor.md`.
+    func testTheControlWindowHasAThousandPointFloor() {
+        XCTAssertGreaterThanOrEqual(ControlView.minimumWindowWidth, 1000)
+    }
+
     /// And the Live Toolbar specifically, because it is the row that failed visibly: its
     /// labels are words, not glyphs, and a word that does not fit wraps rather than
     /// truncating — four stacked lines where there should be one.

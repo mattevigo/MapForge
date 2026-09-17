@@ -26,6 +26,11 @@ struct CombatPanel: View {
     /// edits the monster the party just hit, not the one acting.
     @Binding var selection: Pawn.ID?
 
+    /// Asks for the Roll sheet. A callback rather than a sheet of this panel's own: the
+    /// sheet is the same one the live row opens, and two presentations of one sheet is two
+    /// places for its dismissal to go wrong.
+    var onRoll: (Pawn, RollKind) -> Void = { _, _ in }
+
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -292,6 +297,32 @@ struct CombatPanel: View {
             hitPoints(block)
             armourClass(block)
             conditions(block)
+
+            // A Roll is recorded from the row the DM is already looking at. Styled as
+            // `bench` is, and like it these identifiers are swallowed by the row's
+            // `.combine` below — the behaviour is held down by `RollRoutingTests` instead,
+            // which is where it is worth testing anyway.
+            if let pawn = appState.fog.pawns.first(where: { $0.id == id }) {
+                Button {
+                    onRoll(pawn, .savingThrow)
+                } label: {
+                    Image(systemName: "bolt.shield")
+                        .font(.system(size: 9))
+                }
+                .buttonStyle(.borderless)
+                .accessibilityIdentifier("combatant-saving-throw")
+                .help("Record a Saving Throw for \(encounter.name(of: id) ?? "this Combatant").")
+
+                Button {
+                    onRoll(pawn, .abilityCheck)
+                } label: {
+                    Image(systemName: "figure.run")
+                        .font(.system(size: 9))
+                }
+                .buttonStyle(.borderless)
+                .accessibilityIdentifier("combatant-ability-check")
+                .help("Record an Ability Check for \(encounter.name(of: id) ?? "this Combatant").")
+            }
 
             Button {
                 appState.benchCombatant(id)

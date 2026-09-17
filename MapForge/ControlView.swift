@@ -12,6 +12,11 @@ struct ControlView: View {
     /// One optional rather than two, because at most one sheet is ever up: the DM reached it
     /// from one right-click on one thing.
     @State private var editing: EditTarget?
+
+    /// The Pawn a Roll is being recorded for, or nil when the sheet is closed. Separate from
+    /// `editing` because a Roll is not an edit: it writes to a Log and changes nothing.
+    @State private var rolling: RollTarget?
+
     @State private var fitSquare: GridFitSquare?
     @State private var squaresWideBeforeFit: Double = 0
     /// Whether the Grid was already declared when Grid Fit started. Entering Grid Fit
@@ -133,6 +138,16 @@ struct ControlView: View {
             case .light(let id, _): id
             }
         }
+    }
+
+    /// Which Pawn is rolling, and which of the two Rolls it is.
+    ///
+    /// Carries the Pawn whole rather than its id: the recorder snapshots the label, and a
+    /// Pawn deleted while the sheet is open should still record under the name it had.
+    private struct RollTarget: Identifiable {
+        let pawn: Pawn
+        let kind: RollKind
+        var id: UUID { pawn.id }
     }
 
     /// Renaming an existing Party, or naming a new one. A sum type rather than a name plus a
@@ -260,6 +275,14 @@ struct ControlView: View {
                                onCommit: { appState.updateLight(id: id, with: $0); editing = nil },
                                onCancel: { editing = nil })
             }
+        }
+        .sheet(item: $rolling) { target in
+            RollSheet(draft: RollDraft(pawn: target.pawn, kind: target.kind),
+                      onCommit: { draft in
+                          record(draft)
+                          rolling = nil
+                      },
+                      onCancel: { rolling = nil })
         }
         .alert("End the encounter and switch workspace?",
                isPresented: $confirmSwitchEndsEncounter) {
@@ -1414,6 +1437,8 @@ struct ControlView: View {
             soloSightToggle(pawn)
 
             combatRosterToggle(pawn)
+
+            rollButtons(pawn)
         }
         // With one Pawn isolated, the rest of the party is switched out of the lighting,
         // and the panel should say so at a glance: a DM who forgets Solo Sight is on will
@@ -1451,6 +1476,57 @@ struct ControlView: View {
             .help(isIn
                   ? "\(pawn.label) rolls Initiative when a fight starts. Click to leave them out."
                   : "\(pawn.label) sits the next fight out. Click to put them in.")
+        }
+    }
+
+    /// Hands a finished draft to the recorder.
+    ///
+    /// Deliberately without a branch on whether a fight is running: `recordRoll` writes to
+    /// the Combat Log while one is and the Session Log while none is, and ADR-0014's rule
+    /// that exactly one recorder is live is what makes that safe. A `if appState.encounter`
+    /// here would be a second, weaker copy of that rule.
+    private func record(_ draft: RollDraft) {
+        guard let roll = draft.roll else { return }
+        switch draft.kind {
+        case .savingThrow:
+            guard let ability = draft.ability else { return }
+            appState.recordRoll(pawn: draft.pawn, ability: ability, roll: roll)
+        case .abilityCheck:
+            guard let skill = draft.skill else { return }
+            appState.recordRoll(pawn: draft.pawn, skill: skill, roll: roll)
+        }
+    }
+
+    /// Record a Saving Throw or an Ability Check for this Pawn.
+    ///
+    /// Buttons rather than Toggles, alone in this row: everything else here shows a state
+    /// the symbol reflects, and a Roll has no state — it is an act, and the sheet is where
+    /// it happens.
+    ///
+    /// Omitted for a Treasure, as `combatRosterToggle` is and for the same reason: a chest
+    /// makes no Dexterity saves, and conditional visibility costs width rather than height.
+    ///
+    /// Live during a fight, unlike `combatRosterToggle`, because a Roll is often made by a
+    /// Pawn that is not a Combatant at all — the NPC in the corner — and this row is where
+    /// that Pawn lives. Which Log it lands in is `recordRoll`'s business, not this row's.
+    @ViewBuilder
+    private func rollButtons(_ pawn: Pawn) -> some View {
+        if pawn.kind != .treasure {
+            Button {
+                rolling = RollTarget(pawn: pawn, kind: .savingThrow)
+            } label: {
+                Image(systemName: "bolt.shield").frame(width: 16)
+            }
+            .accessibilityIdentifier("pawn-saving-throw")
+            .help("Record a Saving Throw for \(pawn.label).")
+
+            Button {
+                rolling = RollTarget(pawn: pawn, kind: .abilityCheck)
+            } label: {
+                Image(systemName: "figure.run").frame(width: 16)
+            }
+            .accessibilityIdentifier("pawn-ability-check")
+            .help("Record an Ability Check for \(pawn.label).")
         }
     }
 
@@ -1721,7 +1797,9 @@ struct ControlView: View {
 
     /// Wide enough for an Order row — Initiative, a name, hit points, armour class and a
     /// run of Condition icons — which 236 points could not hold.
-    static let livePanelWidth: CGFloat = 320
+    /// 364 rather than 320: the two Roll buttons need about 44 pt, and taking it from the
+    /// name column instead would shrink the thing a DM reads fastest in a fight.
+    static let livePanelWidth: CGFloat = 364
 
     /// The narrowest the Map column may get: the width the Setup and Live Toolbars need to
     /// stay on one line each, with a Map worth looking at underneath them.
@@ -1733,10 +1811,17 @@ struct ControlView: View {
     /// "Start Session" are words, and a word that does not fit wraps rather than truncating,
     /// which is how "Measurements" ended up as four stacked lines. It measures 411 pt.
     ///
-    /// 420 is that, plus a little room so a Toggle's label growing by a few points does not
+    /// 420 was that, plus a little room so a Toggle's label growing by a few points does not
     /// immediately re-break the row. Pinned by `testTheLiveToolbarsLabelsFitTheColumnOnOneLine`,
     /// which measures the real row rather than trusting this comment.
-    static let minimumMapColumnWidth: CGFloat = 420
+    ///
+    /// 584 is a larger claim and a different kind of one: not the width a toolbar row stops
+    /// wrapping at, but the width below which the Control Window stops being usable for what
+    /// it is for — a Map, a live panel and a toolbar at once, while a session runs. It is the
+    /// term that carries the window's 1000 pt floor, because it is the term that was
+    /// under-specified. See
+    /// `docs/adr/0018-the-control-window-has-a-thousand-point-floor.md`.
+    static let minimumMapColumnWidth: CGFloat = 584
 
     /// Both columns, the gap between them and the window's padding.
     ///
@@ -1811,7 +1896,8 @@ struct ControlView: View {
     /// reads the Encounter and nothing else this window holds, which is the seam issue
     /// 04's Scene extraction turned out not to have.
     private var combatPanel: some View {
-        CombatPanel(selection: $selectedCombatant)
+        CombatPanel(selection: $selectedCombatant,
+                    onRoll: { pawn, kind in rolling = RollTarget(pawn: pawn, kind: kind) })
     }
 
     // MARK: The Party

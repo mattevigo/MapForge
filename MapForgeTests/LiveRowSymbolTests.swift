@@ -14,6 +14,8 @@ final class LiveRowSymbolTests: XCTestCase {
                      "binoculars", "binoculars.fill",     // Solo Sight
                      "flame", "flame.fill",               // a Light\'s switch
                      "tv", "tv.slash",                    // the Player Display's state
+                     "bolt.shield",                       // record a Saving Throw
+                     "figure.run",                        // record an Ability Check
                      "exclamationmark.triangle.fill"]     // the undeclared-Grid warning
         for name in names {
             XCTAssertNotNil(NSImage(systemSymbolName: name, accessibilityDescription: nil),
