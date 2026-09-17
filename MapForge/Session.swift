@@ -56,6 +56,25 @@ enum SessionControl {
                            distanceSquares: distanceSquares, at: date)]
     }
 
+    /// A d20 recorded at the table. Silent during a fight, where the Combat Log records the
+    /// same Roll as a `Change` — the rule that keeps exactly one recorder live at any
+    /// instant, so the call site presses one button and never asks which file it lands in.
+    static func savingThrow(pawnID: UUID, label: String, map: String?,
+                            ability: Ability, roll: Roll,
+                            at date: Date, in session: inout Session) -> [SessionLine] {
+        guard !session.isRecordingSuspended else { return [] }
+        return [.savingThrow(pawnID: pawnID, label: label, map: map,
+                             ability: ability, roll: roll, at: date)]
+    }
+
+    static func abilityCheck(pawnID: UUID, label: String, map: String?,
+                             skill: Skill, roll: Roll,
+                             at date: Date, in session: inout Session) -> [SessionLine] {
+        guard !session.isRecordingSuspended else { return [] }
+        return [.abilityCheck(pawnID: pawnID, label: label, map: map,
+                              skill: skill, roll: roll, at: date)]
+    }
+
     /// Hands recording over to the Combat Log.
     ///
     /// The pointer line is written *even though* this call sets the flag: it is what makes
@@ -107,7 +126,7 @@ enum SessionFold {
                 session?.suspendRecording()
             case .encounterEnded:
                 session?.resumeRecording()
-            case .comment, .pawnMoved, .unrecognised:
+            case .comment, .pawnMoved, .savingThrow, .abilityCheck, .unrecognised:
                 // Records, not state. An unrecognised line must never end the evening.
                 break
             }

@@ -103,6 +103,28 @@ extension AppState {
         session = live
     }
 
+    /// Records a Roll into the Session Log.
+    ///
+    /// Called alongside the Combat Log's own record, exactly as `recordSessionMove` is.
+    /// Whether this writes anything is `SessionControl`'s decision, not this call site's.
+    func recordSessionRoll(pawn: Pawn, ability: Ability, roll: Roll) {
+        guard var live = session else { return }
+        writeSession(SessionControl.savingThrow(pawnID: pawn.id, label: pawn.label,
+                                                map: sessionMapName,
+                                                ability: ability, roll: roll,
+                                                at: Date(), in: &live))
+        session = live
+    }
+
+    func recordSessionRoll(pawn: Pawn, skill: Skill, roll: Roll) {
+        guard var live = session else { return }
+        writeSession(SessionControl.abilityCheck(pawnID: pawn.id, label: pawn.label,
+                                                 map: sessionMapName,
+                                                 skill: skill, roll: roll,
+                                                 at: Date(), in: &live))
+        session = live
+    }
+
     // MARK: The hand-off
 
     /// Hands recording to the Combat Log and writes the pointer naming it.

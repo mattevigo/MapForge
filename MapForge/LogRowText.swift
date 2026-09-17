@@ -114,6 +114,12 @@ enum LogRowText {
             text
         case let .pawnMoved(label, distanceSquares, _):
             "\(label) moved \(unit.format(squares: distanceSquares))"
+        case let .savingThrow(label, ability, roll, _):
+            // The same wording the Combat Log's own row uses, so a Roll reads identically
+            // on either side of an Encounter's splice.
+            "\(label) — \(ability.abbreviation) save \(describe(roll))"
+        case let .abilityCheck(label, skill, roll, _):
+            "\(label) — \(skill.title) (\(skill.ability.abbreviation)) \(describe(roll))"
         case let .mapSeparator(path):
             (path as NSString).lastPathComponent
         case let .encounterStarted(map, isLive):

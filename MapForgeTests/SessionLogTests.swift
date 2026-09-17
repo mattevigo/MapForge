@@ -206,4 +206,47 @@ final class SessionLogTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: root) }
         XCTAssertNil(SessionLogReader().newestLogURL(in: workspace))
     }
+
+    // MARK: Rolls
+
+    /// A Roll outside a fight, round-tripped with and without a Difficulty Class.
+    func testARollRoundTrips() throws {
+        let pawn = UUID()
+        let at = Date(timeIntervalSince1970: 1_757_600_000)
+        let lines: [SessionLine] = [
+            .savingThrow(pawnID: pawn, label: "Grix", map: "dungeon.png",
+                         ability: .dexterity,
+                         roll: Roll(d20: 16, modifier: 5, difficultyClass: 15), at: at),
+            .savingThrow(pawnID: pawn, label: "Grix", map: nil, ability: .wisdom,
+                         roll: Roll(d20: 3, modifier: -1), at: at),
+            .abilityCheck(pawnID: pawn, label: "Grix", map: "dungeon.png",
+                          skill: .stealth,
+                          roll: Roll(d20: 12, modifier: 7, difficultyClass: 15), at: at),
+            .abilityCheck(pawnID: pawn, label: "Grix", map: nil, skill: .perception,
+                          roll: Roll(d20: 20, modifier: 0), at: at),
+        ]
+        for line in lines {
+            let decoded = try JSONDecoder().decode(
+                SessionLine.self, from: JSONEncoder().encode(line))
+            XCTAssertEqual(decoded, line, "\(line) did not survive the round trip")
+        }
+    }
+
+    /// The label is a snapshot for the reason `pawnMoved`'s is: a line read next year must
+    /// name the Pawn without the fog file it came from.
+    func testARollSnapshotsThePawnsLabel() throws {
+        let pawn = UUID()
+        let line = SessionLine.savingThrow(
+            pawnID: pawn, label: "Grix", map: "dungeon.png", ability: .dexterity,
+            roll: Roll(d20: 16, modifier: 5, difficultyClass: 15),
+            at: Date(timeIntervalSince1970: 1_757_600_000))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: try JSONEncoder().encode(line)) as? [String: Any])
+
+        XCTAssertEqual(json["line"] as? String, "savingThrow")
+        XCTAssertEqual(json["label"] as? String, "Grix")
+        XCTAssertEqual(json["pawnID"] as? String, pawn.uuidString)
+        XCTAssertEqual(json["d20"] as? Int, 16)
+        XCTAssertNil(json["succeeded"], "the verdict is derived and must never be written")
+    }
 }

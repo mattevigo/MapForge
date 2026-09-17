@@ -15,6 +15,12 @@ enum LogRow: Equatable {
     case comment(text: String, at: Date)
     case pawnMoved(label: String, distanceSquares: CGFloat, at: Date)
 
+    /// A Roll outside a fight. Carries the same `Roll` the Combat Log's own row does, so
+    /// the two sides of an Encounter's splice read identically — the wording lives in
+    /// `LogRowText` and is shared rather than written twice.
+    case savingThrow(label: String, ability: Ability, roll: Roll, at: Date)
+    case abilityCheck(label: String, skill: Skill, roll: Roll, at: Date)
+
     /// The Map changed. Synthetic: nothing records a switch, so this is inferred from two
     /// consecutive Lines disagreeing about their Map. See ADR-0016.
     case mapSeparator(path: String)
@@ -120,6 +126,10 @@ struct LogViewModel {
                 rows.append(.comment(text: text, at: at))
             case let .pawnMoved(_, label, _, _, _, distance, at):
                 rows.append(.pawnMoved(label: label, distanceSquares: distance, at: at))
+            case let .savingThrow(_, label, _, ability, roll, at):
+                rows.append(.savingThrow(label: label, ability: ability, roll: roll, at: at))
+            case let .abilityCheck(_, label, _, skill, roll, at):
+                rows.append(.abilityCheck(label: label, skill: skill, roll: roll, at: at))
             case let .encounterStarted(map, logFile, _):
                 // The live fight is the one pointer nothing closes: the Session Log falls
                 // silent for a fight's whole extent (ADR-0014), so a pointer with no close
@@ -291,6 +301,8 @@ private extension SessionLine {
         switch self {
         case let .comment(_, map, _, _): map
         case let .pawnMoved(_, _, map, _, _, _, _): map
+        case let .savingThrow(_, _, map, _, _, _): map
+        case let .abilityCheck(_, _, map, _, _, _): map
         case let .encounterStarted(map, _, _): map
         case let .encounterEnded(map, _): map
         case .sessionStarted, .sessionEnded, .unrecognised: nil
