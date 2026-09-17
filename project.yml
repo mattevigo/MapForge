@@ -5,6 +5,13 @@ options:
     macOS: "15.0"
   createIntermediateGroups: true
 
+# The app's only package. It reads the YAML inside a Monster's `statblock` fence, which is
+# authored for Obsidian's parser rather than for ours — see ADR-0019.
+packages:
+  Yams:
+    url: https://github.com/jpsim/Yams
+    from: "6.0.0"
+
 targets:
   MapForge:
     type: application
@@ -24,6 +31,8 @@ targets:
         CODE_SIGN_STYLE: Manual
         ENABLE_HARDENED_RUNTIME: NO
         COMBINE_HIDPI_IMAGES: YES
+    dependencies:
+      - package: Yams
     info:
       path: MapForge/Info.plist
       properties:
