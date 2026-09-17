@@ -32,7 +32,8 @@ about what a Monster *is* — the leading integer taken from `hp: 67 (9d8 + 27)`
 minus in `"−1 (9)"`, which sizes make a Pawn Big — is the app's own code on top of that tree,
 and is tested without Yams' help.
 
-Nothing the app **writes** becomes YAML. `.mapforge/` stays JSON, `bestiary.json` included.
+Nothing the app **writes** becomes YAML. `.mapforge/` stays JSON, the hand-edited `config.json`
+included.
 
 This is not a precedent for taking packages freely. The bar it cleared is that the format is
 someone else's, is a published standard, and is authored by a tool whose parser we must

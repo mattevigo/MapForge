@@ -32,7 +32,7 @@ final class BestiaryTests: XCTestCase {
     }
 
     private func configure(folder: String) throws {
-        try write("{ \"version\": 1, \"folder\": \"\(folder)\" }", to: ".mapforge/bestiary.json")
+        try write("{ \"bestiaryStatBlockPath\": \"\(folder)\" }", to: ".mapforge/config.json")
     }
 
     private func note(_ name: String, _ extra: String = "ac: 12") -> String {
@@ -98,23 +98,27 @@ final class BestiaryTests: XCTestCase {
     func testWithoutTheFileThereIsNoBestiaryAndTheReasonNamesIt() {
         let bestiary = BestiaryStore.load(for: workspace)
         XCTAssertEqual(bestiary.monsters, [])
-        XCTAssertEqual(bestiary.unavailable, "No .mapforge/bestiary.json in this Workspace.")
+        XCTAssertEqual(bestiary.unavailable, "No .mapforge/config.json in this Workspace.")
     }
 
     func testAnUnreadableFileIsSaidPlainly() throws {
-        try write("{ \"folder\": ", to: ".mapforge/bestiary.json")
+        try write("{ \"bestiaryStatBlockPath\": ", to: ".mapforge/config.json")
         XCTAssertEqual(BestiaryStore.load(for: workspace).unavailable,
-                       ".mapforge/bestiary.json could not be read.")
+                       ".mapforge/config.json could not be read.")
     }
 
-    func testAFileFromANewerAppIsNotGuessedAt() throws {
-        try write("{ \"version\": 2, \"folder\": \"Bestiario\" }", to: ".mapforge/bestiary.json")
+    func testAConfigurationThatSaysNothingAboutTheBestiaryIsNotAnError() throws {
+        // The file is generic: one written for some later setting, with no Bestiary in it, is
+        // a DM who has no Bestiary — said as that, not as a broken file.
+        try write("{ }", to: ".mapforge/config.json")
         XCTAssertEqual(BestiaryStore.load(for: workspace).unavailable,
-                       ".mapforge/bestiary.json was written for a newer MapForge.")
+                       "No bestiaryStatBlockPath in .mapforge/config.json.")
     }
 
-    func testAHandTypedFileNeedsNoVersion() throws {
-        try write("{ \"folder\": \"Bestiario\" }", to: ".mapforge/bestiary.json")
+    func testSettingsTheAppDoesNotKnowAreIgnored() throws {
+        // Generic means other keys will arrive, possibly written for a newer build.
+        try write("{ \"bestiaryStatBlockPath\": \"Bestiario\", \"somethingLater\": 3 }",
+                  to: ".mapforge/config.json")
         try write(note("Lich"), to: "Bestiario/Lich.md")
         XCTAssertEqual(BestiaryStore.load(for: workspace).monsters.map(\.name), ["Lich"])
     }
@@ -127,7 +131,7 @@ final class BestiaryTests: XCTestCase {
 
     func testAFolderOutsideTheWorkspaceIsRefused() throws {
         // What travels with the Workspace must be inside it (ADR-0012).
-        let outside = "The Bestiary folder must be inside this Workspace."
+        let outside = "bestiaryStatBlockPath must be a folder inside this Workspace, written relative to it — “03_Bestiario”, not a full path."
         try configure(folder: "../Altrove")
         XCTAssertEqual(BestiaryStore.load(for: workspace).unavailable, outside)
         try configure(folder: "/Users/Shared/Bestiario")

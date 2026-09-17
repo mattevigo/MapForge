@@ -12,11 +12,15 @@ its Monster's numbers.
 The DM already keeps a bestiary — in Obsidian, with tactics, lore and links beside each
 statblock, in a vault that is also their Workspace. An editor in the app would be a worse
 copy of a tool they already use, and an import would fork their notes on the day it ran. So
-the app only reads. `.mapforge/bestiary.json` names the folder, relative to the Workspace
-root so that it travels with the Workspace (ADR-0012), and the app never writes that file:
-it is hand-edited for now, and a typo in it can cost the DM the Bestiary and nothing else.
-This is why it is not a key in `preferences.json`, whose store forgives an unreadable file
-by overwriting it.
+the app only reads. `.mapforge/config.json` names the folder in `bestiaryStatBlockPath`,
+relative to the Workspace root so that it travels with the Workspace (ADR-0012). That file is
+the Workspace's generic, hand-edited configuration — one JSON object, one optional property
+per setting, the Bestiary's being the first — and the app never writes it: there is no
+settings screen yet, and a typo in it can cost the DM what it configures and nothing else.
+This is why the setting is not a key in `preferences.json`, which the app *does* write and
+whose store forgives an unreadable file by overwriting it. Two files, split by who holds the
+pen. The key says "StatBlock" because that is the DM's word for what the folder holds; it is
+the notes' notation and not the domain's Stat Block.
 
 ## Copied, not linked
 

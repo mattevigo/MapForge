@@ -29,8 +29,8 @@ struct Workspace: Equatable, Hashable {
     var manifestURL: URL { supportDirectory.appendingPathComponent("workspace.json") }
     var partiesURL: URL { supportDirectory.appendingPathComponent("parties.json") }
     var preferencesURL: URL { supportDirectory.appendingPathComponent("preferences.json") }
-    /// Which folder holds the DM's Monsters. Read and never written — see `BestiaryStore`.
-    var bestiaryURL: URL { supportDirectory.appendingPathComponent("bestiary.json") }
+    /// What the DM sets by hand. Read and never written — see `WorkspaceConfig`.
+    var configURL: URL { supportDirectory.appendingPathComponent("config.json") }
 }
 
 /// The file whose presence makes a folder a Workspace.

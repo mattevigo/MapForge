@@ -9,11 +9,13 @@ stamps a Stat Block). This file is the agreed design from the grilling session, 
 
 ## Source
 
-- `.mapforge/bestiary.json` — `{ "version": 1, "folder": "03_Bestiario" }`. Hand-edited; the app
-  reads it and **never writes it**. Not a key in `preferences.json`, not in the Manifest.
-- `folder` is relative to the Workspace root and must be inside it. Absolute, `~`, or escaping
-  with `..` → no Bestiary, with a reason. Missing file, unreadable file, missing folder → no
-  Bestiary, each with its own reason.
+- `.mapforge/config.json` — the Workspace's generic, hand-edited configuration: one JSON object,
+  one optional property per setting. The first is `{ "bestiaryStatBlockPath": "03_Bestiario" }`.
+  The app reads it and **never writes it**. Not `preferences.json` (which the app writes, and
+  overwrites when unreadable), not the Manifest. No `version`; unknown keys are ignored.
+- `bestiaryStatBlockPath` is relative to the Workspace root and must be inside it. Absolute,
+  `~`, or escaping with `..` → no Bestiary, with a reason. Missing file, unreadable file, file
+  without the property, missing folder → no Bestiary, each with its own reason.
 - Scanned recursively for markdown notes holding a ```` ```statblock ```` fence (YAML, parsed
   with Yams).
 - Read in `AppState.open(_ workspace:)`, off the main thread; cleared in `closeWorkspace()`.
