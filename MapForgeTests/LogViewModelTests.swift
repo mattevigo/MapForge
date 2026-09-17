@@ -289,6 +289,89 @@ final class LogViewModelTests: XCTestCase {
                        "position is the only fact an unreadable Line has left")
     }
 
+    // MARK: Rolls across the splice
+
+    /// A Roll is the first record that can appear on *both* sides of an Encounter's splice,
+    /// so it is the first that could look inconsistent across it. The wording is shared, so
+    /// the two read alike.
+    func testARollReadsTheSameInsideAFightAndOutsideOne() throws {
+        let grix = UUID()
+        let roll = Roll(d20: 16, modifier: 5, difficultyClass: 15)
+        try writeCombatLog([
+            .encounterStarted(startedAt: Date(), order: [grix],
+                              combatants: [combatant("Grix", id: grix)]),
+            .turn(round: 1, combatantID: grix, changes: [
+                .savingThrow(combatantID: grix, ability: .dexterity, roll: roll),
+            ], endedAt: Date()),
+            .encounterEnded(endedAt: Date()),
+        ], forMapAt: mapURL)
+
+        let url = try writeSessionLog([
+            .sessionStarted(startedAt: Date()),
+            .savingThrow(pawnID: grix, label: "Grix", map: "dungeon.png",
+                         ability: .dexterity, roll: roll, at: Date()),
+            .encounterStarted(map: "dungeon.png", logFile: "fight.jsonl", at: Date()),
+            .encounterEnded(map: "dungeon.png", at: Date()),
+        ])
+
+        let rows = LogViewModel().rows(sessionLogAt: url, workspace: workspace)
+        let texts = rows.map { LogRowText.describe($0) }
+
+        // The session-side row, and the combat-side one, say the same thing.
+        XCTAssertTrue(texts.contains("Grix — DEX save 21 (16 + 5) vs DC 15 — succeeded"),
+                      "the Session Log's Roll, in rows: \(texts)")
+        let inFight = rows.contains {
+            if case let .change(change, name) = $0,
+               case .savingThrow = change, name == "Grix" { true } else { false }
+        }
+        XCTAssertTrue(inFight, "the Combat Log's Roll is spliced in as a Change row")
+    }
+
+    /// The Roll in the fight is a Change on its Turn, so it sits at the Change indent
+    /// rather than at the top level a Session Line sits at.
+    func testARollInAFightSitsUnderItsTurn() throws {
+        let grix = UUID()
+        try writeCombatLog([
+            .encounterStarted(startedAt: Date(), order: [grix],
+                              combatants: [combatant("Grix", id: grix)]),
+            .turn(round: 1, combatantID: grix, changes: [
+                .abilityCheck(combatantID: grix, skill: .stealth,
+                              roll: Roll(d20: 12, modifier: 7)),
+            ], endedAt: Date()),
+            .encounterEnded(endedAt: Date()),
+        ], forMapAt: mapURL)
+
+        let url = try writeSessionLog([
+            .sessionStarted(startedAt: Date()),
+            .encounterStarted(map: "dungeon.png", logFile: "fight.jsonl", at: Date()),
+            .encounterEnded(map: "dungeon.png", at: Date()),
+        ])
+
+        let rows = LogViewModel().rows(sessionLogAt: url, workspace: workspace)
+        let rollRow = try XCTUnwrap(rows.first {
+            if case let .change(change, _) = $0, case .abilityCheck = change { true } else { false }
+        })
+        XCTAssertEqual(rollRow.indent, 2, "a Roll in a fight is a Change on a Turn")
+    }
+
+    /// A Roll outside a fight is a Line of the evening, not a Change on anybody's Turn.
+    func testARollOutsideAFightSitsAtTheTopLevel() throws {
+        let url = try writeSessionLog([
+            .sessionStarted(startedAt: Date()),
+            .abilityCheck(pawnID: UUID(), label: "Grix", map: "dungeon.png",
+                          skill: .perception, roll: Roll(d20: 4, modifier: 1,
+                                                         difficultyClass: 15), at: Date()),
+        ])
+
+        let rows = LogViewModel().rows(sessionLogAt: url, workspace: workspace)
+        let rollRow = try XCTUnwrap(rows.first {
+            if case .abilityCheck = $0 { true } else { false }
+        })
+        XCTAssertEqual(rollRow.indent, 0)
+        XCTAssertEqual(LogRowText.describe(rollRow),
+                       "Grix — Perception (WIS) 5 (4 + 1) vs DC 15 — failed")
+    }
+
     // MARK: A live fight
 
     func testALiveEncounterIsReadFromMemoryAndMarked() throws {
