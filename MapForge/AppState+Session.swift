@@ -11,9 +11,19 @@ extension AppState {
     /// The file the running Session is appending to, for tests and diagnostics.
     var sessionLogURL: URL? { sessionWriter?.url }
 
-    /// The Map name a line carries: the file name, never a path. The Workspace travels and
-    /// the machine does not (ADR-0012), so an absolute path in a Log is a path that rots.
-    private var sessionMapName: String? { mapURL?.lastPathComponent }
+    /// The Map a line names: a path relative to the Workspace root, never an absolute one.
+    ///
+    /// Relative because the Workspace travels and the machine does not (ADR-0012) — an
+    /// absolute path in a Log is a path that rots the moment the folder opens on another Mac.
+    /// A path rather than a bare file name because resolving an Encounter's Combat Log goes
+    /// through this field, and two `dungeon.png` in different folders are one name (ADR-0016).
+    ///
+    /// A Map outside the Workspace has no relative path to give and keeps its file name.
+    private var sessionMapName: String? {
+        guard let mapURL else { return nil }
+        guard let workspace else { return mapURL.lastPathComponent }
+        return SessionMapPath.relative(from: mapURL, to: workspace)
+    }
 
     // MARK: Starting and stopping
 
@@ -119,6 +129,8 @@ extension AppState {
     private func writeSession(_ lines: [SessionLine]) {
         guard !lines.isEmpty, let sessionWriter else { return }
         for line in lines { try? sessionWriter.append(line) }
+        // An open Log View re-reads on this. See `sessionLineCount`.
+        noteSessionLineWritten()
     }
 
     private func closeSessionLog() {
