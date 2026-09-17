@@ -278,7 +278,20 @@ struct CombatantNames {
             case let .encounterStarted(_, _, combatants):
                 for combatant in combatants { names[combatant.id] = combatant.name }
             case let .turn(_, _, changes, _), let .correction(_, _, changes, _):
-                for case let .combatantJoined(id, name, _, _, _) in changes { names[id] = name }
+                for change in changes {
+                    switch change {
+                    case let .combatantJoined(id, name, _, _, _):
+                        names[id] = name
+                    // A Roll can be the only line that names its Pawn: one kept off the
+                    // roster never joins and is in no snapshot, yet it rolls.
+                    case let .savingThrow(id, name, _, _), let .abilityCheck(id, name, _, _):
+                        // `updateValue` only if absent: a Combatant who joined under a name
+                        // keeps it, and a Pawn renamed mid-fight does not rewrite history.
+                        if names[id] == nil { names[id] = name }
+                    default:
+                        continue
+                    }
+                }
             case .encounterEnded:
                 continue
             }

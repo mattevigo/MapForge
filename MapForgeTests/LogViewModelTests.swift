@@ -301,7 +301,7 @@ final class LogViewModelTests: XCTestCase {
             .encounterStarted(startedAt: Date(), order: [grix],
                               combatants: [combatant("Grix", id: grix)]),
             .turn(round: 1, combatantID: grix, changes: [
-                .savingThrow(combatantID: grix, ability: .dexterity, roll: roll),
+                .savingThrow(combatantID: grix, name: "Grix", ability: .dexterity, roll: roll),
             ], endedAt: Date()),
             .encounterEnded(endedAt: Date()),
         ], forMapAt: mapURL)
@@ -335,7 +335,7 @@ final class LogViewModelTests: XCTestCase {
             .encounterStarted(startedAt: Date(), order: [grix],
                               combatants: [combatant("Grix", id: grix)]),
             .turn(round: 1, combatantID: grix, changes: [
-                .abilityCheck(combatantID: grix, skill: .stealth,
+                .abilityCheck(combatantID: grix, name: "Grix", skill: .stealth,
                               roll: Roll(d20: 12, modifier: 7)),
             ], endedAt: Date()),
             .encounterEnded(endedAt: Date()),

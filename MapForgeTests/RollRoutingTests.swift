@@ -103,6 +103,58 @@ final class RollRoutingTests: XCTestCase {
                        "a Roll is about the Pawn, not about whose Turn it is")
     }
 
+    /// A Pawn kept out of the roster entirely never joins the Order, so no line in the
+    /// Combat Log carries its name — and a `Change` has no label to fall back on the way a
+    /// `SessionLine` does. Its Roll must still be readable.
+    func testARollByAPawnWhoNeverJoinedIsStillNamed() {
+        let state = makeAppState()
+        let grix = pawn("Grix")
+        let innkeeper = pawn("Innkeeper", kind: .creature)
+        state.fog.pawns = [grix, innkeeper]
+        // Kept out of the fight before it starts: never an Entrant, never in the snapshot.
+        state.setInCombat(false, for: innkeeper.id)
+        state.startSession()
+        state.startEncounter()
+
+        state.recordRoll(pawn: innkeeper, skill: .persuasion,
+                         roll: Roll(d20: 12, modifier: 7, difficultyClass: 15))
+        // A Turn's Changes reach the file when the Turn ends, which is when a reader sees
+        // them at all.
+        state.endTurn()
+
+        let lines = state.encounter?.lines ?? []
+        XCTAssertEqual(CombatantNames(lines).name(of: innkeeper.id), "Innkeeper",
+                       "a Roll by someone outside the Order must still name them")
+
+        // And the row a DM reads says so too, rather than "Unknown combatant".
+        let texts = LogViewModel.combatRows(lines).map { LogRowText.describe($0) }
+        XCTAssertTrue(texts.contains { $0.hasPrefix("Innkeeper — Persuasion (CHA)") },
+                      "rows were: \(texts)")
+    }
+
+    /// A Roll is a record of something that just happened at the table. Filing it against a
+    /// Turn three Rounds ago would put it permanently in the wrong Round of an append-only
+    /// file — which is why `.moved` is already exempt from Corrections.
+    func testARollIsNotSweptIntoACorrection() {
+        let state = makeAppState()
+        let grix = pawn("Grix")
+        state.fog.pawns = [grix]
+        state.startSession()
+        state.startEncounter()
+        state.endTurn()
+        // The correction cursor, as the "encounter-previous" button sets it.
+        state.stepBackForCorrection()
+        XCTAssertNotNil(state.encounter?.correctionTarget, "precondition: correcting")
+
+        state.recordRoll(pawn: grix, ability: .dexterity, roll: save)
+
+        let corrections = (state.encounter?.lines ?? []).filter {
+            if case .correction = $0 { return true } else { return false }
+        }
+        XCTAssertTrue(corrections.isEmpty,
+                      "a Roll happens now and cannot amend a Turn that already ended")
+    }
+
     // MARK: Outside a fight
 
     func testARollOutsideAFightGoesToTheSessionLog() throws {

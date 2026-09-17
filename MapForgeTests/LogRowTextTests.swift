@@ -107,7 +107,7 @@ final class LogRowTextTests: XCTestCase {
     /// 21 was a 16 on the die, because the die is the part the table remembers.
     func testASavingThrowReadsItsAbilityTotalAndVerdict() {
         let text = LogRowText.describe(
-            .savingThrow(combatantID: combatant, ability: .dexterity,
+            .savingThrow(combatantID: combatant, name: "Grix", ability: .dexterity,
                          roll: Roll(d20: 16, modifier: 5, difficultyClass: 15)),
             combatantName: "Grix")
         XCTAssertEqual(text, "Grix — DEX save 21 (16 + 5) vs DC 15 — succeeded")
@@ -117,7 +117,7 @@ final class LogRowTextTests: XCTestCase {
     /// what it beat, and inventing a verdict for it would be inventing the DC.
     func testASavingThrowWithoutADifficultyClassHasNoVerdict() {
         let text = LogRowText.describe(
-            .savingThrow(combatantID: combatant, ability: .wisdom,
+            .savingThrow(combatantID: combatant, name: "Grix", ability: .wisdom,
                          roll: Roll(d20: 11, modifier: 2)),
             combatantName: "Grix")
         XCTAssertEqual(text, "Grix — WIS save 13 (11 + 2)")
@@ -127,7 +127,7 @@ final class LogRowTextTests: XCTestCase {
     /// is the thing a DM forgets.
     func testAnAbilityCheckNamesItsSkillAndDerivedAbility() {
         let text = LogRowText.describe(
-            .abilityCheck(combatantID: combatant, skill: .stealth,
+            .abilityCheck(combatantID: combatant, name: "Grix", skill: .stealth,
                           roll: Roll(d20: 12, modifier: 7, difficultyClass: 15)),
             combatantName: "Grix")
         XCTAssertEqual(text, "Grix — Stealth (DEX) 19 (12 + 7) vs DC 15 — succeeded")
@@ -135,7 +135,7 @@ final class LogRowTextTests: XCTestCase {
 
     func testAFailedRollReadsAsFailed() {
         let text = LogRowText.describe(
-            .abilityCheck(combatantID: combatant, skill: .perception,
+            .abilityCheck(combatantID: combatant, name: "Grix", skill: .perception,
                           roll: Roll(d20: 4, modifier: 1, difficultyClass: 15)),
             combatantName: "Grix")
         XCTAssertEqual(text, "Grix — Perception (WIS) 5 (4 + 1) vs DC 15 — failed")
@@ -145,7 +145,7 @@ final class LogRowTextTests: XCTestCase {
     /// DM would have said out loud.
     func testANegativeModifierReadsAsASubtraction() {
         let text = LogRowText.describe(
-            .savingThrow(combatantID: combatant, ability: .charisma,
+            .savingThrow(combatantID: combatant, name: "Grix", ability: .charisma,
                          roll: Roll(d20: 9, modifier: -1)),
             combatantName: "Grix")
         XCTAssertEqual(text, "Grix — CHA save 8 (9 - 1)")

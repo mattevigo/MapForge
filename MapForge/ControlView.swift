@@ -147,7 +147,17 @@ struct ControlView: View {
     private struct RollTarget: Identifiable {
         let pawn: Pawn
         let kind: RollKind
-        var id: UUID { pawn.id }
+
+        /// The Pawn *and* the kind. `.sheet(item:)` re-presents only when the id changes,
+        /// and `RollSheet`'s draft is `@State` — so an id of the Pawn alone would let a DM
+        /// who asks for an Ability Check right after a Saving Throw on the same Pawn get
+        /// the sheet they just closed.
+        struct ID: Hashable {
+            let pawn: UUID
+            let kind: RollKind
+        }
+
+        var id: ID { ID(pawn: pawn.id, kind: kind) }
     }
 
     /// Renaming an existing Party, or naming a new one. A sum type rather than a name plus a

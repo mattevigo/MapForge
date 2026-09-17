@@ -57,11 +57,18 @@ struct RollSheet: View {
                 ForEach(Self.commonDifficultyClasses, id: \.self) {
                     Text("\($0)").tag(Int?.some($0))
                 }
+                // A DC of 13, or none at all, is not one of the four — and a segmented
+                // control whose binding holds an untagged value draws with nothing
+                // selected, which reads as "no DC" when a DC is set. This tag is never
+                // shown; it is what the selection lands on so the four are honestly unlit.
+                Text("").tag(Int?.none).hidden()
             }
             .labelsHidden()
             .pickerStyle(.segmented)
 
-            NumberField("DC", value: $draft.difficultyClass, width: 60)
+            NumberField(value: draft.difficultyClass,
+                        identifier: "roll-difficulty-class",
+                        width: 60) { draft.difficultyClass = $0 }
                 .help("Clear this to record the Roll without a Difficulty Class — the Log "
                       + "then reports the total and no verdict.")
         }
@@ -147,10 +154,9 @@ struct RollSheet: View {
     private var modifierRow: some View {
         HStack(spacing: 10) {
             Text("Modifier:")
-            NumberField("modifier", value: Binding(
-                get: { Optional(draft.modifier) },
-                set: { draft.modifier = $0 ?? 0 }
-            ), width: 60)
+            NumberField(value: draft.modifier,
+                        identifier: "roll-modifier",
+                        width: 60) { draft.modifier = $0 ?? 0 }
             Text("ability bonus, proficiency, active effects")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -218,48 +224,5 @@ struct RollSheet: View {
                 .keyboardShortcut(.defaultAction)
                 .disabled(draft.roll == nil)
         }
-    }
-}
-
-/// A number that may be absent, committed on Return and on focus loss.
-///
-/// `StatEditor` has one of these for its stat fields; this is the same contract for a value
-/// whose absence is meaningful — an empty Difficulty Class is a Roll with no DC, not a zero.
-private struct NumberField: View {
-    let placeholder: String
-    @Binding var value: Int?
-    let width: CGFloat
-    @State private var text: String = ""
-    @FocusState private var isFocused: Bool
-
-    init(_ placeholder: String, value: Binding<Int?>, width: CGFloat) {
-        self.placeholder = placeholder
-        self._value = value
-        self.width = width
-    }
-
-    var body: some View {
-        TextField(placeholder, text: $text)
-            .textFieldStyle(.roundedBorder)
-            .frame(width: width)
-            .multilineTextAlignment(.trailing)
-            .monospacedDigit()
-            .focused($isFocused)
-            .onSubmit(commit)
-            .onChange(of: isFocused) { _, focused in if !focused { commit() } }
-            .onAppear { text = value.map(String.init) ?? "" }
-            .onChange(of: value) { _, new in
-                // Follow the model when it changes from elsewhere — the DC segmented control
-                // writes the same value this field shows.
-                let rendered = new.map(String.init) ?? ""
-                if Int(text) != new { text = rendered }
-            }
-    }
-
-    private func commit() {
-        let trimmed = text.trimmingCharacters(in: .whitespaces)
-        // Empty means absent, which is a value here rather than a refusal.
-        value = trimmed.isEmpty ? nil : Int(trimmed)
-        text = value.map(String.init) ?? ""
     }
 }

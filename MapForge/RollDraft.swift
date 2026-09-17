@@ -5,7 +5,7 @@ import Foundation
 /// They differ in what is being rolled against and in nothing else: both carry a Difficulty
 /// Class, a d20 and a Modifier. Two cases rather than one with a flag, because a DM presses
 /// two different buttons and a reader opening the Log sees two different words.
-enum RollKind: Equatable {
+enum RollKind: Hashable {
     case savingThrow
     case abilityCheck
 

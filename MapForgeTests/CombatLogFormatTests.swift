@@ -52,13 +52,13 @@ final class CombatLogFormatTests: XCTestCase {
             .combatantJoined(combatantID: grog, name: "Grog", kind: .player,
                              initiative: 18, block: StatBlock(currentHP: 26, maxHP: 26)),
             .combatantRemoved(combatantID: grog),
-            .savingThrow(combatantID: grog, ability: .dexterity,
+            .savingThrow(combatantID: grog, name: "Grix", ability: .dexterity,
                          roll: Roll(d20: 16, modifier: 5, difficultyClass: 15)),
-            .savingThrow(combatantID: grog, ability: .wisdom,
+            .savingThrow(combatantID: grog, name: "Grix", ability: .wisdom,
                          roll: Roll(d20: 3, modifier: -1)),
-            .abilityCheck(combatantID: grog, skill: .stealth,
+            .abilityCheck(combatantID: grog, name: "Grix", skill: .stealth,
                           roll: Roll(d20: 12, modifier: 7, difficultyClass: 15)),
-            .abilityCheck(combatantID: grog, skill: .perception,
+            .abilityCheck(combatantID: grog, name: "Grix", skill: .perception,
                           roll: Roll(d20: 20, modifier: 0)),
         ]
         for change in changes {
@@ -71,7 +71,7 @@ final class CombatLogFormatTests: XCTestCase {
     /// The `Roll` is written flat rather than nested, because a DM opens this file and
     /// reads it: `"d20": 16, "modifier": 5` on the line itself, not under a sub-object.
     func testARollIsWrittenFlatAndTaggedByType() throws {
-        let change = Change.savingThrow(combatantID: grog, ability: .dexterity,
+        let change = Change.savingThrow(combatantID: grog, name: "Grix", ability: .dexterity,
                                         roll: Roll(d20: 16, modifier: 5, difficultyClass: 15))
         let json = try XCTUnwrap(JSONSerialization.jsonObject(
             with: try JSONEncoder().encode(change)) as? [String: Any])
@@ -86,7 +86,7 @@ final class CombatLogFormatTests: XCTestCase {
     /// Success is `d20 + modifier >= DC`, computed on read. A stored derivable fact is the
     /// drift ADR-0008 was written against.
     func testARollNeverStoresItsVerdict() throws {
-        let change = Change.abilityCheck(combatantID: grog, skill: .stealth,
+        let change = Change.abilityCheck(combatantID: grog, name: "Grix", skill: .stealth,
                                          roll: Roll(d20: 12, modifier: 7, difficultyClass: 15))
         let json = try XCTUnwrap(JSONSerialization.jsonObject(
             with: try JSONEncoder().encode(change)) as? [String: Any])
@@ -98,7 +98,7 @@ final class CombatLogFormatTests: XCTestCase {
     /// An Ability Check stores its Skill and not its Ability: the Skill implies it, and a
     /// stored copy would let a Log disagree with itself.
     func testAnAbilityCheckStoresItsSkillAndNotItsAbility() throws {
-        let change = Change.abilityCheck(combatantID: grog, skill: .stealth,
+        let change = Change.abilityCheck(combatantID: grog, name: "Grix", skill: .stealth,
                                          roll: Roll(d20: 12, modifier: 7))
         let json = try XCTUnwrap(JSONSerialization.jsonObject(
             with: try JSONEncoder().encode(change)) as? [String: Any])
@@ -110,7 +110,7 @@ final class CombatLogFormatTests: XCTestCase {
     /// Absent rather than null: a Roll with no Difficulty Class has no key for one, so the
     /// line reads as what it is — a number recorded before anyone decided what it beat.
     func testARollWithoutADifficultyClassOmitsTheKey() throws {
-        let change = Change.savingThrow(combatantID: grog, ability: .constitution,
+        let change = Change.savingThrow(combatantID: grog, name: "Grix", ability: .constitution,
                                         roll: Roll(d20: 11, modifier: 2))
         let json = try XCTUnwrap(JSONSerialization.jsonObject(
             with: try JSONEncoder().encode(change)) as? [String: Any])
@@ -122,10 +122,10 @@ final class CombatLogFormatTests: XCTestCase {
     /// A Roll names the Combatant it is about, like every other targeted Change.
     func testARollNamesItsCombatant() {
         XCTAssertEqual(
-            Change.savingThrow(combatantID: grog, ability: .dexterity,
+            Change.savingThrow(combatantID: grog, name: "Grix", ability: .dexterity,
                                roll: Roll(d20: 16, modifier: 5)).combatantID, grog)
         XCTAssertEqual(
-            Change.abilityCheck(combatantID: grog, skill: .stealth,
+            Change.abilityCheck(combatantID: grog, name: "Grix", skill: .stealth,
                                 roll: Roll(d20: 12, modifier: 7)).combatantID, grog)
     }
 

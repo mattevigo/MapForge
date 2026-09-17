@@ -62,6 +62,28 @@ empty field".
 For the same reason the app never generates the d20. The dialog is a grid of twenty faces and
 the DM clicks the one the die showed. There is no RNG in this feature at all.
 
+## A Roll carries the roller's name
+
+Every other `Change` identifies its subject by id alone, because every subject is in the
+Log already: the `encounterStarted` snapshot names the roster, and `combatantJoined` names
+anyone who arrives later. A Roll breaks that assumption. `startEncounter` snapshots only
+Pawns passing `isInCombat`, so a Pawn the DM kept off the roster is in no snapshot and in no
+join — and it is exactly who gets asked for a Persuasion check. Its Roll would be written
+with an id nothing resolves and read back forever as "Unknown combatant".
+
+So `savingThrow` and `abilityCheck` carry a `name`, snapshotted as `Combatant`'s is and as
+`SessionLine.pawnMoved`'s `label` is. `CombatantNames` learns from it, but only where the id
+is otherwise unknown: a Combatant who joined under a name keeps it, so renaming a Pawn
+mid-fight does not rewrite the history above it.
+
+## A Roll cannot be corrected
+
+`EncounterControl.record` files a Change against the correction cursor's Turn when one is
+set, and `.moved` was already exempt: where a Pawn stands is the Map's truth and cannot
+retroactively have been elsewhere. A Roll is exempt for the mirror reason. It is a record of
+something that happened *now*, at the table; filing it against a Turn three Rounds ago would
+put it permanently in the wrong Round of an append-only file.
+
 ## What is not stored
 
 **The outcome.** Success is `d20 + modifier >= DC`, computed on read. A stored boolean is a

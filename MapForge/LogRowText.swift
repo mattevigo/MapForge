@@ -66,10 +66,13 @@ enum LogRowText {
             // A list of UUIDs. Fourteen names is a wall, and the fact that matters is that
             // the DM rearranged the Order.
             "Order changed"
-        case let .savingThrow(_, ability, roll):
-            "\(combatantName) — \(ability.abbreviation) save \(describe(roll))"
-        case let .abilityCheck(_, skill, roll):
-            "\(combatantName) — \(skill.title) (\(skill.ability.abbreviation)) \(describe(roll))"
+        // The Roll's own snapshot, not the resolved `combatantName`: a Pawn that never
+        // joined the Order resolves to nothing, and its own line is the only thing that
+        // knows who rolled.
+        case let .savingThrow(_, name, ability, roll):
+            "\(name) — \(ability.abbreviation) save \(describe(roll))"
+        case let .abilityCheck(_, name, skill, roll):
+            "\(name) — \(skill.title) (\(skill.ability.abbreviation)) \(describe(roll))"
         case .unrecognised:
             "A change this version cannot read"
         }

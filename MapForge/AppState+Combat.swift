@@ -258,14 +258,16 @@ extension AppState {
     /// `docs/adr/0017-a-roll-is-recorded-not-resolved.md`.
     func recordRoll(pawn: Pawn, ability: Ability, roll: Roll) {
         if encounter != nil {
-            recordChange(.savingThrow(combatantID: pawn.id, ability: ability, roll: roll))
+            recordChange(.savingThrow(combatantID: pawn.id, name: pawn.label,
+                                      ability: ability, roll: roll))
         }
         recordSessionRoll(pawn: pawn, ability: ability, roll: roll)
     }
 
     func recordRoll(pawn: Pawn, skill: Skill, roll: Roll) {
         if encounter != nil {
-            recordChange(.abilityCheck(combatantID: pawn.id, skill: skill, roll: roll))
+            recordChange(.abilityCheck(combatantID: pawn.id, name: pawn.label,
+                                       skill: skill, roll: roll))
         }
         recordSessionRoll(pawn: pawn, skill: skill, roll: roll)
     }

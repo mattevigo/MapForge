@@ -256,9 +256,9 @@ final class CombatLogFoldTests: XCTestCase {
 
         var withRolls = lines
         withRolls.append(.turn(round: 1, combatantID: goblin, changes: [
-            .savingThrow(combatantID: grog, ability: .dexterity,
+            .savingThrow(combatantID: grog, name: "Grix", ability: .dexterity,
                          roll: Roll(d20: 3, modifier: 1, difficultyClass: 18)),
-            .abilityCheck(combatantID: grog, skill: .stealth,
+            .abilityCheck(combatantID: grog, name: "Grix", skill: .stealth,
                           roll: Roll(d20: 19, modifier: 7, difficultyClass: 15)),
         ], endedAt: at))
         let folded = CombatLogFold.fold(withRolls)
