@@ -58,11 +58,20 @@ extension AppState {
 
     /// Overtypes a Combatant's Initiative — what a DM does as the players call theirs out.
     ///
-    /// Does **not** re-sort the Order: ties are the DM's to break, so a number and a
-    /// position are allowed to disagree until they drag the row.
+    /// Does **not** re-sort the Order by itself: a DM Tabbing down the column types every
+    /// number first, and a row that jumped on each Tab would take the next field with it.
+    /// `sortOrderByInitiative` is the settling step, and Return is what calls it.
     func setInitiative(_ initiative: Int, for pawn: Pawn.ID) {
         guard let current = encounter?.initiative(of: pawn), current != initiative else { return }
         recordChange(.initiativeChanged(combatantID: pawn, from: current, to: initiative))
+    }
+
+    /// Settles the Order by Initiative, keeping ties as the DM left them. Records the new
+    /// Order when it moved anyone and nothing when it did not.
+    func sortOrderByInitiative() {
+        guard var live = encounter else { return }
+        write(EncounterControl.sortByInitiative(in: &live))
+        encounter = live
     }
 
     /// Records a quick note against the Combatant whose Turn it is.

@@ -71,6 +71,43 @@ final class BestiaryUITests: XCTestCase {
         try? png.write(to: URL(fileURLWithPath: folder).appendingPathComponent("\(name).png"))
     }
 
+    /// Clicking into a field that holds a value selects it, so typing replaces it. Driven
+    /// with a real click because the first attempt passed every unit test and failed here:
+    /// it selected mid-click and the mouse-up took the selection away again.
+    func testClickingAFieldWithAValueSelectsItSoTypingReplacesIt() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
+                               "--test-player-screen", "--test-fresh-preferences",
+                               "--test-workspace=\(root.path)"]
+        app.launch()
+
+        let add = app.menuButtons["Add"]
+        XCTAssertTrue(add.waitForExistence(timeout: 5), "no Add menu")
+        add.click()
+        app.menuItems["Creature"].click()
+        let spot = mapPreview(app).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        spot.click()
+        spot.rightClick()
+        let edit = app.menuItems["Edit…"]
+        XCTAssertTrue(edit.waitForExistence(timeout: 3), "no Edit… on a Pawn's menu")
+        edit.click()
+
+        let label = app.textFields["edit-pawn-label"]
+        XCTAssertTrue(label.waitForExistence(timeout: 3), "no label field")
+        // Out of the label first: a sheet may open with it focused, and only the click
+        // that *enters* a field selects.
+        app.textFields["monster-search"].click()
+        label.click()
+        label.typeText("Zed")
+        XCTAssertEqual(label.value as? String, "Zed",
+                       "typing after the click added to the old label instead of replacing it")
+
+        // A second click is the DM placing the caret, and must not select again.
+        label.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).click()
+        label.typeText("!")
+        XCTAssertEqual(label.value as? String, "Zed!")
+    }
+
     func testReturnPicksAMonsterAndOKThenStampsIt() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",

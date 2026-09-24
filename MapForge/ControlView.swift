@@ -58,6 +58,9 @@ struct ControlView: View {
     /// so panning from the live value would compound it — the same reason
     /// `GridFitOverlay` and `FogOverlay` each hold one.
     @State private var livePanStart: PreviewTransform?
+    /// The transform a middle-button drag started from, for the same reason. One for all
+    /// three modes: that drag is attached to the preview itself, not to a mode's overlay.
+    @State private var middlePanStart: PreviewTransform?
     @State private var armedShape: MeasurementShape?
     /// What `Add` is waiting to place, or nil when nothing is armed.
     ///
@@ -715,6 +718,24 @@ struct ControlView: View {
                             }
                             .onEnded { _ in livePanStart = nil }
                     )
+                    // The middle button pans whatever is on screen — the Magnifier, Grid
+                    // Fit's zoom, the Wall Editor's — because no mode uses that button for
+                    // anything else, so unlike ⌥-drag it needs no gesture to stay out of
+                    // the way of. `panned` stops at the artwork's edges, and at the
+                    // zoom's floor there is nothing to move and nothing is stored.
+                    .onMiddleMouseDrag(isOverView: mirrorCursor != nil) { translation in
+                        let start = middlePanStart ?? transform
+                        middlePanStart = start
+                        let panned = start.panned(by: translation, container: previewSize)
+                        guard panned != transform else { return }
+                        switch mode {
+                        case .gridFit: gridFitTransform = panned
+                        case .fog: fogTransform = panned
+                        case .normal: liveZoom = panned
+                        }
+                    } onEnded: {
+                        middlePanStart = nil
+                    }
                     .onContinuousHover { phase in
                         switch phase {
                         case .active(let location):

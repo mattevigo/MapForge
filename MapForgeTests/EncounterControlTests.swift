@@ -334,6 +334,63 @@ final class EncounterControlTests: XCTestCase {
         XCTAssertEqual(encounter.pendingChanges.last, .orderChanged(order: [goblin, grog]))
     }
 
+    // MARK: - Settling by Initiative
+
+    func testSettlingMovesAnOvertypedRowToWhereItsNumberPutsIt() {
+        // The players call out their numbers; the DM overtypes the goblin's 12 as 20 and
+        // presses Return. The row goes above Grog's 18, and the whole Order is recorded.
+        var (encounter, _) = startedEncounter(goblinRolls: 12, grogRolls: 18)
+        _ = EncounterControl.record(.initiativeChanged(combatantID: goblin, from: 12, to: 20),
+                                    in: &encounter)
+        XCTAssertEqual(encounter.order, [grog, goblin], "typing alone moves nobody")
+
+        _ = EncounterControl.sortByInitiative(in: &encounter)
+
+        XCTAssertEqual(encounter.order, [goblin, grog])
+        XCTAssertEqual(encounter.pendingChanges.last, .orderChanged(order: [goblin, grog]))
+    }
+
+    func testSettlingASettledOrderRecordsNothing() {
+        // Return over an unchanged column must not put an `orderChanged` in the Log.
+        var (encounter, _) = startedEncounter(goblinRolls: 12, grogRolls: 18)
+        let before = encounter.pendingChanges.count
+
+        let lines = EncounterControl.sortByInitiative(in: &encounter)
+
+        XCTAssertTrue(lines.isEmpty)
+        XCTAssertEqual(encounter.pendingChanges.count, before)
+        XCTAssertEqual(encounter.order, [grog, goblin])
+    }
+
+    func testSettlingKeepsATieTheDMBroke() {
+        // Both on 18, and the DM dragged the goblin above Grog. Return keeps that: a tie
+        // is broken by the person running the table, never by the sort.
+        var (encounter, _) = startedEncounter(goblinRolls: 18, grogRolls: 18)
+        _ = EncounterControl.reorder(from: 1, to: 0, in: &encounter)
+        let dragged = encounter.order
+        let before = encounter.pendingChanges.count
+
+        _ = EncounterControl.sortByInitiative(in: &encounter)
+
+        XCTAssertEqual(encounter.order, dragged)
+        XCTAssertEqual(encounter.pendingChanges.count, before)
+    }
+
+    func testSettlingWhileCorrectingIsWrittenAsACorrection() {
+        // The same door every reorder goes through (ADR-0010): nothing reaches the live
+        // Turn's buffer while the cursor is on a past one.
+        var (encounter, _) = startedEncounter(goblinRolls: 12, grogRolls: 18)
+        _ = EncounterControl.next(&encounter, at: at)
+        EncounterControl.previous(&encounter)
+        _ = EncounterControl.record(.initiativeChanged(combatantID: goblin, from: 12, to: 20),
+                                    in: &encounter)
+        let lines = EncounterControl.sortByInitiative(in: &encounter)
+        guard case .correction = lines.first else {
+            return XCTFail("expected a correction line, got \(lines)")
+        }
+        XCTAssertTrue(encounter.pendingChanges.isEmpty)
+    }
+
     // MARK: - Zero hit points
 
     func testDroppingToZeroAppliesUnconsciousAndClearsConcentration() {

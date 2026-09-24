@@ -170,6 +170,23 @@ final class StatEditingTests: XCTestCase {
             .initiativeChanged(combatantID: goblin.id, from: before!, to: target)) ?? false)
     }
 
+    func testReturnSettlesTheOrderAfterOvertypingInitiative() {
+        // Overtyping is one step and settling is another, because Tab must not move the
+        // row. Relative to the rolled numbers for the reason the test above is.
+        let (state, goblin) = fighting()
+        guard let order = state.encounter?.order,
+              let grog = order.first(where: { $0 != goblin.id }),
+              let grogInitiative = state.encounter?.initiative(of: grog) else {
+            return XCTFail("expected two Combatants")
+        }
+
+        state.setInitiative(grogInitiative + 5, for: goblin.id)
+        XCTAssertEqual(state.encounter?.order, order, "typing alone moves nobody")
+
+        state.sortOrderByInitiative()
+        XCTAssertEqual(state.encounter?.order, [goblin.id, grog])
+    }
+
     func testSettingTheInitiativeItAlreadyHasRecordsNothing() {
         // The no-op the flake was accidentally exercising, now on purpose: a binding that
         // writes the same number back must not fill the Log with 16→16.

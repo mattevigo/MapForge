@@ -73,7 +73,7 @@ The Control Window's ordinary state: the **whole Map**, with Pawns, Light Marker
 _Avoid_: preview, preview mode, normal mode, play mode, mirror
 
 **Magnifier**:
-The Live View's private zoom: the DM looks closer without the Viewport moving, so the Player Display keeps showing exactly what it showed. Distinct from dragging the Viewport, which is a deliberate act the table watches. Never persisted. Scrolling back out ends it — the zoom's floor is the whole Map, so there is nowhere past it to be stuck. It said so on screen once, in a "Zoomed — Reset" button that appeared beside Grid Fit while it was on; the button is gone and the artwork's own size is what tells the DM.
+The Live View's private zoom: the DM looks closer without the Viewport moving, so the Player Display keeps showing exactly what it showed. Distinct from dragging the Viewport, which is a deliberate act the table watches. Never persisted. Scrolling back out ends it — the zoom's floor is the whole Map, so there is nowhere past it to be stuck. While it is on, holding the middle mouse button turns the cursor into a closed hand and drags the artwork under it, as far as the artwork's own edges; ⌥-drag does the same without a wheel to press. It said so on screen once, in a "Zoomed — Reset" button that appeared beside Grid Fit while it was on; the button is gone and the artwork's own size is what tells the DM.
 _Avoid_: zoom, preview zoom, magnification
 
 **Wall Editor**:
@@ -181,11 +181,11 @@ A Pawn's combat numbers: initiative bonus, armour class, current, maximum and te
 _Avoid_: stats, sheet, character sheet, attributes, vitals
 
 **Initiative**:
-A Combatant's place-deciding number, rolled as 1d20 plus its initiative bonus when the Encounter starts. Rolled for every Combatant, Players included — overtyping a number the players call out is faster than typing into an empty field. Editable at any time; changing it does not by itself move anyone, because the Order is the DM's.
+A Combatant's place-deciding number, rolled as 1d20 plus its initiative bonus when the Encounter starts. Rolled for every Combatant, Players included — overtyping a number the players call out is faster than typing into an empty field. Editable at any time. Typing a number does not by itself move anyone — a DM Tabbing down the column types them all first — and **Return settles the Order**: every row goes where its number puts it, animated, and ties keep the order they already had, so a tie the DM broke by dragging stays broken. The settled Order is recorded, not recomputed, because the Order is the DM's.
 _Avoid_: init, roll, initiative score
 
 **Order**:
-The sequence Combatants take Turns in. Settled when the Encounter starts by sorting on Initiative, and from then on the DM's to rearrange by hand — ties are not broken by a rule, they are broken by the person running the table. Because the Order is decided rather than derived, it is recorded, not recomputed.
+The sequence Combatants take Turns in. Settled when the Encounter starts by sorting on Initiative, settled again whenever the DM presses Return in the Initiative column, and otherwise the DM's to rearrange by hand — ties are not broken by a rule, they are broken by the person running the table, and a settle never reorders a tie. Because the Order is decided rather than derived, it is recorded, not recomputed.
 _Avoid_: initiative order, turn order, queue, lineup
 
 **Turn**:

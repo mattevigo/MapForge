@@ -47,6 +47,10 @@ struct CombatPanel: View {
             StatEditor(combatant: selection ?? appState.encounter?.activeCombatantID)
                 .padding(8)
         }
+        // The whole height of the tab, fight or no fight. The Order's ScrollView used to
+        // be the only thing here that stretched, so before Play the panel ended where its
+        // content did and the Monster's page below had nowhere to grow into.
+        .frame(maxHeight: .infinity, alignment: .top)
         .background(Color(nsColor: .textBackgroundColor),
                     in: RoundedRectangle(cornerRadius: 6))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
@@ -285,12 +289,17 @@ struct CombatPanel: View {
             // Edited in place. The players call their numbers out down this column as the
             // fight starts, and overtyping them here — Tab from one to the next — is the
             // whole job; the Stat Block editor's "Init" is the *bonus*. Committed on Return
-            // or on leaving the field, and **not** re-sorted: ties and their order are the
-            // DM's, so the row stays put until it is dragged (`CONTEXT.md`, **Initiative**).
+            // or on leaving the field; **Return also settles the Order**, animated so the
+            // eye can follow the row to where its number puts it. Tab does not, so the
+            // column can be typed top to bottom and settled once. Ties keep the order the
+            // DM gave them (`CONTEXT.md`, **Initiative**).
             NumberField(value: encounter.initiative(of: id),
                         identifier: "combatant-initiative",
                         width: 30,
-                        isPlain: true) { new in
+                        isPlain: true,
+                        submitted: {
+                            withAnimation(.snappy) { appState.sortOrderByInitiative() }
+                        }) { new in
                 // Cleared is not zero: an emptied field means the DM backed out.
                 if let new { appState.setInitiative(new, for: id) }
             }

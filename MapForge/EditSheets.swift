@@ -51,6 +51,7 @@ struct EditPawnSheet: View {
                 GridRow {
                     Text("Label")
                     TextField("label", text: $draft.label)
+                        .accessibilityIdentifier("edit-pawn-label")
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 180)
                 }

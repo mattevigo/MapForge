@@ -148,9 +148,12 @@ struct MonsterReferenceView: View {
             .fixedSize(horizontal: false, vertical: true)
             .textSelection(.enabled)
         }
-        // Capped so a Caos Orb's page scrolls inside itself rather than pushing the Order
-        // off the top of the tab.
-        .frame(maxHeight: 240)
+        // Takes whatever the tab has left under the editor, and scrolls inside that. It was
+        // capped at 240 once, to keep a Caos Orb's page from pushing the Order off the top
+        // of the tab — which left a tall window half empty under a page the DM was
+        // scrolling three lines at a time. A ScrollView cannot push anything: it shares
+        // the height with the Order's instead.
+        .frame(maxHeight: .infinity)
         .accessibilityIdentifier("monster-reference")
     }
 }

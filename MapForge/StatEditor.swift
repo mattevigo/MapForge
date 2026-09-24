@@ -179,6 +179,7 @@ struct StatEditor: View {
                         .lineLimit(1...3)
                         .accessibilityIdentifier("note-field")
                         .onSubmit { commitNote() }
+                        .keepsKeyboardOnReturn()
                     Button {
                         commitNote()
                     } label: {
@@ -227,6 +228,11 @@ struct NumberField: View {
     /// Drawn without a border and centred, for a number edited in place — the Order's
     /// Initiative column — where the ground behind it is the caller's.
     var isPlain = false
+    /// Called after a commit made with **Return**, and not after one made by leaving the
+    /// field. The Initiative column settles the Order on Return and must not on Tab, or
+    /// typing down the column would move the row out from under the next Tab. Declared
+    /// before `commit` so a bare trailing closure still lands on `commit`.
+    var submitted: (() -> Void)? = nil
     let commit: (Int?) -> Void
 
     @State private var text: String = ""
@@ -251,7 +257,10 @@ struct NumberField: View {
                 // field has decided, and requiring Return as well would lose it.
                 if wasFocused && !nowFocused { commitText() }
             }
-            .onSubmit { commitText() }
+            .onSubmit {
+                commitText()
+                submitted?()
+            }
     }
 
     /// Two styles cannot share one expression — `TextFieldStyle` is not existential.
