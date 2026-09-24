@@ -568,6 +568,66 @@ final class AppStateFogTests: XCTestCase {
         XCTAssertTrue(appState.fog.walls.isEmpty, "Cancel still discards the mode's Walls")
     }
 
+    // MARK: Moving a Light
+
+    /// A Light is dragged in the Live View, as a Pawn is: the DM carries the lantern down the
+    /// corridor and the table watches the dark move with it.
+    func testALightMovesWhereItIsDragged() throws {
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let brazier = Light(at: MapPoint(x: 10, y: 10), brightSquares: 4)
+        let sconce = Light(at: MapPoint(x: 30, y: 20), brightSquares: 2)
+        appState.fog.lights = [brazier, sconce]
+
+        appState.moveLight(id: brazier.id, to: MapPoint(x: 25, y: 12))
+
+        XCTAssertEqual(appState.fog.lights.first?.at, MapPoint(x: 25, y: 12))
+        XCTAssertEqual(appState.fog.lights.last?.at, MapPoint(x: 30, y: 20), "the other Light moved")
+        // Everything that is not where it stands comes through untouched.
+        XCTAssertEqual(appState.fog.lights.first?.brightSquares, 4)
+        XCTAssertEqual(appState.fog.lights.first?.id, brazier.id)
+    }
+
+    func testALightDraggedPastTheEdgeStopsAtTheEdge() throws {
+        // As a Pawn does, and for a sharper reason: a Light beyond the image can never be
+        // clicked again, so it could not be dragged back, edited or deleted.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        // Read back rather than assumed: `lockFocus` draws at the screen's scale, so the
+        // fixture's 40 points are 80 pixels on a Retina Mac and 40 on a CI box.
+        let width = try XCTUnwrap(appState.mapImage?.pixelSize.width)
+        let brazier = Light(at: MapPoint(x: 10, y: 10), brightSquares: 4)
+        appState.fog.lights = [brazier]
+
+        appState.moveLight(id: brazier.id, to: MapPoint(x: width + 500, y: -20))
+
+        XCTAssertEqual(appState.fog.lights.first?.at, MapPoint(x: width, y: 0))
+    }
+
+    func testMovingALightNobodyHasIsNothing() throws {
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        appState.moveLight(id: UUID(), to: MapPoint(x: 5, y: 5))
+        XCTAssertEqual(appState.fog.lights, [])
+    }
+
+    func testADraggedLightReachesDiskWhenTheDragEnds() throws {
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let brazier = Light(at: MapPoint(x: 10, y: 10), brightSquares: 4)
+        appState.addLight(brazier)
+
+        appState.moveLight(id: brazier.id, to: MapPoint(x: 25, y: 12))
+        appState.commitLightMove()
+
+        let onDisk = try XCTUnwrap(FogStore().load(forMapAt: map.url))
+        XCTAssertEqual(onDisk.lights.first?.at, MapPoint(x: 25, y: 12))
+    }
+
     func testApplyingFogEditsKeepsALivePawnMoveAndTorchToggle() throws {
         // Dragging a Pawn stays live during fog mode (PawnLayer), and `setPawnLight` has
         // no in-mode special case, so both write straight to `fog`. An in-mode edit must

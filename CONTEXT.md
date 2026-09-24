@@ -61,7 +61,7 @@ A two-sided line segment that blocks Light. Stored in the Map's image pixels, so
 _Avoid_: barrier, occluder, edge, boundary
 
 **Light**:
-A point source that illuminates the Map out to a bright radius and a dim radius, measured in Grid squares. Blocked by Walls, and independently switchable on or off. Drawn as a Light Marker where players can see it. It carries a **name** — the DM's own, like a Pawn's label and never drawn on the Player Display, so a Light can be called "trapped brazier" without the name crossing the room. The name is assigned when the Light is placed and is what the roster identifies it by; before names existed a Light was known by its position in that list, so deleting one silently renamed another. Like a Pawn, a Light is placed and edited in the Live View, never in the Wall Editor.
+A point source that illuminates the Map out to a bright radius and a dim radius, measured in Grid squares. Blocked by Walls, and independently switchable on or off. Drawn as a Light Marker where players can see it. It carries a **name** — the DM's own, like a Pawn's label and never drawn on the Player Display, so a Light can be called "trapped brazier" without the name crossing the room. The name is assigned when the Light is placed and is what the roster identifies it by; before names existed a Light was known by its position in that list, so deleting one silently renamed another. Like a Pawn, a Light is placed, edited and **moved** in the Live View, never in the Wall Editor: the DM drags its Light Marker, the darkness follows on both screens as they do, and a drag past the image edge stops at the edge — a Light beyond it could never be clicked again. Moving one is a live action and is not undoable; unlike a Pawn's move it is recorded in no Log, because a torch is the room and the Logs are about who was in it.
 _Avoid_: lamp, torch, emitter, light source
 
 **Pawn**:
@@ -73,7 +73,7 @@ The Control Window's ordinary state: the **whole Map**, with Pawns, Light Marker
 _Avoid_: preview, preview mode, normal mode, play mode, mirror
 
 **Magnifier**:
-The Live View's private zoom: the DM looks closer without the Viewport moving, so the Player Display keeps showing exactly what it showed. Distinct from dragging the Viewport, which is a deliberate act the table watches. Never persisted. Scrolling back out ends it — the zoom's floor is the whole Map, so there is nowhere past it to be stuck. It said so on screen once, in a "Zoomed — Reset" button that appeared beside Grid Fit while it was on; the button is gone and the artwork's own size is what tells the DM.
+The Live View's private zoom: the DM looks closer without the Viewport moving, so the Player Display keeps showing exactly what it showed. Distinct from dragging the Viewport, which is a deliberate act the table watches. Never persisted. Scrolling back out ends it — the zoom's floor is the whole Map, so there is nowhere past it to be stuck. While it is on, holding the middle mouse button turns the cursor into a closed hand and drags the artwork under it, as far as the artwork's own edges; ⌥-drag does the same without a wheel to press. It said so on screen once, in a "Zoomed — Reset" button that appeared beside Grid Fit while it was on; the button is gone and the artwork's own size is what tells the DM.
 _Avoid_: zoom, preview zoom, magnification
 
 **Wall Editor**:
@@ -81,7 +81,7 @@ The prep-time mode for tracing Walls, entered deliberately and left again. It is
 _Avoid_: fog editor, edit fog, fog mode, authoring mode
 
 **Add**:
-Arming the Live View to place one new thing — a Light, or a Pawn of any Kind — chosen before it is placed and landed by the next click on the Map. The Kind is settled at the moment of arming rather than in an editor afterwards, so a DM adding four goblins arms once per goblin and never opens a form. What is placed inherits from the last thing of that Kind placed, so the second goblin is already the right colour and size. At most one thing is armed at a time, Measurement included, and Esc backs out.
+Arming the Live View to place one new thing — a Light, or a Pawn of any Kind — chosen before it is placed and landed by the next click on the Map. The Kind is settled at the moment of arming rather than in an editor afterwards, so a DM adding four goblins arms once per goblin and never opens a form. What is placed inherits from the last thing of that Kind placed, so the second goblin is already the right colour and size — and the same Monster, taken afresh from the Bestiary at full hit points rather than copied from its sibling's wounds. At most one thing is armed at a time, Measurement included, and Esc backs out.
 _Avoid_: create, insert, new, place, spawn
 
 **Character**:
@@ -93,7 +93,7 @@ A named roster of Characters — a campaign's cast, defined once. Parties belong
 _Avoid_: group, team, roster, campaign
 
 **Stamp**:
-Creating a Pawn from a Character by dragging the Character onto the Map. The Pawn is a **copy**, not a link: it takes the Character's name, colour, sight and size at that moment and then leads its own life. Renaming or deleting the Character afterwards leaves every Pawn already stamped from it untouched — the Map's own file stays self-contained and readable without the roster. Stamping is a live action like moving a Pawn, not an edit like tracing a Wall: it needs no mode and is not undoable. The same Character may be stamped any number of times, and each Pawn bears the same label.
+Creating a Pawn from a Character by dragging the Character onto the Map. The Pawn is a **copy**, not a link: it takes the Character's name, colour, sight and size at that moment and then leads its own life. Renaming or deleting the Character afterwards leaves every Pawn already stamped from it untouched — the Map's own file stays self-contained and readable without the roster. Stamping is a live action like moving a Pawn, not an edit like tracing a Wall: it needs no mode and is not undoable. The same Character may be stamped any number of times, and each Pawn bears the same label. The word is also used of a Monster: a Creature said to be one is **stamped** with the Monster's numbers — the same copy-not-link, landing on a Pawn that already exists rather than creating one.
 _Avoid_: instantiate, spawn, place, drop, add to map
 
 **Pawn Kind**:
@@ -102,7 +102,15 @@ _Avoid_: type, category, role
 
 **Creature**:
 A Pawn the players discover rather than one they carry: it emits no Light, and it is drawn under the Fog Overlay so darkness hides it from players. The DM always sees Creatures, and can hide one outright — a hidden Creature is invisible to players however well lit it is. A Pawn Kind, not a separate type.
-_Avoid_: monster, enemy, NPC, mob
+_Avoid_: monster (that is the definition, not the Pawn), enemy, NPC, mob
+
+**Monster**:
+A kind of creature as the DM's notes define it — a Gnoll Guerriero, a Wraith — with the numbers and actions the rulebook gives it. It is a definition, not a token: it is never on a Map, never wounded, and four gnoll Pawns share one Monster while each keeps its own Stat Block. It stands to a Creature as a Character stands to a Player's Pawn, and is taken the same way: saying which Monster a Creature is **copies** the Monster's armour class, hit points and initiative bonus into that Pawn's Stat Block, and its size into whether the Pawn is Big, and from then on the Pawn leads its own life. Becoming a Monster means arriving whole — hit points at their maximum — so making a Pawn that already has hit points into a Monster heals it, and the app asks before it does; Conditions, exhaustion and temporary hit points are the fight's and are left alone. A Pawn still labelled with the bare number it was born with is relabelled from the Monster's initials — GG1, GG2 for two Gnoll Guerrieri — numbered so that no two labels on the Map match; a label the DM typed is never touched. The Pawn remembers which Monster it was, but only so the DM can be shown the Monster's actions while it fights — the memory is advisory, and a Creature whose Monster has left the notes loses a page of reference and nothing else. Only a Creature can be a Monster: a Player's numbers come from its Character, and a Treasure has none. The word covers whatever the notes define this way, a human guard included — it names the role in the app, not the thing's nature. The DM writes a Monster in their own notes, in the `statblock` notation those notes already use; that word is the file's syntax and is never a **Stat Block**, which is a Pawn's live numbers.
+_Avoid_: statblock, stat block, creature template, bestiary entry, NPC
+
+**Bestiary**:
+Every Monster the app has read from the Workspace — the collection a DM searches when saying what a Creature is. It belongs to the Workspace, as a Party does, but unlike a Party it is never authored in the app: the DM's notes are the only place a Monster is written, and the Bestiary is only ever a reading of them. It is read from one folder inside the Workspace when the Workspace opens and at no other time — a Monster written mid-evening is met the next time the Workspace is opened — and it is never kept on disk, because a second copy of the notes is a second thing to keep in step with them.
+_Avoid_: monster library, compendium, monster cache, catalog, manual
 
 **Treasure**:
 A chest, a hoard, a body — something the players find rather than fight. Discovered exactly as a Creature is: no Light, hidden by darkness, revealed where the light reaches it. It differs only in being drawn as a rounded square rather than a disc, and in being listed in its own group, because a DM reasons about loot and monsters separately. Size stays orthogonal — a Treasure can be Big.
@@ -153,7 +161,7 @@ The unit the table speaks distances in — currently **metres**, at 1.5 m per Gr
 _Avoid_: units, scale, measurement system
 
 **Encounter**:
-One fight on one Map, from the moment the DM starts it to the moment they stop it. It holds an Order of Combatants and a Round number, and it writes a Combat Log. A Map accumulates Encounters over a campaign; at most one is live at a time. Stopping one neither heals anyone nor clears their Conditions — a fight ending is not a rest, and the state a party fought three Rounds to reach is the state they are in. An Encounter sits *inside* a Session — the evening it is one fight of — and while it runs it is the only thing recording: the Session Log falls silent and resumes when the fight stops.
+One fight on one Map, from the moment the DM starts it to the moment they stop it. It holds an Order of Combatants and a Round number, and it writes a Combat Log. A Map accumulates Encounters over a campaign; at most one is live at a time. Stopping one neither heals anyone nor clears their Conditions — a fight ending is not a rest, and the state a party fought three Rounds to reach is the state they are in. An Encounter sits *inside* a Session — the evening it is one fight of — so one cannot be started before the Session has: a fight begun during prep would be a Combat Log no evening points at, and the Log View could never show it. The rule is about starting; a fight already running is not ended by it. While it runs it is the only thing recording: the Session Log falls silent and resumes when the fight stops.
 _Avoid_: combat, fight, battle
 
 **Combatant**:
@@ -173,11 +181,11 @@ A Pawn's combat numbers: initiative bonus, armour class, current, maximum and te
 _Avoid_: stats, sheet, character sheet, attributes, vitals
 
 **Initiative**:
-A Combatant's place-deciding number, rolled as 1d20 plus its initiative bonus when the Encounter starts. Rolled for every Combatant, Players included — overtyping a number the players call out is faster than typing into an empty field. Editable at any time; changing it does not by itself move anyone, because the Order is the DM's.
+A Combatant's place-deciding number, rolled as 1d20 plus its initiative bonus when the Encounter starts. Rolled for every Combatant, Players included — overtyping a number the players call out is faster than typing into an empty field. Editable at any time. Typing a number does not by itself move anyone — a DM Tabbing down the column types them all first — and **Return settles the Order**: every row goes where its number puts it, animated, and ties keep the order they already had, so a tie the DM broke by dragging stays broken. The settled Order is recorded, not recomputed, because the Order is the DM's.
 _Avoid_: init, roll, initiative score
 
 **Order**:
-The sequence Combatants take Turns in. Settled when the Encounter starts by sorting on Initiative, and from then on the DM's to rearrange by hand — ties are not broken by a rule, they are broken by the person running the table. Because the Order is decided rather than derived, it is recorded, not recomputed.
+The sequence Combatants take Turns in. Settled when the Encounter starts by sorting on Initiative, settled again whenever the DM presses Return in the Initiative column, and otherwise the DM's to rearrange by hand — ties are not broken by a rule, they are broken by the person running the table, and a settle never reorders a tie. Because the Order is decided rather than derived, it is recorded, not recomputed.
 _Avoid_: initiative order, turn order, queue, lineup
 
 **Turn**:

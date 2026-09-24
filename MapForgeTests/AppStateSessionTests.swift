@@ -239,12 +239,15 @@ final class AppStateSessionTests: XCTestCase {
         XCTAssertEqual(comments(lines), ["they looted the body"])
     }
 
-    func testStartingAnEncounterWithNoSessionWritesNothing() throws {
+    func testStartingAnEncounterWithNoSessionIsRefusedAndWritesNothing() throws {
+        // This asserted the opposite once — "a fight does not need a Session to run" — and
+        // that was the gap: a Combat Log no Session Log pointed at, which the Log View could
+        // never show. See `EncounterNeedsASessionTests`.
         let state = makeAppState()
         state.fog.pawns = [pawn("Grog", at: 100)]
         state.startEncounter()
 
-        XCTAssertNotNil(state.encounter, "a fight does not need a Session to run")
+        XCTAssertNil(state.encounter)
         XCTAssertEqual(try sessionLines(state), [])
     }
 

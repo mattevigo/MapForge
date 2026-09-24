@@ -43,7 +43,11 @@ extension AppState {
         edit(&after)
         guard after != before else { return }
 
-        guard encounter != nil else {
+        // Straight to `stats.json` outside a fight — and for a bystander during one. A Pawn
+        // the Encounter holds no block for is not in it: recording its numbers into the Log
+        // would have the fold invent a fresh block for it, which `syncStatsFromEncounter`
+        // then writes over the real one, rostering it and stripping its Conditions.
+        guard let encounter, encounter.blocks[pawn] != nil else {
             setStatBlock(after, for: pawn)
             return
         }
@@ -54,11 +58,20 @@ extension AppState {
 
     /// Overtypes a Combatant's Initiative — what a DM does as the players call theirs out.
     ///
-    /// Does **not** re-sort the Order: ties are the DM's to break, so a number and a
-    /// position are allowed to disagree until they drag the row.
+    /// Does **not** re-sort the Order by itself: a DM Tabbing down the column types every
+    /// number first, and a row that jumped on each Tab would take the next field with it.
+    /// `sortOrderByInitiative` is the settling step, and Return is what calls it.
     func setInitiative(_ initiative: Int, for pawn: Pawn.ID) {
         guard let current = encounter?.initiative(of: pawn), current != initiative else { return }
         recordChange(.initiativeChanged(combatantID: pawn, from: current, to: initiative))
+    }
+
+    /// Settles the Order by Initiative, keeping ties as the DM left them. Records the new
+    /// Order when it moved anyone and nothing when it did not.
+    func sortOrderByInitiative() {
+        guard var live = encounter else { return }
+        write(EncounterControl.sortByInitiative(in: &live))
+        encounter = live
     }
 
     /// Records a quick note against the Combatant whose Turn it is.
@@ -96,6 +109,11 @@ extension AppState {
         if before.armorClass != after.armorClass {
             changes.append(.acChanged(combatantID: pawn,
                                       from: before.armorClass, to: after.armorClass))
+        }
+        if before.initiativeBonus != after.initiativeBonus {
+            changes.append(.initiativeBonusChanged(combatantID: pawn,
+                                                   from: before.initiativeBonus,
+                                                   to: after.initiativeBonus))
         }
         if before.exhaustion != after.exhaustion {
             changes.append(.exhaustionChanged(combatantID: pawn,
@@ -155,6 +173,14 @@ extension AppState {
         return encounter.benched.union(onMap.subtracting(Set(encounter.order)))
     }
 
+    /// Why a fight cannot start right now, in words for the DM — or nil when it can.
+    ///
+    /// Said rather than only enforced: a Play button that is merely grey leaves a DM
+    /// wondering what they forgot, five minutes before the players arrive.
+    var encounterRefusal: String? {
+        session == nil ? "Start a Session first — a fight is part of an evening." : nil
+    }
+
     /// Rolls Initiative for every rostered Player and Creature on the Map and opens a
     /// Combat Log.
     ///
@@ -162,8 +188,13 @@ extension AppState {
     /// no tracker. A Pawn left off the roster is not refused so much as not asked — it
     /// stays on the Map, is listed as not in combat, and the same button that returns a
     /// Benched Pawn will bring it in.
+    ///
+    /// Refused before the evening has started: an Encounter is one fight *of* a Session
+    /// (`CONTEXT.md`), and one started without would leave a Combat Log no Session Log
+    /// points at — a fight the Log View could never show. About starting only: a fight
+    /// resumed from its Log, or one whose Session the DM stopped mid-fight, carries on.
     func startEncounter() {
-        guard let mapURL, encounter == nil else { return }
+        guard let mapURL, encounter == nil, encounterRefusal == nil else { return }
         let entrants = fog.pawns
             .filter { $0.kind != .treasure && isInCombat($0.id) }
             .map { EncounterControl.Entrant(id: $0.id, name: $0.label, kind: $0.kind,
@@ -286,7 +317,17 @@ extension AppState {
     /// A summon, or a Character Stamped mid-Encounter, joins at its rolled Initiative with
     /// no prompt — it is what a DM wants almost every time, and removing it from the
     /// tracker is one click if not.
+    ///
+    /// A Creature that arrives already a Monster — `AddPlacement` giving the second gnoll
+    /// the first one's — is stamped here, afresh and at full hit points, and **before** it
+    /// joins: joining rolls Initiative from the Stat Block's bonus and snapshots the block
+    /// into the Log. Never over numbers that already exist, which is what keeps a Stamped
+    /// Character's block its own.
     func addPawnToMap(_ pawn: Pawn) {
+        if statsDocument.blocks[pawn.id] == nil,
+           let monster = bestiary.monster(named: pawn.monsterName) {
+            setStatBlock(MonsterStamp.statBlock(from: monster, over: StatBlock()), for: pawn.id)
+        }
         fog.pawns.append(pawn)
         flushPendingFogWrites()
         joinEncounter(pawn)

@@ -69,6 +69,7 @@ struct CommentBar: View {
                 .lineLimit(1)
                 .accessibilityIdentifier("comment-field")
                 .onSubmit(onSubmit)
+                .keepsKeyboardOnReturn()
             Button(action: onSubmit) {
                 Image(systemName: "arrow.up.circle.fill")
             }

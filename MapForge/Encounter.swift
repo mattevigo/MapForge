@@ -268,6 +268,32 @@ enum EncounterControl {
         return record([.orderChanged(order: order)], in: &encounter)
     }
 
+    /// Settles the Order by Initiative and records it — what Return does in the Initiative
+    /// column once the players have called their numbers out.
+    ///
+    /// **Stable**: two Combatants on the same number keep the order they are already in, so
+    /// a tie the DM has broken by dragging stays broken. Only a row whose number is out of
+    /// place moves. Nothing is written when the Order is already settled — a Return over an
+    /// unchanged column must not put an `orderChanged` in the Log.
+    ///
+    /// Recorded as the whole new Order, as `reorder` records a drag: ADR-0008 forbids the
+    /// fold recomputing it, so the sort happens once, here, and goes to disk.
+    @discardableResult
+    static func sortByInitiative(in encounter: inout Encounter) -> [LogLine] {
+        let state = encounter.state
+        // An explicit index tiebreak rather than trusting `sort` to be stable: the Order is
+        // data the Log replays, and "stable in practice" is not a guarantee it can rest on.
+        let sorted = state.order.enumerated()
+            .sorted { a, b in
+                let ia = state.initiative(of: a.element) ?? Int.min
+                let ib = state.initiative(of: b.element) ?? Int.min
+                return ia != ib ? ia > ib : a.offset < b.offset
+            }
+            .map(\.element)
+        guard sorted != state.order else { return [] }
+        return record([.orderChanged(order: sorted)], in: &encounter)
+    }
+
     /// Re-rolls every Initiative and re-sorts.
     ///
     /// The Round is untouched: it is a fact about history, and resetting it would make the

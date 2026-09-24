@@ -35,6 +35,7 @@ final class StatEditingTests: XCTestCase {
         let state = AppState(preferences: DisplayPreferences(defaults: defaults),
                              fogStore: FogStore(),
                              partyStore: PartyStore(directory: directory))
+        state.beginEvening(in: directory)
         state.mapURL = mapURL
         return state
     }
@@ -96,6 +97,29 @@ final class StatEditingTests: XCTestCase {
             .conditionAdded(combatantID: goblin.id, condition: .prone)))
     }
 
+    func testEditingTheInitiativeBonusMidFightRecordsItAndMovesNobody() throws {
+        // The editor's "Init" is the bonus. The rolled number is the Encounter's, edited in
+        // the Order's own column — and a bonus changing does not by itself move anyone.
+        let (state, goblin) = fighting()
+        let rolled = try XCTUnwrap(state.encounter?.initiative(of: goblin.id))
+
+        state.editStatBlock(for: goblin.id) { $0.initiativeBonus = 3 }
+
+        XCTAssertTrue(state.encounter?.pendingChanges.contains(
+            .initiativeBonusChanged(combatantID: goblin.id, from: 0, to: 3)) ?? false)
+        XCTAssertEqual(state.encounter?.blocks[goblin.id]?.initiativeBonus, 3)
+        XCTAssertEqual(state.encounter?.initiative(of: goblin.id), rolled)
+    }
+
+    func testTheInitiativeBonusIsSetInPrepStraightToTheStatBlock() {
+        // Before a fight is when a bonus matters most: it is what the roll adds.
+        let state = makeAppState()
+        let goblin = pawn("Goblin")
+        state.fog.pawns = [goblin]
+        state.editStatBlock(for: goblin.id) { $0.initiativeBonus = 2 }
+        XCTAssertEqual(state.statBlock(for: goblin.id).initiativeBonus, 2)
+    }
+
     func testRemovingAConditionRecordsIt() {
         let (state, goblin) = fighting()
         state.editStatBlock(for: goblin.id) { $0.conditions.insert(.prone) }
@@ -144,6 +168,23 @@ final class StatEditingTests: XCTestCase {
         XCTAssertEqual(state.encounter?.initiative(of: goblin.id), target)
         XCTAssertTrue(state.encounter?.pendingChanges.contains(
             .initiativeChanged(combatantID: goblin.id, from: before!, to: target)) ?? false)
+    }
+
+    func testReturnSettlesTheOrderAfterOvertypingInitiative() {
+        // Overtyping is one step and settling is another, because Tab must not move the
+        // row. Relative to the rolled numbers for the reason the test above is.
+        let (state, goblin) = fighting()
+        guard let order = state.encounter?.order,
+              let grog = order.first(where: { $0 != goblin.id }),
+              let grogInitiative = state.encounter?.initiative(of: grog) else {
+            return XCTFail("expected two Combatants")
+        }
+
+        state.setInitiative(grogInitiative + 5, for: goblin.id)
+        XCTAssertEqual(state.encounter?.order, order, "typing alone moves nobody")
+
+        state.sortOrderByInitiative()
+        XCTAssertEqual(state.encounter?.order, [goblin.id, grog])
     }
 
     func testSettingTheInitiativeItAlreadyHasRecordsNothing() {

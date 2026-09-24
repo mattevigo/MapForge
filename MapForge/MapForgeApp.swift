@@ -9,11 +9,18 @@ struct MapForgeApp: App {
             ControlView()
                 .environmentObject(appState)
                 .onAppear {
+                    ReturnDeselects.install()
+                    ClickSelectsAll.install()
                     appState.openWorkspaceFromLaunchArgumentsIfPresent()
                     appState.loadMapFromLaunchArgumentsIfPresent()
                 }
         }
-        .defaultSize(width: 560, height: 480)
+        // The width is the floor `ControlView` enforces anyway (ADR-0018) — a smaller number
+        // here was silently overridden and only made the pair look like a choice. The
+        // height is the one this line really decides: 480 opened a letterbox that showed
+        // a strip of Map under two toolbars, and the first thing a DM did was drag it
+        // taller. Applies to a first launch only; macOS restores the frame after that.
+        .defaultSize(width: ControlView.minimumWindowWidth, height: 800)
     }
 }
 

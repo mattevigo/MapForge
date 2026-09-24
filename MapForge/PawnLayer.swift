@@ -28,6 +28,11 @@ struct PawnLayer: View {
     /// to come from the gesture rather than the document. A drag that ends where it
     /// started passes the same point twice and records nothing.
     let onCommit: (Pawn.ID, MapPoint) -> Void
+    /// A Light Marker being dragged, and the drag ending. A Light is moved exactly as a Pawn
+    /// is — live, in this view, with no mode — but its ending carries no origin: nothing
+    /// records where a torch used to be.
+    var onMoveLight: (Light.ID, MapPoint) -> Void = { _, _ in }
+    var onCommitLight: () -> Void = {}
 
     @State private var dragStart: MapPoint?
 
@@ -43,7 +48,14 @@ struct PawnLayer: View {
                     // The same 0.4 a Pawn the players cannot see gets, because it is the
                     // same statement: the table cannot see this.
                     .opacity(isLightDimmed(light) ? 0.4 : 1)
+                    // A marker is a small dot; the grab area is a square's worth, so the
+                    // DM is not hunting nine points with a trackpad. Under the tokens still,
+                    // so a Pawn standing on a brazier is what a drag there picks up.
+                    .frame(width: max(side, 18), height: max(side, 18))
+                    .contentShape(Circle())
                     .position(x: p.x, y: p.y)
+                    .gesture(drag(light))
+                    .accessibilityIdentifier("light-marker-\(light.name ?? "unnamed")")
             }
             ForEach(pawns) { pawn in
                 let p = PlayerPlacement.viewPoint(pawn.at, map: map, frame: frame)
@@ -60,6 +72,23 @@ struct PawnLayer: View {
             }
         }
         .coordinateSpace(name: Self.coordinateSpace)
+    }
+
+    /// The same gesture for a Light Marker. One `dragStart` serves both: only one thing is
+    /// under the cursor at a time.
+    private func drag(_ light: Light) -> some Gesture {
+        DragGesture(minimumDistance: 1, coordinateSpace: .named(Self.coordinateSpace))
+            .onChanged { value in
+                if dragStart == nil { dragStart = light.at }
+                guard let start = dragStart, frame.width > 0, frame.height > 0 else { return }
+                let dx = value.translation.width / frame.width * map.imagePixelSize.width
+                let dy = value.translation.height / frame.height * map.imagePixelSize.height
+                onMoveLight(light.id, MapPoint(x: start.x + dx, y: start.y + dy))
+            }
+            .onEnded { _ in
+                dragStart = nil
+                onCommitLight()
+            }
     }
 
     /// Measured in this layer's own named space, never the token's — a token placed with

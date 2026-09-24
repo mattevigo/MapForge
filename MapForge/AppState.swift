@@ -142,6 +142,14 @@ final class AppState: ObservableObject {
     /// Written straight through on every edit rather than debounced: a roster changes when
     /// the DM types in it, which is nothing like drag-rate.
     @Published private(set) var partyBook = PartyBook()
+
+    /// Every Monster read from the open Workspace's notes. Read when the Workspace opens and
+    /// at no other time, and never written anywhere — see `BestiaryStore` and ADR-0020.
+    /// Settable so a test can hand one over without a folder of notes.
+    @Published var bestiary = Bestiary.closed
+
+    /// The read in flight, kept so a test can wait for it and a switch can abandon it.
+    private(set) var bestiaryLoad: Task<Void, Never>?
     /// Which Party the panel offers. Remembered in the Workspace, per ADR-0012.
     @Published private(set) var activePartyID: UUID?
     /// Set when the roster exists but could not be read.
@@ -629,6 +637,30 @@ final class AppState: ObservableObject {
         fog.pawns[index].at = destination
     }
 
+    /// Move a Light in the Live View — the DM carrying a lantern down a corridor, or nudging
+    /// a brazier they placed a square out.
+    ///
+    /// Beside `movePawn` and on its terms: live, watched by the table as it happens because
+    /// the Fog Overlay follows, and **not undoable**. Held inside the image for a sharper
+    /// reason than a Pawn is — `LiveHitTest` only reaches what the DM can click, so a Light
+    /// dragged past the edge could never be dragged back, edited or deleted (the rule
+    /// `AddPlacement.light` already keeps).
+    func moveLight(id: Light.ID, to point: MapPoint) {
+        guard let index = fog.lights.firstIndex(where: { $0.id == id }) else { return }
+        let destination = mapImage.map { PawnBounds.clamp(point, toImage: $0.pixelSize) } ?? point
+        guard fog.lights[index].at != destination else { return }
+        fog.lights[index].at = destination
+    }
+
+    /// A Light's drag has ended: on disk now, not after the debounce.
+    ///
+    /// Nothing else, unlike `commitPawnMove`. The Logs record what *happened* at the table,
+    /// and they are about Pawns; a torch is the room, and where the DM stood it is prep even
+    /// when it is done mid-evening.
+    func commitLightMove() {
+        flushPendingFogWrites()
+    }
+
     /// Rename a Pawn outside the fog editing mode — "3" becomes "Goblin B" in the middle
     /// of a fight, without leaving the table for authoring mode.
     ///
@@ -669,6 +701,17 @@ final class AppState: ObservableObject {
     func updatePawn(id: Pawn.ID, with draft: EditPawnDraft) {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
         fog.pawns[index] = draft.applied(to: fog.pawns[index])
+        // The one thing this sheet does to a Stat Block: a Monster that *changed* is stamped,
+        // whole (ADR-0021). Through `editStatBlock`, so mid-fight the stamp is recorded as
+        // Changes like any other edit (ADR-0008); the rolled Initiative is not among them,
+        // because changing a bonus does not by itself move anyone. A Monster that left the
+        // Bestiary while the sheet was open stamps nothing, and the Pawn simply remembers
+        // its name.
+        if let monster = bestiary.monster(named: draft.monsterToStamp) {
+            editStatBlock(for: id) { $0 = MonsterStamp.statBlock(from: monster, over: $0) }
+            // OK commits both files, so neither waits out a debounce.
+            flushPendingStatWrites()
+        }
         // A Treasure has nothing to do on its turn (`CONTEXT.md`, **Combatant**), so a
         // Combatant edited into one leaves the Order — the same removal deleting it does.
         // The Log keeps naming it, which is the rule for any Pawn that stops being one.
@@ -731,6 +774,23 @@ final class AppState: ObservableObject {
         return true
     }
 
+    /// A Party drag landing on the Map: the pasteboard's payload, resolved and Stamped.
+    ///
+    /// The Map's `.dropDestination` calls this and nothing else. It is a method rather than
+    /// three lines in the view because those three lines were once deleted along with the
+    /// view they sat in (`9767de0`, when the cropped mirror went), and the Party could not be
+    /// placed for weeks while every test of `stamp` stayed green. A drop handler cannot be
+    /// unit-tested; what it *does* can, so as much of it as possible is here.
+    ///
+    /// `location` and `frame` must share a coordinate space — see `Stamp.pawn`.
+    @discardableResult
+    func stampDropped(_ payloads: [CharacterDragPayload], at location: CGPoint,
+                      frame: CGRect) -> Bool {
+        guard let payload = payloads.first,
+              let character = character(id: payload.characterID) else { return false }
+        return stamp(character, at: location, frame: frame)
+    }
+
     /// The Character a drag is carrying. Searched across every Party, not just the active
     /// one: a drag that began before the DM switched Party is still a drag of a real
     /// Character, and refusing it would be a puzzle rather than a rule.
@@ -769,6 +829,7 @@ final class AppState: ObservableObject {
         // writer left open would append the next Workspace's lines to the last one's file.
         stopSession()
         self.workspace = workspace
+        readBestiary(of: workspace)
 
         let store = PartyStore(directory: workspace.supportDirectory)
         partyStore = store
@@ -803,6 +864,9 @@ final class AppState: ObservableObject {
         // it started in, and one that outlived its folder would write into the wrong one.
         stopSession()
         workspace = nil
+        bestiaryLoad?.cancel()
+        bestiaryLoad = nil
+        bestiary = .closed
         partyStore = nil
         workspacePreferences = nil
         partyBook = PartyBook()
@@ -812,6 +876,24 @@ final class AppState: ObservableObject {
         chosenDisplay = nil
         playerWindow.hide()
         playerScreen = nil
+    }
+
+    /// Reads the Workspace's Monsters, off the main thread.
+    ///
+    /// The one moment the DM's notes are read (ADR-0020): no rescan, no watching. Off the
+    /// main thread because it is a walk over a folder of the DM's choosing, and a vault is
+    /// not a size the app controls; the search box says "Reading…" until it lands. A read
+    /// that finishes after the DM has switched Workspace is dropped rather than shown.
+    private func readBestiary(of workspace: Workspace) {
+        bestiaryLoad?.cancel()
+        bestiary = .reading
+        bestiaryLoad = Task { [weak self] in
+            let read = await Task.detached(priority: .userInitiated) {
+                BestiaryStore.load(for: workspace)
+            }.value
+            guard let self, !Task.isCancelled, self.workspace == workspace else { return }
+            self.bestiary = read
+        }
     }
 
     /// Re-reads the roster after a migration wrote one into a Workspace that had none.

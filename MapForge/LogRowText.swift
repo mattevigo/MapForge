@@ -42,6 +42,8 @@ enum LogRowText {
             "\(combatantName) — max HP \(number(from)) → \(number(to))"
         case let .acChanged(_, from, to):
             "\(combatantName) — AC \(from) → \(to)"
+        case let .initiativeBonusChanged(_, from, to):
+            "\(combatantName) — initiative bonus \(signed(from)) → \(signed(to))"
         case let .conditionAdded(_, condition):
             "\(combatantName) — \(condition.title) applied"
         case let .conditionRemoved(_, condition):
@@ -107,6 +109,12 @@ enum LogRowText {
     /// monster nobody has statted and a dead one.
     private static func number(_ value: Int?) -> String {
         value.map(String.init) ?? "—"
+    }
+
+    /// A bonus as a DM writes one: "+2", "−1", "+0". A true minus rather than a hyphen, as
+    /// their own notes use.
+    private static func signed(_ value: Int) -> String {
+        value < 0 ? "−\(-value)" : "+\(value)"
     }
 
     /// A Session Line, or a row that heads a group.

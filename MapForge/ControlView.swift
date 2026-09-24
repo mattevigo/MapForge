@@ -58,6 +58,9 @@ struct ControlView: View {
     /// so panning from the live value would compound it — the same reason
     /// `GridFitOverlay` and `FogOverlay` each hold one.
     @State private var livePanStart: PreviewTransform?
+    /// The transform a middle-button drag started from, for the same reason. One for all
+    /// three modes: that drag is attached to the preview itself, not to a mode's overlay.
+    @State private var middlePanStart: PreviewTransform?
     @State private var armedShape: MeasurementShape?
     /// What `Add` is waiting to place, or nil when nothing is armed.
     ///
@@ -277,6 +280,12 @@ struct ControlView: View {
             case .pawn(let id, let draft):
                 EditPawnSheet(draft: draft,
                               hasDeclaredGrid: appState.hasDeclaredGrid,
+                              bestiary: appState.bestiary,
+                              pawns: appState.fog.pawns,
+                              // The fight's copy while one runs: that is the one a stamp
+                              // would overwrite, and so the one to ask about.
+                              statBlock: appState.encounter?.blocks[id]
+                                  ?? appState.statBlock(for: id),
                               onCommit: { appState.updatePawn(id: id, with: $0); editing = nil },
                               onCancel: { editing = nil })
             case .light(let id, let draft):
@@ -658,6 +667,21 @@ struct ControlView: View {
                     // changed. Gated on `.normal` because the authoring modes own their own
                     // gestures — `FogOverlay` and `GridFitOverlay` are underneath here.
                     .onRightClick { if mode == .normal { rightClick() } }
+                    // Stamping a Character: the Party panel's drag lands here. The comment
+                    // above says stamping "moved wholesale" with the rest, and it did not —
+                    // the mirror's drop target was deleted with the mirror and never
+                    // re-attached, so the roster offered a drag nothing would accept.
+                    //
+                    // `location` arrives in this container's own space, which is the space
+                    // `fitted` is expressed in — the pairing `PlayerPlacement.mapPoint`
+                    // warns about at length, and the same one `leftClick` relies on. A drop
+                    // on the letterbox margin is outside the image and is refused by
+                    // `Stamp.pawn`. Refused in the authoring modes too: the Wall Editor draws
+                    // Pawns for reference and places none (ADR-0013).
+                    .dropDestination(for: CharacterDragPayload.self) { payloads, location in
+                        guard mode == .normal else { return false }
+                        return appState.stampDropped(payloads, at: location, frame: fitted)
+                    }
                     .contextMenu {
                         if mode == .normal, !isChaining, let map = appState.mapScale {
                             measurementMenu(map: map, frame: fitted)
@@ -694,6 +718,24 @@ struct ControlView: View {
                             }
                             .onEnded { _ in livePanStart = nil }
                     )
+                    // The middle button pans whatever is on screen — the Magnifier, Grid
+                    // Fit's zoom, the Wall Editor's — because no mode uses that button for
+                    // anything else, so unlike ⌥-drag it needs no gesture to stay out of
+                    // the way of. `panned` stops at the artwork's edges, and at the
+                    // zoom's floor there is nothing to move and nothing is stored.
+                    .onMiddleMouseDrag(isOverView: mirrorCursor != nil) { translation in
+                        let start = middlePanStart ?? transform
+                        middlePanStart = start
+                        let panned = start.panned(by: translation, container: previewSize)
+                        guard panned != transform else { return }
+                        switch mode {
+                        case .gridFit: gridFitTransform = panned
+                        case .fog: fogTransform = panned
+                        case .normal: liveZoom = panned
+                        }
+                    } onEnded: {
+                        middlePanStart = nil
+                    }
                     .onContinuousHover { phase in
                         switch phase {
                         case .active(let location):
@@ -861,7 +903,9 @@ struct ControlView: View {
                   onMove: { appState.movePawn(id: $0, to: $1) },
                   onCommit: { id, origin in
                       appState.commitPawnMove(id: id, from: origin)
-                  })
+                  },
+                  onMoveLight: { appState.moveLight(id: $0, to: $1) },
+                  onCommitLight: { appState.commitLightMove() })
         // Above the tokens: a Measurement is what the DM is pointing at, and a cone
         // half-hidden behind the party is unreadable.
         if let pixelsPerSquare = appState.pixelsPerSquare {
@@ -1105,7 +1149,8 @@ struct ControlView: View {
         case .pawn(let pawnKind):
             guard let pawn = AddPlacement.pawn(kind: pawnKind, at: point,
                                                existing: appState.fog.pawns,
-                                               imageSize: appState.mapImage?.pixelSize)
+                                               imageSize: appState.mapImage?.pixelSize,
+                                               bestiary: appState.bestiary)
             else { return }   // outside the image: refused, and still armed
             // Through `addPawnToMap` rather than appending here, so a Creature placed while
             // a fight is running rolls Initiative and joins the Order. A Treasure is refused

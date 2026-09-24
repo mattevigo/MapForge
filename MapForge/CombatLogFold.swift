@@ -154,6 +154,10 @@ enum CombatLogFold {
             state.blocks[id, default: StatBlock()].maxHP = to
         case let .acChanged(id, _, to):
             state.blocks[id, default: StatBlock()].armorClass = to
+        case let .initiativeBonusChanged(id, _, to):
+            // The bonus only. The rolled Initiative is the Encounter's and does not move:
+            // changing a bonus does not by itself move anyone.
+            state.blocks[id, default: StatBlock()].initiativeBonus = to
         case let .conditionAdded(id, condition):
             state.blocks[id, default: StatBlock()].conditions.insert(condition)
         case let .conditionRemoved(id, condition):
