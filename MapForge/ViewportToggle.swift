@@ -40,14 +40,6 @@ enum ViewportToggle {
     /// Pawns beneath it, which is why it used to be confined to a mode.
     static func isDraggable(isShowingViewport: Bool) -> Bool { isShowingViewport }
 
-    /// Whether showing the rectangle should put the Magnifier away.
-    ///
-    /// It should. The two act on the same preview and only one is on screen at a time: with
-    /// the whole Map showing there is no mirror left to magnify, so a Magnifier left armed
-    /// underneath would keep its "Zoomed" affordance up over a view it is not affecting —
-    /// and the DM would come back from panning to a magnification they had forgotten about.
-    static func endsMagnifier(isShowingViewport: Bool) -> Bool { isShowingViewport }
-
     /// Whether the control is offered at all.
     ///
     /// A Map that fits inside the Viewport has no hidden part: the rectangle would cover the

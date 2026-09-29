@@ -32,16 +32,6 @@ final class ViewportToggleTests: XCTestCase {
         XCTAssertTrue(ViewportToggle.isDraggable(isShowingViewport: true))
     }
 
-    /// The Magnifier and the rectangle both act on the Live View's preview, and only one of
-    /// them is on screen at a time: showing the rectangle switches to the whole Map, where
-    /// there is no mirror left to magnify. Leaving the Magnifier armed underneath would mean
-    /// the rectangle was drawn over a zoomed view it does not describe — the DM would read
-    /// the players' Viewport off a Map at the wrong scale.
-    func testShowingTheViewportEndsTheMagnifier() {
-        XCTAssertTrue(ViewportToggle.endsMagnifier(isShowingViewport: true))
-        XCTAssertFalse(ViewportToggle.endsMagnifier(isShowingViewport: false))
-    }
-
     /// Offered only when there is something to pan: a Map that fits inside the Viewport has
     /// no hidden part, so the rectangle would cover everything and move nowhere.
     func testItIsOfferedOnlyWhenTheMapOverflows() {
