@@ -32,16 +32,19 @@ enum DistanceUnit: CaseIterable {
 
     func squares(fromDisplay display: CGFloat) -> CGFloat { display / perSquare }
 
-    /// A distance as the DM would say it: "9 m", "7.5 m".
+    /// A distance as the DM would say it: "9 m", "7.5 m", or "7,5 m" at an Italian table.
     ///
     /// A trailing `.0` is dropped because every whole distance is read aloud without it,
-    /// while a half square has to keep its fraction.
-    func format(squares: CGFloat) -> String {
+    /// while a half square has to keep its fraction — to two places in French, because the
+    /// French book writes "1,50 m" (`docs/terminology.md`, Distances).
+    func format(squares: CGFloat, locale: Locale = .interface) -> String {
         let value = display(fromSquares: squares)
-        let rounded = (value * 10).rounded() / 10
-        let text = rounded == rounded.rounded()
-            ? String(Int(rounded.rounded()))
-            : String(format: "%.1f", rounded)
+        let rounded = Double((value * 10).rounded() / 10)
+        let places = rounded == rounded.rounded() ? 0
+            : locale.language.languageCode == .french ? 2 : 1
+        let text = rounded.formatted(.number.precision(.fractionLength(places))
+                                         .grouping(.never)
+                                         .locale(locale))
         return "\(text) \(symbol)"
     }
 

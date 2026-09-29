@@ -17,6 +17,7 @@ import Foundation
 final class DisplayPreferences {
     private enum Key {
         static let recentWorkspaces = "recentWorkspaces"
+        static let appleLanguages = "AppleLanguages"
     }
 
     /// Enough to recognise a campaign in the picker, few enough to stay a list and not a
@@ -25,8 +26,14 @@ final class DisplayPreferences {
 
     private let defaults: UserDefaults
 
-    init(defaults: UserDefaults = .standard) {
+    /// The name of the domain `defaults` writes to: the app's bundle identifier for the real
+    /// preferences, the suite's name for a throwaway one.
+    private let domain: String
+
+    init(defaults: UserDefaults = .standard,
+         domain: String = Bundle.main.bundleIdentifier ?? "com.mattevigo.MapForge") {
         self.defaults = defaults
+        self.domain = domain
     }
 
     /// The preferences this launch should use: the real ones, or a throwaway suite when
@@ -43,10 +50,11 @@ final class DisplayPreferences {
     /// roster. `AppState` pairs this with a throwaway Workspace — see
     /// `openWorkspaceFromLaunchArgumentsIfPresent`.
     static var forThisLaunch: DisplayPreferences {
+        let name = "MapForgeUITests.\(UUID().uuidString)"
         guard CommandLine.arguments.contains("--test-fresh-preferences"),
-              let suite = UserDefaults(suiteName: "MapForgeUITests.\(UUID().uuidString)")
+              let suite = UserDefaults(suiteName: name)
         else { return DisplayPreferences() }
-        return DisplayPreferences(defaults: suite)
+        return DisplayPreferences(defaults: suite, domain: name)
     }
 
     /// The Workspaces this Mac has opened, most recent first.
@@ -61,6 +69,27 @@ final class DisplayPreferences {
                 .map { URL(fileURLWithPath: $0) }
         }
         set { defaults.set(newValue.map(\.path), forKey: Key.recentWorkspaces) }
+    }
+
+    /// The Interface Language chosen on this Mac.
+    ///
+    /// Stored as the app's own `AppleLanguages`, which is what macOS reads to pick a
+    /// localisation at launch — and what System Settings writes when a language is chosen for
+    /// MapForge there, so either place reads the other's choice. Read from the app's own
+    /// domain only: through `defaults` the key always answers, from the Mac's global language
+    /// list or a launch argument, and "System" could never be told apart from a choice.
+    var interfaceLanguage: InterfaceLanguage {
+        get {
+            (defaults.persistentDomain(forName: domain)?[Key.appleLanguages] as? [String])?
+                .first.flatMap(InterfaceLanguage.init(code:)) ?? .system
+        }
+        set {
+            if newValue == .system {
+                defaults.removeObject(forKey: Key.appleLanguages)
+            } else {
+                defaults.set([newValue.rawValue], forKey: Key.appleLanguages)
+            }
+        }
     }
 
     /// Moves a Workspace to the front of the list, deduplicating and capping.
