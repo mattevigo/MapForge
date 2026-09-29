@@ -178,7 +178,7 @@ extension AppState {
     /// Said rather than only enforced: a Play button that is merely grey leaves a DM
     /// wondering what they forgot, five minutes before the players arrive.
     var encounterRefusal: String? {
-        session == nil ? "Start a Session first — a fight is part of an evening." : nil
+        session == nil ? "Start a Session first — an Encounter is part of an evening." : nil
     }
 
     /// Rolls Initiative for every rostered Player and Creature on the Map and opens a

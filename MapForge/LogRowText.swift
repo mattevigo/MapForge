@@ -144,7 +144,7 @@ enum LogRowText {
         case .encounterEnded:
             "Encounter ended"
         case let .encounterUnreadable(map, logFile):
-            "This fight's log could not be read — \(mapName(map)), \(logFile)"
+            "This Encounter's Combat Log could not be read — \(mapName(map)), \(logFile)"
         case let .roundHeading(round):
             "Round \(round)"
         case let .turn(combatantName):

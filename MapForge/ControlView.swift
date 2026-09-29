@@ -197,8 +197,8 @@ struct ControlView: View {
 
     private var endEncounterMessage: String {
         let map = appState.mapURL?.lastPathComponent ?? "this map"
-        return "An encounter is running on \(map). Switching workspaces will end it. "
-            + "The combat log is kept."
+        return "An Encounter is running on \(map). Switching Workspaces will end it. "
+            + "The Combat Log is kept."
     }
 
     private var stopSessionMessage: String {
@@ -416,7 +416,7 @@ struct ControlView: View {
             // Each mode used to contribute its own caption — and the Wall Editor a caption
             // plus an inspector row — so entering a mode added height to this stack, stole
             // it from the `GeometryReader` below, and `fitted(container:)` recomputed to a
-            // different scale. The Map visibly resized the moment a DM pressed "Edit Fog…",
+            // different scale. The Map visibly resized the moment a DM pressed "Wall Editor…",
             // and jumped mid-click inside the mode. Same defect, two symptoms.
             //
             // Reserving a constant height makes the preview's container a fixed point
@@ -835,9 +835,9 @@ struct ControlView: View {
             // starting. The mode hint row says why they are off.
             .disabled(appState.mapImage == nil || showingLog)
             .help("Pick what to add, then click the Map to place it. Esc cancels.")
-            Button("Fit Grid…") { startGridFit() }
+            Button("Grid Fit…") { startGridFit() }
                 .disabled(appState.mapImage == nil || showingLog)
-            Button("Edit Fog…") { startFogEditing() }
+            Button("Wall Editor…") { startFogEditing() }
                 .disabled(appState.mapImage == nil || showingLog)
             // A "Zoomed — Reset" button used to appear here while magnified. Zooming back
             // out reaches the same place: `PreviewTransform`'s zoom floor is fit-to-window,
@@ -1372,7 +1372,7 @@ struct ControlView: View {
         "Click to place Wall corners, double-click to end a chain, Esc to cancel. ⇧ frees the angle; corners weld to nearby ends. Click a Wall then ⌫ to delete. Pawns and Lights are shown for reference — edit them from the map."
     static let viewportHint =
         "Drag the rectangle to choose what the Player Display shows."
-    /// The one text that answers "why can't I press Edit Fog", which is a question a greyed
+    /// The one text that answers "why can't I press Wall Editor", which is a question a greyed
     /// button raises and cannot itself answer.
     static let logViewHint =
         "Reading the Session Log. Close it to edit the Map."
@@ -1444,7 +1444,7 @@ struct ControlView: View {
         if !(appState.fog.lights.isEmpty && appState.fog.pawns.isEmpty), !appState.hasDeclaredGrid {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text("This Map's Grid has not been declared, so Light radii have no real size — run Fit Grid, or set the squares-wide value.")
+                Text("This Map's Grid has not been declared, so Light radii have no real size — run Grid Fit, or set the squares-wide value.")
                     .font(.caption)
             }
             .padding(8)
@@ -1546,8 +1546,8 @@ struct ControlView: View {
             .toggleStyle(.button)
             .accessibilityIdentifier("pawn-in-combat")
             .help(isIn
-                  ? "\(pawn.label) rolls Initiative when a fight starts. Click to leave them out."
-                  : "\(pawn.label) sits the next fight out. Click to put them in.")
+                  ? "\(pawn.label) rolls Initiative when an Encounter starts. Click to leave them out."
+                  : "\(pawn.label) sits the next Encounter out. Click to put them in.")
         }
     }
 
@@ -1749,7 +1749,7 @@ struct ControlView: View {
         Toggle("Log", isOn: $showingLog)
             .toggleStyle(.button)
             .accessibilityIdentifier("log-toggle")
-            .help("Read back over this evening — comments, movements and every fight.")
+            .help("Read back over this evening — comments, movements and every Encounter.")
             .onChange(of: showingLog) { _, showing in
                 if showing { reloadLog() }
             }
@@ -1838,7 +1838,7 @@ struct ControlView: View {
             VStack(spacing: 8) {
                 Picker("", selection: $panelTab) {
                     Label("Scene", systemImage: "map").tag(PanelTab.scene)
-                    Label("Combat", systemImage: "shield.lefthalf.filled").tag(PanelTab.combat)
+                    Label("Encounter", systemImage: "shield.lefthalf.filled").tag(PanelTab.combat)
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
@@ -2221,7 +2221,7 @@ struct ControlView: View {
                 // things that happen on a Map, and a Character has never been on one —
                 // the split `Stamp.statBlock(from:)` already reasons about.
                 HStack(spacing: 6) {
-                    Text("Init:").font(.caption)
+                    Text("Initiative:").font(.caption)
                     TextField("", value: bindingForCharacter(\.initiativeBonus),
                               format: .number)
                         .textFieldStyle(.roundedBorder)

@@ -28,7 +28,7 @@ final class WorkspacePickerUITests: XCTestCase {
             args.append("--test-workspace=\(workspace.path)")
         }
         app.launchArguments = args
-        app.launch()
+        app.launchInEnglish()
         return app
     }
 

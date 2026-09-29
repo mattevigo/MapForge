@@ -47,12 +47,12 @@ final class InitiativeTrackerUITests: XCTestCase {
         controlWindow(app).coordinate(withNormalizedOffset: CGVector(dx: dx, dy: dy)).click()
     }
 
-    /// A Map with two Pawns on it and the Combat tab showing.
+    /// A Map with two Pawns on it and the Encounter tab showing.
     private func launchWithCombatants() throws -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
                                "--test-player-screen", "--test-fresh-preferences"]
-        app.launch()
+        app.launchInEnglish()
 
         // Two Pawns, placed from the Live View's Add menu. They were placed in the fog
         // editing mode until ADR-0013 moved authoring out of it; the fixture is shorter for
@@ -76,7 +76,7 @@ final class InitiativeTrackerUITests: XCTestCase {
         XCTAssertTrue(session.waitForExistence(timeout: 3), "no Session control")
         session.click()
 
-        app.radioButtons["Combat"].click()
+        app.radioButtons["Encounter"].click()
         return app
     }
 
@@ -84,13 +84,13 @@ final class InitiativeTrackerUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
                                "--test-player-screen", "--test-fresh-preferences"]
-        app.launch()
+        app.launchInEnglish()
         let menu = app.menuButtons["Add"]
         XCTAssertTrue(menu.waitForExistence(timeout: 3), "no Add menu")
         menu.click()
         app.menuItems["Creature"].click()
         mapPreview(app).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
-        app.radioButtons["Combat"].click()
+        app.radioButtons["Encounter"].click()
 
         // Somebody to fight and no Session: grey, and saying why.
         let play = app.buttons["encounter-play"]
@@ -171,7 +171,7 @@ final class InitiativeTrackerUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
                                "--test-player-screen", "--test-fresh-preferences"]
-        app.launch()
+        app.launchInEnglish()
         // A Light, so the panel appears at all, but no Pawn to take a Turn. Placed from
         // the Live View's Add menu — the fog editor's tool picker is gone (ADR-0013), and a
         // `Menu` publishes as a MenuButton carrying a title.
@@ -186,7 +186,7 @@ final class InitiativeTrackerUITests: XCTestCase {
         light.click()
         mapPreview(app).coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click()
 
-        app.radioButtons["Combat"].click()
+        app.radioButtons["Encounter"].click()
         XCTAssertTrue(app.staticTexts["Nobody on the Map to fight"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.buttons["encounter-play"].isEnabled)
     }

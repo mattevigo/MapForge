@@ -125,7 +125,7 @@ struct CombatPanel: View {
                     Image(systemName: "backward.fill")
                 }
                 .accessibilityIdentifier("encounter-previous")
-                .help("Go back to correct an earlier Turn. The fight does not rewind.")
+                .help("Go back to correct an earlier Turn. The Encounter does not rewind.")
 
                 Button {
                     appState.endTurn()
@@ -153,7 +153,7 @@ struct CombatPanel: View {
                     Image(systemName: "stop.fill")
                 }
                 .accessibilityIdentifier("encounter-stop")
-                .help("End the fight and close its Combat Log.")
+                .help("End the Encounter and close its Combat Log.")
             }
         }
         .buttonStyle(.bordered)
@@ -213,7 +213,7 @@ struct CombatPanel: View {
             .sorted { name(of: $0, in: encounter) < name(of: $1, in: encounter) }
         if !benched.isEmpty {
             Divider().padding(.vertical, 4)
-            Text("Not in combat")
+            Text("Benched")
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 6)
@@ -514,7 +514,7 @@ struct CombatPanel: View {
             }
             if rostered.isEmpty {
                 Text(hasCombatants
-                     ? "Nobody on the Map is in the next fight"
+                     ? "Nobody on the Map is in the next Encounter"
                      : "Nobody on the Map to fight")
                     .font(.caption)
                     .foregroundStyle(.secondary)

@@ -36,7 +36,7 @@ final class ViewportDragUITests: XCTestCase {
         app.launchArguments = ["--test-map=\(map.path)", "--test-squares=\(squares)",
                                "--test-player-screen",
                                "--test-fresh-preferences"]
-        app.launch()
+        app.launchInEnglish()
         return app
     }
 

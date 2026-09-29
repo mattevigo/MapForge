@@ -33,7 +33,7 @@ final class LogViewUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--test-map=\(map.path)", "--test-squares=30",
                                "--test-fresh-preferences"]
-        app.launch()
+        app.launchInEnglish()
         return app
     }
 
@@ -81,14 +81,14 @@ final class LogViewUITests: XCTestCase {
         let toggle = window.checkBoxes["log-toggle"]
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
 
-        XCTAssertTrue(window.buttons["Fit Grid…"].isEnabled)
-        XCTAssertTrue(window.buttons["Edit Fog…"].isEnabled)
+        XCTAssertTrue(window.buttons["Grid Fit…"].isEnabled)
+        XCTAssertTrue(window.buttons["Wall Editor…"].isEnabled)
 
         toggle.click()
         XCTAssertTrue(window.otherElements["log-view"].waitForExistence(timeout: 2))
 
-        XCTAssertFalse(window.buttons["Fit Grid…"].isEnabled)
-        XCTAssertFalse(window.buttons["Edit Fog…"].isEnabled)
+        XCTAssertFalse(window.buttons["Grid Fit…"].isEnabled)
+        XCTAssertFalse(window.buttons["Wall Editor…"].isEnabled)
         XCTAssertFalse(window.popUpButtons["Add"].isEnabled)
     }
 

@@ -199,7 +199,7 @@ struct LogViewModel {
         let state = CombatLogFold.fold(lines)
         guard !state.hasEnded, let active = state.activeCombatantID else { return [] }
         return [.liveTurn(round: state.round,
-                          combatantName: state.name(of: active) ?? "Unknown combatant")]
+                          combatantName: state.name(of: active) ?? "Unknown Combatant")]
     }
 
     /// A Combat Log as rows: Rounds grouping Turns, Turns grouping Changes, Corrections drawn
@@ -300,7 +300,7 @@ struct CombatantNames {
 
     func name(of id: UUID?) -> String {
         guard let id else { return "—" }
-        return names[id] ?? "Unknown combatant"
+        return names[id] ?? "Unknown Combatant"
     }
 }
 

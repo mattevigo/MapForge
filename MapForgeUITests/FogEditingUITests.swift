@@ -32,7 +32,7 @@ final class FogEditingUITests: XCTestCase {
         app.launchArguments = ["--test-map=\(map.path)", "--test-squares=30",
                                "--test-player-screen",
                                "--test-fresh-preferences"]
-        app.launch()
+        app.launchInEnglish()
         return app
     }
 
@@ -81,7 +81,7 @@ final class FogEditingUITests: XCTestCase {
     /// Clicks an element by absolute coordinate, bypassing `isHittable`.
     ///
     /// The live panel's `ScrollView` publishes as **Disabled** in the accessibility tree —
-    /// at 236 points before the Combat tab existed and at 320 after, so it is AppKit's
+    /// at 236 points before the Encounter tab existed and at 320 after, so it is AppKit's
     /// behaviour rather than this app's. Everything inside it therefore reports
     /// `isHittable == false`, and `element.click()` refuses. The controls are genuinely
     /// live: a coordinate click at the element's own centre toggles them, which is what
@@ -96,8 +96,8 @@ final class FogEditingUITests: XCTestCase {
 
     func testEditFogButtonEntersTheMode() throws {
         let app = try launchApp()
-        let draw = app.buttons["Edit Fog…"]
-        XCTAssertTrue(draw.waitForExistence(timeout: 5), "Edit Fog… button not found")
+        let draw = app.buttons["Wall Editor…"]
+        XCTAssertTrue(draw.waitForExistence(timeout: 5), "Wall Editor… button not found")
         draw.click()
 
         // The mode's own controls replace the entry buttons.
@@ -107,7 +107,7 @@ final class FogEditingUITests: XCTestCase {
 
     func testClickingPlacesVerticesAndDoubleClickCommitsTheChain() throws {
         let app = try launchApp()
-        app.buttons["Edit Fog…"].click()
+        app.buttons["Wall Editor…"].click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
         let map = mapPreview(app)
@@ -129,7 +129,7 @@ final class FogEditingUITests: XCTestCase {
 
     func testCancelRestoresTheWallsFromBeforeTheMode() throws {
         let app = try launchApp()
-        app.buttons["Edit Fog…"].click()
+        app.buttons["Wall Editor…"].click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
         let map = mapPreview(app)
@@ -139,14 +139,14 @@ final class FogEditingUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["1 Wall, 0 Lights, 0 Pawns"].waitForExistence(timeout: 2))
 
         app.buttons["Cancel"].click()
-        app.buttons["Edit Fog…"].click()
+        app.buttons["Wall Editor…"].click()
         XCTAssertTrue(app.staticTexts["0 Walls, 0 Lights, 0 Pawns"].waitForExistence(timeout: 2),
                       "Cancel did not discard the Walls drawn in the mode")
     }
 
     func testPlacingALightFromTheAddMenuAndTogglingItLive() throws {
         // No mode to enter: a Light is placed in the Live View, which is the whole point of
-        // ADR-0013. This test used to click "Edit Fog…" first and switch to the Light tool.
+        // ADR-0013. This test used to click "Wall Editor…" first and switch to the Light tool.
         let app = try launchApp()
         add(app, "Light", at: CGVector(dx: 0.4, dy: 0.7))
 
@@ -171,7 +171,7 @@ final class FogEditingUITests: XCTestCase {
 
     func testZoomingInKeepsThePreviewInsideTheWindow() throws {
         let app = try launchApp()
-        app.buttons["Edit Fog…"].click()
+        app.buttons["Wall Editor…"].click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
         let window = controlWindow(app)
@@ -213,7 +213,7 @@ final class FogEditingUITests: XCTestCase {
 
         // The Pawn survived the drag rather than being duplicated or dropped. The fog
         // summary is only drawn inside the Wall Editor, so that is where the count is read.
-        app.buttons["Edit Fog…"].click()
+        app.buttons["Wall Editor…"].click()
         XCTAssertTrue(app.staticTexts["0 Walls, 0 Lights, 1 Pawn"].waitForExistence(timeout: 2))
     }
 
@@ -245,9 +245,9 @@ final class FogEditingUITests: XCTestCase {
         // A segmented Picker, so the two tabs publish as radio buttons — the same role the
         // fog tool picker uses, which `tool()` documents above.
         let scene = app.radioButtons["Scene"]
-        let combat = app.radioButtons["Combat"]
+        let combat = app.radioButtons["Encounter"]
         XCTAssertTrue(scene.waitForExistence(timeout: 2), "no Scene tab")
-        XCTAssertTrue(combat.exists, "no Combat tab")
+        XCTAssertTrue(combat.exists, "no Encounter tab")
         XCTAssertEqual(scene.value as? Int, 1, "a session should start on the Scene tab")
 
         // Switching tabs shows the other panel and hides this one's rows.
@@ -255,9 +255,9 @@ final class FogEditingUITests: XCTestCase {
         // Only a Light was placed, so the tracker correctly reports there is nobody to
         // fight rather than offering an empty Order.
         XCTAssertTrue(app.staticTexts["Nobody on the Map to fight"].waitForExistence(timeout: 2),
-                      "the Combat tab showed nothing")
+                      "the Encounter tab showed nothing")
         XCTAssertFalse(app.checkBoxes["light-toggle-1"].exists,
-                       "the Scene tab's rows are still on screen behind the Combat tab")
+                       "the Scene tab's rows are still on screen behind the Encounter tab")
 
         scene.click()
         XCTAssertTrue(app.checkBoxes["light-toggle-1"].waitForExistence(timeout: 2),

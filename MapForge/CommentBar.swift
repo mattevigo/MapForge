@@ -30,8 +30,8 @@ enum CommentBarState: Equatable {
         case .recording:
             return "what happened"
         case let .duringEncounter(name):
-            guard let name else { return "Mid-fight — use the Combat tab" }
-            return "Note on \(name)'s turn — use the Combat tab"
+            guard let name else { return "During an Encounter — use the Encounter tab" }
+            return "Note on \(name)'s Turn — use the Encounter tab"
         }
     }
 }

@@ -46,7 +46,7 @@ final class PreviewWithoutDisplayUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--test-map=\(map.path)", "--test-squares=30",
                                "--test-fresh-preferences"]
-        app.launch()
+        app.launchInEnglish()
         return app
     }
 
