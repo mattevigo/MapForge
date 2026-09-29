@@ -58,6 +58,10 @@ struct ControlView: View {
     /// The transform a middle-button drag started from, for the same reason. One for all
     /// three modes: that drag is attached to the preview itself, not to a mode's overlay.
     @State private var middlePanStart: PreviewTransform?
+    /// The transform a pinch started from: `MagnifyGesture` reports cumulative
+    /// magnification, so compounding it against the live scale would accelerate. Attached
+    /// to the preview, like the middle-button drag, so every mode pinches the same way.
+    @State private var pinchStart: PreviewTransform?
     @State private var armedShape: MeasurementShape?
     /// What `Add` is waiting to place, or nil when nothing is armed.
     ///
@@ -687,14 +691,40 @@ struct ControlView: View {
                         },
                         including: mode == .normal && claimsLeftClick ? .all : .subviews
                     )
-                    // Scroll to look closer. The Viewport is untouched, so the table sees
-                    // nothing change — the Magnifier is the DM's alone.
-                    .onScrollWheel { delta, location in
-                        guard mode == .normal, delta != 0 else { return }
-                        magnifier = transform.zoomed(to: transform.scale * exp(delta * 0.01),
-                                                     anchoringViewPoint: location,
-                                                     container: previewSize)
+                    // The wheel zooms and a swipe pans — `ScrollIntent` tells the two apart —
+                    // in every mode, on the one Magnifier. The Viewport is untouched even
+                    // with the rectangle armed and under the fingers, so the table sees
+                    // nothing change: moving what they see is a deliberate primary drag.
+                    //
+                    // Starts from the stored Magnifier rather than `transform`: a trackpad
+                    // sends more than one event per frame, and the render's own value would
+                    // drop every event but the last before the view caught up.
+                    .onScrollWheel { intent, location in
+                        var next = magnifier ?? transform
+                        if intent.zoom != 0 {
+                            next = next.zoomed(to: next.scale * exp(intent.zoom * 0.01),
+                                               anchoringViewPoint: location,
+                                               container: previewSize)
+                        }
+                        if intent.pan != .zero {
+                            next = next.panned(by: intent.pan, container: previewSize)
+                        }
+                        if next != transform { magnifier = next }
                     }
+                    // A trackpad pinch, anchored where it began, as the wheel is anchored at
+                    // the cursor. `magnification` is cumulative from the gesture's start, so
+                    // it multiplies the scale the pinch began at, not the live one.
+                    .simultaneousGesture(
+                        MagnifyGesture()
+                            .onChanged { value in
+                                let start = pinchStart ?? transform
+                                pinchStart = start
+                                magnifier = start.zoomed(to: start.scale * value.magnification,
+                                                         anchoringViewPoint: value.startLocation,
+                                                         container: previewSize)
+                            }
+                            .onEnded { _ in pinchStart = nil }
+                    )
                     // ⌥-drag moves the magnifier, as it does in the Wall Editor and Grid
                     // Fit. `.modifiers(.option)` also stops a plain drag matching, so
                     // dragging a Pawn stays unfiltered — that is the live action here.
@@ -711,8 +741,8 @@ struct ControlView: View {
                             .onEnded { _ in livePanStart = nil }
                     )
                     // The middle button pans the Magnifier in every mode, because no mode
-                    // uses that button for anything else, so unlike ⌥-drag it needs no gesture to stay out of
-                    // the way of. `panned` stops at the artwork's edges, and at the
+                    // uses that button for anything else, so unlike ⌥-drag it needs no
+                    // gesture to stay out of the way of. `panned` stops at the artwork's edges, and at the
                     // zoom's floor there is nothing to move and nothing is stored.
                     .onMiddleMouseDrag(isOverView: mirrorCursor != nil) { translation in
                         let start = middlePanStart ?? transform

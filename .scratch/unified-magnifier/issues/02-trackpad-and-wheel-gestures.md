@@ -1,6 +1,6 @@
 # 02 — Trackpad and wheel gestures
 
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 
 A two-finger swipe pans; a pinch zooms on every surface; ⌘-scroll zooms on any device; a wheel
