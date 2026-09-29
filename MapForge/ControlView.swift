@@ -578,9 +578,11 @@ struct ControlView: View {
                     // snaps back when layout resettles.
                     let previewSize = geo.size
                     // Every mode draws through the Magnifier; without one it is the plain
-                    // aspect fit, which is the zoom's floor.
-                    let transform = magnifier
-                        ?? PreviewTransform.fitted(imagePixelSize: image.pixelSize, container: previewSize)
+                    // aspect fit, which is its floor. Re-clamped against this container
+                    // because the Magnifier now outlives window resizes as well as modes.
+                    let transform = magnifier?.resized(to: previewSize)
+                        ?? PreviewTransform.fitted(imagePixelSize: image.pixelSize,
+                                                   container: previewSize)
                     let fitted = transform.imageRect
                     ZStack(alignment: .topLeading) {
                         Image(nsImage: image)
@@ -700,9 +702,9 @@ struct ControlView: View {
                     // sends more than one event per frame, and the render's own value would
                     // drop every event but the last before the view caught up.
                     .onScrollWheel { intent, location in
-                        var next = magnifier ?? transform
+                        var next = magnifier?.resized(to: previewSize) ?? transform
                         if intent.zoom != 0 {
-                            next = next.zoomed(to: next.scale * exp(intent.zoom * 0.01),
+                            next = next.zoomed(to: next.scale * intent.zoomFactor,
                                                anchoringViewPoint: location,
                                                container: previewSize)
                         }
@@ -725,8 +727,8 @@ struct ControlView: View {
                             }
                             .onEnded { _ in pinchStart = nil }
                     )
-                    // ⌥-drag moves the magnifier, as it does in the Wall Editor and Grid
-                    // Fit. `.modifiers(.option)` also stops a plain drag matching, so
+                    // ⌥-drag moves the Magnifier, as it does in the Wall Editor and Grid
+                    // Fit, whose overlays carry their own so it is not also read as a draw. `.modifiers(.option)` also stops a plain drag matching, so
                     // dragging a Pawn stays unfiltered — that is the live action here.
                     .simultaneousGesture(
                         DragGesture(minimumDistance: 2)
@@ -742,8 +744,8 @@ struct ControlView: View {
                     )
                     // The middle button pans the Magnifier in every mode, because no mode
                     // uses that button for anything else, so unlike ⌥-drag it needs no
-                    // gesture to stay out of the way of. `panned` stops at the artwork's edges, and at the
-                    // zoom's floor there is nothing to move and nothing is stored.
+                    // gesture to stay out of the way of. `panned` stops at the artwork's
+                    // edges, and at the floor there is nothing to move and nothing is stored.
                     .onMiddleMouseDrag(isOverView: mirrorCursor != nil) { translation in
                         let start = middlePanStart ?? transform
                         middlePanStart = start
@@ -837,7 +839,7 @@ struct ControlView: View {
                 .disabled(appState.mapImage == nil || showingLog)
             Button("Edit Fog…") { startFogEditing() }
                 .disabled(appState.mapImage == nil || showingLog)
-            // A "Zoomed — Reset" button used to appear here while magnified. Scrolling back
+            // A "Zoomed — Reset" button used to appear here while magnified. Zooming back
             // out reaches the same place: `PreviewTransform`'s zoom floor is fit-to-window,
             // so the Map returns to exactly the rect the button restored. The Magnifier
             // never touched the Player Display, so nothing about the table's view depended

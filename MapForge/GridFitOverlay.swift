@@ -13,8 +13,9 @@ struct GridFitOverlay: View {
     let transform: PreviewTransform
     let containerSize: CGSize
     @Binding var square: GridFitSquare?
-    /// Zoom/pan is owner state: the overlay reports the transform it wants, the way
-    /// ViewportOverlay reports a desired origin rather than binding one.
+    /// The Magnifier is owner state: the overlay reports the transform its ⌥-drag wants,
+    /// the way ViewportOverlay reports a desired origin rather than binding one. Zooming
+    /// is not here at all — the preview does it once for every mode.
     let onTransform: (PreviewTransform) -> Void
 
     @State private var dragStart: GridFitSquare?

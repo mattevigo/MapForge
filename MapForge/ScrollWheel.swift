@@ -109,6 +109,13 @@ struct ScrollIntent: Equatable {
         }
     }
 
+    /// How much `zoom` multiplies the scale by. Exponential, so each notch is the same
+    /// proportional step whatever the current magnification instead of crawling when close
+    /// in; and small, so a single flick does not cross the whole range from the whole Map
+    /// to 1:1.
+    var zoomFactor: CGFloat { exp(zoom * Self.zoomPerPoint) }
+
+    private static let zoomPerPoint: CGFloat = 0.01
     /// A wheel reports lines, a trackpad points.
     private static let pointsPerLine: CGFloat = 10
 }

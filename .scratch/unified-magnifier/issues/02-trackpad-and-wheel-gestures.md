@@ -19,7 +19,7 @@ tilted sideways pans. See the spec's **The classifier, stated once**.
 
 ## What to do
 
-- Make the classifier a pure function a test can ask, beside `PreviewTransform` — inputs:
+- Make the classifier a pure function a test can ask (`ScrollIntent`, in `ScrollWheel.swift`) — inputs:
   precise deltas or not, ⌘ held or not, dx, dy; output: zoom by a delta, or pan by a size.
   `ScrollWheelModifier` reads `hasPreciseScrollingDeltas`, `modifierFlags`,
   `scrollingDeltaX`/`Y` and hands them over; the momentum phase needs nothing special — it

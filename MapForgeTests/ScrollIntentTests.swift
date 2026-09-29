@@ -40,4 +40,11 @@ final class ScrollIntentTests: XCTestCase {
         let intent = ScrollIntent(dx: 1, dy: 2, isPrecise: false, isCommandHeld: true)
         XCTAssertEqual(intent, ScrollIntent(zoom: 20, pan: .zero))
     }
+
+    /// A wheel moved on both axes at once — a free-spinning or tilting wheel caught mid-
+    /// tilt — does both jobs in the one event rather than dropping either.
+    func testAWheelMovedOnBothAxesZoomsAndPans() {
+        let intent = ScrollIntent(dx: 1, dy: -1, isPrecise: false, isCommandHeld: false)
+        XCTAssertEqual(intent, ScrollIntent(zoom: -10, pan: CGSize(width: 10, height: 0)))
+    }
 }

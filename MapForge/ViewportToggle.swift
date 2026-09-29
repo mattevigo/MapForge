@@ -40,6 +40,15 @@ enum ViewportToggle {
     /// Pawns beneath it, which is why it used to be confined to a mode.
     static func isDraggable(isShowingViewport: Bool) -> Bool { isShowingViewport }
 
+    /// Whether a drag that starts on the armed rectangle moves it.
+    ///
+    /// Not when ⌥ is held: ⌥-drag pans the Magnifier everywhere on the preview, and the
+    /// rectangle sits on the preview. Both gestures would otherwise fire at once, and the
+    /// DM sliding their own view would slide the table's with it — the one thing panning
+    /// the Magnifier must never do. Arming the rectangle used to zoom out to the whole Map,
+    /// where there was nothing to pan, which is all that kept the two apart.
+    static func dragMovesViewport(isOptionHeld: Bool) -> Bool { !isOptionHeld }
+
     /// Whether the control is offered at all.
     ///
     /// A Map that fits inside the Viewport has no hidden part: the rectangle would cover the

@@ -32,6 +32,14 @@ final class ViewportToggleTests: XCTestCase {
         XCTAssertTrue(ViewportToggle.isDraggable(isShowingViewport: true))
     }
 
+    /// An ⌥-drag belongs to the Magnifier, even when it starts on the armed rectangle: it
+    /// slides the DM's view and must not also slide the table's. Arming no longer zooms out,
+    /// so there is a magnified Map under the rectangle to pan.
+    func testAnOptionDragOnTheRectangleDoesNotMoveTheViewport() {
+        XCTAssertFalse(ViewportToggle.dragMovesViewport(isOptionHeld: true))
+        XCTAssertTrue(ViewportToggle.dragMovesViewport(isOptionHeld: false))
+    }
+
     /// Offered only when there is something to pan: a Map that fits inside the Viewport has
     /// no hidden part, so the rectangle would cover everything and move nowhere.
     func testItIsOfferedOnlyWhenTheMapOverflows() {
