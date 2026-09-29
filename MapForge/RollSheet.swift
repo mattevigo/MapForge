@@ -179,7 +179,7 @@ struct RollSheet: View {
             } else {
                 Text("—").font(.title.weight(.semibold))
                 Text(draft.d20 == nil ? String(localized: "choose the d20 result")
-                                     : draft.kind.prompt.lowercased(with: .interface))
+                                     : draft.kind.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer()

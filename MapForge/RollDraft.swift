@@ -23,6 +23,15 @@ enum RollKind: Hashable {
         case .abilityCheck: String(localized: "Choose the skill")
         }
     }
+
+    /// The same request in the middle of a sentence, under the d20 grid. Its own string rather
+    /// than `prompt` lowercased: a German noun keeps its capital wherever it stands.
+    var caption: String {
+        switch self {
+        case .savingThrow: String(localized: "choose the ability")
+        case .abilityCheck: String(localized: "choose the skill")
+        }
+    }
 }
 
 /// The fields the Roll sheet offers, buffered until Record.

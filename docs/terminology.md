@@ -11,7 +11,7 @@ screen adds its row here for every language.
 | Language | Code | Rulebook source | Review |
 |---|---|---|---|
 | English | `en` | — (the source language; British spelling, per ADR-0022) | — |
-| Italiano | `it` | SRD 5.2.1 IT (WotC) | **reviewed** |
+| Italiano | `it` | SRD 5.2.1 IT (WotC) | **reviewed** — rows marked *proposed* excepted |
 | Deutsch | `de` | SRD 5.2.1 DE (WotC) | proposed |
 | Français | `fr` | SRD 5.2.1 FR (WotC) | proposed |
 | Español | `es` | SRD 5.2.1 ES (WotC; Spain) | proposed |
@@ -101,7 +101,7 @@ word.
 | English | it | de | fr | es | pt-BR |
 |---|---|---|---|---|---|
 | Saving Throw | Tiro salvezza | Rettungswurf | Jet de sauvegarde | Tirada de salvación | Teste de Resistência |
-| Ability Check | Prova di caratteristica | Attributswurf | Test de caractéristique | Prueba de característica | Teste de Habilidade † |
+| Ability Check | Prova di caratteristica | Attributswurf | Test de caractéristique | Prueba de característica | Teste de Habilidade † (2024 community texts say *Teste de Atributo*) |
 | Difficulty Class (DC) | Classe Difficoltà (CD) | Schwierigkeitsgrad (SG) | Degré de difficulté (DD) | Clase de dificultad (CD) | Classe de Dificuldade (CD) |
 | Modifier | Modificatore | Modifikator | Modificateur | Modificador | Modificador |
 | Initiative | Iniziativa | Initiative | Initiative | Iniciativa | Iniciativa |
@@ -167,6 +167,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Circle / Square | Cerchio / Quadrato | |
 | across (Square readout) | di lato — "6 m di lato" | |
 | Combatant | Combattente | |
+| Benched | In panchina *(proposed)* | *fuori combattimento* (knocked out) |
 | Order | Ordine | |
 | Combat Log | Log di combattimento | *registro dell'incontro* |
 | Session | Sessione | |
@@ -206,6 +207,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Circle / Square | Kreis / Quadrat | |
 | across (Square readout) | Seitenlänge — "6 m Seitenlänge" | |
 | Combatant | Kampfteilnehmer | *Kämpfer* (the Fighter class) |
+| Benched | Auf der Bank | *kampfunfähig* (the Condition Incapacitated) |
 | Order | Reihenfolge | |
 | Combat Log | Kampfprotokoll | |
 | Session | Sitzung | *Spielabend* |
@@ -245,6 +247,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Circle / Square | Cercle / Carré | |
 | across (Square readout) | de côté — "6 m de côté" | |
 | Combatant | Combattant | |
+| Benched | Sur la touche | *hors de combat* (knocked out) |
 | Order | Ordre | |
 | Combat Log | Journal de combat | *registre* |
 | Session | Session | *partie* (one game) |
@@ -284,6 +287,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Circle / Square | Círculo / Cuadrado | |
 | across (Square readout) | de lado — "6 m de lado" | |
 | Combatant | Combatiente | |
+| Benched | En reserva | *fuera de combate* (knocked out) |
 | Order | Orden | |
 | Combat Log | Registro de combate | *diario* (journal) |
 | Session | Sesión | *partida* (one game) |
@@ -323,6 +327,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Circle / Square | Círculo / Quadrado | |
 | across (Square readout) | de lado — "6 m de lado" | |
 | Combatant | Combatente | |
+| Benched | No banco | *fora de combate* (knocked out) |
 | Order | Ordem | |
 | Combat Log | Registro de combate | *diário* (journal) |
 | Session | Sessão | |
@@ -371,6 +376,7 @@ ordinary language are Greek: a Greek DM says *τέρας*, not "monster".
 | Circle / Square / Cone / Line | Κύκλος / Τετράγωνο / Κώνος / Γραμμή | |
 | radius / across | ακτίνα / πλευρά | |
 | Combatant | Μαχητής | |
+| Benched | Στον πάγκο | |
 | Order | Σειρά | |
 | Combat Log | Αρχείο μάχης | *Ημερολόγιο* (journal) |
 | Session | Συνεδρία | |
