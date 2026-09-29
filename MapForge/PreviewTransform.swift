@@ -73,7 +73,7 @@ struct PreviewTransform: Equatable {
     // MARK: Zoom and pan
 
     /// Zoom to `scale`, keeping the image point currently under `anchoringViewPoint` there —
-    /// so scroll-to-zoom doubles as navigation and rarely needs a pan afterwards.
+    /// so zooming at the cursor doubles as navigation and rarely needs a pan afterwards.
     func zoomed(to newScale: CGFloat, anchoringViewPoint anchor: CGPoint, container: CGSize) -> PreviewTransform {
         let anchoredImagePoint = imagePoint(from: anchor)
         var next = self
@@ -87,6 +87,14 @@ struct PreviewTransform: Equatable {
         var next = self
         next.origin = CGPoint(x: origin.x + translation.width, y: origin.y + translation.height)
         return next.settled(in: container)
+    }
+
+    /// The same view, re-clamped against a container that changed size: the scale is held
+    /// inside the new floor and ceiling, and the image re-settled against the new edges.
+    /// Anchored at the centre, which only matters when the scale had to change.
+    func resized(to container: CGSize) -> PreviewTransform {
+        zoomed(to: scale, anchoringViewPoint: CGPoint(x: container.width / 2, y: container.height / 2),
+               container: container)
     }
 
     // MARK: Clamping

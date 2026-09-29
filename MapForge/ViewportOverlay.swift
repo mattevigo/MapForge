@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Viewport mode overlay on the Control Window preview: a rectangle sized to
 /// exactly what the Player Display shows at True Scale, draggable to pan it.
@@ -27,6 +28,10 @@ struct ViewportOverlay: View {
     let onDrag: (CGPoint) -> Void
 
     @State private var dragStartOrigin: CGPoint?
+    /// Set for the length of a drag that began with ⌥ held: that drag is the Magnifier's,
+    /// and stays the Magnifier's if ⌥ is let go halfway — see
+    /// `ViewportToggle.dragMovesViewport`.
+    @State private var dragBelongsToMagnifier = false
 
     /// A stable space for the drag, anchored to the preview rather than the moving rectangle.
     static let coordinateSpace = "viewportOverlay"
@@ -72,11 +77,21 @@ struct ViewportOverlay: View {
     private var dragGesture: some Gesture {
         DragGesture(coordinateSpace: .named(Self.coordinateSpace))
             .onChanged { value in
-                if dragStartOrigin == nil { dragStartOrigin = originInches }
+                if dragStartOrigin == nil, !dragBelongsToMagnifier {
+                    let isOptionHeld = NSEvent.modifierFlags.contains(.option)
+                    guard ViewportToggle.dragMovesViewport(isOptionHeld: isOptionHeld) else {
+                        dragBelongsToMagnifier = true
+                        return
+                    }
+                    dragStartOrigin = originInches
+                }
                 guard let start = dragStartOrigin else { return }
                 onDrag(CGPoint(x: start.x + value.translation.width / previewPointsPerMapInch,
                                y: start.y + value.translation.height / previewPointsPerMapInch))
             }
-            .onEnded { _ in dragStartOrigin = nil }
+            .onEnded { _ in
+                dragStartOrigin = nil
+                dragBelongsToMagnifier = false
+            }
     }
 }

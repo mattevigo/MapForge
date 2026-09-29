@@ -26,12 +26,6 @@ struct ControlView: View {
     /// Whether the Viewport rectangle is showing on the Live View. A toggle, not a mode —
     /// see `ViewportToggle`.
     @State private var isShowingViewport = false
-    /// Grid Fit's preview zoom/pan. Mode-local view state, not part of the Map — it is
-    /// reset to fit-to-window on entering the mode.
-    @State private var gridFitTransform: PreviewTransform?
-    /// The fog mode's preview zoom/pan. Mode-local like Grid Fit's, and reset to
-    /// fit-to-window on entering the mode.
-    @State private var fogTransform: PreviewTransform?
     /// The fog as it was on entering the mode, so Cancel restores it wholesale — the
     /// same revert Grid Fit does with `squaresWideBeforeFit`. `FogEdits` also carries the
     /// undo history, which is mode-local and cannot unwind past this.
@@ -46,14 +40,17 @@ struct ControlView: View {
     /// the Origin from the right-click itself conflated the two, so the DM had to open the
     /// menu at exactly the point they meant to measure from — a menu is not a precise
     /// instrument.
-    /// The Live View's own zoom — the Magnifier. Nil is the plain aspect fit, so the DM
-    /// sees the whole Map until they ask for more.
+    /// The Magnifier: the Control Window's zoom and pan. Nil is the plain aspect fit, so the
+    /// DM sees the whole Map until they ask for more.
     ///
-    /// The same `PreviewTransform` Grid Fit and the Wall Editor use, rather than a type of
-    /// its own: the Magnifier zoomed a cropped mirror when it needed different rules about
-    /// how far out it could go, and the mirror is gone. Never reaches the Player Display,
-    /// which is what makes it the DM's alone.
-    @State private var liveZoom: PreviewTransform?
+    /// **One for every mode.** The Live View, the Wall Editor and Grid Fit each used to
+    /// carry their own, and the authoring modes reset theirs to the whole Map on entry, so a
+    /// DM who zoomed into a room to trace its Walls lost the room the moment they pressed
+    /// Edit Fog. Now the DM chooses a magnification once and every mode shows it. Only
+    /// opening a different Map, or zooming back out to the floor, ends it — not arming the
+    /// Viewport, not a Cancel, not a new Grid: where the DM was looking is not an edit.
+    /// Never reaches the Player Display, which is what makes it the DM's alone.
+    @State private var magnifier: PreviewTransform?
     /// The transform an ⌥-drag started from. `DragGesture` reports cumulative translation,
     /// so panning from the live value would compound it — the same reason
     /// `GridFitOverlay` and `FogOverlay` each hold one.
@@ -61,6 +58,10 @@ struct ControlView: View {
     /// The transform a middle-button drag started from, for the same reason. One for all
     /// three modes: that drag is attached to the preview itself, not to a mode's overlay.
     @State private var middlePanStart: PreviewTransform?
+    /// The transform a pinch started from: `MagnifyGesture` reports cumulative
+    /// magnification, so compounding it against the live scale would accelerate. Attached
+    /// to the preview, like the middle-button drag, so every mode pinches the same way.
+    @State private var pinchStart: PreviewTransform?
     @State private var armedShape: MeasurementShape?
     /// What `Add` is waiting to place, or nil when nothing is armed.
     ///
@@ -506,13 +507,13 @@ struct ControlView: View {
             // code that overwrites it, that a Map's editing state starts empty.
             appState.endFogEditing()
             fitSquare = nil
-            gridFitTransform = nil
-            fogTransform = nil
             // `AppState` drops the Measurement itself; the armed tool is view state, and a
             // crosshair left hunting on a Map the DM has closed is the same staleness.
             armedShape = nil
             armedAdd = nil
-            liveZoom = nil
+            // One of the two things that end the Magnifier: the zoom was into the outgoing
+            // Map's artwork, and a different image has nothing to anchor it to.
+            magnifier = nil
             // An Edit sheet holds the outgoing Map's Pawn or Light by ID. Left up, it would
             // sit over a Map it does not belong to and its OK would silently no-op against
             // the `guard` in `updatePawn` — a sheet whose buttons have quietly stopped doing
@@ -569,13 +570,6 @@ struct ControlView: View {
         if let image = appState.mapImage {
             GeometryReader { geo in
                 do {
-                    // Only Grid Fit carries a zoom; every other use of this branch is the
-                    // plain aspect fit, which is that transform's floor.
-                    // The Live View carries one too now: the Magnifier, which used to zoom
-                    // a cropped mirror and zooms the whole Map since that mirror went.
-                    let modeTransform = mode == .gridFit ? gridFitTransform
-                                      : mode == .fog ? fogTransform
-                                      : liveZoom
                     // The container every transform is measured against. Captured once
                     // from the GeometryReader and then FORCED onto the ZStack below: an
                     // unconstrained ZStack grows to hold the zoomed Image, the reader
@@ -583,8 +577,12 @@ struct ControlView: View {
                     // zoom — the preview spills out of the window instead of zooming, and
                     // snaps back when layout resettles.
                     let previewSize = geo.size
-                    let transform = modeTransform
-                        ?? PreviewTransform.fitted(imagePixelSize: image.pixelSize, container: previewSize)
+                    // Every mode draws through the Magnifier; without one it is the plain
+                    // aspect fit, which is its floor. Re-clamped against this container
+                    // because the Magnifier now outlives window resizes as well as modes.
+                    let transform = magnifier?.resized(to: previewSize)
+                        ?? PreviewTransform.fitted(imagePixelSize: image.pixelSize,
+                                                   container: previewSize)
                     let fitted = transform.imageRect
                     ZStack(alignment: .topLeading) {
                         Image(nsImage: image)
@@ -599,7 +597,7 @@ struct ControlView: View {
                         if mode == .gridFit {
                             GridFitOverlay(transform: transform,
                                            containerSize: previewSize,
-                                           square: $fitSquare) { gridFitTransform = $0 }
+                                           square: $fitSquare) { magnifier = $0 }
                         }
                         if mode == .fog {
                             let fogRegions = appState.litRegions
@@ -609,7 +607,7 @@ struct ControlView: View {
                                        edits: $fogEdits,
                                        isDimmed: { isInvisibleToPlayers($0, regions: fogRegions) },
                                        onChange: { applyFogEdits() },
-                                       onTransform: { fogTransform = $0 })
+                                       onTransform: { magnifier = $0 })
                         }
                         // Always drawn on the Live View: the rectangle is how the DM knows
                         // what their players are being shown, which is the question the
@@ -695,16 +693,42 @@ struct ControlView: View {
                         },
                         including: mode == .normal && claimsLeftClick ? .all : .subviews
                     )
-                    // Scroll to look closer. The Viewport is untouched, so the table sees
-                    // nothing change — the Magnifier is the DM's alone.
-                    .onScrollWheel { delta, location in
-                        guard mode == .normal, delta != 0 else { return }
-                        liveZoom = transform.zoomed(to: transform.scale * exp(delta * 0.01),
-                                                    anchoringViewPoint: location,
-                                                    container: previewSize)
+                    // The wheel zooms and a swipe pans — `ScrollIntent` tells the two apart —
+                    // in every mode, on the one Magnifier. The Viewport is untouched even
+                    // with the rectangle armed and under the fingers, so the table sees
+                    // nothing change: moving what they see is a deliberate primary drag.
+                    //
+                    // Starts from the stored Magnifier rather than `transform`: a trackpad
+                    // sends more than one event per frame, and the render's own value would
+                    // drop every event but the last before the view caught up.
+                    .onScrollWheel { intent, location in
+                        var next = magnifier?.resized(to: previewSize) ?? transform
+                        if intent.zoom != 0 {
+                            next = next.zoomed(to: next.scale * intent.zoomFactor,
+                                               anchoringViewPoint: location,
+                                               container: previewSize)
+                        }
+                        if intent.pan != .zero {
+                            next = next.panned(by: intent.pan, container: previewSize)
+                        }
+                        if next != transform { magnifier = next }
                     }
-                    // ⌥-drag moves the magnifier, as it does in the Wall Editor and Grid
-                    // Fit. `.modifiers(.option)` also stops a plain drag matching, so
+                    // A trackpad pinch, anchored where it began, as the wheel is anchored at
+                    // the cursor. `magnification` is cumulative from the gesture's start, so
+                    // it multiplies the scale the pinch began at, not the live one.
+                    .simultaneousGesture(
+                        MagnifyGesture()
+                            .onChanged { value in
+                                let start = pinchStart ?? transform
+                                pinchStart = start
+                                magnifier = start.zoomed(to: start.scale * value.magnification,
+                                                         anchoringViewPoint: value.startLocation,
+                                                         container: previewSize)
+                            }
+                            .onEnded { _ in pinchStart = nil }
+                    )
+                    // ⌥-drag moves the Magnifier, as it does in the Wall Editor and Grid
+                    // Fit, whose overlays carry their own so it is not also read as a draw. `.modifiers(.option)` also stops a plain drag matching, so
                     // dragging a Pawn stays unfiltered — that is the live action here.
                     .simultaneousGesture(
                         DragGesture(minimumDistance: 2)
@@ -713,26 +737,21 @@ struct ControlView: View {
                                 guard mode == .normal else { return }
                                 let start = livePanStart ?? transform
                                 livePanStart = start
-                                liveZoom = start.panned(by: value.translation,
-                                                        container: previewSize)
+                                magnifier = start.panned(by: value.translation,
+                                                         container: previewSize)
                             }
                             .onEnded { _ in livePanStart = nil }
                     )
-                    // The middle button pans whatever is on screen — the Magnifier, Grid
-                    // Fit's zoom, the Wall Editor's — because no mode uses that button for
-                    // anything else, so unlike ⌥-drag it needs no gesture to stay out of
-                    // the way of. `panned` stops at the artwork's edges, and at the
-                    // zoom's floor there is nothing to move and nothing is stored.
+                    // The middle button pans the Magnifier in every mode, because no mode
+                    // uses that button for anything else, so unlike ⌥-drag it needs no
+                    // gesture to stay out of the way of. `panned` stops at the artwork's
+                    // edges, and at the floor there is nothing to move and nothing is stored.
                     .onMiddleMouseDrag(isOverView: mirrorCursor != nil) { translation in
                         let start = middlePanStart ?? transform
                         middlePanStart = start
                         let panned = start.panned(by: translation, container: previewSize)
                         guard panned != transform else { return }
-                        switch mode {
-                        case .gridFit: gridFitTransform = panned
-                        case .fog: fogTransform = panned
-                        case .normal: liveZoom = panned
-                        }
+                        magnifier = panned
                     } onEnded: {
                         middlePanStart = nil
                     }
@@ -820,7 +839,7 @@ struct ControlView: View {
                 .disabled(appState.mapImage == nil || showingLog)
             Button("Edit Fog…") { startFogEditing() }
                 .disabled(appState.mapImage == nil || showingLog)
-            // A "Zoomed — Reset" button used to appear here while magnified. Scrolling back
+            // A "Zoomed — Reset" button used to appear here while magnified. Zooming back
             // out reaches the same place: `PreviewTransform`'s zoom floor is fit-to-window,
             // so the Map returns to exactly the rect the button restored. The Magnifier
             // never touched the Player Display, so nothing about the table's view depended
@@ -853,9 +872,9 @@ struct ControlView: View {
         armedAdd = nil
         typedDistance.clear()
         fogEdits = FogEdits(document: appState.fog)
-        // Open on the whole Map, as Grid Fit does: the zoomed-out view orients, and zoom
-        // is opt-in for the precision moment.
-        fogTransform = nil
+        // The Magnifier is left where it is. This used to open on the whole Map, "the
+        // zoomed-out view orients" — but a DM who zoomed into a room before pressing Edit
+        // Fog has already oriented, and came here to trace that room.
         mode = .fog
     }
 
@@ -1293,16 +1312,14 @@ struct ControlView: View {
         squaresWideBeforeFit = appState.squaresWide
         hadDeclaredGridBeforeFit = appState.hasDeclaredGrid
         fitSquare = nil
-        // Open on the whole map: the zoomed-out view is the orientation step, and zoom
-        // is opt-in for the precision moment.
-        gridFitTransform = nil
+        // The Magnifier is left where it is, as it is for the Wall Editor: any one square is
+        // as good to fit as another, so the one the DM was already looking at will do.
         mode = .gridFit
     }
 
     private func endGridFit() {
         mode = .normal
         fitSquare = nil
-        gridFitTransform = nil
     }
 
     /// Discard the fit, including anything the autosave debounce already wrote — the Grid
@@ -1348,9 +1365,9 @@ struct ControlView: View {
     /// What each mode is for. Every mode has one — an empty hint would reserve a shorter row
     /// than a real one and make the height depend on the mode again, which is the defect.
     static let liveViewHint =
-        "Right-click a Pawn or Light to edit it, or the Map to measure. Add places a new one. Scroll to zoom — the players see none of it."
+        "Right-click a Pawn or Light to edit it, or the Map to measure. Add places a new one. Scroll or pinch to zoom; two-finger or middle-drag to pan — the players see none of it."
     static let gridFitHint =
-        "Drag a square over one grid square; scroll to zoom, ⌥-drag to pan, arrow keys nudge (⇧ resizes)."
+        "Drag a square over one grid square; arrow keys nudge (⇧ resizes)."
     static let wallEditorHint =
         "Click to place Wall corners, double-click to end a chain, Esc to cancel. ⇧ frees the angle; corners weld to nearby ends. Click a Wall then ⌫ to delete. Pawns and Lights are shown for reference — edit them from the map."
     static let viewportHint =
@@ -1683,11 +1700,6 @@ struct ControlView: View {
         if mode == .normal {
             Toggle("Viewport", isOn: $isShowingViewport)
                 .toggleStyle(.button)
-                .onChange(of: isShowingViewport) { _, showing in
-                    if ViewportToggle.endsMagnifier(isShowingViewport: showing) {
-                        liveZoom = nil
-                    }
-                }
                 .disabled(!ViewportToggle.isAvailable(mapOverflows: mapOverflowsViewport,
                                                       hasDisplay: appState.playerScreen != nil))
                 .help("Show the rectangle the players see, and drag it to move their view.")

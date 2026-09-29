@@ -41,6 +41,18 @@ final class PreviewTransformTests: XCTestCase {
         XCTAssertEqual(r, CGRect(x: 15, y: 65, width: 15, height: 15))
     }
 
+    // MARK: A window that changes size
+
+    /// The Magnifier outlives every mode now, so it can outlive a window resize too. Kept
+    /// from the smaller window it would sit below the new floor, a small Map in a corner
+    /// of a large preview, until the next gesture happened to settle it.
+    func testAMagnifierFromASmallerWindowSettlesIntoALargerOne() {
+        let larger = CGSize(width: 900, height: 800)
+        let settled = fitted().resized(to: larger)
+        XCTAssertEqual(settled.scale, 0.3, accuracy: 1e-9)
+        XCTAssertEqual(settled.imageRect, CGRect(x: 0, y: 100, width: 900, height: 600))
+    }
+
     // MARK: Cursor-anchored zoom
 
     func testZoomKeepsTheImagePointUnderTheCursorFixed() {

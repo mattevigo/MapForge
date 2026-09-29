@@ -32,14 +32,12 @@ final class ViewportToggleTests: XCTestCase {
         XCTAssertTrue(ViewportToggle.isDraggable(isShowingViewport: true))
     }
 
-    /// The Magnifier and the rectangle both act on the Live View's preview, and only one of
-    /// them is on screen at a time: showing the rectangle switches to the whole Map, where
-    /// there is no mirror left to magnify. Leaving the Magnifier armed underneath would mean
-    /// the rectangle was drawn over a zoomed view it does not describe — the DM would read
-    /// the players' Viewport off a Map at the wrong scale.
-    func testShowingTheViewportEndsTheMagnifier() {
-        XCTAssertTrue(ViewportToggle.endsMagnifier(isShowingViewport: true))
-        XCTAssertFalse(ViewportToggle.endsMagnifier(isShowingViewport: false))
+    /// An ⌥-drag belongs to the Magnifier, even when it starts on the armed rectangle: it
+    /// slides the DM's view and must not also slide the table's. Arming no longer zooms out,
+    /// so there is a magnified Map under the rectangle to pan.
+    func testAnOptionDragOnTheRectangleDoesNotMoveTheViewport() {
+        XCTAssertFalse(ViewportToggle.dragMovesViewport(isOptionHeld: true))
+        XCTAssertTrue(ViewportToggle.dragMovesViewport(isOptionHeld: false))
     }
 
     /// Offered only when there is something to pan: a Map that fits inside the Viewport has

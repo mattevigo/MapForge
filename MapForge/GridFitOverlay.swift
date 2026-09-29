@@ -13,23 +13,18 @@ struct GridFitOverlay: View {
     let transform: PreviewTransform
     let containerSize: CGSize
     @Binding var square: GridFitSquare?
-    /// Zoom/pan is owner state: the overlay reports the transform it wants, the way
-    /// ViewportOverlay reports a desired origin rather than binding one.
+    /// The Magnifier is owner state: the overlay reports the transform its ⌥-drag wants,
+    /// the way ViewportOverlay reports a desired origin rather than binding one. Zooming
+    /// is not here at all — the preview does it once for every mode.
     let onTransform: (PreviewTransform) -> Void
 
     @State private var dragStart: GridFitSquare?
     /// The transform a ⌥-pan started from, so the pan stays relative to the gesture's
     /// origin instead of accumulating rounding per event.
     @State private var panStart: PreviewTransform?
-    /// The transform a pinch started from: `MagnifyGesture` reports cumulative
-    /// magnification, so compounding it against the live scale would accelerate.
-    @State private var pinchStart: PreviewTransform?
     @FocusState private var focused: Bool
 
     private let minSideImagePixels: CGFloat = 2
-    /// Scroll delta to zoom factor. Small enough that a single trackpad flick doesn't
-    /// cross the whole fit-to-1:1 range.
-    private let zoomSensitivity: CGFloat = 0.01
     private var imagePixelSize: CGSize { transform.imagePixelSize }
     private var viewScale: CGFloat { transform.scale }
 
@@ -83,8 +78,6 @@ struct GridFitOverlay: View {
         .focused($focused)
         .onKeyPress(keys: [.leftArrow, .rightArrow, .upArrow, .downArrow], action: nudge)
         .onAppear { focused = true }
-        .onScrollWheel { delta, location in zoom(by: delta, at: location) }
-        .gesture(magnifyGesture)
     }
 
     private let corners: [(CGFloat, CGFloat)] = [(-1, -1), (1, -1), (-1, 1), (1, 1)]
@@ -155,34 +148,6 @@ struct GridFitOverlay: View {
                 if let s = square, s.side < minSideImagePixels { square = nil }
                 focused = true
             }
-    }
-
-    /// Trackpad pinch, anchored where the pinch started so it matches the scroll
-    /// wheel's cursor-anchored behaviour. `magnification` is cumulative from the
-    /// gesture's start, so it multiplies the scale the pinch began at, not the live one.
-    private var magnifyGesture: some Gesture {
-        MagnifyGesture()
-            .onChanged { value in
-                let start = pinchStart ?? {
-                    pinchStart = transform
-                    return transform
-                }()
-                onTransform(start.zoomed(to: start.scale * value.magnification,
-                                         anchoringViewPoint: value.startLocation,
-                                         container: containerSize))
-            }
-            .onEnded { _ in pinchStart = nil }
-    }
-
-    /// Scroll up to zoom in. Exponential so each notch is the same proportional step
-    /// whatever the current zoom, rather than crawling when zoomed in.
-    private func zoom(by delta: CGFloat, at location: CGPoint) {
-        guard delta != 0 else { return }
-        zoom(toScale: transform.scale * exp(delta * zoomSensitivity), at: location)
-    }
-
-    private func zoom(toScale scale: CGFloat, at location: CGPoint) {
-        onTransform(transform.zoomed(to: scale, anchoringViewPoint: location, container: containerSize))
     }
 
     /// Arrow keys move by 1 preview point (floored at 1 image px, so the step refines

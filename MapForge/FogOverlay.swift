@@ -33,7 +33,6 @@ struct FogOverlay: View {
     @State private var cursor: CGPoint?
     @State private var selectedWall: Wall.ID?
     @State private var panStart: PreviewTransform?
-    @State private var pinchStart: PreviewTransform?
     /// Escapes the angle constraint, which is otherwise held: most Walls on a battle map
     /// are axis-aligned, so free angles are the exception.
     @State private var freeAngle = false
@@ -44,7 +43,6 @@ struct FogOverlay: View {
     /// Snap radius in preview points, converted to image pixels per zoom level — so it
     /// stays "a few points" under the cursor however far the DM has zoomed in.
     private let snapRadiusPoints: CGFloat = 12
-    private let zoomSensitivity: CGFloat = 0.01
 
     private var snapTolerance: CGFloat {
         transform.scale > 0 ? snapRadiusPoints / transform.scale : snapRadiusPoints
@@ -94,8 +92,6 @@ struct FogOverlay: View {
         .onDeleteKey(canHandle: { hasSelection }) { _ = deleteSelected() }
         .onModifierKeysChanged { _, new in freeAngle = new.contains(.shift) }
         .onAppear { focused = true }
-        .onScrollWheel { delta, location in zoom(by: delta, at: location) }
-        .gesture(magnifyGesture)
     }
 
     // MARK: Drawing
@@ -293,9 +289,11 @@ struct FogOverlay: View {
         return .handled
     }
 
-    // MARK: Zoom and pan
+    // MARK: Pan
 
-    /// ⌥-drag pans. `.modifiers(.option)` also stops a plain drag matching it, so clicks
+    /// ⌥-drag pans. The wheel, the pinch and a two-finger swipe are the preview's own —
+    /// `ControlView` handles them once for every mode, since every mode shares one
+    /// Magnifier. `.modifiers(.option)` also stops a plain drag matching it, so clicks
     /// to place vertices stay unfiltered.
     private var panGesture: some Gesture {
         DragGesture(minimumDistance: 2, coordinateSpace: .named(Self.coordinateSpace))
@@ -306,25 +304,5 @@ struct FogOverlay: View {
                 onTransform(start.panned(by: value.translation, container: containerSize))
             }
             .onEnded { _ in panStart = nil }
-    }
-
-    private var magnifyGesture: some Gesture {
-        MagnifyGesture()
-            .onChanged { value in
-                let start = pinchStart ?? {
-                    pinchStart = transform
-                    return transform
-                }()
-                onTransform(start.zoomed(to: start.scale * value.magnification,
-                                         anchoringViewPoint: value.startLocation,
-                                         container: containerSize))
-            }
-            .onEnded { _ in pinchStart = nil }
-    }
-
-    private func zoom(by delta: CGFloat, at location: CGPoint) {
-        guard delta != 0 else { return }
-        onTransform(transform.zoomed(to: transform.scale * exp(delta * zoomSensitivity),
-                                     anchoringViewPoint: location, container: containerSize))
     }
 }
