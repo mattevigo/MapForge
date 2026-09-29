@@ -117,7 +117,7 @@ struct CombatPanel: View {
                 .accessibilityIdentifier("encounter-play")
                 .disabled(!hasRosteredCombatants || appState.encounterRefusal != nil)
                 .help(appState.encounterRefusal
-                      ?? "Roll Initiative for everyone on the Map and begin.")
+                      ?? String(localized: "Roll Initiative for everyone on the Map and begin."))
             } else {
                 Button {
                     appState.stepBackForCorrection()
@@ -134,8 +134,8 @@ struct CombatPanel: View {
                 }
                 .accessibilityIdentifier("encounter-next")
                 .help(appState.encounter?.isCorrecting == true
-                      ? "Return towards the live Turn. A Turn cannot be ended while correcting."
-                      : "End this Turn and write it to the Combat Log.")
+                      ? String(localized: "Return towards the live Turn. A Turn cannot be ended while correcting.")
+                      : String(localized: "End this Turn and write it to the Combat Log."))
 
                 Spacer(minLength: 0)
 
@@ -332,7 +332,7 @@ struct CombatPanel: View {
                 }
                 .buttonStyle(.borderless)
                 .accessibilityIdentifier("combatant-saving-throw")
-                .help("Record a Saving Throw for \(encounter.name(of: id) ?? "this Combatant").")
+                .help("Record a Saving Throw for \(encounter.name(of: id) ?? String(localized: "this Combatant")).")
 
                 Button {
                     onRoll(pawn, .abilityCheck)
@@ -342,7 +342,7 @@ struct CombatPanel: View {
                 }
                 .buttonStyle(.borderless)
                 .accessibilityIdentifier("combatant-ability-check")
-                .help("Record an Ability Check for \(encounter.name(of: id) ?? "this Combatant").")
+                .help("Record an Ability Check for \(encounter.name(of: id) ?? String(localized: "this Combatant")).")
             }
 
             Button {
@@ -514,8 +514,8 @@ struct CombatPanel: View {
             }
             if rostered.isEmpty {
                 Text(hasCombatants
-                     ? "Nobody on the Map is in the next Encounter"
-                     : "Nobody on the Map to fight")
+                     ? String(localized: "Nobody on the Map is in the next Encounter")
+                     : String(localized: "Nobody on the Map to fight"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

@@ -13,23 +13,23 @@ enum BestiaryStore {
         switch WorkspaceConfig.read(from: workspace, fileManager: fileManager) {
         case .success(let read): config = read
         case .failure(.missing):
-            return Bestiary(unavailable: "No \(configName) in this Workspace.")
+            return Bestiary(unavailable: String(localized: "No \(configName) in this Workspace."))
         case .failure(.malformed):
-            return Bestiary(unavailable: "\(configName) could not be read.")
+            return Bestiary(unavailable: String(localized: "\(configName) could not be read."))
         }
         // A configuration written for some other setting: a DM with no Bestiary, not a
         // broken file.
         guard let path = config.bestiaryStatBlockPath else {
-            return Bestiary(unavailable: "No bestiaryStatBlockPath in \(configName).")
+            return Bestiary(unavailable: String(localized: "No bestiaryStatBlockPath in \(configName)."))
         }
         guard let folder = folderURL(path, in: workspace) else {
-            return Bestiary(unavailable: "bestiaryStatBlockPath must be a folder inside this Workspace, written relative to it — “03_Bestiario”, not a full path.")
+            return Bestiary(unavailable: String(localized: "bestiaryStatBlockPath must be a folder inside this Workspace, written relative to it — “03_Bestiario”, not a full path."))
         }
         var isDirectory: ObjCBool = false
         guard fileManager.fileExists(atPath: folder.path, isDirectory: &isDirectory),
               isDirectory.boolValue else {
             return Bestiary(unavailable:
-                "The Bestiary folder “\(path)” was not found in this Workspace.")
+                String(localized: "The Bestiary folder “\(path)” was not found in this Workspace."))
         }
         return read(folder: folder, fileManager: fileManager)
     }
@@ -63,7 +63,7 @@ enum BestiaryStore {
         for path in paths {
             let url = URL(fileURLWithPath: (root as NSString).appendingPathComponent(path))
             guard let markdown = try? String(contentsOf: url, encoding: .utf8) else {
-                bestiary.skipped.append(.init(file: path, reason: "the note could not be read"))
+                bestiary.skipped.append(.init(file: path, reason: String(localized: "the note could not be read")))
                 continue
             }
             switch StatblockReader.read(markdown) {
@@ -74,7 +74,7 @@ enum BestiaryStore {
             case .monster(let monster):
                 guard names.insert(monster.name).inserted else {
                     bestiary.skipped.append(.init(
-                        file: path, reason: "another note already defines “\(monster.name)”"))
+                        file: path, reason: String(localized: "another note already defines “\(monster.name)”")))
                     continue
                 }
                 bestiary.monsters.append(monster)

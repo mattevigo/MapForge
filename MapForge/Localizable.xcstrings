@@ -1,0 +1,1403 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "": {
+      "shouldTranslate": false
+    },
+    "%@ Saving Throw": {
+      "localizations": {}
+    },
+    "%@ across": {
+      "localizations": {}
+    },
+    "%@ are now stored in this Workspace, in “%@”. Parties live in a Workspace now rather than on this Mac, so another Workspace starts with an empty roster.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ are now stored in this Workspace, in “%2$@”. Parties live in a Workspace now rather than on this Mac, so another Workspace starts with an empty roster."
+          }
+        }
+      }
+    },
+    "%@ could not be read.": {
+      "localizations": {}
+    },
+    "%@ is now stored in this Workspace, in “%@”. Parties live in a Workspace now rather than on this Mac, so another Workspace starts with an empty roster.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ is now stored in this Workspace, in “%2$@”. Parties live in a Workspace now rather than on this Mac, so another Workspace starts with an empty roster."
+          }
+        }
+      }
+    },
+    "%@ isn't a MapForge workspace yet. MapForge will create a “.mapforge” folder inside it for your parties and settings.\n\nYour maps won't be changed.": {
+      "localizations": {}
+    },
+    "%@ joined, initiative %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ joined, initiative %2$lld"
+          }
+        }
+      }
+    },
+    "%@ moved %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ moved %2$@"
+          }
+        }
+      }
+    },
+    "%@ radius": {
+      "localizations": {}
+    },
+    "%@ rolls Initiative when an Encounter starts. Click to leave them out.": {
+      "localizations": {}
+    },
+    "%@ sits the next Encounter out. Click to put them in.": {
+      "localizations": {}
+    },
+    "%@ vs DC %lld — failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ vs DC %2$lld — failed"
+          }
+        }
+      }
+    },
+    "%@ vs DC %lld — succeeded": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ vs DC %2$lld — succeeded"
+          }
+        }
+      }
+    },
+    "%@ · %@": {
+      "shouldTranslate": false
+    },
+    "%@ — %@": {
+      "shouldTranslate": false
+    },
+    "%@ — %@ (%@) %@": {
+      "shouldTranslate": false
+    },
+    "%@ — %@ applied": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ — %2$@ applied"
+          }
+        }
+      }
+    },
+    "%@ — %@ removed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ — %2$@ removed"
+          }
+        }
+      }
+    },
+    "%@ — %@ save %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ — %2$@ save %3$@"
+          }
+        }
+      }
+    },
+    "%@ — AC %lld → %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ — AC %2$lld → %3$lld"
+          }
+        }
+      }
+    },
+    "%@ — HP %@ → %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ — HP %2$@ → %3$@"
+          }
+        }
+      }
+    },
+    "%@ — concentrating": {
+      "localizations": {}
+    },
+    "%@ — concentration ended": {
+      "localizations": {}
+    },
+    "%@ — drawing over this Map will replace it.": {
+      "localizations": {}
+    },
+    "%@ — exhaustion %lld → %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ — exhaustion %2$lld → %3$lld"
+          }
+        }
+      }
+    },
+    "%@ — initiative %lld → %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ — initiative %2$lld → %3$lld"
+          }
+        }
+      }
+    },
+    "%@ — initiative bonus %@ → %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ — initiative bonus %2$@ → %3$@"
+          }
+        }
+      }
+    },
+    "%@ — max HP %@ → %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ — max HP %2$@ → %3$@"
+          }
+        }
+      }
+    },
+    "%@ — moved %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ — moved %2$@"
+          }
+        }
+      }
+    },
+    "%@ — removed from the Order": {
+      "localizations": {}
+    },
+    "%@ — temp HP %lld → %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ — temp HP %2$lld → %3$lld"
+          }
+        }
+      }
+    },
+    "%@: a %@ — emits no Light. Click to douse the light it does not cast.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@: a %2$@ — emits no Light. Click to douse the light it does not cast."
+          }
+        }
+      }
+    },
+    "%@: sight %lld squares. Click to douse.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@: sight %2$lld squares. Click to douse."
+          }
+        }
+      }
+    },
+    "%lld": {
+      "shouldTranslate": false
+    },
+    "%lld Lights": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Light"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Lights"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld Monsters": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Monster"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Monsters"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld Pawns": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Pawn"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Pawns"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld Walls": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Wall"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Walls"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld files skipped": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld file skipped"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld files skipped"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld on this Map": {
+      "localizations": {}
+    },
+    "(%@) vs DC %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "(%1$@) vs DC %2$lld"
+          }
+        }
+      }
+    },
+    "(built-in)": {
+      "localizations": {}
+    },
+    "+%lld": {
+      "shouldTranslate": false
+    },
+    "/": {
+      "shouldTranslate": false
+    },
+    "/%lld": {
+      "shouldTranslate": false
+    },
+    "A Creature or a Treasure emits no Light and is hidden from players by darkness.": {
+      "localizations": {}
+    },
+    "A Session records into the Workspace. Open one first.": {
+      "localizations": {}
+    },
+    "A change this version cannot read": {
+      "localizations": {}
+    },
+    "A line this version cannot read": {
+      "localizations": {}
+    },
+    "AC": {
+      "comment": "Armour Class, abbreviated",
+      "localizations": {}
+    },
+    "AC:": {
+      "localizations": {}
+    },
+    "Ability Check": {
+      "localizations": {}
+    },
+    "Ability:": {
+      "localizations": {}
+    },
+    "Acrobatics": {
+      "localizations": {}
+    },
+    "Actions": {
+      "localizations": {}
+    },
+    "Add": {
+      "localizations": {}
+    },
+    "Add a Character to this Party": {
+      "localizations": {}
+    },
+    "An Encounter is running on %@. Switching Workspaces will end it. The Combat Log is kept.": {
+      "localizations": {}
+    },
+    "An Encounter is running. Switching Workspaces will end it. The Combat Log is kept.": {
+      "localizations": {}
+    },
+    "An encounter is running and ending the session will end it too. Both logs are kept.": {
+      "localizations": {}
+    },
+    "An encounter is running on %@ and ending the session will end it too. Both logs are kept.": {
+      "localizations": {}
+    },
+    "Animal Handling": {
+      "localizations": {}
+    },
+    "Arcana": {
+      "localizations": {}
+    },
+    "Armour class %lld": {
+      "localizations": {}
+    },
+    "Athletics": {
+      "localizations": {}
+    },
+    "Become %@": {
+      "localizations": {}
+    },
+    "Becoming a %@ means arriving whole: %@ becomes %@. Conditions and temporary hit points are kept.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Becoming a %1$@ means arriving whole: %2$@ becomes %3$@. Conditions and temporary hit points are kept."
+          }
+        }
+      }
+    },
+    "Benched": {
+      "localizations": {}
+    },
+    "Big": {
+      "localizations": {}
+    },
+    "Blinded": {
+      "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
+      "localizations": {}
+    },
+    "Bonus Actions": {
+      "localizations": {}
+    },
+    "Bright": {
+      "localizations": {}
+    },
+    "Bright %lld, dim %lld squares": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Bright %1$lld, dim %2$lld squares"
+          }
+        }
+      }
+    },
+    "Burning": {
+      "localizations": {}
+    },
+    "CHA": {
+      "comment": "An Ability abbreviated, as the stat block prints it",
+      "localizations": {}
+    },
+    "CON": {
+      "comment": "An Ability abbreviated, as the stat block prints it",
+      "localizations": {}
+    },
+    "CR": {
+      "localizations": {}
+    },
+    "CR %@": {
+      "localizations": {}
+    },
+    "Can't open this workspace": {
+      "localizations": {}
+    },
+    "Cancel": {
+      "localizations": {}
+    },
+    "Charisma": {
+      "localizations": {}
+    },
+    "Charmed": {
+      "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
+      "localizations": {}
+    },
+    "Choose": {
+      "localizations": {}
+    },
+    "Choose Workspace…": {
+      "localizations": {}
+    },
+    "Choose a Workspace": {
+      "localizations": {}
+    },
+    "Choose the ability": {
+      "localizations": {}
+    },
+    "Choose the skill": {
+      "localizations": {}
+    },
+    "Circle": {
+      "localizations": {}
+    },
+    "Clear this to record the Roll without a Difficulty Class — the Log then reports the total and no verdict.": {
+      "localizations": {}
+    },
+    "Click to place Wall corners, double-click to end a chain, Esc to cancel. ⇧ frees the angle; corners weld to nearby ends. Click a Wall then ⌫ to delete. Pawns and Lights are shown for reference — edit them from the Map.": {
+      "localizations": {}
+    },
+    "Colour": {
+      "localizations": {}
+    },
+    "Concentrating": {
+      "localizations": {}
+    },
+    "Cond. immune": {
+      "localizations": {}
+    },
+    "Cone": {
+      "localizations": {}
+    },
+    "Constitution": {
+      "localizations": {}
+    },
+    "Correcting Round %lld — %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Correcting Round %1$lld — %2$@"
+          }
+        }
+      }
+    },
+    "Correction to Round %lld — %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Correction to Round %1$lld — %2$@"
+          }
+        }
+      }
+    },
+    "Correction to Round %lld, whose Turn is not in this log": {
+      "localizations": {}
+    },
+    "Could not read this Map's fog — its Walls and Lights are not shown.": {
+      "localizations": {}
+    },
+    "Couldn't move your Parties": {
+      "localizations": {}
+    },
+    "Creature": {
+      "localizations": {}
+    },
+    "Creatures": {
+      "localizations": {}
+    },
+    "DEX": {
+      "comment": "An Ability abbreviated, as the stat block prints it",
+      "localizations": {}
+    },
+    "Deafened": {
+      "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
+      "localizations": {}
+    },
+    "Deception": {
+      "localizations": {}
+    },
+    "Declare the Grid first: distances are measured in squares.": {
+      "localizations": {}
+    },
+    "Declare the Grid first: sight is measured in squares.": {
+      "localizations": {}
+    },
+    "Delete": {
+      "localizations": {}
+    },
+    "Delete Party": {
+      "localizations": {}
+    },
+    "Dexterity": {
+      "localizations": {}
+    },
+    "Difficulty Class:": {
+      "localizations": {}
+    },
+    "Dim": {
+      "localizations": {}
+    },
+    "Done": {
+      "localizations": {}
+    },
+    "Drag a square over one grid square; arrow keys nudge (⇧ resizes).": {
+      "localizations": {}
+    },
+    "Drag the rectangle to choose what the Player Display shows.": {
+      "localizations": {}
+    },
+    "During an Encounter — use the Encounter tab": {
+      "localizations": {}
+    },
+    "E%lld": {
+      "localizations": {}
+    },
+    "Edit Light": {
+      "localizations": {}
+    },
+    "Edit Pawn": {
+      "localizations": {}
+    },
+    "Edit…": {
+      "localizations": {}
+    },
+    "Encounter": {
+      "localizations": {}
+    },
+    "Encounter ended": {
+      "localizations": {}
+    },
+    "Encounter in progress": {
+      "localizations": {}
+    },
+    "Encounter on %@": {
+      "localizations": {}
+    },
+    "End Encounter": {
+      "localizations": {}
+    },
+    "End Session": {
+      "localizations": {}
+    },
+    "End the Encounter and close its Combat Log.": {
+      "localizations": {}
+    },
+    "End the encounter and switch workspace?": {
+      "localizations": {}
+    },
+    "End the session?": {
+      "localizations": {}
+    },
+    "End this Turn and write it to the Combat Log.": {
+      "localizations": {}
+    },
+    "End this encounter?": {
+      "localizations": {}
+    },
+    "Exh": {
+      "comment": "Exhaustion level, as narrow as the field",
+      "localizations": {}
+    },
+    "Exhaustion %lld": {
+      "localizations": {}
+    },
+    "Failed": {
+      "localizations": {}
+    },
+    "Fog": {
+      "localizations": {}
+    },
+    "Forget": {
+      "localizations": {}
+    },
+    "Forget the Monster. The Stat Block keeps its numbers.": {
+      "localizations": {}
+    },
+    "Frightened": {
+      "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
+      "localizations": {}
+    },
+    "General": {
+      "localizations": {}
+    },
+    "Go back to correct an earlier Turn. The Encounter does not rewind.": {
+      "localizations": {}
+    },
+    "Grappled": {
+      "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
+      "localizations": {}
+    },
+    "Grid Fit…": {
+      "localizations": {}
+    },
+    "HP": {
+      "comment": "Hit points, as narrow as the field",
+      "localizations": {}
+    },
+    "HP:": {
+      "localizations": {}
+    },
+    "Heal": {
+      "localizations": {}
+    },
+    "Heal %@?": {
+      "localizations": {}
+    },
+    "Hidden from players. Show it to see the Map through its eyes.": {
+      "localizations": {}
+    },
+    "Hidden from players. Still here, and still yours to move.": {
+      "localizations": {}
+    },
+    "Hide or reveal the Fog Overlay on the Player Display. Pawns stay visible either way.": {
+      "localizations": {}
+    },
+    "History": {
+      "localizations": {}
+    },
+    "Hit": {
+      "localizations": {}
+    },
+    "INT": {
+      "comment": "An Ability abbreviated, as the stat block prints it",
+      "localizations": {}
+    },
+    "Immune": {
+      "localizations": {}
+    },
+    "Incapacitated": {
+      "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
+      "localizations": {}
+    },
+    "Init": {
+      "comment": "Initiative bonus, as narrow as the field",
+      "localizations": {}
+    },
+    "Initiative bonus": {
+      "localizations": {}
+    },
+    "Initiative bonus: added to the d20 when Initiative is rolled. The rolled number is edited in the Order.": {
+      "localizations": {}
+    },
+    "Initiative:": {
+      "localizations": {}
+    },
+    "Insight": {
+      "localizations": {}
+    },
+    "Intelligence": {
+      "localizations": {}
+    },
+    "Intimidation": {
+      "localizations": {}
+    },
+    "Investigation": {
+      "localizations": {}
+    },
+    "Invisible": {
+      "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
+      "localizations": {}
+    },
+    "Kind": {
+      "localizations": {}
+    },
+    "Label": {
+      "localizations": {}
+    },
+    "Language": {
+      "localizations": {}
+    },
+    "Languages": {
+      "localizations": {}
+    },
+    "Legendary Actions": {
+      "localizations": {}
+    },
+    "Light": {
+      "localizations": {}
+    },
+    "Light %lld": {
+      "localizations": {}
+    },
+    "Lights": {
+      "localizations": {}
+    },
+    "Line": {
+      "comment": "A Measurement Shape: a path of points",
+      "localizations": {}
+    },
+    "Log": {
+      "localizations": {}
+    },
+    "MapForge Control": {
+      "localizations": {}
+    },
+    "MapForge couldn't set that folder up.": {
+      "localizations": {}
+    },
+    "MapForge hasn't changed the file at %@. Changes made here won't be saved until it's fixed or moved aside.": {
+      "localizations": {}
+    },
+    "MapForge hasn't changed the roster file. Changes made here won't be saved until it's fixed or moved aside.": {
+      "localizations": {}
+    },
+    "MapForge will rename the damaged file to “parties.json.damaged” and start an empty roster. Nothing in it is deleted, so you can still open it yourself.": {
+      "localizations": {}
+    },
+    "MapForge will use %@ the next time it opens.": {
+      "localizations": {}
+    },
+    "Max": {
+      "comment": "Maximum hit points, as narrow as the field",
+      "localizations": {}
+    },
+    "Measurements": {
+      "localizations": {}
+    },
+    "Medicine": {
+      "localizations": {}
+    },
+    "Modifier:": {
+      "localizations": {}
+    },
+    "Monster": {
+      "localizations": {}
+    },
+    "Multiple displays connected — choose the Player Display above": {
+      "localizations": {}
+    },
+    "Name": {
+      "localizations": {}
+    },
+    "Nature": {
+      "localizations": {}
+    },
+    "New Party…": {
+      "localizations": {}
+    },
+    "Next": {
+      "localizations": {}
+    },
+    "No %@ in this Workspace.": {
+      "localizations": {}
+    },
+    "No Grid declared, so these radii have no physical size yet.": {
+      "localizations": {}
+    },
+    "No Grid declared, so this sight has no physical size yet.": {
+      "localizations": {}
+    },
+    "No Map open. Choose one with “Open Map…”.": {
+      "localizations": {}
+    },
+    "No Monsters found in the Bestiary folder.": {
+      "localizations": {}
+    },
+    "No Session running — press Start Session to begin recording.": {
+      "localizations": {}
+    },
+    "No Workspace": {
+      "localizations": {}
+    },
+    "No Workspace is open.": {
+      "localizations": {}
+    },
+    "No bestiaryStatBlockPath in %@.": {
+      "localizations": {}
+    },
+    "No hit points yet — fill them in below.": {
+      "localizations": {}
+    },
+    "No workspaces yet.": {
+      "localizations": {}
+    },
+    "Nobody on the Map is in the next Encounter": {
+      "localizations": {}
+    },
+    "Nobody on the Map to fight": {
+      "localizations": {}
+    },
+    "None — not presenting": {
+      "localizations": {}
+    },
+    "Note on %@'s Turn": {
+      "localizations": {}
+    },
+    "Note on %@'s Turn — use the Encounter tab": {
+      "localizations": {}
+    },
+    "Note on Round %lld — %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Note on Round %1$lld — %2$@"
+          }
+        }
+      }
+    },
+    "Notes with a statblock the Bestiary could not take": {
+      "localizations": {}
+    },
+    "OK": {
+      "localizations": {}
+    },
+    "Occupies 2×2 squares instead of 1×1. Visual only — its light and sight are unchanged.": {
+      "localizations": {}
+    },
+    "Open Map…": {
+      "localizations": {}
+    },
+    "Open a Map to measure on.": {
+      "localizations": {}
+    },
+    "Open a Workspace to record a Session.": {
+      "localizations": {}
+    },
+    "Order changed": {
+      "localizations": {}
+    },
+    "Paralyzed": {
+      "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
+      "localizations": {}
+    },
+    "Party": {
+      "localizations": {}
+    },
+    "Party name": {
+      "localizations": {}
+    },
+    "Pending": {
+      "localizations": {}
+    },
+    "Perception": {
+      "localizations": {}
+    },
+    "Performance": {
+      "localizations": {}
+    },
+    "Persuasion": {
+      "localizations": {}
+    },
+    "Petrified": {
+      "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
+      "localizations": {}
+    },
+    "Physical size unknown — True Scale unverified on this display": {
+      "localizations": {}
+    },
+    "Pick what to add, then click the Map to place it. Esc cancels.": {
+      "localizations": {}
+    },
+    "Pin Measurement": {
+      "localizations": {}
+    },
+    "Play": {
+      "localizations": {}
+    },
+    "Player": {
+      "localizations": {}
+    },
+    "Player Display": {
+      "localizations": {}
+    },
+    "Players": {
+      "localizations": {}
+    },
+    "Poisoned": {
+      "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
+      "localizations": {}
+    },
+    "Prone": {
+      "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
+      "localizations": {}
+    },
+    "Re-roll": {
+      "localizations": {}
+    },
+    "Re-roll every Initiative. The Round does not reset.": {
+      "localizations": {}
+    },
+    "Re-roll every Initiative?": {
+      "localizations": {}
+    },
+    "Reactions": {
+      "localizations": {}
+    },
+    "Read back over this evening — comments, movements and every Encounter.": {
+      "localizations": {}
+    },
+    "Reading the Bestiary…": {
+      "localizations": {}
+    },
+    "Reading the Session Log. Close it to edit the Map.": {
+      "localizations": {}
+    },
+    "Record a Saving Throw for %@.": {
+      "localizations": {}
+    },
+    "Record an Ability Check for %@.": {
+      "localizations": {}
+    },
+    "Record roll": {
+      "localizations": {}
+    },
+    "Record this evening's movements and Comments.": {
+      "localizations": {}
+    },
+    "Recorded": {
+      "localizations": {}
+    },
+    "Recording. Nothing has happened yet.": {
+      "localizations": {}
+    },
+    "Relaunch Now": {
+      "localizations": {}
+    },
+    "Religion": {
+      "localizations": {}
+    },
+    "Rename Party…": {
+      "localizations": {}
+    },
+    "Resists": {
+      "localizations": {}
+    },
+    "Restrained": {
+      "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
+      "localizations": {}
+    },
+    "Return to record · Esc to cancel": {
+      "localizations": {}
+    },
+    "Return towards the live Turn. A Turn cannot be ended while correcting.": {
+      "localizations": {}
+    },
+    "Right-click a Pawn or Light to edit it, or the Map to measure. Add places a new one. Scroll or pinch to zoom; two-finger or middle-drag to pan — the players see none of it.": {
+      "localizations": {}
+    },
+    "Roll Initiative and put back into the Order": {
+      "localizations": {}
+    },
+    "Roll Initiative for everyone on the Map and begin.": {
+      "localizations": {}
+    },
+    "Round %lld": {
+      "localizations": {}
+    },
+    "Round %lld — %@'s turn now": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Round %1$lld — %2$@'s turn now"
+          }
+        }
+      }
+    },
+    "STR": {
+      "comment": "An Ability abbreviated, as the stat block prints it",
+      "localizations": {}
+    },
+    "Save": {
+      "localizations": {}
+    },
+    "Saves": {
+      "localizations": {}
+    },
+    "Saving Throw": {
+      "localizations": {}
+    },
+    "Scene": {
+      "localizations": {}
+    },
+    "Search Monsters": {
+      "localizations": {}
+    },
+    "Senses": {
+      "localizations": {}
+    },
+    "Session ended": {
+      "localizations": {}
+    },
+    "Session started": {
+      "localizations": {}
+    },
+    "Set Up": {
+      "localizations": {}
+    },
+    "Set up this folder as a workspace?": {
+      "localizations": {}
+    },
+    "Show Measurements on the Player Display. Off, the shape and its distance stay on this window only.": {
+      "localizations": {}
+    },
+    "Show the rectangle the players see, and drag it to move their view.": {
+      "localizations": {}
+    },
+    "Sight": {
+      "localizations": {}
+    },
+    "Sight:": {
+      "localizations": {}
+    },
+    "Size": {
+      "localizations": {}
+    },
+    "Skill:": {
+      "localizations": {}
+    },
+    "Skills": {
+      "localizations": {}
+    },
+    "Sleight of Hand": {
+      "localizations": {}
+    },
+    "Snap to %lld": {
+      "localizations": {}
+    },
+    "Solo Sight needs the Fog Overlay on — there is no darkness to shrink.": {
+      "localizations": {}
+    },
+    "Solo Sight. The table sees only what %@'s own light reaches. Click to end.": {
+      "localizations": {}
+    },
+    "Solo Sight: show the Map as %@ alone lights it.": {
+      "localizations": {}
+    },
+    "Speed": {
+      "localizations": {}
+    },
+    "Square": {
+      "comment": "A Measurement Shape, drawn around its Origin by side length",
+      "localizations": {}
+    },
+    "Start New Roster": {
+      "localizations": {}
+    },
+    "Start Session": {
+      "localizations": {}
+    },
+    "Start a New Roster…": {
+      "localizations": {}
+    },
+    "Start a Session first — an Encounter is part of an evening.": {
+      "localizations": {}
+    },
+    "Start a new roster?": {
+      "localizations": {}
+    },
+    "Start the session to record": {
+      "localizations": {}
+    },
+    "Stealth": {
+      "localizations": {}
+    },
+    "Stop Session": {
+      "localizations": {}
+    },
+    "Strength": {
+      "localizations": {}
+    },
+    "Stunned": {
+      "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
+      "localizations": {}
+    },
+    "Succeeded": {
+      "localizations": {}
+    },
+    "Survival": {
+      "localizations": {}
+    },
+    "Switch": {
+      "localizations": {}
+    },
+    "Switch workspace": {
+      "localizations": {}
+    },
+    "System": {
+      "localizations": {}
+    },
+    "Take out of the Order. Stays on the Map and can be put back.": {
+      "localizations": {}
+    },
+    "Temp": {
+      "comment": "Temporary hit points, as narrow as the field",
+      "localizations": {}
+    },
+    "That folder couldn't be reached.": {
+      "localizations": {}
+    },
+    "That workspace couldn't be opened.": {
+      "localizations": {}
+    },
+    "The Bestiary folder “%@” was not found in this Workspace.": {
+      "localizations": {}
+    },
+    "The Bestiary is read when the Workspace opens.": {
+      "localizations": {}
+    },
+    "The Combat Log is closed. Nobody is healed and no Condition is cleared.": {
+      "localizations": {}
+    },
+    "The DM's own. Never drawn on the Player Display.": {
+      "localizations": {}
+    },
+    "The Order you have now is replaced. The Round stays where it is.": {
+      "localizations": {}
+    },
+    "The folder your maps live in. MapForge keeps your parties and settings there.": {
+      "localizations": {}
+    },
+    "This Encounter's Combat Log could not be read — %@, %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "This Encounter's Combat Log could not be read — %1$@, %2$@"
+          }
+        }
+      }
+    },
+    "This Map's Grid has not been declared, so Light radii have no real size — run Grid Fit, or set the squares-wide value.": {
+      "localizations": {}
+    },
+    "This folder": {
+      "localizations": {}
+    },
+    "This folder has a damaged MapForge workspace file. MapForge hasn't changed it. Move “.mapforge/workspace.json” aside to set the folder up again.": {
+      "localizations": {}
+    },
+    "This workspace was made by a newer version of MapForge (format %lld). Update MapForge to open it.": {
+      "localizations": {}
+    },
+    "Tick them in the Scene tab.": {
+      "localizations": {}
+    },
+    "Tonight's log is kept. Starting again opens a new one.": {
+      "localizations": {}
+    },
+    "Total": {
+      "localizations": {}
+    },
+    "Traits": {
+      "localizations": {}
+    },
+    "Treasure": {
+      "localizations": {}
+    },
+    "Unconscious": {
+      "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
+      "localizations": {}
+    },
+    "Undo": {
+      "localizations": {}
+    },
+    "Unknown Combatant": {
+      "localizations": {}
+    },
+    "Unpin Measurement": {
+      "localizations": {}
+    },
+    "Viewport": {
+      "localizations": {}
+    },
+    "Visible to players where the light reaches. Click to hide.": {
+      "localizations": {}
+    },
+    "Vulnerable": {
+      "localizations": {}
+    },
+    "WIS": {
+      "comment": "An Ability abbreviated, as the stat block prints it",
+      "localizations": {}
+    },
+    "Wall Editor…": {
+      "localizations": {}
+    },
+    "Which Ability the save uses.": {
+      "localizations": {}
+    },
+    "Wisdom": {
+      "localizations": {}
+    },
+    "Your Parties have moved": {
+      "localizations": {}
+    },
+    "Your existing Parties are still stored on this Mac and weren't changed. MapForge will try again next time you open a Workspace.\n\n%@": {
+      "localizations": {}
+    },
+    "Your party roster couldn't be read": {
+      "localizations": {}
+    },
+    "^[%lld Pawn](inflect: true) ready to roll": {
+      "localizations": {}
+    },
+    "ability bonus, proficiency, active effects": {
+      "localizations": {}
+    },
+    "another note already defines “%@”": {
+      "localizations": {}
+    },
+    "bestiaryStatBlockPath must be a folder inside this Workspace, written relative to it — “03_Bestiario”, not a full path.": {
+      "localizations": {}
+    },
+    "choose the d20 result": {
+      "localizations": {}
+    },
+    "d20 roll:": {
+      "localizations": {}
+    },
+    "damage": {
+      "localizations": {}
+    },
+    "it": {
+      "localizations": {}
+    },
+    "label": {
+      "localizations": {}
+    },
+    "name": {
+      "localizations": {}
+    },
+    "no Map": {
+      "localizations": {}
+    },
+    "not available": {
+      "localizations": {}
+    },
+    "pawn-kind.treasure.heading": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Treasure"
+          }
+        }
+      }
+    },
+    "squares": {
+      "localizations": {}
+    },
+    "squares — unused, a %@ emits no Light": {
+      "localizations": {}
+    },
+    "the copied roster did not match the original": {
+      "localizations": {}
+    },
+    "the note could not be read": {
+      "localizations": {}
+    },
+    "the statblock has no name": {
+      "localizations": {}
+    },
+    "the statblock is not a list of fields": {
+      "localizations": {}
+    },
+    "the statblock is not valid YAML": {
+      "localizations": {}
+    },
+    "this Combatant": {
+      "localizations": {}
+    },
+    "what happened": {
+      "localizations": {}
+    },
+    "×%lld": {
+      "shouldTranslate": false
+    },
+    "—": {
+      "shouldTranslate": false
+    },
+    "— not in the Bestiary": {
+      "localizations": {}
+    },
+    "— size unknown": {
+      "localizations": {}
+    },
+    "“%@” is not in the Bestiary. Its numbers above are its own and are unaffected.": {
+      "localizations": {}
+    },
+    "−%lld": {
+      "shouldTranslate": false
+    },
+    "≈ %.1f squares wide": {
+      "localizations": {}
+    }
+  },
+  "version": "1.0"
+}

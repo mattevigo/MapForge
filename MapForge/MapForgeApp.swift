@@ -22,6 +22,11 @@ struct MapForgeApp: App {
         // a strip of Map under two toolbars, and the first thing a DM did was drag it
         // taller. Applies to a first launch only; macOS restores the frame after that.
         .defaultSize(width: ControlView.minimumWindowWidth, height: 800)
+
+        Settings {
+            SettingsView()
+                .environmentObject(appState)
+        }
     }
 }
 

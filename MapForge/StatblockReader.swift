@@ -30,15 +30,15 @@ enum StatblockReader {
         let tree: [String: Any]
         do {
             guard let loaded = try Yams.load(yaml: yaml) as? [String: Any] else {
-                return .skipped(reason: "the statblock is not a list of fields")
+                return .skipped(reason: String(localized: "the statblock is not a list of fields"))
             }
             tree = loaded
         } catch {
-            return .skipped(reason: "the statblock is not valid YAML")
+            return .skipped(reason: String(localized: "the statblock is not valid YAML"))
         }
 
         guard let name = text(tree["name"]) else {
-            return .skipped(reason: "the statblock has no name")
+            return .skipped(reason: String(localized: "the statblock has no name"))
         }
 
         var monster = Monster(name: name)

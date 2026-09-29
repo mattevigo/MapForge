@@ -27,20 +27,20 @@ enum Condition: String, Codable, CaseIterable, Equatable {
 
     var title: String {
         switch self {
-        case .blinded: return "Blinded"
-        case .charmed: return "Charmed"
-        case .deafened: return "Deafened"
-        case .frightened: return "Frightened"
-        case .grappled: return "Grappled"
-        case .incapacitated: return "Incapacitated"
-        case .invisible: return "Invisible"
-        case .paralyzed: return "Paralyzed"
-        case .petrified: return "Petrified"
-        case .poisoned: return "Poisoned"
-        case .prone: return "Prone"
-        case .restrained: return "Restrained"
-        case .stunned: return "Stunned"
-        case .unconscious: return "Unconscious"
+        case .blinded: return String(localized: "Blinded", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .charmed: return String(localized: "Charmed", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .deafened: return String(localized: "Deafened", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .frightened: return String(localized: "Frightened", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .grappled: return String(localized: "Grappled", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .incapacitated: return String(localized: "Incapacitated", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .invisible: return String(localized: "Invisible", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .paralyzed: return String(localized: "Paralyzed", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .petrified: return String(localized: "Petrified", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .poisoned: return String(localized: "Poisoned", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .prone: return String(localized: "Prone", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .restrained: return String(localized: "Restrained", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .stunned: return String(localized: "Stunned", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .unconscious: return String(localized: "Unconscious", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
         }
     }
 

@@ -11,16 +11,16 @@ enum RollKind: Hashable {
 
     var title: String {
         switch self {
-        case .savingThrow: "Saving Throw"
-        case .abilityCheck: "Ability Check"
+        case .savingThrow: String(localized: "Saving Throw")
+        case .abilityCheck: String(localized: "Ability Check")
         }
     }
 
     /// What the sheet asks for before a subject is chosen.
     var prompt: String {
         switch self {
-        case .savingThrow: "Choose the ability"
-        case .abilityCheck: "Choose the skill"
+        case .savingThrow: String(localized: "Choose the ability")
+        case .abilityCheck: String(localized: "Choose the skill")
         }
     }
 }
@@ -80,10 +80,10 @@ struct RollDraft: Equatable {
         switch kind {
         case .savingThrow:
             guard let ability else { return kind.prompt }
-            return "\(ability.title) Saving Throw"
+            return String(localized: "\(ability.title) Saving Throw")
         case .abilityCheck:
             guard let skill else { return kind.prompt }
-            return "\(skill.title) · \(skill.ability.title)"
+            return String(localized: "\(skill.title) · \(skill.ability.title)")
         }
     }
 }

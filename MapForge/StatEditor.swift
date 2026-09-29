@@ -54,14 +54,14 @@ struct StatEditor: View {
                 .lineLimit(1)
 
             HStack(spacing: 6) {
-                field("HP", value: current.currentHP, id: "hp") { new in
+                field(String(localized: "HP", comment: "Hit points, as narrow as the field"), value: current.currentHP, id: "hp") { new in
                     appState.editStatBlock(for: id) { $0.currentHP = new }
                 }
                 Text("/").foregroundStyle(.secondary).padding(.top, 10)
-                field("Max", value: current.maxHP, id: "max-hp") { new in
+                field(String(localized: "Max", comment: "Maximum hit points, as narrow as the field"), value: current.maxHP, id: "max-hp") { new in
                     appState.editStatBlock(for: id) { $0.maxHP = new }
                 }
-                field("Temp", value: current.temporaryHP, id: "temp-hp") { new in
+                field(String(localized: "Temp", comment: "Temporary hit points, as narrow as the field"), value: current.temporaryHP, id: "temp-hp") { new in
                     appState.editStatBlock(for: id) { $0.temporaryHP = new ?? 0 }
                 }
             }
@@ -83,7 +83,7 @@ struct StatEditor: View {
             .font(.caption)
 
             HStack(spacing: 6) {
-                field("AC", value: current.armorClass, id: "ac") { new in
+                field(String(localized: "AC", comment: "Armour Class, abbreviated"), value: current.armorClass, id: "ac") { new in
                     appState.editStatBlock(for: id) {
                         $0.armorClass = new ?? StatBlock.defaultArmorClass
                     }
@@ -92,12 +92,11 @@ struct StatEditor: View {
                 // belongs to the Stat Block. The rolled Initiative is the Encounter's, and
                 // is overtyped where it is read: in the Order's own column. This field was
                 // the rolled number once, which left a Pawn's bonus with no editor at all.
-                field("Init", value: current.initiativeBonus, id: "initiative-bonus") { new in
+                field(String(localized: "Init", comment: "Initiative bonus, as narrow as the field"), value: current.initiativeBonus, id: "initiative-bonus") { new in
                     appState.editStatBlock(for: id) { $0.initiativeBonus = new ?? 0 }
                 }
-                .help("Initiative bonus: added to the d20 when Initiative is rolled. "
-                      + "The rolled number is edited in the Order.")
-                field("Exh", value: current.exhaustion, id: "exhaustion") { new in
+                .help("Initiative bonus: added to the d20 when Initiative is rolled. The rolled number is edited in the Order.")
+                field(String(localized: "Exh", comment: "Exhaustion level, as narrow as the field"), value: current.exhaustion, id: "exhaustion") { new in
                     appState.editStatBlock(for: id) { $0.exhaustion = new ?? 0 }
                 }
                 Toggle(isOn: Binding(
@@ -195,8 +194,10 @@ struct StatEditor: View {
 
     private func noteLabel(_ encounter: Encounter, subject: Pawn.ID?) -> String {
         let name = subject.flatMap { encounter.name(of: $0) } ?? "?"
-        guard let target = encounter.correctionTarget else { return "Note on \(name)'s turn" }
-        return "Note on Round \(target.round) — \(name)"
+        guard let target = encounter.correctionTarget else {
+            return String(localized: "Note on \(name)'s Turn")
+        }
+        return String(localized: "Note on Round \(target.round) — \(name)")
     }
 
     private func commitNote() {

@@ -18,11 +18,11 @@ enum SoloSightControl {
         var explanation: String {
             switch self {
             case .pawnIsHidden:
-                return "Hidden from players. Show it to see the Map through its eyes."
+                return String(localized: "Hidden from players. Show it to see the Map through its eyes.")
             case .fogOverlayOff:
-                return "Solo Sight needs the Fog Overlay on — there is no darkness to shrink."
+                return String(localized: "Solo Sight needs the Fog Overlay on — there is no darkness to shrink.")
             case .noGrid:
-                return "Declare the Grid first: sight is measured in squares."
+                return String(localized: "Declare the Grid first: sight is measured in squares.")
             }
         }
     }

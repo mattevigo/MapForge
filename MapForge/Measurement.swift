@@ -12,10 +12,10 @@ enum MeasurementShape: CaseIterable, Hashable {
 
     var label: String {
         switch self {
-        case .cone: "Cone"
-        case .square: "Square"
-        case .circle: "Circle"
-        case .line: "Line"
+        case .cone: String(localized: "Cone")
+        case .square: String(localized: "Square", comment: "A Measurement Shape, drawn around its Origin by side length")
+        case .circle: String(localized: "Circle")
+        case .line: String(localized: "Line", comment: "A Measurement Shape: a path of points")
         }
     }
 
@@ -277,8 +277,8 @@ struct Measurement: Equatable, Identifiable {
     func readout(in unit: DistanceUnit) -> String {
         let measure = unit.format(squares: distance)
         switch shape {
-        case .circle: return "\(measure) radius"
-        case .square: return "\(measure) across"
+        case .circle: return String(localized: "\(measure) radius")
+        case .square: return String(localized: "\(measure) across")
         case .cone, .line: return measure
         }
     }

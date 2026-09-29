@@ -800,6 +800,18 @@ final class AppState: ObservableObject {
         }.first
     }
 
+    // MARK: - The Interface Language
+
+    /// The language chosen in Settings. It takes effect at the next launch — see
+    /// `InterfaceLanguage.nextLaunch`.
+    var interfaceLanguage: InterfaceLanguage {
+        get { preferences.interfaceLanguage }
+        set {
+            preferences.interfaceLanguage = newValue
+            objectWillChange.send()
+        }
+    }
+
     // MARK: - The Workspace
 
     /// The Workspaces this Mac has opened, for the picker.

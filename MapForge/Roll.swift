@@ -12,23 +12,23 @@ enum Ability: String, Codable, CaseIterable {
     /// Named in full in the domain; the abbreviation is for controls too narrow for the word.
     var title: String {
         switch self {
-        case .strength: "Strength"
-        case .dexterity: "Dexterity"
-        case .constitution: "Constitution"
-        case .intelligence: "Intelligence"
-        case .wisdom: "Wisdom"
-        case .charisma: "Charisma"
+        case .strength: String(localized: "Strength")
+        case .dexterity: String(localized: "Dexterity")
+        case .constitution: String(localized: "Constitution")
+        case .intelligence: String(localized: "Intelligence")
+        case .wisdom: String(localized: "Wisdom")
+        case .charisma: String(localized: "Charisma")
         }
     }
 
     var abbreviation: String {
         switch self {
-        case .strength: "STR"
-        case .dexterity: "DEX"
-        case .constitution: "CON"
-        case .intelligence: "INT"
-        case .wisdom: "WIS"
-        case .charisma: "CHA"
+        case .strength: String(localized: "STR", comment: "An Ability abbreviated, as the stat block prints it")
+        case .dexterity: String(localized: "DEX", comment: "An Ability abbreviated, as the stat block prints it")
+        case .constitution: String(localized: "CON", comment: "An Ability abbreviated, as the stat block prints it")
+        case .intelligence: String(localized: "INT", comment: "An Ability abbreviated, as the stat block prints it")
+        case .wisdom: String(localized: "WIS", comment: "An Ability abbreviated, as the stat block prints it")
+        case .charisma: String(localized: "CHA", comment: "An Ability abbreviated, as the stat block prints it")
         }
     }
 }
@@ -55,24 +55,24 @@ enum Skill: String, Codable, CaseIterable {
 
     var title: String {
         switch self {
-        case .acrobatics: "Acrobatics"
-        case .animalHandling: "Animal Handling"
-        case .arcana: "Arcana"
-        case .athletics: "Athletics"
-        case .deception: "Deception"
-        case .history: "History"
-        case .insight: "Insight"
-        case .intimidation: "Intimidation"
-        case .investigation: "Investigation"
-        case .medicine: "Medicine"
-        case .nature: "Nature"
-        case .perception: "Perception"
-        case .performance: "Performance"
-        case .persuasion: "Persuasion"
-        case .religion: "Religion"
-        case .sleightOfHand: "Sleight of Hand"
-        case .stealth: "Stealth"
-        case .survival: "Survival"
+        case .acrobatics: String(localized: "Acrobatics")
+        case .animalHandling: String(localized: "Animal Handling")
+        case .arcana: String(localized: "Arcana")
+        case .athletics: String(localized: "Athletics")
+        case .deception: String(localized: "Deception")
+        case .history: String(localized: "History")
+        case .insight: String(localized: "Insight")
+        case .intimidation: String(localized: "Intimidation")
+        case .investigation: String(localized: "Investigation")
+        case .medicine: String(localized: "Medicine")
+        case .nature: String(localized: "Nature")
+        case .perception: String(localized: "Perception")
+        case .performance: String(localized: "Performance")
+        case .persuasion: String(localized: "Persuasion")
+        case .religion: String(localized: "Religion")
+        case .sleightOfHand: String(localized: "Sleight of Hand")
+        case .stealth: String(localized: "Stealth")
+        case .survival: String(localized: "Survival")
         }
     }
 }
