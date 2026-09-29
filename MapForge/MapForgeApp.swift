@@ -10,6 +10,7 @@ struct MapForgeApp: App {
                 .environmentObject(appState)
                 .onAppear {
                     ReturnDeselects.install()
+                    ClickDeselects.install()
                     ClickSelectsAll.install()
                     appState.openWorkspaceFromLaunchArgumentsIfPresent()
                     appState.loadMapFromLaunchArgumentsIfPresent()

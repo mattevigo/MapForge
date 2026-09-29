@@ -249,7 +249,11 @@ struct NumberField: View {
             .accessibilityIdentifier(identifier)
             .onAppear { adopt(value) }
             .onChange(of: value) { _, new in
-                guard !isFocused else { return }
+                // Held off only while the DM is mid-number. A focused field they have not
+                // typed in has nothing to lose — and on macOS it stays focused through a
+                // click on a segmented control or a button, so without this the Roll
+                // sheet's DC field went on showing 15 after the DM picked 10 beside it.
+                guard !isFocused || text == committed else { return }
                 adopt(new)
             }
             .onChange(of: isFocused) { wasFocused, nowFocused in
