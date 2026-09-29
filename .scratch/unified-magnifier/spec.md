@@ -1,6 +1,6 @@
 # Unified Magnifier: one zoom, the same gestures everywhere
 
-Status: open — three issues, none started
+Status: closed 2026-09-29 — all three issues done; green suite, trackpad direction not yet checked by hand
 
 The Control Window's zoom behaves differently depending on which surface is up, and it
 cannot be driven from a trackpad the way a Mac user expects. Today:

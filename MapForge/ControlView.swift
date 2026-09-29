@@ -1363,9 +1363,9 @@ struct ControlView: View {
     /// What each mode is for. Every mode has one — an empty hint would reserve a shorter row
     /// than a real one and make the height depend on the mode again, which is the defect.
     static let liveViewHint =
-        "Right-click a Pawn or Light to edit it, or the Map to measure. Add places a new one. Scroll to zoom — the players see none of it."
+        "Right-click a Pawn or Light to edit it, or the Map to measure. Add places a new one. Scroll or pinch to zoom; two-finger or middle-drag to pan — the players see none of it."
     static let gridFitHint =
-        "Drag a square over one grid square; scroll to zoom, ⌥-drag to pan, arrow keys nudge (⇧ resizes)."
+        "Drag a square over one grid square; arrow keys nudge (⇧ resizes)."
     static let wallEditorHint =
         "Click to place Wall corners, double-click to end a chain, Esc to cancel. ⇧ frees the angle; corners weld to nearby ends. Click a Wall then ⌫ to delete. Pawns and Lights are shown for reference — edit them from the map."
     static let viewportHint =

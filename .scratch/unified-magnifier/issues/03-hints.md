@@ -1,6 +1,6 @@
 # 03 — The hint row says it once
 
-Status: ready-for-agent
+Status: done
 Blocked by: 02
 
 The gestures no longer belong to one mode, so they are described once, on the surface the DM
