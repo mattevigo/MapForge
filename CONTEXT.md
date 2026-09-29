@@ -273,3 +273,7 @@ _Avoid_: DC, target number, threshold
 **Modifier**:
 Everything added to the d20 on a Roll — ability bonus, proficiency, expertise, active effects — as a single number the DM types. One number rather than its parts, because the parts are on the player's character sheet and the total is what was said aloud at the table.
 _Avoid_: bonus, adjustment, plus
+
+**Interface Language**:
+The language MapForge speaks: every word the app itself writes, on the Control Window and the Player Display alike. Rulebook terms are the ones the official D&D edition prints in that language, never our own rendering, because the table already speaks them — and in a language no official edition exists for, they stay in English, which is what that table speaks instead. Everything the DM wrote — Monster names from their notes, Pawn labels, Light names, Parties, Characters, Comments — is never translated: it is theirs, not the app's. Chosen per Mac, not per Workspace.
+_Avoid_: locale, localisation, translation, app language
