@@ -34,7 +34,7 @@ enum Condition: String, Codable, CaseIterable, Equatable {
         case .grappled: return String(localized: "Grappled", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
         case .incapacitated: return String(localized: "Incapacitated", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
         case .invisible: return String(localized: "Invisible", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
-        case .paralyzed: return String(localized: "Paralyzed", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .paralyzed: return String(localized: "Paralysed", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
         case .petrified: return String(localized: "Petrified", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
         case .poisoned: return String(localized: "Poisoned", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
         case .prone: return String(localized: "Prone", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")

@@ -73,7 +73,7 @@ final class ModeButtonsUITests: XCTestCase {
                        "the toggle did not show the rectangle")
         app.checkBoxes["Viewport"].click()
 
-        let fit = app.buttons["Grid Fit…"]
+        let fit = app.buttons["grid-fit"]
         XCTAssertTrue(fit.waitForExistence(timeout: 2), "Grid Fit… button not found")
         fit.click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2),
@@ -90,7 +90,7 @@ final class ModeButtonsUITests: XCTestCase {
     func testScrollZoomChangesThePreview() throws {
         let app = try launchApp(squares: 30, pixelsWide: 3000, pixelsHigh: 2000)
 
-        let fit = app.buttons["Grid Fit…"]
+        let fit = app.buttons["grid-fit"]
         XCTAssertTrue(fit.waitForExistence(timeout: 5), "Grid Fit… button not found")
         fit.click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 3),
@@ -108,7 +108,7 @@ final class ModeButtonsUITests: XCTestCase {
                           "scrolling did not change the preview — zoom is not wired up")
 
         app.buttons["Cancel"].click()
-        XCTAssertTrue(app.buttons["Grid Fit…"].waitForExistence(timeout: 2),
+        XCTAssertTrue(app.buttons["grid-fit"].waitForExistence(timeout: 2),
                       "Cancel did not leave Grid Fit mode after zooming")
     }
 
@@ -117,7 +117,7 @@ final class ModeButtonsUITests: XCTestCase {
     func testFitGridClickableWithSmallMap() throws {
         let app = try launchApp(squares: 10, pixelsWide: 1000, pixelsHigh: 750)
 
-        let fit = app.buttons["Grid Fit…"]
+        let fit = app.buttons["grid-fit"]
         XCTAssertTrue(fit.waitForExistence(timeout: 5), "Grid Fit… button not found")
         fit.click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2),

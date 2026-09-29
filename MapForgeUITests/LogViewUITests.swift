@@ -81,14 +81,14 @@ final class LogViewUITests: XCTestCase {
         let toggle = window.checkBoxes["log-toggle"]
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
 
-        XCTAssertTrue(window.buttons["Grid Fit…"].isEnabled)
-        XCTAssertTrue(window.buttons["Wall Editor…"].isEnabled)
+        XCTAssertTrue(window.buttons["grid-fit"].isEnabled)
+        XCTAssertTrue(window.buttons["wall-editor"].isEnabled)
 
         toggle.click()
         XCTAssertTrue(window.otherElements["log-view"].waitForExistence(timeout: 2))
 
-        XCTAssertFalse(window.buttons["Grid Fit…"].isEnabled)
-        XCTAssertFalse(window.buttons["Wall Editor…"].isEnabled)
+        XCTAssertFalse(window.buttons["grid-fit"].isEnabled)
+        XCTAssertFalse(window.buttons["wall-editor"].isEnabled)
         XCTAssertFalse(window.popUpButtons["Add"].isEnabled)
     }
 

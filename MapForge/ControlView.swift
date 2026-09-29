@@ -838,8 +838,10 @@ struct ControlView: View {
             .help("Pick what to add, then click the Map to place it. Esc cancels.")
             Button("Grid Fit…") { startGridFit() }
                 .disabled(appState.mapImage == nil || showingLog)
+                .accessibilityIdentifier("grid-fit")
             Button("Wall Editor…") { startFogEditing() }
                 .disabled(appState.mapImage == nil || showingLog)
+                .accessibilityIdentifier("wall-editor")
             // A "Zoomed — Reset" button used to appear here while magnified. Zooming back
             // out reaches the same place: `PreviewTransform`'s zoom floor is fit-to-window,
             // so the Map returns to exactly the rect the button restored. The Magnifier
@@ -1482,7 +1484,11 @@ struct ControlView: View {
             // very next field. The identifier is what a test should hold on to.
             .accessibilityIdentifier("pawn-light-toggle")
             .help(pawn.isDiscovered
-                  ? String(localized: "\(pawn.label): a \(pawn.kind.title) — emits no Light. Click to douse the light it does not cast.")
+                  // One sentence per kind rather than the kind's title spliced in: the article
+                  // before it agrees with its gender in every language but English.
+                  ? (pawn.kind == .treasure
+                     ? String(localized: "\(pawn.label): a Treasure — emits no Light. Click to douse the light it does not cast.")
+                     : String(localized: "\(pawn.label): a Creature — emits no Light. Click to douse the light it does not cast."))
                   : String(localized: "\(pawn.label): sight \(Int(pawn.light.brightSquares)) squares. Click to douse."))
 
             // Fills the column rather than a fixed 72 pt: names like "Goblin B" need the

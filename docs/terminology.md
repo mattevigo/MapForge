@@ -52,7 +52,7 @@ agreeing with a Pawn: "Condizione: Prono", never "GG1 è prono".
 | Grappled | Afferrato | Gepackt | Agrippé | Agarrado | Agarrado † (reference sites say *Imobilizado*, possibly a fan rename) |
 | Incapacitated | Incapacitato | Kampfunfähig | Neutralisé | Incapacitado | Incapacitado |
 | Invisible | Invisibile | Unsichtbar | Invisible | Invisible | Invisível |
-| Paralyzed | Paralizzato | Gelähmt | Paralysé | Paralizado | Paralisado |
+| Paralysed | Paralizzato | Gelähmt | Paralysé | Paralizado | Paralisado |
 | Petrified | Pietrificato | Versteinert | Pétrifié | Petrificado | Petrificado |
 | Poisoned | Avvelenato | Vergiftet | Empoisonné | Envenenado | Envenenado |
 | Prone | Prono | Liegend | À terre | Derribado | Caído |
@@ -96,6 +96,15 @@ word.
 | Stealth | Furtività | Heimlichkeit | Discrétion | Sigilo | Furtividade |
 | Survival | Sopravvivenza | Überlebenskunst | Survie | Supervivencia | Sobrevivência |
 
+Some fields are narrower than any official form. Their abbreviations are ours, cut from the
+official word, and listed so they stay one choice:
+
+| English | it | de | fr | es | pt-BR |
+|---|---|---|---|---|---|
+| Init (Initiative bonus field) | Iniz | Init | Init | Inic | Inic |
+| Exh (Exhaustion field) | Ind | Ersch | Épuis. | Can | Exa |
+| E3 (Exhaustion badge) | I3 | E3 | É3 | C3 | E3 |
+
 ### Rolls, the Stat Block and the fight
 
 | English | it | de | fr | es | pt-BR |
@@ -117,6 +126,13 @@ word.
 | Stat Block | Scheda delle statistiche | Wertekasten | Profil | Perfil | Bloco de Estatísticas |
 | Traits (heading) | Tratti | Merkmale | Traits | Atributos | Traços † |
 | Actions (heading) | Azioni | Aktionen | Actions | Acciones | Ações |
+| Bonus Actions (heading) | Azioni bonus | Bonusaktionen | Actions Bonus | Acciones adicionales | Ações Bônus |
+| Reactions (heading) | Reazioni | Reaktionen | Réactions | Reacciones | Reações |
+| Legendary Actions (heading) | Azioni leggendarie | Legendäre Aktionen | Actions Légendaires | Acciones legendarias | Ações Lendárias |
+| Challenge Rating (CR) | GS | HG | FP | VD | ND |
+| Speed (stat-block label) | Velocità | Bewegungsrate | Vitesse | Velocidad | Deslocamento |
+| Senses (stat-block label) | Sensi | Sinne | Sens | Sentidos | Sentidos |
+| Languages (stat-block label) | Lingue | Sprachen | Langues | Idiomas | Idiomas |
 | Cone | Cono | Kegel | Cône | Cono | Cone |
 | Line | Linea | Linie | Ligne | Línea | Linha |
 | radius | raggio | Radius | rayon | radio | raio |
@@ -143,6 +159,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | English | it | Rejected |
 |---|---|---|
 | Map | Mappa | |
+| Interface Language (the Settings label "Language") | Lingua | |
 | True Scale | Scala | *scala reale* (redundant at the table), *1:1* |
 | Player Display | Schermo dei giocatori | |
 | Control Window | Finestra di controllo | |
@@ -183,6 +200,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | English | de | Rejected |
 |---|---|---|
 | Map | Karte | |
+| Interface Language (the Settings label "Language") | Sprache | |
 | True Scale | Echter Maßstab | *Originalgröße* (actual size), *1:1* |
 | Player Display | Spielerbildschirm | |
 | Control Window | Steuerfenster | |
@@ -223,6 +241,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | English | fr | Rejected |
 |---|---|---|
 | Map | Carte | |
+| Interface Language (the Settings label "Language") | Langue | |
 | True Scale | Échelle réelle | *taille réelle* (actual size) |
 | Player Display | Écran des joueurs | *écran du MJ* is the DM's screen, a different thing |
 | Control Window | Fenêtre de contrôle | |
@@ -263,6 +282,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | English | es | Rejected |
 |---|---|---|
 | Map | Mapa | |
+| Interface Language (the Settings label "Language") | Idioma | |
 | True Scale | Escala real | *tamaño real* (actual size) |
 | Player Display | Pantalla de jugadores | |
 | Control Window | Ventana de control | |
@@ -303,6 +323,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | English | pt-BR | Rejected |
 |---|---|---|
 | Map | Mapa | |
+| Interface Language (the Settings label "Language") | Idioma | |
 | True Scale | Escala real | *tamanho real* (actual size) |
 | Player Display | Tela dos jogadores | *escudo do mestre* is the DM's screen |
 | Control Window | Janela de controle | |
@@ -348,6 +369,7 @@ ordinary language are Greek: a Greek DM says *τέρας*, not "monster".
 | English | el | Rejected |
 |---|---|---|
 | Map | Χάρτης | |
+| Interface Language (the Settings label "Language") | Γλώσσα | |
 | True Scale | Πραγματική κλίμακα | |
 | Player Display | Οθόνη παικτών | |
 | Control Window | Παράθυρο ελέγχου | |

@@ -96,7 +96,7 @@ final class FogEditingUITests: XCTestCase {
 
     func testEditFogButtonEntersTheMode() throws {
         let app = try launchApp()
-        let draw = app.buttons["Wall Editor…"]
+        let draw = app.buttons["wall-editor"]
         XCTAssertTrue(draw.waitForExistence(timeout: 5), "Wall Editor… button not found")
         draw.click()
 
@@ -107,7 +107,7 @@ final class FogEditingUITests: XCTestCase {
 
     func testClickingPlacesVerticesAndDoubleClickCommitsTheChain() throws {
         let app = try launchApp()
-        app.buttons["Wall Editor…"].click()
+        app.buttons["wall-editor"].click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
         let map = mapPreview(app)
@@ -129,7 +129,7 @@ final class FogEditingUITests: XCTestCase {
 
     func testCancelRestoresTheWallsFromBeforeTheMode() throws {
         let app = try launchApp()
-        app.buttons["Wall Editor…"].click()
+        app.buttons["wall-editor"].click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
         let map = mapPreview(app)
@@ -139,7 +139,7 @@ final class FogEditingUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["1 Wall, 0 Lights, 0 Pawns"].waitForExistence(timeout: 2))
 
         app.buttons["Cancel"].click()
-        app.buttons["Wall Editor…"].click()
+        app.buttons["wall-editor"].click()
         XCTAssertTrue(app.staticTexts["0 Walls, 0 Lights, 0 Pawns"].waitForExistence(timeout: 2),
                       "Cancel did not discard the Walls drawn in the mode")
     }
@@ -171,7 +171,7 @@ final class FogEditingUITests: XCTestCase {
 
     func testZoomingInKeepsThePreviewInsideTheWindow() throws {
         let app = try launchApp()
-        app.buttons["Wall Editor…"].click()
+        app.buttons["wall-editor"].click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
 
         let window = controlWindow(app)
@@ -213,7 +213,7 @@ final class FogEditingUITests: XCTestCase {
 
         // The Pawn survived the drag rather than being duplicated or dropped. The fog
         // summary is only drawn inside the Wall Editor, so that is where the count is read.
-        app.buttons["Wall Editor…"].click()
+        app.buttons["wall-editor"].click()
         XCTAssertTrue(app.staticTexts["0 Walls, 0 Lights, 1 Pawn"].waitForExistence(timeout: 2))
     }
 

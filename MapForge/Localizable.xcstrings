@@ -1235,48 +1235,82 @@
         }
       }
     },
-    "%@: a %@ — emits no Light. Click to douse the light it does not cast.": {
+    "%@: a Creature — emits no Light. Click to douse the light it does not cast.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@: %2$@ — sendet kein Licht aus. Klicke, um das Licht auszumachen, das sie ohnehin nicht wirft."
+            "value": "%@: eine Kreatur — sendet kein Licht aus. Klicke, um das Licht auszumachen, das sie ohnehin nicht wirft."
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@: είδος %2$@ — δεν εκπέμπει φως. Κάντε κλικ για να σβήσει το φως που δεν εκπέμπει."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$@: a %2$@ — emits no Light. Click to douse the light it does not cast."
+            "value": "%@: πλάσμα — δεν εκπέμπει φως. Κάντε κλικ για να σβήσει το φως που δεν εκπέμπει."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@ (%2$@) no emite luz. Haz clic para apagar la luz que no proyecta."
+            "value": "%@: una criatura — no emite luz. Haz clic para apagar la luz que no proyecta."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@ (%2$@) — n’émet aucune lumière. Cliquez pour éteindre la lumière que ce pion ne projette pas."
+            "value": "%@ : une créature — n’émet aucune lumière. Cliquez pour éteindre la lumière qu’elle ne projette pas."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@: categoria %2$@ — non emette luce. Fai clic per spegnere la luce che non proietta."
+            "value": "%@: una creatura — non emette luce. Fai clic per spegnere la luce che non proietta."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@: %2$@ — não emite luz. Clique para apagar a luz que não projeta."
+            "value": "%@: uma criatura — não emite luz. Clique para apagar a luz que não projeta."
+          }
+        }
+      }
+    },
+    "%@: a Treasure — emits no Light. Click to douse the light it does not cast.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: ein Schatz — sendet kein Licht aus. Klicke, um das Licht auszumachen, das er ohnehin nicht wirft."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: θησαυρός — δεν εκπέμπει φως. Κάντε κλικ για να σβήσει το φως που δεν εκπέμπει."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: un tesoro — no emite luz. Haz clic para apagar la luz que no proyecta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ : un trésor — n’émet aucune lumière. Cliquez pour éteindre la lumière qu’il ne projette pas."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: un tesoro — non emette luce. Fai clic per spegnere la luce che non proietta."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: um tesouro — não emite luz. Clique para apagar a luz que não projeta."
           }
         }
       }
@@ -2155,6 +2189,52 @@
         }
       }
     },
+    "A Pawn that becomes %@ arrives whole: %@ becomes %@. Conditions and temporary hit points are kept.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Spielfigur, die zu %1$@ wird, kommt unversehrt an: Aus %2$@ wird %3$@. Zustände und temporäre Trefferpunkte bleiben erhalten."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ένα πιόνι που γίνεται %1$@ αποκαθίσταται πλήρως: τα HP από %2$@ γίνονται %3$@. Τα Conditions και τα temporary hit points διατηρούνται."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "A Pawn that becomes %1$@ arrives whole: %2$@ becomes %3$@. Conditions and temporary hit points are kept."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una ficha que se convierte en %1$@ llega ilesa: %2$@ pasa a ser %3$@. Se conservan los estados y los puntos de golpe temporales."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un pion qui devient %1$@ arrive indemne : %2$@ devient %3$@. Les états et les points de vie temporaires sont conservés."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una pedina che diventa %1$@ arriva in piena forma: i punti ferita passano da %2$@ a %3$@. Le condizioni e i punti ferita temporanei restano."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma peça que se torna %1$@ chega inteira: os pontos de vida passam de %2$@ para %3$@. As condições e os pontos de vida temporários são mantidos."
+          }
+        }
+      }
+    },
     "A Session records into the Workspace. Open one first.": {
       "localizations": {
         "de": {
@@ -2956,48 +3036,88 @@
         }
       }
     },
-    "Becoming a %@ means arriving whole: %@ becomes %@. Conditions and temporary hit points are kept.": {
+    "Become a Monster": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Als %1$@ kommt die Spielfigur unversehrt an: Aus %2$@ wird %3$@. Zustände und temporäre Trefferpunkte bleiben erhalten."
+            "value": "Zum Monster werden"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Η μετατροπή σε %1$@ σημαίνει πλήρη αποκατάσταση: τα HP από %2$@ γίνονται %3$@. Τα Conditions και τα temporary hit points διατηρούνται."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "Becoming a %1$@ means arriving whole: %2$@ becomes %3$@. Conditions and temporary hit points are kept."
+            "value": "Να γίνει τέρας"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Convertirse en %1$@ significa llegar ileso: %2$@ pasa a ser %3$@. Se conservan los estados y los puntos de golpe temporales."
+            "value": "Convertirse en monstruo"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Devenir %1$@, c’est arriver indemne : %2$@ devient %3$@. Les états et les points de vie temporaires sont conservés."
+            "value": "Devenir un monstre"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diventare %1$@ significa arrivare in piena forma: i punti ferita passano da %2$@ a %3$@. Le condizioni e i punti ferita temporanei restano."
+            "value": "Diventa un mostro"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tornar-se %1$@ significa chegar inteiro: os pontos de vida passam de %2$@ para %3$@. As condições e os pontos de vida temporários são mantidos."
+            "value": "Tornar-se um monstro"
+          }
+        }
+      }
+    },
+    "Becoming a Monster means arriving whole: %@ becomes %@. Conditions and temporary hit points are kept.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wer zum Monster wird, kommt unversehrt an: Aus %1$@ wird %2$@. Zustände und temporäre Trefferpunkte bleiben erhalten."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Η μετατροπή σε τέρας σημαίνει πλήρη αποκατάσταση: τα HP από %1$@ γίνονται %2$@. Τα Conditions και τα temporary hit points διατηρούνται."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Becoming a Monster means arriving whole: %1$@ becomes %2$@. Conditions and temporary hit points are kept."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convertirse en monstruo significa llegar ileso: %1$@ pasa a ser %2$@. Se conservan los estados y los puntos de golpe temporales."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Devenir un monstre, c’est arriver indemne : %1$@ devient %2$@. Les états et les points de vie temporaires sont conservés."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diventare un mostro significa arrivare in piena forma: i punti ferita passano da %1$@ a %2$@. Le condizioni e i punti ferita temporanei restano."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tornar-se um monstro significa chegar inteiro: os pontos de vida passam de %1$@ para %2$@. As condições e os pontos de vida temporários são mantidos."
           }
         }
       }
@@ -7676,46 +7796,6 @@
         }
       }
     },
-    "Monster": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Monster"
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Τέρας"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Monstruo"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Monstre"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostro"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Monstro"
-          }
-        }
-      }
-    },
     "Multiple displays connected — choose the Player Display above": {
       "localizations": {
         "de": {
@@ -8882,7 +8962,7 @@
         }
       }
     },
-    "Paralyzed": {
+    "Paralysed": {
       "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
       "localizations": {
         "de": {
@@ -8894,7 +8974,7 @@
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Paralyzed"
+            "value": "Paralysed"
           }
         },
         "es": {
@@ -9886,6 +9966,46 @@
         }
       }
     },
+    "Record a Saving Throw for this Combatant.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rettungswurf für diesen Kampfteilnehmer aufzeichnen."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Καταγραφή Saving Throw για αυτόν τον μαχητή."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrar una tirada de salvación de este combatiente."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer un jet de sauvegarde pour ce combattant."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra un tiro salvezza per questo combattente."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrar um teste de resistência deste combatente."
+          }
+        }
+      }
+    },
     "Record an Ability Check for %@.": {
       "localizations": {
         "de": {
@@ -9922,6 +10042,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Registrar um teste de habilidade de %@."
+          }
+        }
+      }
+    },
+    "Record an Ability Check for this Combatant.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attributswurf für diesen Kampfteilnehmer aufzeichnen."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Καταγραφή Ability Check για αυτόν τον μαχητή."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrar una prueba de característica de este combatiente."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer un test de caractéristique pour ce combattant."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra una prova di caratteristica per questo combattente."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrar um teste de habilidade deste combatente."
           }
         }
       }
@@ -12663,46 +12823,6 @@
         }
       }
     },
-    "This folder": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dieser Ordner"
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Αυτός ο φάκελος"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Esta carpeta"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ce dossier"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Questa cartella"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Esta pasta"
-          }
-        }
-      }
-    },
     "This folder has a damaged MapForge workspace file. MapForge hasn't changed it. Move “.mapforge/workspace.json” aside to set the folder up again.": {
       "localizations": {
         "de": {
@@ -12739,6 +12859,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Esta pasta tem um arquivo de espaço de trabalho do MapForge danificado. O MapForge não o alterou. Tire “.mapforge/workspace.json” do lugar para configurar a pasta de novo."
+          }
+        }
+      }
+    },
+    "This folder isn't a MapForge workspace yet. MapForge will create a “.mapforge” folder inside it for your parties and settings.\n\nYour maps won't be changed.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Ordner ist noch kein MapForge-Arbeitsbereich. MapForge erstellt darin einen Ordner „.mapforge“ für deine Gruppen und Einstellungen.\n\nDeine Karten werden nicht verändert."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Αυτός ο φάκελος δεν είναι ακόμα χώρος εργασίας του MapForge. Το MapForge θα δημιουργήσει μέσα του έναν φάκελο «.mapforge» για τις ομάδες και τις ρυθμίσεις σας.\n\nΟι χάρτες σας δεν θα αλλάξουν."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta carpeta aún no es un espacio de trabajo de MapForge. MapForge creará dentro una carpeta «.mapforge» para tus grupos y ajustes.\n\nTus mapas no se modificarán."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce dossier n’est pas encore un espace de travail MapForge. MapForge y créera un dossier « .mapforge » pour vos groupes et vos réglages.\n\nVos cartes ne seront pas modifiées."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa cartella non è ancora un'area di lavoro di MapForge. MapForge creerà al suo interno una cartella “.mapforge” per i tuoi gruppi e le tue impostazioni.\n\nLe tue mappe non verranno modificate."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta pasta ainda não é um espaço de trabalho do MapForge. O MapForge vai criar uma pasta “.mapforge” dentro dela para seus grupos e ajustes.\n\nSeus mapas não serão alterados."
           }
         }
       }
@@ -13905,46 +14065,6 @@
         }
       }
     },
-    "it": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Monster"
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "τέρας"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ese monstruo"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ce monstre"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "il mostro"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "o monstro"
-          }
-        }
-      }
-    },
     "label": {
       "localizations": {
         "de": {
@@ -14129,7 +14249,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tesoro"
+            "value": "Tesoros"
           }
         },
         "fr": {
@@ -14192,42 +14312,82 @@
         }
       }
     },
-    "squares — unused, a %@ emits no Light": {
+    "squares — unused, a Creature emits no Light": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quadrate — ungenutzt: %@ sendet kein Licht aus"
+            "value": "Quadrate — ungenutzt: Eine Kreatur sendet kein Licht aus"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "τετράγωνα — αχρησιμοποίητο· το είδος %@ δεν εκπέμπει φως"
+            "value": "τετράγωνα — αχρησιμοποίητο· ένα πλάσμα δεν εκπέμπει φως"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "casillas — sin efecto: la categoría %@ no emite luz"
+            "value": "casillas — sin efecto: una criatura no emite luz"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "cases — sans effet : le genre %@ n’émet aucune lumière"
+            "value": "cases — sans effet : une créature n’émet aucune lumière"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "quadretti — inutilizzato, la categoria %@ non emette luce"
+            "value": "quadretti — inutilizzato, una creatura non emette luce"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "quadrados — sem uso: a categoria %@ não emite luz"
+            "value": "quadrados — sem uso: uma criatura não emite luz"
+          }
+        }
+      }
+    },
+    "squares — unused, a Treasure emits no Light": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quadrate — ungenutzt: Ein Schatz sendet kein Licht aus"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "τετράγωνα — αχρησιμοποίητο· ένας θησαυρός δεν εκπέμπει φως"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "casillas — sin efecto: un tesoro no emite luz"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "cases — sans effet : un trésor n’émet aucune lumière"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "quadretti — inutilizzato, un tesoro non emette luce"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "quadrados — sem uso: um tesouro não emite luz"
           }
         }
       }
@@ -14428,46 +14588,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "o statblock não é YAML válido"
-          }
-        }
-      }
-    },
-    "this Combatant": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "diesen Kampfteilnehmer"
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "αυτός ο μαχητής"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "este combatiente"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ce combattant"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "questo combattente"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "este combatente"
           }
         }
       }

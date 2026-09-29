@@ -8,6 +8,9 @@ struct MapForgeApp: App {
         Window("MapForge Control", id: "control") {
             ControlView()
                 .environmentObject(appState)
+                // Numbers SwiftUI formats itself follow the words on screen, as `DistanceUnit`'s
+                // do, rather than the Mac's region.
+                .environment(\.locale, .interface)
                 .onAppear {
                     ReturnDeselects.install()
                     ClickDeselects.install()
@@ -26,6 +29,7 @@ struct MapForgeApp: App {
         Settings {
             SettingsView()
                 .environmentObject(appState)
+                .environment(\.locale, .interface)
         }
     }
 }

@@ -50,12 +50,22 @@ struct WorkspacePickerView: View {
                 adopting = nil
             }
         } message: {
-            Text("""
-            \(adopting?.lastPathComponent ?? String(localized: "This folder")) isn't a MapForge workspace yet. \
-            MapForge will create a “.mapforge” folder inside it for your parties and settings.
+            // Two whole sentences rather than a translated "This folder" spliced into one.
+            if let name = adopting?.lastPathComponent {
+                Text("""
+                \(name) isn't a MapForge workspace yet. \
+                MapForge will create a “.mapforge” folder inside it for your parties and settings.
 
-            Your maps won't be changed.
-            """)
+                Your maps won't be changed.
+                """)
+            } else {
+                Text("""
+                This folder isn't a MapForge workspace yet. \
+                MapForge will create a “.mapforge” folder inside it for your parties and settings.
+
+                Your maps won't be changed.
+                """)
+            }
         }
         .alert("Can't open this workspace",
                isPresented: .init(get: { refusal != nil },

@@ -332,7 +332,8 @@ struct CombatPanel: View {
                 }
                 .buttonStyle(.borderless)
                 .accessibilityIdentifier("combatant-saving-throw")
-                .help("Record a Saving Throw for \(encounter.name(of: id) ?? String(localized: "this Combatant")).")
+                .help(encounter.name(of: id).map { String(localized: "Record a Saving Throw for \($0).") }
+                      ?? String(localized: "Record a Saving Throw for this Combatant."))
 
                 Button {
                     onRoll(pawn, .abilityCheck)
@@ -342,7 +343,8 @@ struct CombatPanel: View {
                 }
                 .buttonStyle(.borderless)
                 .accessibilityIdentifier("combatant-ability-check")
-                .help("Record an Ability Check for \(encounter.name(of: id) ?? String(localized: "this Combatant")).")
+                .help(encounter.name(of: id).map { String(localized: "Record an Ability Check for \($0).") }
+                      ?? String(localized: "Record an Ability Check for this Combatant."))
             }
 
             Button {

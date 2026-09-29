@@ -38,7 +38,7 @@ final class LiveViewZoomUITests: XCTestCase {
         app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
                                "--test-player-screen", "--test-fresh-preferences"]
         app.launchInEnglish()
-        XCTAssertTrue(app.buttons["Wall Editor…"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["wall-editor"].waitForExistence(timeout: 5))
 
         let map = app.descendants(matching: .any).matching(identifier: "map-preview").firstMatch
         XCTAssertTrue(map.waitForExistence(timeout: 5))
@@ -68,7 +68,7 @@ final class LiveViewZoomUITests: XCTestCase {
         app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=60",
                                "--test-player-screen", "--test-fresh-preferences"]
         app.launchInEnglish()
-        XCTAssertTrue(app.buttons["Wall Editor…"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["wall-editor"].waitForExistence(timeout: 5))
 
         // A `.button`-styled Toggle publishes as a checkBox on macOS, not a button — the
         // role mistake this suite has made twice before.
@@ -112,7 +112,7 @@ final class MeasurementVisibilityUITests: XCTestCase {
         app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
                                "--test-player-screen", "--test-fresh-preferences"]
         app.launchInEnglish()
-        XCTAssertTrue(app.buttons["Wall Editor…"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["wall-editor"].waitForExistence(timeout: 5))
 
         // A `.checkbox` Toggle publishes as a checkBox, addressed by the identifier rather
         // than the label — the role-and-label mistake this suite has made three times.
@@ -172,7 +172,7 @@ final class ChromeStabilityUITests: XCTestCase {
         app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
                                "--test-player-screen", "--test-fresh-preferences"]
         app.launchInEnglish()
-        XCTAssertTrue(app.buttons["Wall Editor…"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["wall-editor"].waitForExistence(timeout: 5))
 
         // The Player Display picker sits directly below the chrome and above the preview,
         // so its vertical position moves if and only if the chrome's height changes. It is
@@ -182,13 +182,13 @@ final class ChromeStabilityUITests: XCTestCase {
         XCTAssertTrue(anchor.waitForExistence(timeout: 3), "nothing below the chrome to measure")
         let inLiveView = anchor.frame.minY
 
-        app.buttons["Wall Editor…"].click()
+        app.buttons["wall-editor"].click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 3), "did not enter the mode")
         XCTAssertEqual(app.popUpButtons.firstMatch.frame.minY, inLiveView, accuracy: 0.5,
                        "the chrome changed height entering the Wall Editor, so the Map resized")
 
         app.buttons["Done"].click()
-        XCTAssertTrue(app.buttons["Wall Editor…"].waitForExistence(timeout: 3), "did not leave the mode")
+        XCTAssertTrue(app.buttons["wall-editor"].waitForExistence(timeout: 3), "did not leave the mode")
         XCTAssertEqual(app.popUpButtons.firstMatch.frame.minY, inLiveView, accuracy: 0.5,
                        "the chrome did not return to its height on leaving the mode")
     }

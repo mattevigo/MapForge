@@ -18,7 +18,8 @@ final class PlayerWindowController {
         // The hosting view observes AppState and updates itself; rebuilding it on
         // every present() (which fires per drag tick) would churn the whole hierarchy.
         if !hasContentView {
-            w.contentView = NSHostingView(rootView: PlayerView().environmentObject(appState))
+            w.contentView = NSHostingView(rootView: PlayerView().environmentObject(appState)
+                .environment(\.locale, .interface))
             hasContentView = true
         }
         if w.frame != screen.frame {
