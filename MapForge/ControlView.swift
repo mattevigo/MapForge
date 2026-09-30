@@ -2413,7 +2413,8 @@ struct ControlView: View {
         if appState.displayCandidates.count > 1,
            appState.displayCandidates.allSatisfy(\.isBuiltin) == false,
            appState.playerScreen == nil {
-            Label("Multiple displays connected — choose the Player Display above",
+            // Says what to choose, not where the picker is: "above" went stale the day it moved.
+            Label("Multiple displays connected — choose the display that shows the Map to the players",
                   systemImage: "questionmark.circle")
                 .font(.caption)
                 .foregroundStyle(.secondary)

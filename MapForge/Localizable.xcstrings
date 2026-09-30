@@ -7796,42 +7796,42 @@
         }
       }
     },
-    "Multiple displays connected — choose the Player Display above": {
+    "Multiple displays connected — choose the display that shows the Map to the players": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mehrere Bildschirme angeschlossen — wähle oben den Spielerbildschirm"
+            "value": "Mehrere Bildschirme angeschlossen — wähle den Bildschirm, der den Spielern die Karte zeigt"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Πολλές συνδεδεμένες οθόνες — επιλέξτε την οθόνη παικτών παραπάνω"
+            "value": "Πολλές συνδεδεμένες οθόνες — επιλέξτε την οθόνη που δείχνει τον χάρτη στους παίκτες"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hay varias pantallas conectadas — elige la pantalla de jugadores arriba"
+            "value": "Hay varias pantallas conectadas — elige la pantalla que muestra el mapa a los jugadores"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Plusieurs écrans connectés — choisissez l’écran des joueurs ci-dessus"
+            "value": "Plusieurs écrans connectés — choisissez l’écran qui montre la carte aux joueurs"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Più schermi collegati — scegli lo schermo dei giocatori qui sopra"
+            "value": "Più schermi collegati — scegli lo schermo su cui mostrare la mappa ai giocatori"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Várias telas conectadas — escolha a tela dos jogadores acima"
+            "value": "Várias telas conectadas — escolha a tela que mostra o mapa aos jogadores"
           }
         }
       }
