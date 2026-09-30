@@ -27,6 +27,10 @@ instead: Italian, Spanish and Portuguese use sentence case ("rimetti nell'ordine
 capitalises rules terms as the 2024 edition does (*action Bonus*, *Réaction*), German
 capitalises every noun anyway, Greek uses sentence case.
 
+**Order.** A list that is alphabetical in English — the Skills, the Conditions — is listed
+alphabetically in each language by its translated names, never in the English order. Lists in
+the rulebook's own order (the six Abilities) keep that order everywhere.
+
 ## Rulebook terms
 
 Copied verbatim; not ours to improve. Where the 2014 and 2024 translations differ, the 2024
