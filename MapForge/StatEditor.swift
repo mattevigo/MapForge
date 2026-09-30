@@ -142,7 +142,7 @@ struct StatEditor: View {
     private func conditionGrid(for id: Pawn.ID, current: StatBlock) -> some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7),
                   spacing: 2) {
-            ForEach(Condition.allCases, id: \.self) { condition in
+            ForEach(Condition.alphabetical(), id: \.self) { condition in
                 let isOn = current.conditions.contains(condition)
                 Button {
                     appState.editStatBlock(for: id) {

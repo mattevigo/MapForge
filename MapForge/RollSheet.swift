@@ -99,7 +99,7 @@ struct RollSheet: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6),
                                          count: 3),
                           spacing: 6) {
-                    ForEach(Skill.allCases, id: \.self) { skill in
+                    ForEach(Skill.alphabetical(), id: \.self) { skill in
                         Button {
                             draft.skill = skill
                         } label: {

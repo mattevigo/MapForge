@@ -38,7 +38,7 @@ enum Ability: String, Codable, CaseIterable {
 /// The tie is **derived, never stored**: a Skill that changed its Ability would change it for
 /// every Roll ever recorded, which is the behaviour a rules revision actually wants. Copying
 /// the Ability onto the Line would instead let a Log disagree with itself.
-enum Skill: String, Codable, CaseIterable {
+enum Skill: String, Codable, CaseIterable, LocalizedTitle {
     case acrobatics, animalHandling, arcana, athletics, deception, history
     case insight, intimidation, investigation, medicine, nature, perception
     case performance, persuasion, religion, sleightOfHand, stealth, survival
@@ -53,26 +53,26 @@ enum Skill: String, Codable, CaseIterable {
         }
     }
 
-    var title: String {
+    var titleResource: LocalizedStringResource {
         switch self {
-        case .acrobatics: String(localized: "Acrobatics")
-        case .animalHandling: String(localized: "Animal Handling")
-        case .arcana: String(localized: "Arcana")
-        case .athletics: String(localized: "Athletics")
-        case .deception: String(localized: "Deception")
-        case .history: String(localized: "History")
-        case .insight: String(localized: "Insight")
-        case .intimidation: String(localized: "Intimidation")
-        case .investigation: String(localized: "Investigation")
-        case .medicine: String(localized: "Medicine")
-        case .nature: String(localized: "Nature")
-        case .perception: String(localized: "Perception")
-        case .performance: String(localized: "Performance")
-        case .persuasion: String(localized: "Persuasion")
-        case .religion: String(localized: "Religion")
-        case .sleightOfHand: String(localized: "Sleight of Hand")
-        case .stealth: String(localized: "Stealth")
-        case .survival: String(localized: "Survival")
+        case .acrobatics: LocalizedStringResource("Acrobatics")
+        case .animalHandling: LocalizedStringResource("Animal Handling")
+        case .arcana: LocalizedStringResource("Arcana")
+        case .athletics: LocalizedStringResource("Athletics")
+        case .deception: LocalizedStringResource("Deception")
+        case .history: LocalizedStringResource("History")
+        case .insight: LocalizedStringResource("Insight")
+        case .intimidation: LocalizedStringResource("Intimidation")
+        case .investigation: LocalizedStringResource("Investigation")
+        case .medicine: LocalizedStringResource("Medicine")
+        case .nature: LocalizedStringResource("Nature")
+        case .perception: LocalizedStringResource("Perception")
+        case .performance: LocalizedStringResource("Performance")
+        case .persuasion: LocalizedStringResource("Persuasion")
+        case .religion: LocalizedStringResource("Religion")
+        case .sleightOfHand: LocalizedStringResource("Sleight of Hand")
+        case .stealth: LocalizedStringResource("Stealth")
+        case .survival: LocalizedStringResource("Survival")
         }
     }
 }
