@@ -18,7 +18,7 @@ struct Bestiary: Equatable {
     var unavailable: String?
 
     struct Skipped: Equatable, Identifiable {
-        /// Relative to the Bestiary folder, so it reads as the DM sees it in their vault.
+        /// Relative to the Workspace root, so it reads as the DM sees it in their vault.
         var file: String
         var reason: String
         var id: String { file }
@@ -33,7 +33,7 @@ struct Bestiary: Equatable {
     /// What stands in before a Workspace is open.
     static var closed: Bestiary { Bestiary(unavailable: String(localized: "No Workspace is open.")) }
 
-    /// What stands in while the folder is being read, so the search box can say so.
+    /// What stands in while the notes are being read, so the search box can say so.
     static var reading: Bestiary { Bestiary(unavailable: String(localized: "Reading the Bestiary…")) }
 
     /// Whether there is anything to search. The search box is disabled without it.
@@ -65,7 +65,7 @@ struct Bestiary: Equatable {
     /// stops seeing — and this is the only place a skipped note is ever mentioned.
     var caption: String? {
         if let unavailable { return unavailable }
-        if monsters.isEmpty && skipped.isEmpty { return String(localized: "No Monsters found in the Bestiary folder.") }
+        if monsters.isEmpty && skipped.isEmpty { return String(localized: "No Monsters found in this Workspace.") }
         guard !skipped.isEmpty else { return nil }
         // Plurals come from the catalogue, which knows every form a language has.
         let monsterCount = String(localized: "\(monsters.count) Monsters")

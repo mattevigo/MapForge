@@ -168,6 +168,45 @@ final class StatblockReaderTests: XCTestCase {
                        .skipped(reason: "the statblock has no name"))
     }
 
+    func testAFenceMarkedOutOfTheBestiaryIsNotAMonster() {
+        // A Character's past build and a template, as DM Realm writes them (ADR-0023). The
+        // template has no name, and is still not skipped: it said what it is first.
+        XCTAssertEqual(StatblockReader.read(fence("bestiary: false\nac: 14")), .notAMonster)
+        XCTAssertEqual(StatblockReader.read("```statblock\nbestiary: false\n```\n"), .notAMonster)
+        XCTAssertEqual(monster(fence("bestiary: true\nac: 14"))?.armorClass, 14)
+    }
+
+    func testACharactersFenceIsNotAMonster() {
+        let durga = """
+        ```statblock
+        layout: DM Realm Character
+        name: Durga Pietraferma
+        player: Baldu
+        ac: 14
+        hp: 48
+        ```
+        """
+        XCTAssertEqual(StatblockReader.read(durga), .notAMonster)
+    }
+
+    func testACharacterNobodyPlaysYetIsStillNotAMonster() {
+        // Zharyn, as DM Realm writes her: no `player`, but the keys only a Character has.
+        let zharyn = """
+        ```statblock
+        layout: DM Realm Character
+        name: Zharyn il Velato
+        species: Dragonide (Ottone)
+        class: Mago
+        level: 2
+        ac: 12
+        ```
+        """
+        XCTAssertEqual(StatblockReader.read(zharyn), .notAMonster)
+        XCTAssertEqual(StatblockReader.read(fence("species: Umano")), .notAMonster)
+        XCTAssertEqual(StatblockReader.read(fence("class: Mago")), .notAMonster)
+        XCTAssertEqual(StatblockReader.read(fence("level: 2")), .notAMonster)
+    }
+
     func testWindowsLineEndingsAreRead() {
         XCTAssertEqual(monster("```statblock\r\nname: Test\r\nac: 13\r\n```\r\n")?.armorClass, 13)
     }

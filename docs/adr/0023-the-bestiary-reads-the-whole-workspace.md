@@ -17,9 +17,11 @@ Workspace opens, and still never written down. `bestiaryStatBlockPath` is ignore
 A fence is left out when it marks itself `bestiary: false`. That is Fantasy Statblocks' own
 flag, and DM Realm uses it for a Character's past Builds and for its Templates. The vault
 already says which fences are not monsters, so the app obeys the vault rather than guessing
-from paths. A fence carrying `player` is a Character's (ADR-0024): it is read as a Character
-and is never a Monster. Hidden folders (`.git`, `.obsidian`, `.mapforge`) are not read, as
-Obsidian does not read them either.
+from paths. A fence with a key only a Character has (`player`, `species`, `class` or
+`level`) is a Character's (ADR-0024): it is read as a Character and is never a Monster. Any
+one of them is enough, because `player` alone is not: DM Realm leaves it out of a Character
+nobody plays yet, as it did for two of the first nine. Hidden folders (`.git`, `.obsidian`,
+`.mapforge`) are not read, as Obsidian does not read them either.
 
 ## A Monster written as another
 

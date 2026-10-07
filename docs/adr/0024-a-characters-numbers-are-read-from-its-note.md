@@ -27,9 +27,10 @@ from its name, not even on upgrade, when "Durga" plainly means Durga Pietraferma
 Characters therefore start unlinked, and the numbers typed into `parties.json` are dropped
 rather than kept as a fallback.
 
-A Character's note is a fence carrying `player`, a key only Characters have. A fence marked
-`bestiary: false`, such as a past Build kept for the record, is not a Character either, so a
-hero has one note. Two live notes with the same `name` are skipped and listed, as Monsters
+A Character's note is a fence with any of the keys only a Character has: `player`,
+`species`, `class` or `level`. `player` alone would miss a Character nobody plays yet. A
+fence marked `bestiary: false`, such as a past Build kept for the record, is not a Character
+either, so a hero has one note. Two live notes with the same `name` are skipped and listed, as Monsters
 are.
 
 ## Without a note, no numbers

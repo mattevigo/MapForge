@@ -17,7 +17,8 @@ import Yams
 /// failure a DM cannot diagnose.
 enum StatblockReader {
     enum Reading: Equatable {
-        /// No fence: a note about a tavern, an image, anything. Not worth reporting.
+        /// No fence — a note about a tavern, an image, anything — or a fence that says it is
+        /// no Monster. Not worth reporting.
         case notAMonster
         case monster(Monster)
         /// A fence the DM meant as a Monster and the app could not read.
@@ -35,6 +36,14 @@ enum StatblockReader {
             tree = loaded
         } catch {
             return .skipped(reason: String(localized: "the statblock is not valid YAML"))
+        }
+
+        // Not every fence is a Monster (ADR-0023). `bestiary: false` is Fantasy Statblocks'
+        // own word for one that is not — a Character's past build, a template — and a fence
+        // with a key only a Character has is a Character's. Neither is reported: the note is
+        // saying what it is, before it has a name to be skipped under.
+        if tree["bestiary"] as? Bool == false || isCharacter(tree) {
+            return .notAMonster
         }
 
         guard let name = text(tree["name"]) else {
@@ -91,6 +100,15 @@ enum StatblockReader {
         }
         // An unclosed fence is a note being typed right now. Not a Monster yet.
         return nil
+    }
+
+    /// The keys only a Character's fence has. Any one will do: `player` is left out of a
+    /// Character nobody plays yet, but its species, class and level are always written.
+    static let characterKeys = ["player", "species", "class", "level"]
+
+    /// Whether a fence is a Character's rather than a Monster's (ADR-0023).
+    static func isCharacter(_ tree: [String: Any]) -> Bool {
+        characterKeys.contains { tree[$0] != nil }
     }
 
     /// Large and up is a 2×2 token (`CONTEXT.md`, **Big**). Italian and English, because the

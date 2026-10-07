@@ -198,8 +198,6 @@ final class BestiaryAppStateTests: XCTestCase {
         let notes = root.appendingPathComponent("03_Bestiario")
         try FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: notes, withIntermediateDirectories: true)
-        try Data("{ \"bestiaryStatBlockPath\": \"03_Bestiario\" }".utf8)
-            .write(to: support.appendingPathComponent("config.json"))
         try Data("```statblock\nname: Wraith\nhp: 67 (9d8 + 27)\n```\n".utf8)
             .write(to: notes.appendingPathComponent("Wraith.md"))
 

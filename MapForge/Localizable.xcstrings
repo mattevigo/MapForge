@@ -130,46 +130,6 @@
         }
       }
     },
-    "%@ could not be read.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ konnte nicht gelesen werden."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Δεν ήταν δυνατή η ανάγνωση: %@."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No se ha podido leer %@."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impossible de lire %@."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impossibile leggere %@."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não foi possível ler %@."
-          }
-        }
-      }
-    },
     "%@ is now stored in this Workspace, in “%@”. Parties live in a Workspace now rather than on this Mac, so another Workspace starts with an empty roster.": {
       "localizations": {
         "de": {
@@ -7996,46 +7956,6 @@
         }
       }
     },
-    "No %@ in this Workspace.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keine Datei %@ in diesem Arbeitsbereich."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Το %@ δεν υπάρχει σε αυτόν τον χώρο εργασίας."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No hay %@ en este espacio de trabajo."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aucun fichier %@ dans cet espace de travail."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nessun file %@ in quest'area di lavoro."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não há %@ neste espaço de trabalho."
-          }
-        }
-      }
-    },
     "No Grid declared, so these radii have no physical size yet.": {
       "localizations": {
         "de": {
@@ -8156,42 +8076,42 @@
         }
       }
     },
-    "No Monsters found in the Bestiary folder.": {
+    "No Monsters found in this Workspace.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keine Monster im Bestiariumsordner gefunden."
+            "value": "Keine Monster in diesem Arbeitsbereich gefunden."
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Δεν βρέθηκαν τέρατα στον φάκελο του θηριολογίου."
+            "value": "Δεν βρέθηκαν τέρατα σε αυτόν τον χώρο εργασίας."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se han encontrado monstruos en la carpeta del bestiario."
+            "value": "No se han encontrado monstruos en este espacio de trabajo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucun monstre trouvé dans le dossier du bestiaire."
+            "value": "Aucun monstre trouvé dans cet espace de travail."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nessun mostro trovato nella cartella del bestiario."
+            "value": "Nessun mostro trovato in quest'area di lavoro."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nenhum monstro encontrado na pasta do bestiário."
+            "value": "Nenhum monstro encontrado neste espaço de trabalho."
           }
         }
       }
@@ -8312,46 +8232,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nenhum espaço de trabalho aberto."
-          }
-        }
-      }
-    },
-    "No bestiaryStatBlockPath in %@.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kein bestiaryStatBlockPath in %@."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Δεν υπάρχει bestiaryStatBlockPath στο %@."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No hay bestiaryStatBlockPath en %@."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aucun bestiaryStatBlockPath dans %@."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nessun bestiaryStatBlockPath in %@."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não há bestiaryStatBlockPath em %@."
           }
         }
       }
@@ -12497,46 +12377,6 @@
         }
       }
     },
-    "The Bestiary folder “%@” was not found in this Workspace.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Bestiariumsordner „%@“ wurde in diesem Arbeitsbereich nicht gefunden."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ο φάκελος θηριολογίου «%@» δεν βρέθηκε σε αυτόν τον χώρο εργασίας."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No se ha encontrado la carpeta del bestiario «%@» en este espacio de trabajo."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le dossier du bestiaire « %@ » est introuvable dans cet espace de travail."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La cartella del bestiario “%@” non è stata trovata in quest'area di lavoro."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A pasta do bestiário “%@” não foi encontrada neste espaço de trabalho."
-          }
-        }
-      }
-    },
     "The Bestiary is read when the Workspace opens.": {
       "localizations": {
         "de": {
@@ -13821,46 +13661,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "outra nota já define “%@”"
-          }
-        }
-      }
-    },
-    "bestiaryStatBlockPath must be a folder inside this Workspace, written relative to it — “03_Bestiario”, not a full path.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "bestiaryStatBlockPath muss ein Ordner in diesem Arbeitsbereich sein, relativ dazu angegeben — „03_Bestiario“, kein vollständiger Pfad."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Το bestiaryStatBlockPath πρέπει να είναι φάκελος μέσα σε αυτόν τον χώρο εργασίας, γραμμένος σε σχέση με αυτόν — «03_Bestiario», όχι πλήρης διαδρομή."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "bestiaryStatBlockPath debe ser una carpeta dentro de este espacio de trabajo, escrita de forma relativa a él — «03_Bestiario», no una ruta completa."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "bestiaryStatBlockPath doit être un dossier de cet espace de travail, indiqué relativement à celui-ci — « 03_Bestiario », pas un chemin complet."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "bestiaryStatBlockPath deve essere una cartella dentro quest'area di lavoro, indicata in modo relativo — “03_Bestiario”, non un percorso completo."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "bestiaryStatBlockPath deve ser uma pasta dentro deste espaço de trabalho, escrita em relação a ele — “03_Bestiario”, não um caminho completo."
           }
         }
       }

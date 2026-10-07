@@ -12,7 +12,7 @@ Persistent state has exactly three homes, and every file below is in one of them
 | Home | What it holds | Travels with |
 |---|---|---|
 | **Beside the Map** — `<map>.fog.json`, `<map>.combat/` | What was authored *on* one Map: its Grid, Walls, Lights, Pawns, their Stat Blocks, and every fight fought on it | The Map image, wherever it is moved |
-| **The Workspace** — `.mapforge/` at the Workspace root | What the game knows that is not about a Map: Parties, settings, hand-written config, and every Session | The Workspace folder (ADR-0011, ADR-0012) |
+| **The Workspace** — `.mapforge/` at the Workspace root | What the game knows that is not about a Map: Parties, settings, and every Session | The Workspace folder (ADR-0011, ADR-0012) |
 | **The machine** — `UserDefaults` | What only this Mac can know: which Workspaces it has opened | Nothing; stays on the Mac |
 
 The rule that decides where a new thing goes is ADR-0012's: *`.mapforge/` holds what the game
@@ -27,7 +27,7 @@ MyGame/                              ← the Workspace (any folder the DM adopte
 │   ├── workspace.json               ← the Manifest: what makes this folder a Workspace
 │   ├── parties.json                 ← every Party and its Characters
 │   ├── preferences.json             ← active Party, chosen Player Display (app-written)
-│   ├── config.json                  ← hand-written settings (read-only to the app)
+│   ├── config.json                  ← no longer read (ADR-0023); left alone if present
 │   └── sessions/
 │       ├── 2026-09-09T183000Z.jsonl ← one Session Log per evening
 │       └── 2026-09-16T190000Z.jsonl
@@ -252,21 +252,19 @@ Display Identity (the display's UUID, not its `CGDirectDisplayID`). Both are one
 choices, so this store is *forgiving*: an unreadable file is replaced by defaults on the
 next save rather than latched.
 
-### `config.json` — what the DM writes by hand
+### `config.json` — no longer read
 
-```json
-{ "bestiaryStatBlockPath": "03_Bestiario" }
-```
+It once held `bestiaryStatBlockPath`, the one folder the Bestiary was read from (ADR-0020).
+The Bestiary now reads the whole Workspace (ADR-0023), so the app reads nothing from this
+file and never writes it. One left by an older build, or by DM Realm's Setup, is harmless.
 
-**Read and never written by the app.** There is no settings screen; the DM edits this file.
-Every key is optional, unknown keys are ignored, and there is no `version` because the DM is
-the only writer. Today's one key names the folder — **relative to the Workspace root**, never
-absolute — whose markdown notes the Bestiary is read from (ADR-0020). A path that would leave
-the Workspace is refused.
+### The Bestiary — never saved
 
-The **Bestiary itself is never saved**: it is a reading of the DM's notes, taken when the
-Workspace opens and at no other time. A note is a Monster when it contains a
-```` ```statblock ```` YAML fence with at least a `name`. What a Monster stamps onto a Pawn
+The **Bestiary is never saved**: it is a reading of every markdown note in the Workspace,
+hidden folders (`.git`, `.obsidian`, `.mapforge`) aside, taken when the Workspace opens and at
+no other time. A note is a Monster when it contains a ```` ```statblock ```` YAML fence with
+at least a `name`, unless the fence says `bestiary: false` or has a key only a
+Character's has (`player`, `species`, `class`, `level`). What a Monster stamps onto a Pawn
 (`armorClass`, `hitPoints` → `maxHP`/`currentHP`, `initiativeBonus`, size → `isBig`) is
 copied into `stats.json` and `.fog.json`; only the name is remembered in `monsterName`.
 
@@ -332,7 +330,7 @@ any instant" (ADR-0014) is the rule every arrow below follows.
 
 ```
 Workspace opened ──► resume newest sessions/*.jsonl if it has no sessionEnded
-                     read parties.json, preferences.json, config.json → Bestiary
+                     read parties.json, preferences.json; every note → Bestiary
 Map opened ────────► read <map>.fog.json, <map>.combat/stats.json
                      resume newest <map>.combat/*.jsonl if it has no encounterEnded
 
@@ -383,7 +381,6 @@ What follows from the shape:
 | `parties.json` | every roster edit | atomic replace, pretty | reported, writes refused |
 | `preferences.json` | Party or display chosen | atomic replace, pretty | replaced by defaults |
 | `workspace.json` | adoption only | atomic, once | Workspace refused to open |
-| `config.json` | never (DM-edited) | — | Bestiary unavailable, with the reason |
 | `UserDefaults` | Workspace opened / forgotten | system | — |
 
 Common to everything: UUIDs as strings, dates as ISO 8601 UTC, points as

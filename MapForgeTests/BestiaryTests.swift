@@ -1,8 +1,8 @@
 import XCTest
 @testable import MapForge
 
-/// The Bestiary: every Monster read from one folder of the DM's notes, and what is said about
-/// the ones that could not be.
+/// The Bestiary: every Monster read from the DM's notes, wherever in the Workspace they are
+/// (ADR-0023), and what is said about the ones that could not be.
 ///
 /// Against real folders on disk, as `PartyStoreTests` is — what is under test is a reading of
 /// files, and a fake file system would prove only that it agrees with itself.
@@ -31,35 +31,32 @@ final class BestiaryTests: XCTestCase {
         try text.write(to: url, atomically: true, encoding: .utf8)
     }
 
-    private func configure(folder: String) throws {
-        try write("{ \"bestiaryStatBlockPath\": \"\(folder)\" }", to: ".mapforge/config.json")
-    }
-
     private func note(_ name: String, _ extra: String = "ac: 12") -> String {
         "# \(name)\n\n```statblock\nname: \(name)\n\(extra)\n```\n"
     }
 
-    // MARK: Reading the folder
+    // MARK: Reading the Workspace
 
-    func testEveryMonsterInTheFolderIsRead() throws {
-        try configure(folder: "03_Bestiario")
-        try write(note("Gnoll Guerriero"), to: "03_Bestiario/Gnoll_Guerriero.md")
-        try write(note("Wraith"), to: "03_Bestiario/Wraith.md")
+    func testEveryMonsterInTheWorkspaceIsReadWhereverTheNotesKeepIt() throws {
+        // DM Realm's layout: a reference shelf, a campaign's own creature, its named NPCs.
+        try write(note("Goblin Guerriero"), to: "Riferimento/Mostri/Goblin_Guerriero.md")
+        try write(note("Caos Orb"), to: "Campagne/Eroi/Homebrew_Mostri/Caos_Orb.md")
+        try write(note("Narthus"), to: "Campagne/Eroi/PNG/Narthus.md")
+        try write(note("Wraith"), to: "Wraith.md")
 
         let bestiary = BestiaryStore.load(for: workspace)
-        XCTAssertEqual(bestiary.monsters.map(\.name), ["Gnoll Guerriero", "Wraith"])
+        XCTAssertEqual(bestiary.monsters.map(\.name),
+                       ["Caos Orb", "Goblin Guerriero", "Narthus", "Wraith"])
         XCTAssertNil(bestiary.unavailable)
         XCTAssertEqual(bestiary.skipped, [])
     }
 
-    func testSubfoldersAreRead() throws {
-        try configure(folder: "Bestiario")
+    func testDeepSubfoldersAreRead() throws {
         try write(note("Lich"), to: "Bestiario/Non_morti/Antichi/Lich.md")
         XCTAssertEqual(BestiaryStore.load(for: workspace).monsters.map(\.name), ["Lich"])
     }
 
     func testNotesThatAreNotMonstersAreIgnoredInSilence() throws {
-        try configure(folder: "Bestiario")
         try write(note("Lich"), to: "Bestiario/Lich.md")
         try write("# Indice\n\nSolo prosa.\n", to: "Bestiario/Indice.md")
         try write("not markdown", to: "Bestiario/Immagini/lich.png")
@@ -69,86 +66,86 @@ final class BestiaryTests: XCTestCase {
         XCTAssertEqual(bestiary.skipped, [])
     }
 
-    func testABrokenStatblockIsSkippedAndNamed() throws {
-        try configure(folder: "Bestiario")
+    func testFencesThatSayTheyAreNoMonsterAreNeitherListedNorSkipped() throws {
+        try write(note("Lich"), to: "Riferimento/Mostri/Lich.md")
+        try write("```statblock\nbestiary: false\n```\n", to: "Modelli/Mostro_Homebrew.md")
+        try write(note("Durga Pietraferma", "bestiary: false\nplayer: Baldu"),
+                  to: "Personaggi/Durga_Pietraferma/Build_Passate/Durga_Pietraferma_01.md")
+        try write(note("Durga Pietraferma", "player: Baldu\nhp: 48"),
+                  to: "Personaggi/Durga_Pietraferma/Durga_Pietraferma.md")
+        try write(note("Zharyn il Velato", "species: Dragonide\nclass: Mago\nlevel: 2"),
+                  to: "Personaggi/Zharyn_il_Velato/Zharyn_il_Velato.md")
+
+        let bestiary = BestiaryStore.load(for: workspace)
+        XCTAssertEqual(bestiary.monsters.map(\.name), ["Lich"])
+        XCTAssertEqual(bestiary.skipped, [])
+    }
+
+    func testHiddenFoldersAreNotRead() throws {
+        try write(note("Lich"), to: "Bestiario/Lich.md")
+        try write(note("Ombra"), to: ".obsidian/plugins/fantasy-statblocks/Ombra.md")
+        try write(note("Spettro"), to: ".git/Spettro.md")
+        try write(note("Fantasma"), to: ".mapforge/Fantasma.md")
+        try write(note("Larva"), to: "Bestiario/.bozze/Larva.md")
+
+        XCTAssertEqual(BestiaryStore.load(for: workspace).monsters.map(\.name), ["Lich"])
+    }
+
+    func testABrokenStatblockIsSkippedAndNamedFromTheWorkspaceRoot() throws {
         try write(note("Lich"), to: "Bestiario/Lich.md")
         try write("```statblock\nac: 12\n```\n", to: "Bestiario/Senza_Nome.md")
 
         let bestiary = BestiaryStore.load(for: workspace)
         XCTAssertEqual(bestiary.monsters.map(\.name), ["Lich"])
         XCTAssertEqual(bestiary.skipped,
-                       [Bestiary.Skipped(file: "Senza_Nome.md",
+                       [Bestiary.Skipped(file: "Bestiario/Senza_Nome.md",
                                          reason: "the statblock has no name")])
     }
 
     func testTheSecondMonsterOfANameIsSkippedAndTheFirstByPathWins() throws {
-        try configure(folder: "Bestiario")
         try write(note("Lich", "ac: 17"), to: "Bestiario/A/Lich.md")
         try write(note("Lich", "ac: 99"), to: "Bestiario/B/Lich_Vecchio.md")
 
         let bestiary = BestiaryStore.load(for: workspace)
         XCTAssertEqual(bestiary.monsters.map(\.armorClass), [17])
         XCTAssertEqual(bestiary.skipped,
-                       [Bestiary.Skipped(file: "B/Lich_Vecchio.md",
+                       [Bestiary.Skipped(file: "Bestiario/B/Lich_Vecchio.md",
                                          reason: "another note already defines “Lich”")])
     }
 
-    // MARK: When there is no Bestiary
+    // MARK: The old configuration
 
-    func testWithoutTheFileThereIsNoBestiaryAndTheReasonNamesIt() {
-        let bestiary = BestiaryStore.load(for: workspace)
-        XCTAssertEqual(bestiary.monsters, [])
-        XCTAssertEqual(bestiary.unavailable, "No .mapforge/config.json in this Workspace.")
-    }
-
-    func testAnUnreadableFileIsSaidPlainly() throws {
-        try write("{ \"bestiaryStatBlockPath\": ", to: ".mapforge/config.json")
-        XCTAssertEqual(BestiaryStore.load(for: workspace).unavailable,
-                       ".mapforge/config.json could not be read.")
-    }
-
-    func testAConfigurationThatSaysNothingAboutTheBestiaryIsNotAnError() throws {
-        // The file is generic: one written for some later setting, with no Bestiary in it, is
-        // a DM who has no Bestiary — said as that, not as a broken file.
-        try write("{ }", to: ".mapforge/config.json")
-        XCTAssertEqual(BestiaryStore.load(for: workspace).unavailable,
-                       "No bestiaryStatBlockPath in .mapforge/config.json.")
-    }
-
-    func testSettingsTheAppDoesNotKnowAreIgnored() throws {
-        // Generic means other keys will arrive, possibly written for a newer build.
-        try write("{ \"bestiaryStatBlockPath\": \"Bestiario\", \"somethingLater\": 3 }",
-                  to: ".mapforge/config.json")
+    func testAWorkspaceWithoutAConfigurationHasABestiary() throws {
+        // `.mapforge/config.json` once named the one folder to read; nothing needs it now.
         try write(note("Lich"), to: "Bestiario/Lich.md")
-        XCTAssertEqual(BestiaryStore.load(for: workspace).monsters.map(\.name), ["Lich"])
+        let bestiary = BestiaryStore.load(for: workspace)
+        XCTAssertNil(bestiary.unavailable)
+        XCTAssertEqual(bestiary.monsters.map(\.name), ["Lich"])
     }
 
-    func testAFolderThatIsNotThereIsNamed() throws {
-        try configure(folder: "03_Bestario")
-        XCTAssertEqual(BestiaryStore.load(for: workspace).unavailable,
-                       "The Bestiary folder “03_Bestario” was not found in this Workspace.")
+    func testAnOldConfigurationNamingOneFolderIsIgnored() throws {
+        // DM Realm's Setup writes the key pointing at its reference shelf, which would hide
+        // every campaign NPC were it still obeyed.
+        try write("{ \"bestiaryStatBlockPath\": \"Riferimento/Mostri\" }", to: ".mapforge/config.json")
+        try write(note("Goblin Guerriero"), to: "Riferimento/Mostri/Goblin_Guerriero.md")
+        try write(note("Narthus"), to: "Campagne/Eroi/PNG/Narthus.md")
+        XCTAssertEqual(BestiaryStore.load(for: workspace).monsters.map(\.name),
+                       ["Goblin Guerriero", "Narthus"])
+
+        try write("{ \"bestiaryStatBlockPath\": ", to: ".mapforge/config.json")
+        XCTAssertEqual(BestiaryStore.load(for: workspace).monsters.count, 2,
+                       "a broken file nothing reads breaks nothing")
     }
 
-    func testAFolderOutsideTheWorkspaceIsRefused() throws {
-        // What travels with the Workspace must be inside it (ADR-0012).
-        let outside = "bestiaryStatBlockPath must be a folder inside this Workspace, written relative to it — “03_Bestiario”, not a full path."
-        try configure(folder: "../Altrove")
-        XCTAssertEqual(BestiaryStore.load(for: workspace).unavailable, outside)
-        try configure(folder: "/Users/Shared/Bestiario")
-        XCTAssertEqual(BestiaryStore.load(for: workspace).unavailable, outside)
-        try configure(folder: "Bestiario/../../Altrove")
-        XCTAssertEqual(BestiaryStore.load(for: workspace).unavailable, outside)
-    }
-
-    func testAWorkspaceUnderPrivateIsNotMistakenForOutside() throws {
-        // `standardizingPath` strips a leading /private. Done to one side of the comparison
-        // only, every folder of a Workspace spelled with it would be "outside".
-        try configure(folder: "Bestiario")
+    func testAWorkspaceUnderPrivateIsReadAsItself() throws {
+        // `standardizingPath` strips a leading /private; the paths it reports must still be
+        // relative to the Workspace however its root was spelled.
+        try write("```statblock\nac: 12\n```\n", to: "Bestiario/Senza_Nome.md")
         try write(note("Lich"), to: "Bestiario/Lich.md")
         let spelledOut = Workspace(url: URL(fileURLWithPath: "/private" + root.path))
-        let url = try XCTUnwrap(BestiaryStore.folderURL("Bestiario", in: spelledOut))
-        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
-        XCTAssertEqual(BestiaryStore.load(for: spelledOut).monsters.map(\.name), ["Lich"])
+        let bestiary = BestiaryStore.load(for: spelledOut)
+        XCTAssertEqual(bestiary.monsters.map(\.name), ["Lich"])
+        XCTAssertEqual(bestiary.skipped.map(\.file), ["Bestiario/Senza_Nome.md"])
     }
 
     // MARK: Searching
@@ -202,9 +199,9 @@ final class BestiaryTests: XCTestCase {
         XCTAssertEqual(Bestiary(unavailable: "Because.").caption, "Because.")
     }
 
-    func testAFolderWithNoMonstersSaysSo() {
-        // Configured and found, but empty: a DM staring at a search with no results should
-        // not have to wonder whether the folder was read at all.
-        XCTAssertEqual(Bestiary(monsters: []).caption, "No Monsters found in the Bestiary folder.")
+    func testAWorkspaceWithNoMonstersSaysSo() {
+        // Read, but empty: a DM staring at a search with no results should not have to
+        // wonder whether the notes were read at all.
+        XCTAssertEqual(Bestiary(monsters: []).caption, "No Monsters found in this Workspace.")
     }
 }
