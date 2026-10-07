@@ -117,7 +117,7 @@ struct CombatPanel: View {
                 .accessibilityIdentifier("encounter-play")
                 .disabled(!hasRosteredCombatants || appState.encounterRefusal != nil)
                 .help(appState.encounterRefusal
-                      ?? "Roll Initiative for everyone on the Map and begin.")
+                      ?? String(localized: "Roll Initiative for everyone on the Map and begin."))
             } else {
                 Button {
                     appState.stepBackForCorrection()
@@ -125,7 +125,7 @@ struct CombatPanel: View {
                     Image(systemName: "backward.fill")
                 }
                 .accessibilityIdentifier("encounter-previous")
-                .help("Go back to correct an earlier Turn. The fight does not rewind.")
+                .help("Go back to correct an earlier Turn. The Encounter does not rewind.")
 
                 Button {
                     appState.endTurn()
@@ -134,8 +134,8 @@ struct CombatPanel: View {
                 }
                 .accessibilityIdentifier("encounter-next")
                 .help(appState.encounter?.isCorrecting == true
-                      ? "Return towards the live Turn. A Turn cannot be ended while correcting."
-                      : "End this Turn and write it to the Combat Log.")
+                      ? String(localized: "Return towards the live Turn. A Turn cannot be ended while correcting.")
+                      : String(localized: "End this Turn and write it to the Combat Log."))
 
                 Spacer(minLength: 0)
 
@@ -153,7 +153,7 @@ struct CombatPanel: View {
                     Image(systemName: "stop.fill")
                 }
                 .accessibilityIdentifier("encounter-stop")
-                .help("End the fight and close its Combat Log.")
+                .help("End the Encounter and close its Combat Log.")
             }
         }
         .buttonStyle(.bordered)
@@ -213,7 +213,7 @@ struct CombatPanel: View {
             .sorted { name(of: $0, in: encounter) < name(of: $1, in: encounter) }
         if !benched.isEmpty {
             Divider().padding(.vertical, 4)
-            Text("Not in combat")
+            Text("Benched")
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 6)
@@ -332,7 +332,8 @@ struct CombatPanel: View {
                 }
                 .buttonStyle(.borderless)
                 .accessibilityIdentifier("combatant-saving-throw")
-                .help("Record a Saving Throw for \(encounter.name(of: id) ?? "this Combatant").")
+                .help(encounter.name(of: id).map { String(localized: "Record a Saving Throw for \($0).") }
+                      ?? String(localized: "Record a Saving Throw for this Combatant."))
 
                 Button {
                     onRoll(pawn, .abilityCheck)
@@ -342,7 +343,8 @@ struct CombatPanel: View {
                 }
                 .buttonStyle(.borderless)
                 .accessibilityIdentifier("combatant-ability-check")
-                .help("Record an Ability Check for \(encounter.name(of: id) ?? "this Combatant").")
+                .help(encounter.name(of: id).map { String(localized: "Record an Ability Check for \($0).") }
+                      ?? String(localized: "Record an Ability Check for this Combatant."))
             }
 
             Button {
@@ -514,8 +516,8 @@ struct CombatPanel: View {
             }
             if rostered.isEmpty {
                 Text(hasCombatants
-                     ? "Nobody on the Map is in the next fight"
-                     : "Nobody on the Map to fight")
+                     ? String(localized: "Nobody on the Map is in the next Encounter")
+                     : String(localized: "Nobody on the Map to fight"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

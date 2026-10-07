@@ -8,6 +8,9 @@ struct MapForgeApp: App {
         Window("MapForge Control", id: "control") {
             ControlView()
                 .environmentObject(appState)
+                // Numbers SwiftUI formats itself follow the words on screen, as `DistanceUnit`'s
+                // do, rather than the Mac's region.
+                .environment(\.locale, .interface)
                 .onAppear {
                     ReturnDeselects.install()
                     ClickDeselects.install()
@@ -22,6 +25,12 @@ struct MapForgeApp: App {
         // a strip of Map under two toolbars, and the first thing a DM did was drag it
         // taller. Applies to a first launch only; macOS restores the frame after that.
         .defaultSize(width: ControlView.minimumWindowWidth, height: 800)
+
+        Settings {
+            SettingsView()
+                .environmentObject(appState)
+                .environment(\.locale, .interface)
+        }
     }
 }
 

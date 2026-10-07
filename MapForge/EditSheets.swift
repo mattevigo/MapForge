@@ -103,8 +103,10 @@ struct EditPawnSheet: View {
                     // cut — so it is not offered as one.
                     SquaresField($draft.sightSquares,
                                  unit: draft.kind.isDiscovered
-                                     ? "squares — unused, a \(draft.kind.title) emits no Light"
-                                     : "squares")
+                                     ? (draft.kind == .treasure
+                                        ? String(localized: "squares — unused, a Treasure emits no Light")
+                                        : String(localized: "squares — unused, a Creature emits no Light"))
+                                     : String(localized: "squares"))
                         // Across the Monster's column too, or this caption — the longest
                         // thing in the form — would set the second column's width and push
                         // the search box off the sheet.
@@ -138,13 +140,16 @@ struct EditPawnSheet: View {
                isPresented: Binding(get: { confirming != nil },
                                     set: { if !$0 { confirming = nil } }),
                presenting: confirming) { _ in
-            Button("Become \(draft.monsterName ?? "it")") { onCommit(draft) }
+            Button(draft.monsterName.map { String(localized: "Become \($0)") }
+                   ?? String(localized: "Become a Monster")) { onCommit(draft) }
             // Back to the open sheet, where the pick can be undone — not out of it.
             Button("Cancel", role: .cancel) {}
         } message: { healing in
-            Text("Becoming a \(draft.monsterName ?? "Monster") means arriving whole: "
-                 + "\(healing.before) becomes \(healing.after). "
-                 + "Conditions and temporary hit points are kept.")
+            // Whole sentences, never an article before a spliced name: a Monster's name has
+            // a gender the app cannot know.
+            Text(draft.monsterName.map {
+                String(localized: "A Pawn that becomes \($0) arrives whole: \(healing.before) becomes \(healing.after). Conditions and temporary hit points are kept.")
+            } ?? String(localized: "Becoming a Monster means arriving whole: \(healing.before) becomes \(healing.after). Conditions and temporary hit points are kept."))
         }
     }
 
@@ -259,7 +264,7 @@ private struct MonsterSearchField: View {
                     HStack(spacing: 6) {
                         Text(monster.name).lineLimit(1)
                         Spacer(minLength: 4)
-                        Text([monster.challengeRating.map { "CR \($0)" }, monster.type]
+                        Text([monster.challengeRating.map { String(localized: "CR \($0)") }, monster.type]
                             .compactMap { $0 }.joined(separator: " · "))
                             .font(.caption)
                             .foregroundStyle(index == highlighted ? .white.opacity(0.85) : .secondary)

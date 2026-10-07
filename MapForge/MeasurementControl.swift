@@ -19,9 +19,9 @@ enum MeasurementControl {
         var explanation: String {
             switch self {
             case .noGrid:
-                return "Declare the Grid first: distances are measured in squares."
+                return String(localized: "Declare the Grid first: distances are measured in squares.")
             case .noMap:
-                return "Open a Map to measure on."
+                return String(localized: "Open a Map to measure on.")
             }
         }
     }

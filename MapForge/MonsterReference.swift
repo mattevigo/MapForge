@@ -21,16 +21,16 @@ enum MonsterReference {
     /// editor directly above shows the Pawn's own, which are the ones that are true now.
     static func lines(of monster: Monster) -> [Line] {
         let candidates: [(String, String?)] = [
-            ("Speed", monster.speed),
-            ("Saves", bonuses(monster.saves)),
-            ("Skills", bonuses(monster.skills)),
-            ("Vulnerable", monster.damageVulnerabilities),
-            ("Resists", monster.damageResistances),
-            ("Immune", monster.damageImmunities),
-            ("Cond. immune", monster.conditionImmunities),
-            ("Senses", monster.senses),
-            ("Languages", monster.languages),
-            ("CR", monster.challengeRating),
+            (String(localized: "Speed"), monster.speed),
+            (String(localized: "Saves"), bonuses(monster.saves)),
+            (String(localized: "Skills"), bonuses(monster.skills)),
+            (String(localized: "Vulnerable"), monster.damageVulnerabilities),
+            (String(localized: "Resists"), monster.damageResistances),
+            (String(localized: "Immune"), monster.damageImmunities),
+            (String(localized: "Cond. immune"), monster.conditionImmunities),
+            (String(localized: "Senses"), monster.senses),
+            (String(localized: "Languages"), monster.languages),
+            (String(localized: "CR"), monster.challengeRating),
         ]
         return candidates.compactMap { label, value in
             value.map { Line(label: label, value: $0) }
@@ -38,11 +38,11 @@ enum MonsterReference {
     }
 
     static func groups(of monster: Monster) -> [Group] {
-        [Group(title: "Traits", features: monster.traits),
-         Group(title: "Actions", features: monster.actions),
-         Group(title: "Bonus Actions", features: monster.bonusActions),
-         Group(title: "Reactions", features: monster.reactions),
-         Group(title: "Legendary Actions", features: monster.legendaryActions)]
+        [Group(title: String(localized: "Traits"), features: monster.traits),
+         Group(title: String(localized: "Actions"), features: monster.actions),
+         Group(title: String(localized: "Bonus Actions"), features: monster.bonusActions),
+         Group(title: String(localized: "Reactions"), features: monster.reactions),
+         Group(title: String(localized: "Legendary Actions"), features: monster.legendaryActions)]
             .filter { !$0.features.isEmpty }
     }
 

@@ -12,23 +12,23 @@ enum Ability: String, Codable, CaseIterable {
     /// Named in full in the domain; the abbreviation is for controls too narrow for the word.
     var title: String {
         switch self {
-        case .strength: "Strength"
-        case .dexterity: "Dexterity"
-        case .constitution: "Constitution"
-        case .intelligence: "Intelligence"
-        case .wisdom: "Wisdom"
-        case .charisma: "Charisma"
+        case .strength: String(localized: "Strength")
+        case .dexterity: String(localized: "Dexterity")
+        case .constitution: String(localized: "Constitution")
+        case .intelligence: String(localized: "Intelligence")
+        case .wisdom: String(localized: "Wisdom")
+        case .charisma: String(localized: "Charisma")
         }
     }
 
     var abbreviation: String {
         switch self {
-        case .strength: "STR"
-        case .dexterity: "DEX"
-        case .constitution: "CON"
-        case .intelligence: "INT"
-        case .wisdom: "WIS"
-        case .charisma: "CHA"
+        case .strength: String(localized: "STR", comment: "An Ability abbreviated, as the stat block prints it")
+        case .dexterity: String(localized: "DEX", comment: "An Ability abbreviated, as the stat block prints it")
+        case .constitution: String(localized: "CON", comment: "An Ability abbreviated, as the stat block prints it")
+        case .intelligence: String(localized: "INT", comment: "An Ability abbreviated, as the stat block prints it")
+        case .wisdom: String(localized: "WIS", comment: "An Ability abbreviated, as the stat block prints it")
+        case .charisma: String(localized: "CHA", comment: "An Ability abbreviated, as the stat block prints it")
         }
     }
 }
@@ -38,7 +38,7 @@ enum Ability: String, Codable, CaseIterable {
 /// The tie is **derived, never stored**: a Skill that changed its Ability would change it for
 /// every Roll ever recorded, which is the behaviour a rules revision actually wants. Copying
 /// the Ability onto the Line would instead let a Log disagree with itself.
-enum Skill: String, Codable, CaseIterable {
+enum Skill: String, Codable, CaseIterable, LocalizedTitle {
     case acrobatics, animalHandling, arcana, athletics, deception, history
     case insight, intimidation, investigation, medicine, nature, perception
     case performance, persuasion, religion, sleightOfHand, stealth, survival
@@ -53,26 +53,26 @@ enum Skill: String, Codable, CaseIterable {
         }
     }
 
-    var title: String {
+    var titleResource: LocalizedStringResource {
         switch self {
-        case .acrobatics: "Acrobatics"
-        case .animalHandling: "Animal Handling"
-        case .arcana: "Arcana"
-        case .athletics: "Athletics"
-        case .deception: "Deception"
-        case .history: "History"
-        case .insight: "Insight"
-        case .intimidation: "Intimidation"
-        case .investigation: "Investigation"
-        case .medicine: "Medicine"
-        case .nature: "Nature"
-        case .perception: "Perception"
-        case .performance: "Performance"
-        case .persuasion: "Persuasion"
-        case .religion: "Religion"
-        case .sleightOfHand: "Sleight of Hand"
-        case .stealth: "Stealth"
-        case .survival: "Survival"
+        case .acrobatics: LocalizedStringResource("Acrobatics")
+        case .animalHandling: LocalizedStringResource("Animal Handling")
+        case .arcana: LocalizedStringResource("Arcana")
+        case .athletics: LocalizedStringResource("Athletics")
+        case .deception: LocalizedStringResource("Deception")
+        case .history: LocalizedStringResource("History")
+        case .insight: LocalizedStringResource("Insight")
+        case .intimidation: LocalizedStringResource("Intimidation")
+        case .investigation: LocalizedStringResource("Investigation")
+        case .medicine: LocalizedStringResource("Medicine")
+        case .nature: LocalizedStringResource("Nature")
+        case .perception: LocalizedStringResource("Perception")
+        case .performance: LocalizedStringResource("Performance")
+        case .persuasion: LocalizedStringResource("Persuasion")
+        case .religion: LocalizedStringResource("Religion")
+        case .sleightOfHand: LocalizedStringResource("Sleight of Hand")
+        case .stealth: LocalizedStringResource("Stealth")
+        case .survival: LocalizedStringResource("Survival")
         }
     }
 }

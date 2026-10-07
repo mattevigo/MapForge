@@ -57,7 +57,7 @@ final class EncounterNeedsASessionTests: XCTestCase {
 
     func testTheRefusalSaysWhy() {
         let state = makeAppState()
-        XCTAssertEqual(state.encounterRefusal, "Start a Session first — a fight is part of an evening.")
+        XCTAssertEqual(state.encounterRefusal, "Start a Session first — an Encounter is part of an evening.")
         state.startSession()
         XCTAssertNil(state.encounterRefusal)
         state.stopSession()

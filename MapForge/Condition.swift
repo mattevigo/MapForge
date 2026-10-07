@@ -9,7 +9,7 @@ import Foundation
 /// Conditions carry no duration and expire on nobody's schedule. Encoding "until the end
 /// of your next turn" and its cousins is a system in itself, and half of that system is
 /// worse than a DM's memory.
-enum Condition: String, Codable, CaseIterable, Equatable {
+enum Condition: String, Codable, CaseIterable, Equatable, LocalizedTitle {
     case blinded
     case charmed
     case deafened
@@ -25,22 +25,22 @@ enum Condition: String, Codable, CaseIterable, Equatable {
     case stunned
     case unconscious
 
-    var title: String {
+    var titleResource: LocalizedStringResource {
         switch self {
-        case .blinded: return "Blinded"
-        case .charmed: return "Charmed"
-        case .deafened: return "Deafened"
-        case .frightened: return "Frightened"
-        case .grappled: return "Grappled"
-        case .incapacitated: return "Incapacitated"
-        case .invisible: return "Invisible"
-        case .paralyzed: return "Paralyzed"
-        case .petrified: return "Petrified"
-        case .poisoned: return "Poisoned"
-        case .prone: return "Prone"
-        case .restrained: return "Restrained"
-        case .stunned: return "Stunned"
-        case .unconscious: return "Unconscious"
+        case .blinded: return LocalizedStringResource("Blinded", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .charmed: return LocalizedStringResource("Charmed", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .deafened: return LocalizedStringResource("Deafened", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .frightened: return LocalizedStringResource("Frightened", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .grappled: return LocalizedStringResource("Grappled", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .incapacitated: return LocalizedStringResource("Incapacitated", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .invisible: return LocalizedStringResource("Invisible", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .paralyzed: return LocalizedStringResource("Paralysed", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .petrified: return LocalizedStringResource("Petrified", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .poisoned: return LocalizedStringResource("Poisoned", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .prone: return LocalizedStringResource("Prone", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .restrained: return LocalizedStringResource("Restrained", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .stunned: return LocalizedStringResource("Stunned", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
+        case .unconscious: return LocalizedStringResource("Unconscious", comment: "A Condition: the rulebook heading form, never agreeing with a Pawn")
         }
     }
 

@@ -33,7 +33,7 @@ final class SessionUITests: XCTestCase {
         app.launchArguments = ["--test-map=\(map.path)", "--test-squares=30",
                                "--test-player-screen",
                                "--test-fresh-preferences"]
-        app.launch()
+        app.launchInEnglish()
         return app
     }
 
@@ -46,7 +46,7 @@ final class SessionUITests: XCTestCase {
     private func launchWithoutMap() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--test-fresh-preferences"]
-        app.launch()
+        app.launchInEnglish()
         return app
     }
 

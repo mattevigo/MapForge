@@ -79,7 +79,7 @@ final class BestiaryUITests: XCTestCase {
         app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
                                "--test-player-screen", "--test-fresh-preferences",
                                "--test-workspace=\(root.path)"]
-        app.launch()
+        app.launchInEnglish()
 
         let add = app.menuButtons["Add"]
         XCTAssertTrue(add.waitForExistence(timeout: 5), "no Add menu")
@@ -113,7 +113,7 @@ final class BestiaryUITests: XCTestCase {
         app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
                                "--test-player-screen", "--test-fresh-preferences",
                                "--test-workspace=\(root.path)"]
-        app.launch()
+        app.launchInEnglish()
 
         let add = app.menuButtons["Add"]
         XCTAssertTrue(add.waitForExistence(timeout: 5), "no Add menu")
@@ -154,9 +154,9 @@ final class BestiaryUITests: XCTestCase {
         XCTAssertFalse(app.buttons["edit-pawn-ok"].waitForExistence(timeout: 1),
                        "a first stamp has nothing to lose and should ask nothing")
 
-        // Its page is in the Combat tab once a fight makes it the active Combatant.
+        // Its page is in the Encounter tab once a fight makes it the active Combatant.
         app.windows["control"].buttons["session-toggle"].click()
-        app.radioButtons["Combat"].click()
+        app.radioButtons["Encounter"].click()
         let play = app.buttons["encounter-play"]
         XCTAssertTrue(play.waitForExistence(timeout: 2), "no play button")
         // By coordinate: the live panel's ScrollView publishes as Disabled, so everything in

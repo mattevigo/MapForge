@@ -122,7 +122,7 @@ struct ControlView: View {
 
         var title: String {
             switch self {
-            case .light: "Light"
+            case .light: String(localized: "Light")
             case .pawn(let kind): kind.title
             }
         }
@@ -196,9 +196,10 @@ struct ControlView: View {
     @State private var confirmNewRoster = false
 
     private var endEncounterMessage: String {
-        let map = appState.mapURL?.lastPathComponent ?? "this map"
-        return "An encounter is running on \(map). Switching workspaces will end it. "
-            + "The combat log is kept."
+        guard let map = appState.mapURL?.lastPathComponent else {
+            return String(localized: "An Encounter is running. Switching Workspaces will end it. The Combat Log is kept.")
+        }
+        return String(localized: "An Encounter is running on \(map). Switching Workspaces will end it. The Combat Log is kept.")
     }
 
     private var stopSessionMessage: String {
@@ -207,8 +208,10 @@ struct ControlView: View {
     }
 
     private var migrationTitle: String {
-        if case .migrated = appState.migrationOutcome { return "Your parties have moved" }
-        return "Couldn't move your parties"
+        if case .migrated = appState.migrationOutcome {
+            return String(localized: "Your Parties have moved")
+        }
+        return String(localized: "Couldn't move your Parties")
     }
 
     private var migrationMessage: String {
@@ -219,13 +222,11 @@ struct ControlView: View {
             // not conclude the app ate it.
             let quoted = names.map { "\u{201C}\($0)\u{201D}" }
             let list = ListFormatter().string(from: quoted) ?? quoted.joined(separator: ", ")
-            let verb = names.count == 1 ? "is" : "are"
-            return "\(list) \(verb) now stored in this workspace, in \u{201C}\(workspace)\u{201D}. "
-                + "Parties live in a workspace now rather than on this Mac, so another "
-                + "workspace starts with an empty roster."
+            return names.count == 1
+                ? String(localized: "\(list) is now stored in this Workspace, in \u{201C}\(workspace)\u{201D}. Parties live in a Workspace now rather than on this Mac, so another Workspace starts with an empty roster.")
+                : String(localized: "\(list) are now stored in this Workspace, in \u{201C}\(workspace)\u{201D}. Parties live in a Workspace now rather than on this Mac, so another Workspace starts with an empty roster.")
         case .failed(let reason):
-            return "Your existing parties are still stored on this Mac and weren't changed. "
-                + "MapForge will try again next time you open a workspace.\n\n\(reason)"
+            return String(localized: "Your existing Parties are still stored on this Mac and weren't changed. MapForge will try again next time you open a Workspace.\n\n\(reason)")
         case .none:
             return ""
         }
@@ -240,7 +241,7 @@ struct ControlView: View {
                 isPickingWorkspace = true
             }
         } label: {
-            Label(appState.workspace?.name ?? "No Workspace", systemImage: "folder")
+            Label(appState.workspace?.name ?? String(localized: "No Workspace"), systemImage: "folder")
         }
         .accessibilityIdentifier("workspace-switch")
         .help("Switch workspace")
@@ -416,7 +417,7 @@ struct ControlView: View {
             // Each mode used to contribute its own caption — and the Wall Editor a caption
             // plus an inspector row — so entering a mode added height to this stack, stole
             // it from the `GeometryReader` below, and `fitted(container:)` recomputed to a
-            // different scale. The Map visibly resized the moment a DM pressed "Edit Fog…",
+            // different scale. The Map visibly resized the moment a DM pressed "Wall Editor…",
             // and jumped mid-click inside the mode. Same defect, two symptoms.
             //
             // Reserving a constant height makes the preview's container a fixed point
@@ -835,10 +836,12 @@ struct ControlView: View {
             // starting. The mode hint row says why they are off.
             .disabled(appState.mapImage == nil || showingLog)
             .help("Pick what to add, then click the Map to place it. Esc cancels.")
-            Button("Fit Grid…") { startGridFit() }
+            Button("Grid Fit…") { startGridFit() }
                 .disabled(appState.mapImage == nil || showingLog)
-            Button("Edit Fog…") { startFogEditing() }
+                .accessibilityIdentifier("grid-fit")
+            Button("Wall Editor…") { startFogEditing() }
                 .disabled(appState.mapImage == nil || showingLog)
+                .accessibilityIdentifier("wall-editor")
             // A "Zoomed — Reset" button used to appear here while magnified. Zooming back
             // out reaches the same place: `PreviewTransform`'s zoom floor is fit-to-window,
             // so the Map returns to exactly the rect the button restored. The Magnifier
@@ -941,9 +944,11 @@ struct ControlView: View {
         let walls = appState.fog.walls.count
         let lights = appState.fog.lights.count
         let pawns = appState.fog.pawns.count
-        return "\(walls) \(walls == 1 ? "Wall" : "Walls"), "
-             + "\(lights) \(lights == 1 ? "Light" : "Lights"), "
-             + "\(pawns) \(pawns == 1 ? "Pawn" : "Pawns")"
+        // Each count is its own phrase so the catalogue can give it every plural form a
+        // language has, where English has two.
+        return [String(localized: "\(walls) Walls"),
+                String(localized: "\(lights) Lights"),
+                String(localized: "\(pawns) Pawns")].joined(separator: ", ")
     }
 
     /// Whether players currently cannot see this Pawn — a hidden one, a Creature standing
@@ -1364,18 +1369,18 @@ struct ControlView: View {
 
     /// What each mode is for. Every mode has one — an empty hint would reserve a shorter row
     /// than a real one and make the height depend on the mode again, which is the defect.
-    static let liveViewHint =
-        "Right-click a Pawn or Light to edit it, or the Map to measure. Add places a new one. Scroll or pinch to zoom; two-finger or middle-drag to pan — the players see none of it."
-    static let gridFitHint =
-        "Drag a square over one grid square; arrow keys nudge (⇧ resizes)."
-    static let wallEditorHint =
-        "Click to place Wall corners, double-click to end a chain, Esc to cancel. ⇧ frees the angle; corners weld to nearby ends. Click a Wall then ⌫ to delete. Pawns and Lights are shown for reference — edit them from the map."
-    static let viewportHint =
-        "Drag the rectangle to choose what the Player Display shows."
-    /// The one text that answers "why can't I press Edit Fog", which is a question a greyed
+    static let liveViewHint = String(localized:
+        "Right-click a Pawn or Light to edit it, or the Map to measure. Add places a new one. Scroll or pinch to zoom; two-finger or middle-drag to pan — the players see none of it.")
+    static let gridFitHint = String(localized:
+        "Drag a square over one grid square; arrow keys nudge (⇧ resizes).")
+    static let wallEditorHint = String(localized:
+        "Click to place Wall corners, double-click to end a chain, Esc to cancel. ⇧ frees the angle; corners weld to nearby ends. Click a Wall then ⌫ to delete. Pawns and Lights are shown for reference — edit them from the Map.")
+    static let viewportHint = String(localized:
+        "Drag the rectangle to choose what the Player Display shows.")
+    /// The one text that answers "why can't I press Wall Editor", which is a question a greyed
     /// button raises and cannot itself answer.
-    static let logViewHint =
-        "Reading the Session Log. Close it to edit the Map."
+    static let logViewHint = String(localized:
+        "Reading the Session Log. Close it to edit the Map.")
 
     /// Every hint the row can hold, so `ChromeHeightTests` can measure the tallest against
     /// the height reserved for it rather than trusting a number.
@@ -1444,7 +1449,7 @@ struct ControlView: View {
         if !(appState.fog.lights.isEmpty && appState.fog.pawns.isEmpty), !appState.hasDeclaredGrid {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text("This Map's Grid has not been declared, so Light radii have no real size — run Fit Grid, or set the squares-wide value.")
+                Text("This Map's Grid has not been declared, so Light radii have no real size — run Grid Fit, or set the squares-wide value.")
                     .font(.caption)
             }
             .padding(8)
@@ -1479,8 +1484,12 @@ struct ControlView: View {
             // very next field. The identifier is what a test should hold on to.
             .accessibilityIdentifier("pawn-light-toggle")
             .help(pawn.isDiscovered
-                  ? "\(pawn.label): a \(pawn.kind.title) — emits no Light. Click to douse the light it does not cast."
-                  : "\(pawn.label): sight \(Int(pawn.light.brightSquares)) squares. Click to douse.")
+                  // One sentence per kind rather than the kind's title spliced in: the article
+                  // before it agrees with its gender in every language but English.
+                  ? (pawn.kind == .treasure
+                     ? String(localized: "\(pawn.label): a Treasure — emits no Light. Click to douse the light it does not cast.")
+                     : String(localized: "\(pawn.label): a Creature — emits no Light. Click to douse the light it does not cast."))
+                  : String(localized: "\(pawn.label): sight \(Int(pawn.light.brightSquares)) squares. Click to douse."))
 
             // Fills the column rather than a fixed 72 pt: names like "Goblin B" need the
             // room, and the panel has a known width to give them.
@@ -1503,8 +1512,8 @@ struct ControlView: View {
             }
             .toggleStyle(.button)
             .help(pawn.isHidden
-                  ? "Hidden from players. Still here, and still yours to move."
-                  : "Visible to players where the light reaches. Click to hide.")
+                  ? String(localized: "Hidden from players. Still here, and still yours to move.")
+                  : String(localized: "Visible to players where the light reaches. Click to hide."))
 
             soloSightToggle(pawn)
 
@@ -1546,8 +1555,8 @@ struct ControlView: View {
             .toggleStyle(.button)
             .accessibilityIdentifier("pawn-in-combat")
             .help(isIn
-                  ? "\(pawn.label) rolls Initiative when a fight starts. Click to leave them out."
-                  : "\(pawn.label) sits the next fight out. Click to put them in.")
+                  ? String(localized: "\(pawn.label) rolls Initiative when an Encounter starts. Click to leave them out.")
+                  : String(localized: "\(pawn.label) sits the next Encounter out. Click to put them in."))
         }
     }
 
@@ -1648,8 +1657,8 @@ struct ControlView: View {
                                isSolo: Bool) -> String {
         if case .disabled(let reason) = availability { return reason.explanation }
         return isSolo
-            ? "Solo Sight. The table sees only what \(pawn.label)\'s own light reaches. Click to end."
-            : "Solo Sight: show the Map as \(pawn.label) alone lights it."
+            ? String(localized: "Solo Sight. The table sees only what \(pawn.label)'s own light reaches. Click to end.")
+            : String(localized: "Solo Sight: show the Map as \(pawn.label) alone lights it.")
     }
 
     /// Whether the table sees the DM's Measurements.
@@ -1720,7 +1729,8 @@ struct ControlView: View {
     /// the evening the DM is reading. Starting is still one click, having nothing to lose.
     /// See `StopSessionPrompt`.
     private var sessionToggle: some View {
-        Button(appState.session == nil ? "Start Session" : "Stop Session") {
+        Button(appState.session == nil ? String(localized: "Start Session")
+                                       : String(localized: "Stop Session")) {
             if appState.session == nil {
                 appState.startSession()
             } else {
@@ -1730,8 +1740,8 @@ struct ControlView: View {
         .disabled(appState.workspace == nil)
         .accessibilityIdentifier("session-toggle")
         .help(appState.workspace == nil
-              ? "A session records into the Workspace. Open one first."
-              : "Record this evening's movements and comments.")
+              ? String(localized: "A Session records into the Workspace. Open one first.")
+              : String(localized: "Record this evening's movements and Comments."))
     }
 
     // MARK: The Log
@@ -1749,7 +1759,7 @@ struct ControlView: View {
         Toggle("Log", isOn: $showingLog)
             .toggleStyle(.button)
             .accessibilityIdentifier("log-toggle")
-            .help("Read back over this evening — comments, movements and every fight.")
+            .help("Read back over this evening — comments, movements and every Encounter.")
             .onChange(of: showingLog) { _, showing in
                 if showing { reloadLog() }
             }
@@ -1838,7 +1848,7 @@ struct ControlView: View {
             VStack(spacing: 8) {
                 Picker("", selection: $panelTab) {
                     Label("Scene", systemImage: "map").tag(PanelTab.scene)
-                    Label("Combat", systemImage: "shield.lefthalf.filled").tag(PanelTab.combat)
+                    Label("Encounter", systemImage: "shield.lefthalf.filled").tag(PanelTab.combat)
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
@@ -1925,7 +1935,7 @@ struct ControlView: View {
                     // than in a window of its own.
                     partyGroup
                     if !appState.fog.lights.isEmpty {
-                        liveGroup("Lights", count: appState.fog.lights.count) {
+                        liveGroup(String(localized: "Lights"), count: appState.fog.lights.count) {
                             ForEach(Array(appState.fog.lights.enumerated()), id: \.element.id) { index, light in
                                 lightLiveRow(light, number: index + 1)
                             }
@@ -2016,9 +2026,10 @@ struct ControlView: View {
     }
 
     private var damagedRosterExplanation: String {
-        let path = appState.partyLoadFailure?.url.path ?? "the roster file"
-        return "MapForge hasn't changed the file at \(path). Changes made here won't be "
-            + "saved until it's fixed or moved aside."
+        guard let path = appState.partyLoadFailure?.url.path else {
+            return String(localized: "MapForge hasn't changed the roster file. Changes made here won't be saved until it's fixed or moved aside.")
+        }
+        return String(localized: "MapForge hasn't changed the file at \(path). Changes made here won't be saved until it's fixed or moved aside.")
     }
 
     @ViewBuilder
@@ -2058,8 +2069,7 @@ struct ControlView: View {
     }
 
     private var newRosterExplanation: String {
-        "MapForge will rename the damaged file to “parties.json.damaged” and start an empty "
-            + "roster. Nothing in it is deleted, so you can still open it yourself."
+        String(localized: "MapForge will rename the damaged file to “parties.json.damaged” and start an empty roster. Nothing in it is deleted, so you can still open it yourself.")
     }
 
     /// What the group shows before any Party exists.
@@ -2221,7 +2231,7 @@ struct ControlView: View {
                 // things that happen on a Map, and a Character has never been on one —
                 // the split `Stamp.statBlock(from:)` already reasons about.
                 HStack(spacing: 6) {
-                    Text("Init:").font(.caption)
+                    Text("Initiative:").font(.caption)
                     TextField("", value: bindingForCharacter(\.initiativeBonus),
                               format: .number)
                         .textFieldStyle(.roundedBorder)
@@ -2403,7 +2413,8 @@ struct ControlView: View {
         if appState.displayCandidates.count > 1,
            appState.displayCandidates.allSatisfy(\.isBuiltin) == false,
            appState.playerScreen == nil {
-            Label("Multiple displays connected — choose the Player Display above",
+            // Says what to choose, not where the picker is: "above" went stale the day it moved.
+            Label("Multiple displays connected — choose the display that shows the Map to the players",
                   systemImage: "questionmark.circle")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -2420,12 +2431,12 @@ struct ControlView: View {
     /// Resolution and physical size, so two identical TVs are told apart by text.
     private func label(for candidate: DisplayCandidate) -> String {
         var parts = [candidate.identity.name]
-        if candidate.isBuiltin { parts.append("(built-in)") }
+        if candidate.isBuiltin { parts.append(String(localized: "(built-in)")) }
         if let metrics = candidate.metrics {
             parts.append("— \(Int(metrics.pixelSize.width))×\(Int(metrics.pixelSize.height)) px")
             parts.append("\(Int(metrics.physicalSizeMM.width))×\(Int(metrics.physicalSizeMM.height)) mm")
         } else {
-            parts.append("— size unknown")
+            parts.append(String(localized: "— size unknown"))
         }
         return parts.joined(separator: " ")
     }

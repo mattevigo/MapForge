@@ -56,14 +56,14 @@ final class CommentBarTests: XCTestCase {
             .placeholder.contains("Grix"),
                       "the DM must be told where the live box is")
         XCTAssertTrue(CommentBarState.duringEncounter(activeCombatantName: "Grix")
-            .placeholder.contains("Combat tab"))
+            .placeholder.contains("Encounter tab"))
     }
 
     func testTheEncounterPlaceholderDegradesWithoutAName() {
         // Between Turns, or before the first one: there is no active Combatant to name.
         let placeholder = CommentBarState.duringEncounter(activeCombatantName: nil).placeholder
         XCTAssertFalse(placeholder.isEmpty)
-        XCTAssertTrue(placeholder.contains("Combat tab"))
+        XCTAssertTrue(placeholder.contains("Encounter tab"))
     }
 
     // MARK: Height — the Map must never move

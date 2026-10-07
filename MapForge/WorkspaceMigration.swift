@@ -117,7 +117,7 @@ struct WorkspaceMigration {
         let copied = destination.load()
         guard destination.lastLoadFailure == nil, copied == book else {
             try? fileManager.removeItem(at: workspace.partiesURL)
-            return report(.failed(reason: "the copied roster did not match the original"))
+            return report(.failed(reason: String(localized: "the copied roster did not match the original")))
         }
 
         carryPreferencesForward(into: workspace)

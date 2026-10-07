@@ -26,12 +26,14 @@ enum CommentBarState: Equatable {
     var placeholder: String {
         switch self {
         case .noSession:
-            return "Start the session to record"
+            return String(localized: "Start the session to record")
         case .recording:
-            return "what happened"
+            return String(localized: "what happened")
         case let .duringEncounter(name):
-            guard let name else { return "Mid-fight — use the Combat tab" }
-            return "Note on \(name)'s turn — use the Combat tab"
+            guard let name else {
+                return String(localized: "During an Encounter — use the Encounter tab")
+            }
+            return String(localized: "Note on \(name)'s Turn — use the Encounter tab")
         }
     }
 }

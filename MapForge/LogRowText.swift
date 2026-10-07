@@ -35,48 +35,48 @@ enum LogRowText {
                          unit: DistanceUnit = .current) -> String {
         switch change {
         case let .hpChanged(_, from, to):
-            "\(combatantName) — HP \(number(from)) → \(number(to))"
+            String(localized: "\(combatantName) — HP \(number(from)) → \(number(to))")
         case let .tempHPChanged(_, from, to):
-            "\(combatantName) — temp HP \(from) → \(to)"
+            String(localized: "\(combatantName) — temp HP \(from) → \(to)")
         case let .maxHPChanged(_, from, to):
-            "\(combatantName) — max HP \(number(from)) → \(number(to))"
+            String(localized: "\(combatantName) — max HP \(number(from)) → \(number(to))")
         case let .acChanged(_, from, to):
-            "\(combatantName) — AC \(from) → \(to)"
+            String(localized: "\(combatantName) — AC \(from) → \(to)")
         case let .initiativeBonusChanged(_, from, to):
-            "\(combatantName) — initiative bonus \(signed(from)) → \(signed(to))"
+            String(localized: "\(combatantName) — initiative bonus \(signed(from)) → \(signed(to))")
         case let .conditionAdded(_, condition):
-            "\(combatantName) — \(condition.title) applied"
+            String(localized: "\(combatantName) — \(condition.title) applied")
         case let .conditionRemoved(_, condition):
-            "\(combatantName) — \(condition.title) removed"
+            String(localized: "\(combatantName) — \(condition.title) removed")
         case let .exhaustionChanged(_, from, to):
-            "\(combatantName) — exhaustion \(from) → \(to)"
+            String(localized: "\(combatantName) — exhaustion \(from) → \(to)")
         case let .concentrationChanged(_, isConcentrating):
             isConcentrating
-                ? "\(combatantName) — concentrating"
-                : "\(combatantName) — concentration ended"
+                ? String(localized: "\(combatantName) — concentrating")
+                : String(localized: "\(combatantName) — concentration ended")
         case let .noteAdded(_, text):
-            "\(combatantName) — \(text)"
+            String(localized: "\(combatantName) — \(text)")
         case let .moved(_, _, _, distanceSquares):
-            "\(combatantName) — moved \(unit.format(squares: distanceSquares))"
+            String(localized: "\(combatantName) — moved \(unit.format(squares: distanceSquares))")
         case let .initiativeChanged(_, from, to):
-            "\(combatantName) — initiative \(from) → \(to)"
+            String(localized: "\(combatantName) — initiative \(from) → \(to)")
         case let .combatantJoined(_, name, _, initiative, _):
-            "\(name) joined, initiative \(initiative)"
+            String(localized: "\(name) joined, initiative \(initiative)")
         case .combatantRemoved:
-            "\(combatantName) — removed from the Order"
+            String(localized: "\(combatantName) — removed from the Order")
         case .orderChanged:
             // A list of UUIDs. Fourteen names is a wall, and the fact that matters is that
             // the DM rearranged the Order.
-            "Order changed"
+            String(localized: "Order changed")
         // The Roll's own snapshot, not the resolved `combatantName`: a Pawn that never
         // joined the Order resolves to nothing, and its own line is the only thing that
         // knows who rolled.
         case let .savingThrow(_, name, ability, roll):
-            "\(name) — \(ability.abbreviation) save \(describe(roll))"
+            String(localized: "\(name) — \(ability.abbreviation) save \(describe(roll))")
         case let .abilityCheck(_, name, skill, roll):
-            "\(name) — \(skill.title) (\(skill.ability.abbreviation)) \(describe(roll))"
+            String(localized: "\(name) — \(skill.title) (\(skill.ability.abbreviation)) \(describe(roll))")
         case .unrecognised:
-            "A change this version cannot read"
+            String(localized: "A change this version cannot read")
         }
     }
 
@@ -86,13 +86,13 @@ enum LogRowText {
     /// The arithmetic is shown because the die is the part the table remembers — "21" alone
     /// loses the 16 that everyone watched land.
     static func describe(_ roll: Roll) -> String {
-        var text = "\(roll.total) (\(arithmetic(of: roll)))"
-        if let difficultyClass = roll.difficultyClass {
-            text += " vs DC \(difficultyClass)"
-            // `succeeded` is non-nil exactly when there is a DC.
-            text += roll.succeeded == true ? " — succeeded" : " — failed"
-        }
-        return text
+        let total = "\(roll.total) (\(arithmetic(of: roll)))"
+        guard let difficultyClass = roll.difficultyClass else { return total }
+        // `succeeded` is non-nil exactly when there is a DC. Whole sentences rather than
+        // fragments appended, because a translation cannot reorder a fragment.
+        return roll.succeeded == true
+            ? String(localized: "\(total) vs DC \(difficultyClass) — succeeded")
+            : String(localized: "\(total) vs DC \(difficultyClass) — failed")
     }
 
     /// Just the sum that produced the total — "16 + 5", or "9 - 1" for a negative Modifier,
@@ -124,48 +124,49 @@ enum LogRowText {
         // only what happened. Embedding it here too printed it twice on the one row that
         // named it in both places.
         case .sessionStarted:
-            "Session started"
+            String(localized: "Session started")
         case .sessionEnded:
-            "Session ended"
+            String(localized: "Session ended")
         case let .comment(text, _):
             text
         case let .pawnMoved(label, distanceSquares, _):
-            "\(label) moved \(unit.format(squares: distanceSquares))"
+            String(localized: "\(label) moved \(unit.format(squares: distanceSquares))")
         case let .savingThrow(label, ability, roll, _):
             // The same wording the Combat Log's own row uses, so a Roll reads identically
             // on either side of an Encounter's splice.
-            "\(label) — \(ability.abbreviation) save \(describe(roll))"
+            String(localized: "\(label) — \(ability.abbreviation) save \(describe(roll))")
         case let .abilityCheck(label, skill, roll, _):
-            "\(label) — \(skill.title) (\(skill.ability.abbreviation)) \(describe(roll))"
+            String(localized: "\(label) — \(skill.title) (\(skill.ability.abbreviation)) \(describe(roll))")
         case let .mapSeparator(path):
             (path as NSString).lastPathComponent
         case let .encounterStarted(map, isLive):
-            isLive ? "Encounter in progress" : "Encounter on \(mapName(map))"
+            isLive ? String(localized: "Encounter in progress")
+                : String(localized: "Encounter on \(mapName(map))")
         case .encounterEnded:
-            "Encounter ended"
+            String(localized: "Encounter ended")
         case let .encounterUnreadable(map, logFile):
-            "This fight's log could not be read — \(mapName(map)), \(logFile)"
+            String(localized: "This Encounter's Combat Log could not be read — \(mapName(map)), \(logFile)")
         case let .roundHeading(round):
-            "Round \(round)"
+            String(localized: "Round \(round)")
         case let .turn(combatantName):
             combatantName
         case let .change(change, combatantName):
             describe(change, combatantName: combatantName, unit: unit)
         case let .correction(targetRound, targetCombatantName):
-            "Correction to Round \(targetRound) — \(targetCombatantName)"
+            String(localized: "Correction to Round \(targetRound) — \(targetCombatantName)")
         case let .correctionChange(change, combatantName):
             describe(change, combatantName: combatantName, unit: unit)
         case let .orphanCorrection(targetRound):
-            "Correction to Round \(targetRound), whose Turn is not in this log"
+            String(localized: "Correction to Round \(targetRound), whose Turn is not in this log")
         case let .liveTurn(round, combatantName):
-            "Round \(round) — \(combatantName)'s turn now"
+            String(localized: "Round \(round) — \(combatantName)'s turn now")
         case .unreadableLine:
-            "A line this version cannot read"
+            String(localized: "A line this version cannot read")
         }
     }
 
     private static func mapName(_ map: String?) -> String {
-        guard let map, !map.isEmpty else { return "no Map" }
+        guard let map, !map.isEmpty else { return String(localized: "no Map") }
         return (map as NSString).lastPathComponent
     }
 }

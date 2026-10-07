@@ -4,6 +4,7 @@ options:
   deploymentTarget:
     macOS: "15.0"
   createIntermediateGroups: true
+  developmentLanguage: en
 
 # The app's only package. It reads the YAML inside a Monster's `statblock` fence, which is
 # authored for Obsidian's parser rather than for ours — see ADR-0019.
@@ -31,6 +32,10 @@ targets:
         CODE_SIGN_STYLE: Manual
         ENABLE_HARDENED_RUNTIME: NO
         COMBINE_HIDPI_IMAGES: YES
+        # Every word the app writes goes through `Localizable.xcstrings`; the terms in it are
+        # chosen in `docs/terminology.md`, never in the catalogue first (ADR-0022).
+        LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+        SWIFT_EMIT_LOC_STRINGS: YES
     dependencies:
       - package: Yams
     info:
@@ -83,3 +88,8 @@ schemes:
     test:
       config: Debug
       targets: [MapForgeTests, MapForgeUITests]
+      # The suite asserts English sentences and finds some controls by their English
+      # titles, so it runs in English whatever the Mac speaks.
+      language: en
+      commandLineArguments:
+        "-AppleLanguages (en)": true

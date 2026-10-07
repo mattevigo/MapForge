@@ -50,12 +50,22 @@ struct WorkspacePickerView: View {
                 adopting = nil
             }
         } message: {
-            Text("""
-            \(adopting?.lastPathComponent ?? "This folder") isn't a MapForge workspace yet. \
-            MapForge will create a “.mapforge” folder inside it for your parties and settings.
+            // Two whole sentences rather than a translated "This folder" spliced into one.
+            if let name = adopting?.lastPathComponent {
+                Text("""
+                \(name) isn't a MapForge workspace yet. \
+                MapForge will create a “.mapforge” folder inside it for your parties and settings.
 
-            Your maps won't be changed.
-            """)
+                Your maps won't be changed.
+                """)
+            } else {
+                Text("""
+                This folder isn't a MapForge workspace yet. \
+                MapForge will create a “.mapforge” folder inside it for your parties and settings.
+
+                Your maps won't be changed.
+                """)
+            }
         }
         .alert("Can't open this workspace",
                isPresented: .init(get: { refusal != nil },
@@ -102,7 +112,7 @@ struct WorkspacePickerView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(url.lastPathComponent)
                     .foregroundStyle(available ? .primary : .secondary)
-                Text(available ? url.deletingLastPathComponent().path : "not available")
+                Text(available ? url.deletingLastPathComponent().path : String(localized: "not available"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -131,7 +141,7 @@ struct WorkspacePickerView: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        panel.prompt = "Choose"
+        panel.prompt = String(localized: "Choose")
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
         switch store.open(url) {
@@ -140,32 +150,32 @@ struct WorkspacePickerView: View {
         case .failure(.notAWorkspace):
             adopting = url
         case .failure(.unreachable):
-            refusal = "That folder couldn't be reached."
+            refusal = String(localized: "That folder couldn't be reached.")
         case .failure(.unreadableManifest):
             // Never offer to adopt over it: adoption is a write, and the file we could not
             // read is the one we would destroy.
-            refusal = """
+            refusal = String(localized: """
             This folder has a damaged MapForge workspace file. MapForge hasn't changed it. \
             Move “.mapforge/workspace.json” aside to set the folder up again.
-            """
+            """)
         case .failure(.newerVersion(_, let found)):
-            refusal = """
+            refusal = String(localized: """
             This workspace was made by a newer version of MapForge (format \(found)). \
             Update MapForge to open it.
-            """
+            """)
         }
     }
 
     private func openExisting(_ url: URL) {
         switch store.open(url) {
         case .success(let workspace): open(workspace)
-        case .failure: refusal = "That workspace couldn't be opened."
+        case .failure: refusal = String(localized: "That workspace couldn't be opened.")
         }
     }
 
     private func adopt(_ url: URL) {
         guard let workspace = try? store.adopt(url) else {
-            refusal = "MapForge couldn't set that folder up."
+            refusal = String(localized: "MapForge couldn't set that folder up.")
             return
         }
         open(workspace)

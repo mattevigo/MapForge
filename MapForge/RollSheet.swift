@@ -69,8 +69,7 @@ struct RollSheet: View {
             NumberField(value: draft.difficultyClass,
                         identifier: "roll-difficulty-class",
                         width: 60) { draft.difficultyClass = $0 }
-                .help("Clear this to record the Roll without a Difficulty Class — the Log "
-                      + "then reports the total and no verdict.")
+                .help("Clear this to record the Roll without a Difficulty Class — the Log then reports the total and no verdict.")
         }
     }
 
@@ -100,7 +99,7 @@ struct RollSheet: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6),
                                          count: 3),
                           spacing: 6) {
-                    ForEach(Skill.allCases, id: \.self) { skill in
+                    ForEach(Skill.alphabetical(), id: \.self) { skill in
                         Button {
                             draft.skill = skill
                         } label: {
@@ -174,12 +173,13 @@ struct RollSheet: View {
                     .font(.title.weight(.semibold))
                     .monospacedDigit()
                 Text(roll.difficultyClass.map {
-                    "(\(LogRowText.arithmetic(of: roll))) vs DC \($0)"
+                    String(localized: "(\(LogRowText.arithmetic(of: roll))) vs DC \($0)")
                 } ?? "(\(LogRowText.arithmetic(of: roll)))")
                     .foregroundStyle(.secondary)
             } else {
                 Text("—").font(.title.weight(.semibold))
-                Text(draft.d20 == nil ? "choose the d20 result" : draft.kind.prompt.lowercased())
+                Text(draft.d20 == nil ? String(localized: "choose the d20 result")
+                                     : draft.kind.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer()
@@ -193,13 +193,14 @@ struct RollSheet: View {
     private var verdict: some View {
         switch draft.roll?.succeeded {
         case .some(true):
-            pill("Succeeded", .green)
+            pill(String(localized: "Succeeded"), .green)
         case .some(false):
-            pill("Failed", .red)
+            pill(String(localized: "Failed"), .red)
         case nil:
             // No verdict: either nothing is rolled yet, or there is no Difficulty Class to
             // have one against.
-            pill(draft.roll == nil ? "Pending" : "Recorded", .secondary)
+            pill(draft.roll == nil ? String(localized: "Pending") : String(localized: "Recorded"),
+                 .secondary)
         }
     }
 

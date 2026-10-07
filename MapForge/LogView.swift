@@ -21,9 +21,9 @@ enum LogViewState: Equatable {
     /// What an empty pane says, or nil when there are Lines to draw instead.
     var message: String? {
         switch self {
-        case .noWorkspace: "Open a Workspace to record a Session."
-        case .noSession: "No Session running — press Start Session to begin recording."
-        case .recordingNothingYet: "Recording. Nothing has happened yet."
+        case .noWorkspace: String(localized: "Open a Workspace to record a Session.")
+        case .noSession: String(localized: "No Session running — press Start Session to begin recording.")
+        case .recordingNothingYet: String(localized: "Recording. Nothing has happened yet.")
         case .lines: nil
         }
     }

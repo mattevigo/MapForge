@@ -183,8 +183,11 @@ struct Light: Codable, Equatable, Identifiable {
     static func nextName(after lights: [Light]) -> String {
         let used = Set(lights.compactMap(\.name))
         var n = 1
-        while used.contains("Light \(n)") { n += 1 }
-        return "Light \(n)"
+        // In the Interface Language of the moment it is placed; from then on the name is the
+        // DM's, and is never translated again.
+        func name(_ n: Int) -> String { String(localized: "Light \(n)") }
+        while used.contains(name(n)) { n += 1 }
+        return name(n)
     }
 }
 
@@ -431,18 +434,20 @@ enum PawnKind: String, Codable, CaseIterable, Equatable {
     /// The heading this kind is listed under in the live panel.
     var pluralTitle: String {
         switch self {
-        case .player: return "Players"
-        case .creature: return "Creatures"
-        case .treasure: return "Treasure"
+        case .player: return String(localized: "Players")
+        case .creature: return String(localized: "Creatures")
+        // Its own key: English says "Treasure" for the heading and for one of them, where
+        // Italian says *Tesori* and *Tesoro*.
+        case .treasure: return String(localized: "pawn-kind.treasure.heading", defaultValue: "Treasure")
         }
     }
 
     /// What the inspector calls this kind in its picker.
     var title: String {
         switch self {
-        case .player: return "Player"
-        case .creature: return "Creature"
-        case .treasure: return "Treasure"
+        case .player: return String(localized: "Player")
+        case .creature: return String(localized: "Creature")
+        case .treasure: return String(localized: "Treasure")
         }
     }
 }
