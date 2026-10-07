@@ -1,5 +1,8 @@
 # Monsters are read from the DM's notes, copied onto a Pawn, and kept nowhere else
 
+> Where the Bestiary is read from, and how `ac` and `hp` are read, are superseded by
+> ADR-0023. The rest stands.
+
 ADR-0007 declined to let a Character be a Creature: "A monster library is a second feature."
 This is that feature, and it has an unusual shape for a library — the app has no monster
 editor, no monster database and no monster file of its own. A **Monster** is whatever the
