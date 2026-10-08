@@ -41,6 +41,10 @@ targets:
     info:
       path: MapForge/Info.plist
       properties:
+        # The build settings above are the version's one source (CHANGELOG.md). Xcode
+        # already lets them override this file; saying so here stops the file claiming 1.0.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # Declared so the Party panel's drag carries a type of its own: a file or a snippet
         # of text dropped on the Map is then refused by the type system rather than by
         # hand-written validation guessing what the DM meant.
