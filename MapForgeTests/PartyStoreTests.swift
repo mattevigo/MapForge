@@ -24,7 +24,9 @@ final class PartyStoreTests: XCTestCase {
         let book = PartyBook(parties: [
             Party(name: "Eroi delle Terre di Confine",
                   characters: [PartyCharacter(name: "Thorin", colorHex: "#C81E1E",
-                                              sightSquares: 6, isBig: false)])
+                                              sightSquares: 6,
+                                              noteName: "Thorin Scudodiquercia"),
+                               PartyCharacter(name: "Ospite")])
         ])
         try store().save(book)
         XCTAssertEqual(store().load(), book)
@@ -85,22 +87,26 @@ final class PartyStoreTests: XCTestCase {
         XCTAssertEqual((json as? [String: Any])?["version"] as? Int, PartyBook.current)
     }
 
-    func testARosterWrittenBeforeCombatNumbersStillLoads() throws {
-        // A DM who has been using MapForge since 1.2.0 has a parties.json with no
-        // initiative bonus, armour class or hit points in it. It must open, and the
-        // Characters in it must come back with sensible numbers rather than zeroes that
-        // would make everything hit.
+    func testARosterWrittenBeforeNotesOpensWithEveryCharacterUnlinked() throws {
+        // The real "Lost Boys" roster: typed numbers, no note. It must open, link nothing by
+        // guessing from the name, and lose the typed numbers at the next write (ADR-0024).
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try Data(#"""
-        {"version": 1, "parties": [{"id": "\#(UUID().uuidString)", "name": "Eroi",
-          "characters": [{"id": "\#(UUID().uuidString)", "name": "Thorin",
-                          "colorHex": "#1E90C8", "sightSquares": 9, "isBig": false}]}]}
+        {"version": 1, "parties": [{"id": "\#(UUID().uuidString)", "name": "Lost Boys",
+          "characters": [{"id": "\#(UUID().uuidString)", "name": "Durga",
+                          "colorHex": "#FC4DE5", "sightSquares": 6, "isBig": false,
+                          "initiativeBonus": -1, "armorClass": 14, "maxHP": 36}]}]}
         """#.utf8).write(to: store().fileURL)
 
-        let character = try XCTUnwrap(store().load().parties.first?.characters.first)
-        XCTAssertEqual(character.name, "Thorin")
-        XCTAssertEqual(character.initiativeBonus, 0)
-        XCTAssertEqual(character.armorClass, StatBlock.defaultArmorClass)
-        XCTAssertNil(character.maxHP)
+        let durga = try XCTUnwrap(store().load().parties.first?.characters.first)
+        XCTAssertEqual(durga.name, "Durga")
+        XCTAssertEqual(durga.colorHex, "#FC4DE5")
+        XCTAssertNil(durga.noteName, "linked by guessing")
+
+        try store().save(store().load())
+        let written = try String(contentsOf: store().fileURL, encoding: .utf8)
+        for key in ["isBig", "initiativeBonus", "armorClass", "maxHP"] {
+            XCTAssertFalse(written.contains(key), "\(key) survived the write")
+        }
     }
 }

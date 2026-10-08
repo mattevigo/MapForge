@@ -228,18 +228,22 @@ version, for diagnosis only.
   "parties": [
     { "id": "…", "name": "Eroi delle Terre di Confine",
       "characters": [
-        { "id": "…", "name": "Thorin", "colorHex": "#D0342C", "sightSquares": 6,
-          "isBig": false, "initiativeBonus": 2, "armorClass": 16, "maxHP": 27 }
+        { "id": "…", "name": "Durga", "colorHex": "#D0342C", "sightSquares": 6,
+          "noteName": "Durga Pietraferma" }
       ] }
   ]
 }
 ```
 
-A Character is a **definition**, never on a Map; Stamping copies `name`, `colorHex`,
-`sightSquares`, `isBig` into a Pawn and `initiativeBonus`, `armorClass`, `maxHP` into its
-Stat Block, after which the Pawn leads its own life (ADR-0007). `characters` is an array so
-the DM's order is kept. `isBig`, `initiativeBonus`, `armorClass`, `maxHP` are optional on
-read (older rosters). Absent when there are no Parties; unreadable file latched.
+A Character is a **definition**, never on a Map. It holds what the app owns of it — its
+label, colour and sight — and `noteName`, the `name` of the note its numbers are read from,
+absent while the DM has not linked one (ADR-0024). Stamping copies `name`, `colorHex`,
+`sightSquares` and the note's size into a Pawn, and the note's `initiative`, `ac` and `hp`
+into its Stat Block; a Character with no readable note stamps no Stat Block at all. The Pawn
+then leads its own life (ADR-0007). `characters` is an array so the DM's order is kept. A
+roster written before notes still opens with every Character unlinked: its `isBig`,
+`initiativeBonus`, `armorClass` and `maxHP` are ignored and dropped at the next write.
+Absent when there are no Parties; unreadable file latched.
 
 ### `preferences.json` — what the app chooses for this Workspace
 

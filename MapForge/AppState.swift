@@ -764,19 +764,36 @@ final class AppState: ObservableObject {
     /// Returns whether anything was placed, so the drop can report a miss to SwiftUI.
     @discardableResult
     func stamp(_ character: PartyCharacter, at droppedPoint: CGPoint, frame: CGRect) -> Bool {
+        let note = note(for: character)
         guard let map = mapScale,
-              let pawn = Stamp.pawn(from: character, droppedAt: droppedPoint,
+              let pawn = Stamp.pawn(from: character, note: note, droppedAt: droppedPoint,
                                     map: map, frame: frame) else { return false }
-        // The Character's combat numbers, copied at drag time like every other field —
-        // ADR-0007's rule reaching more of them. Before `addPawnToMap`, because joining a
-        // running fight reads the Stat Block to snapshot it into the Log.
-        setStatBlock(Stamp.statBlock(from: character), for: pawn.id)
+        // The combat numbers its note gives, copied at drag time like every other field —
+        // ADR-0007's rule reaching more of them (ADR-0024). Before `addPawnToMap`, because
+        // joining a running fight reads the Stat Block to snapshot it into the Log. A
+        // Character with no note the app could read stamps none.
+        if let block = Stamp.statBlock(from: note) {
+            setStatBlock(block, for: pawn.id)
+        }
         // Through `addPawnToMap` rather than appending here, so a Character Stamped while
         // a fight is running rolls Initiative and joins the Order. It also flushes: a drop
         // is one completed action, not a stream of positions, and should be on disk before
         // the DM's next click, exactly as the end of a drag is.
         addPawnToMap(pawn)
         return true
+    }
+
+    /// The note a Character reads its numbers from, when the DM has said which and the
+    /// Workspace's notes still hold one of that name.
+    func note(for character: PartyCharacter) -> CharacterNote? {
+        characterNotes.note(named: character.noteName)
+    }
+
+    /// Whether the roster should say a Character has no note. Not while the notes are still
+    /// being read — every Character would flash "no note" each time the Workspace opens —
+    /// and the Bestiary is the read's progress, the two coming from one walk.
+    func isUnlinked(_ character: PartyCharacter) -> Bool {
+        bestiary != .reading && note(for: character) == nil
     }
 
     /// A Party drag landing on the Map: the pasteboard's payload, resolved and Stamped.

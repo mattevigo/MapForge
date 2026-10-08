@@ -13,22 +13,21 @@ import Foundation
 /// still calls the domain term a Character; this is a spelling, not a different concept.
 struct PartyCharacter: Codable, Equatable, Identifiable {
     var id = UUID()
+    /// The DM's label for it — "Durga" — which every Pawn it Stamps is labelled with. Need not
+    /// be its note's name.
     var name: String
     /// "#RRGGBB", as `Pawn.colorHex` is.
     var colorHex: String
-    /// The sight range a Stamped Pawn gets, in Grid squares.
+    /// The sight range a Stamped Pawn gets, in Grid squares. The app's own, never read from
+    /// the note: a Pawn's sight is also the light it sheds for the whole table (ADR-0024).
     var sightSquares: CGFloat
-    var isBig = false
-
-    /// The combat numbers a Stamped Pawn's Stat Block starts from. Here rather than typed
-    /// per Encounter because a DM who has entered their party's armour class once should
-    /// not enter it again every fight — the exact complaint the Party answers. Copied at
-    /// drag time like every other field; see `Stamp.statBlock(from:)`.
-    var initiativeBonus = 0
-    var armorClass = StatBlock.defaultArmorClass
-    /// Optional for the same reason `StatBlock.maxHP` is: a Character sketched in without
-    /// hit points has none, and 0 would mean something else entirely.
-    var maxHP: Int?
+    /// The `name` of the note its numbers and size are read from — "Durga Pietraferma" — or
+    /// nil while the DM has not said which note is its own. A name rather than a path, as a
+    /// Pawn's `monsterName` is, so the roster does not write the vault's layout down.
+    ///
+    /// The numbers themselves are not here. They were, typed in the app, and drifted from the
+    /// notes within weeks; now the notes are the only place they are written (ADR-0024).
+    var noteName: String?
 
     /// What click-to-place already gives a Pawn, so a Stamped Pawn and a hand-placed one
     /// start from the same defaults rather than drifting apart.
@@ -38,35 +37,29 @@ struct PartyCharacter: Codable, Equatable, Identifiable {
          name: String,
          colorHex: String = Pawn.defaultColorHex,
          sightSquares: CGFloat = PartyCharacter.defaultSightSquares,
-         isBig: Bool = false,
-         initiativeBonus: Int = 0,
-         armorClass: Int = StatBlock.defaultArmorClass,
-         maxHP: Int? = nil) {
+         noteName: String? = nil) {
         self.id = id
         self.name = name
         self.colorHex = colorHex
         self.sightSquares = sightSquares
-        self.isBig = isBig
-        self.initiativeBonus = initiativeBonus
-        self.armorClass = armorClass
-        self.maxHP = maxHP
+        self.noteName = noteName
     }
 
-    /// Hand-written so a `parties.json` written before combat numbers existed still opens.
-    /// The synthesized decoder throws on a missing non-optional key, which would make a
-    /// DM's whole roster unreadable — the migration shape `Pawn` already uses for
-    /// `isHidden`, `isBig` and `characterID`.
+    private enum CodingKeys: String, CodingKey {
+        case id, name, colorHex, sightSquares, noteName
+    }
+
+    /// Hand-written so a `parties.json` written before notes still opens — with every
+    /// Character unlinked, and its typed `isBig`, `initiativeBonus`, `armorClass` and `maxHP`
+    /// ignored, to vanish at the next write. They are not used to link it: which note is a
+    /// Character's own is the DM's to say, never the app's to guess (ADR-0024).
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
         colorHex = try container.decode(String.self, forKey: .colorHex)
         sightSquares = try container.decode(CGFloat.self, forKey: .sightSquares)
-        isBig = try container.decodeIfPresent(Bool.self, forKey: .isBig) ?? false
-        initiativeBonus = try container.decodeIfPresent(Int.self, forKey: .initiativeBonus) ?? 0
-        armorClass = try container.decodeIfPresent(Int.self, forKey: .armorClass)
-            ?? StatBlock.defaultArmorClass
-        maxHP = try container.decodeIfPresent(Int.self, forKey: .maxHP)
+        noteName = try container.decodeIfPresent(String.self, forKey: .noteName)
     }
 }
 

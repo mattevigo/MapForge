@@ -2356,46 +2356,6 @@
         }
       }
     },
-    "AC:": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "RK:"
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "AC:"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "CA:"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "CA :"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "CA:"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "CA:"
-          }
-        }
-      }
-    },
     "Ability Check": {
       "localizations": {
         "de": {
@@ -6150,46 +6110,6 @@
         }
       }
     },
-    "HP:": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TP:"
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "HP:"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "PG:"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pv :"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "PF:"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "PV:"
-          }
-        }
-      }
-    },
     "Heal": {
       "localizations": {
         "de": {
@@ -6709,46 +6629,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bônus de iniciativa: somado ao d20 quando a iniciativa é rolada. O número rolado é editado na ordem."
-          }
-        }
-      }
-    },
-    "Initiative:": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Initiative:"
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Initiative:"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Iniciativa:"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Initiative :"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Iniziativa:"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Iniciativa:"
           }
         }
       }
@@ -8272,6 +8152,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ainda sem pontos de vida — preencha-os abaixo."
+          }
+        }
+      }
+    },
+    "No note gives this Character's numbers: its Pawns are stamped without them.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Notiz liefert die Werte dieses Charakters: Seine Spielfiguren erhalten keine."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Καμία σημείωση δεν δίνει τους αριθμούς αυτού του χαρακτήρα: τα πιόνια του τοποθετούνται χωρίς αυτούς."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ninguna nota da los valores de este personaje: sus fichas se colocan sin ellos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune note ne donne les valeurs de ce personnage : ses pions sont posés sans elles."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna nota dà i valori di questo personaggio: le sue pedine vengono piazzate senza."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma nota dá os números deste personagem: suas peças são colocadas sem eles."
           }
         }
       }
@@ -14061,6 +13981,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "sem mapa"
+          }
+        }
+      }
+    },
+    "no note": {
+      "comment": "Beside a Character whose numbers no note gives",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "keine Notiz"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "χωρίς σημείωση"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sin nota"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sans note"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nessuna nota"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sem nota"
           }
         }
       }

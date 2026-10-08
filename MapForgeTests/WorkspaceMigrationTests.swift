@@ -14,7 +14,7 @@ final class WorkspaceMigrationTests: XCTestCase {
     private let fileManager = FileManager.default
 
     private let thorin = PartyCharacter(name: "Thorin", colorHex: "#C81E1E",
-                                        sightSquares: 6, isBig: false)
+                                        sightSquares: 6)
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -142,12 +142,12 @@ final class WorkspaceMigrationTests: XCTestCase {
         XCTAssertEqual(preferences.recentWorkspaces.map(\.path), ["/somewhere"])
     }
 
-    func testACharacterWithNoMaxHPSurvivesByteForByte() throws {
-        // `maxHP` is `Int?` and omitted from the JSON when nil. A byte copy cannot lose it, or
-        // any other field a later version adds and this one does not know about.
+    func testAnUnlinkedCharacterSurvivesByteForByte() throws {
+        // `noteName` is `String?` and omitted from the JSON when nil. A byte copy cannot lose
+        // it, or any other field a later version adds and this one does not know about.
         var drusilla = thorin
         drusilla.name = "Drusilla"
-        drusilla.maxHP = nil
+        drusilla.noteName = nil
         try writeLegacyRoster(PartyBook(parties: [Party(name: "Lost Boys",
                                                         characters: [drusilla])]))
         let before = try Data(contentsOf: legacyURL)

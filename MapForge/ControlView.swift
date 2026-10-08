@@ -2165,10 +2165,18 @@ struct ControlView: View {
     private func characterRow(_ character: PartyCharacter) -> some View {
         let placed = appState.placedCount(of: character)
         return HStack(spacing: 6) {
-            PawnToken(pawn: Stamp.preview(of: character), squareSide: 14,
-                      scalesWithFootprint: false)
+            PawnToken(pawn: Stamp.preview(of: character, note: appState.note(for: character)),
+                      squareSide: 14, scalesWithFootprint: false)
             Text(character.name).lineLimit(1)
             Spacer(minLength: 0)
+            if appState.isUnlinked(character) {
+                // Said, not hidden: a Character with no note Stamps a Pawn with no numbers,
+                // and a DM who learns that from an empty tracker mid-fight learns it late.
+                Text("no note", comment: "Beside a Character whose numbers no note gives")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .help("No note gives this Character's numbers: its Pawns are stamped without them.")
+            }
             if placed > 0 {
                 // Decoration, never a constraint: duplicates are deliberate, and this is
                 // what makes an accidental second drop visible without forbidding a summon.
@@ -2183,7 +2191,8 @@ struct ControlView: View {
             // The drag preview, which macOS renders under the cursor. This one DOES scale
             // with the footprint, unlike the row's token: it is headed for the Map, where a
             // Big Pawn's two squares are the thing the DM is judging the drop against.
-            PawnToken(pawn: Stamp.preview(of: character), squareSide: 20)
+            PawnToken(pawn: Stamp.preview(of: character, note: appState.note(for: character)),
+                      squareSide: 20)
         }
         .contextMenu {
             Button("Edit…") {
@@ -2194,8 +2203,8 @@ struct ControlView: View {
         }
     }
 
-    /// The inline editor for a Character, new or existing. The same four fields the
-    /// `pawnInspector` uses, stacked to fit the panel's 236pt.
+    /// The inline editor for a Character, new or existing: what the app holds of it — its
+    /// label, colour and sight. Its numbers and size are its note's (ADR-0024).
     @ViewBuilder
     private func characterEditor() -> some View {
         if let character = editedCharacter {
@@ -2218,39 +2227,6 @@ struct ControlView: View {
                     ), format: .number)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 44)
-                    Toggle("Big", isOn: bindingForCharacter(\.isBig))
-                        .toggleStyle(.checkbox)
-                }
-                // The combat numbers. A Character has carried these since the Party
-                // existed and the Stamp has always copied them, but nothing could type
-                // them — so every Stamped Pawn arrived at +0 / AC 10 / no hit points, and
-                // the DM filled them in again on the Map at every encounter. That is the
-                // exact retyping the Party exists to stop.
-                //
-                // Only these three. Conditions, exhaustion and temporary hit points are
-                // things that happen on a Map, and a Character has never been on one —
-                // the split `Stamp.statBlock(from:)` already reasons about.
-                HStack(spacing: 6) {
-                    Text("Initiative:").font(.caption)
-                    TextField("", value: bindingForCharacter(\.initiativeBonus),
-                              format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 36)
-                        .accessibilityIdentifier("character-initiative-bonus")
-                    Text("AC:").font(.caption)
-                    TextField("", value: bindingForCharacter(\.armorClass), format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 36)
-                        .accessibilityIdentifier("character-armor-class")
-                    Text("HP:").font(.caption)
-                    // The only optional of the three, and it stays optional all the way to
-                    // the field: a Character sketched in without hit points has none, and a
-                    // 0 there would read as "already unconscious". An empty field means
-                    // absent, which is what `.number` gives back for a nil Int?.
-                    TextField("", value: bindingForCharacter(\.maxHP), format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 44)
-                        .accessibilityIdentifier("character-max-hp")
                 }
                 HStack(spacing: 6) {
                     Spacer(minLength: 0)
