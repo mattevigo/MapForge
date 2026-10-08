@@ -106,7 +106,7 @@ struct WorkspacePickerView: View {
     private func row(for url: URL) -> some View {
         // An entry whose folder is gone stays listed and unselectable. The DM should see that
         // the drive is unplugged, not that their campaign has disappeared.
-        let available = store.isWorkspace(url)
+        let available = appState.isRecentWorkspaceAvailable(url)
 
         return HStack {
             VStack(alignment: .leading, spacing: 2) {
@@ -146,7 +146,7 @@ struct WorkspacePickerView: View {
 
         switch store.open(url) {
         case .success(let workspace):
-            open(workspace)
+            open(workspace, reachedThrough: url)
         case .failure(.notAWorkspace):
             adopting = url
         case .failure(.unreachable):
@@ -167,8 +167,8 @@ struct WorkspacePickerView: View {
     }
 
     private func openExisting(_ url: URL) {
-        switch store.open(url) {
-        case .success(let workspace): open(workspace)
+        switch appState.openRecentWorkspace(url) {
+        case .success: dismiss()
         case .failure: refusal = String(localized: "That workspace couldn't be opened.")
         }
     }
@@ -178,11 +178,12 @@ struct WorkspacePickerView: View {
             refusal = String(localized: "MapForge couldn't set that folder up.")
             return
         }
-        open(workspace)
+        open(workspace, reachedThrough: url)
     }
 
-    private func open(_ workspace: Workspace) {
-        appState.open(workspace)
+    /// `url` is the open panel's: under the sandbox, the one carrying this launch's grant.
+    private func open(_ workspace: Workspace, reachedThrough url: URL) {
+        appState.open(workspace, reachedThrough: url)
         dismiss()
     }
 }
