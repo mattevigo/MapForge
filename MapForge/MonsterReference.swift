@@ -132,6 +132,9 @@ struct MonsterReferenceView: View {
 
 /// A page of the DM's notes under the Stat Block editor — a Monster's or a Character's, laid
 /// out alike so the DM reads both the same way mid-fight.
+///
+/// At body size, not caption size: this is read at arm's length while six people wait, and
+/// the 10-point captions it was first set in were a squint. It scrolls, so size costs no room.
 struct ReferencePageView: View {
     let name: String
     /// Under the name: what the thing is. Left out when the note says nothing of it.
@@ -141,26 +144,26 @@ struct ReferencePageView: View {
 
     var body: some View {
         ScrollView(.vertical) {
-            VStack(alignment: .leading, spacing: 6) {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(name).font(.caption.weight(.semibold))
+            VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(name).font(.headline)
                     if !heading.isEmpty {
                         Text(heading)
-                            .font(.caption2)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                 }
                 ForEach(lines, id: \.label) { line in
                     (Text(line.label + " ").fontWeight(.semibold) + Text(line.value))
-                        .font(.caption)
+                        .font(.body)
                 }
                 ForEach(groups, id: \.title) { group in
                     Text(group.title.uppercased())
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.secondary)
-                        .padding(.top, 2)
+                        .padding(.top, 4)
                     ForEach(Array(group.paragraphs.enumerated()), id: \.offset) { _, paragraph in
-                        text(paragraph).font(.caption)
+                        text(paragraph).font(.body)
                     }
                 }
             }
