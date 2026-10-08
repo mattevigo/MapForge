@@ -53,7 +53,8 @@ Signing, entitlements and the sandbox itself are separate work.
 ADR-0011's paragraph on Maps — "Open Map… still opens a file from anywhere on disk" — does not
 survive the sandbox. Picking one image grants that image, not the folder beside it, so its
 `<map>.fog.json` and `<map>.combat/` could not be written. Keeping Maps inside the Workspace is
-its own change. This ADR only records that the Workspace's access is what a Map will rely on.
+its own change (ADR-0026). This ADR only records that the Workspace's access is what a Map will
+rely on.
 
 Switching Workspaces gives the old folder's access back. A Map still open from the old
 Workspace loses its access with it under the sandbox, and so does any fog write still

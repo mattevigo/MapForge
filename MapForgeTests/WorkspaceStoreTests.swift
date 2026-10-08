@@ -194,3 +194,69 @@ final class WorkspaceStoreTests: XCTestCase {
         try data.write(to: Workspace(url: root).manifestURL)
     }
 }
+
+/// Which files are inside a Workspace — the question "Open Map…" asks before it opens one
+/// (ADR-0026), judged as the App Sandbox judges access: by where a file really is.
+final class WorkspaceContainsTests: XCTestCase {
+    private var root: URL!
+    private var workspace: Workspace!
+    private let fileManager = FileManager.default
+
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        root = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("WorkspaceContainsTests.\(UUID().uuidString)")
+        let games = root.appendingPathComponent("Games")
+        try fileManager.createDirectory(at: games.appendingPathComponent("Eroi/Dungeons"),
+                                        withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: root.appendingPathComponent("Games-old"),
+                                        withIntermediateDirectories: true)
+        workspace = Workspace(url: games)
+    }
+
+    override func tearDownWithError() throws {
+        try? fileManager.removeItem(at: root)
+        try super.tearDownWithError()
+    }
+
+    func testAMapAtTheRootIsInside() {
+        XCTAssertTrue(workspace.contains(workspace.url.appendingPathComponent("dungeon.png")))
+    }
+
+    func testAMapInANestedSubfolderIsInside() {
+        XCTAssertTrue(workspace.contains(
+            workspace.url.appendingPathComponent("Eroi/Dungeons/crypt.png")))
+    }
+
+    func testASiblingFolderSharingTheNamesPrefixIsOutside() {
+        XCTAssertFalse(workspace.contains(
+            root.appendingPathComponent("Games-old/dungeon.png")))
+    }
+
+    func testTheWorkspaceFolderItselfIsNotAMapInsideIt() {
+        XCTAssertFalse(workspace.contains(workspace.url))
+    }
+
+    func testAnUnnormalisedSpellingIsJudgedByWhereItLeads() {
+        XCTAssertTrue(workspace.contains(URL(fileURLWithPath:
+            workspace.url.path + "/Eroi/../Eroi/./dungeon.png")))
+        XCTAssertFalse(workspace.contains(URL(fileURLWithPath:
+            workspace.url.path + "/../Games-old/dungeon.png")))
+    }
+
+    func testAMapReachedThroughALinkIntoTheWorkspaceIsInside() throws {
+        let link = root.appendingPathComponent("Shortcut")
+        try fileManager.createSymbolicLink(at: link,
+                                           withDestinationURL: workspace.url.appendingPathComponent("Eroi"))
+
+        XCTAssertTrue(workspace.contains(link.appendingPathComponent("crypt.png")))
+    }
+
+    func testAMapBehindALinkPointingOutOfTheWorkspaceIsOutside() throws {
+        let link = workspace.url.appendingPathComponent("Old")
+        try fileManager.createSymbolicLink(at: link,
+                                           withDestinationURL: root.appendingPathComponent("Games-old"))
+
+        XCTAssertFalse(workspace.contains(link.appendingPathComponent("dungeon.png")))
+    }
+}

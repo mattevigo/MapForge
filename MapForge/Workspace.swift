@@ -29,6 +29,22 @@ struct Workspace: Equatable, Hashable {
     var manifestURL: URL { supportDirectory.appendingPathComponent("workspace.json") }
     var partiesURL: URL { supportDirectory.appendingPathComponent("parties.json") }
     var preferencesURL: URL { supportDirectory.appendingPathComponent("preferences.json") }
+
+    /// Whether the file at `url` is inside this Workspace, at any depth.
+    ///
+    /// Judged by the folder it sits in, because that is where the app writes beside a Map,
+    /// and by where that folder really is, symlinks resolved, because that is what the App
+    /// Sandbox judges access by: a Map reached through a link into the Workspace is inside it,
+    /// and one behind a link inside the Workspace pointing elsewhere is not. Compared by whole
+    /// path components, so "/Games-old" is not inside "/Games".
+    func contains(_ url: URL) -> Bool {
+        func components(_ folder: URL) -> [String] {
+            folder.standardizedFileURL.resolvingSymlinksInPath().pathComponents
+        }
+        let root = components(self.url)
+        let folder = components(url.deletingLastPathComponent())
+        return folder.count >= root.count && Array(folder.prefix(root.count)) == root
+    }
 }
 
 /// The file whose presence makes a folder a Workspace.

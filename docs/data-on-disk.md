@@ -43,10 +43,10 @@ MyGame/                              ← the Workspace (any folder the DM adopte
 ~/Library/Preferences/…MapForge.plist  ← UserDefaults: recentWorkspaces, recentWorkspaceBookmarks
 ```
 
-Maps may sit anywhere inside the Workspace, in whatever subfolders the DM likes. A Map opened
-from *outside* the Workspace still works — its fog and combat files sit beside it as usual —
-but its Session Lines name it by bare file name, and the Log View cannot resolve its Combat
-Logs (see *Session Log*, `map`).
+Maps may sit anywhere inside the Workspace, in whatever subfolders the DM likes. "Open Map…"
+refuses an image from *outside* it (ADR-0026): under the App Sandbox the Workspace's grant is
+what lets the fog and combat files be written beside a Map. Session Lines written before that
+rule may still name such a Map by bare file name (see *Session Log*, `map`).
 
 ## Beside the Map
 
@@ -305,8 +305,8 @@ Held at the Workspace level because an evening outlives the Map it begins on.
 
 `map` is the Map's path **relative to the Workspace root** (`maps/crypt/dungeon.png`), so two
 `dungeon.png` in different folders are told apart and the name survives the folder moving to
-another Mac (ADR-0016). A Map outside the Workspace is named by bare file name, and its
-Encounters cannot then be resolved by the Log View. A Map *switch* writes no line; the Log
+another Mac (ADR-0016). A Map outside the Workspace — possible only before ADR-0026 — was
+named by bare file name, and its Encounters cannot be resolved by the Log View. A Map *switch* writes no line; the Log
 View infers one from consecutive lines disagreeing about `map`.
 
 An unknown `line` decodes as `unrecognised` (kept, positionally, never written back); a

@@ -232,6 +232,13 @@ struct ControlView: View {
         }
     }
 
+    /// Names the folder and the way out. The reason is given in the DM's terms — the files the
+    /// app keeps beside a Map — not the sandbox's, which is not something a DM can act on.
+    private var mapOutsideWorkspaceMessage: String {
+        guard let workspace = appState.mapOutsideWorkspace else { return "" }
+        return String(localized: "MapForge opens Maps from inside your Workspace, \u{201C}\(workspace.name)\u{201D}, and keeps each Map's Walls, Lights and Pawns in a file beside it. Move the Map into that folder in Finder, then open it again.")
+    }
+
     private var workspaceButton: some View {
 
         Button {
@@ -330,6 +337,14 @@ struct ControlView: View {
             Button("OK") { appState.migrationOutcome = nil }
         } message: {
             Text(migrationMessage)
+        }
+        .alert("This Map isn't in your Workspace", isPresented: Binding(
+            get: { appState.mapOutsideWorkspace != nil },
+            set: { if !$0 { appState.mapOutsideWorkspace = nil } }
+        )) {
+            Button("OK") { appState.mapOutsideWorkspace = nil }
+        } message: {
+            Text(mapOutsideWorkspaceMessage)
         }
         // Wide enough for the live panel AND a Map column the toolbars still fit in.
         //

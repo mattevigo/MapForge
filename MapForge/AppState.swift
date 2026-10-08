@@ -130,6 +130,9 @@ final class AppState: ObservableObject {
     /// What the one-time migration did, for the picker to report. Nil when nothing happened,
     /// which is every launch after the first.
     @Published var migrationOutcome: WorkspaceMigration.Outcome?
+    /// The Workspace a Map the DM picked should have been in, while the Control Window says
+    /// so. Set when "Open Map…" is given an image from outside it; see `openMap(at:)`.
+    @Published var mapOutsideWorkspace: Workspace?
 
     /// The Workspace this session is running out of, or nil before the DM has picked one.
     ///
@@ -353,10 +356,32 @@ final class AppState: ObservableObject {
     }
 
     func openMap() {
+        guard let workspace else { return }
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.png, .jpeg, .webP]
         panel.allowsMultipleSelection = false
-        guard panel.runModal() == .OK, let url = panel.url, let image = NSImage(contentsOf: url) else { return }
+        // Where the DM's Maps are: the open Map's own folder when it has one in this
+        // Workspace, the Workspace otherwise.
+        panel.directoryURL = mapURL.flatMap {
+            workspace.contains($0) ? $0.deletingLastPathComponent() : nil
+        } ?? workspace.url
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        openMap(at: url)
+    }
+
+    /// Opens the Map the DM picked, if it is inside the open Workspace; says why not if it
+    /// is not.
+    ///
+    /// A Map lives inside the Workspace (ADR-0026). Under the App Sandbox the Workspace's
+    /// access is what lets the app write `<map>.fog.json` and `<map>.combat/` beside a Map,
+    /// and an image picked from elsewhere would open with every one of those writes failing.
+    func openMap(at url: URL) {
+        guard let workspace else { return }
+        guard workspace.contains(url) else {
+            mapOutsideWorkspace = workspace
+            return
+        }
+        guard let image = NSImage(contentsOf: url) else { return }
         loadMap(image: image, at: url)
     }
 
