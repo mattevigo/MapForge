@@ -2222,6 +2222,9 @@ struct ControlView: View {
                                    isRead: appState.bestiary != .reading,
                                    onPick: { editedCharacter?.link(to: $0) },
                                    onClear: { editedCharacter?.unlink() })
+                    // Above the colour and sight row and the buttons, which its results
+                    // float over.
+                    .zIndex(1)
                 HStack(spacing: 6) {
                     ColorPicker("", selection: Binding(
                         get: { Color(hex: character.colorHex) ?? .red },

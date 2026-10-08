@@ -48,6 +48,9 @@ struct CharacterNoteField: View {
                                 .offset(y: 26)
                         }
                     }
+                    // Above the caption that follows it, or the caption is drawn across the
+                    // floating results: a later sibling paints over an earlier one's overlay.
+                    .zIndex(1)
                 Text("No note: its Pawns are stamped without numbers.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
