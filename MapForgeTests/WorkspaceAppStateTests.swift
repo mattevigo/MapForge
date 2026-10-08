@@ -333,3 +333,62 @@ extension WorkspaceAppStateTests {
         XCTAssertEqual(relaunched.recentWorkspaces.map(\.path), [workspace.url.path])
     }
 }
+
+// MARK: - A Map lives inside the Workspace (ADR-0026)
+
+extension WorkspaceAppStateTests {
+    /// A small PNG at `url`, in a folder made for it.
+    private func writeMap(at url: URL) throws {
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        let image = NSImage(size: NSSize(width: 40, height: 30))
+        image.lockFocus()
+        NSColor.darkGray.setFill()
+        NSRect(x: 0, y: 0, width: 40, height: 30).fill()
+        image.unlockFocus()
+        let bitmap = NSBitmapImageRep(cgImage: image.cgImage(forProposedRect: nil,
+                                                             context: nil, hints: nil)!)
+        try bitmap.representation(using: .png, properties: [:])!.write(to: url)
+    }
+
+    func testAMapInsideTheWorkspaceOpens() throws {
+        let workspace = try makeWorkspace("Eroi")
+        let map = workspace.url.appendingPathComponent("Dungeons/crypt.png")
+        try writeMap(at: map)
+        let app = makeAppState()
+        app.open(workspace)
+
+        app.openMap(at: map)
+
+        XCTAssertEqual(app.mapURL, map)
+        XCTAssertNil(app.mapOutsideWorkspace)
+    }
+
+    func testAMapOutsideTheWorkspaceIsRefusedAndTheDMIsTold() throws {
+        let workspace = try makeWorkspace("Eroi")
+        let map = root.appendingPathComponent("Elsewhere/crypt.png")
+        try writeMap(at: map)
+        let app = makeAppState()
+        app.open(workspace)
+
+        app.openMap(at: map)
+
+        XCTAssertNil(app.mapURL)
+        XCTAssertEqual(app.mapOutsideWorkspace, workspace)
+    }
+
+    func testARefusedMapLeavesTheOpenOneOpen() throws {
+        let workspace = try makeWorkspace("Eroi")
+        let inside = workspace.url.appendingPathComponent("crypt.png")
+        let outside = root.appendingPathComponent("Elsewhere/tower.png")
+        try writeMap(at: inside)
+        try writeMap(at: outside)
+        let app = makeAppState()
+        app.open(workspace)
+        app.openMap(at: inside)
+
+        app.openMap(at: outside)
+
+        XCTAssertEqual(app.mapURL, inside)
+    }
+}

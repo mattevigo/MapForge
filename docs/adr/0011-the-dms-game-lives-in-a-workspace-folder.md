@@ -64,7 +64,9 @@ problem `loadMapFromLaunchArgumentsIfPresent` (`AppState.swift:188-215`) solves 
 Maps are untouched. `<map>.fog.json` and `<map>.combat/` stay beside the image wherever it
 lives, per ADR-0003 and ADR-0009, and "Open Map…" still opens a file from anywhere on disk. A
 Map inside the Workspace and a Map outside it behave identically; the Workspace is where the
-DM's *other* material is kept, not a jurisdiction over files.
+DM's *other* material is kept, not a jurisdiction over files. **Reversed by ADR-0026**: under
+the App Sandbox only the Workspace's grant reaches a Map's folder, so "Open Map…" now opens
+Maps from inside the Workspace and refuses the rest.
 
 ## Considered Options
 

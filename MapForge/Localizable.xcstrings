@@ -7557,6 +7557,46 @@
         }
       }
     },
+    "MapForge opens Maps from inside your Workspace, “%@”, and keeps each Map's Walls, Lights and Pawns in a file beside it. Move the Map into that folder in Finder, then open it again.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MapForge öffnet Karten aus deinem Arbeitsbereich „%@“ und speichert die Wände, Lichter und Spielfiguren jeder Karte in einer Datei daneben. Verschiebe die Karte im Finder in diesen Ordner und öffne sie dann erneut."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το MapForge ανοίγει χάρτες μέσα από τον χώρο εργασίας σας, «%@», και κρατά τους τοίχους, τα φώτα και τα πιόνια κάθε χάρτη σε ένα αρχείο δίπλα του. Μετακινήστε τον χάρτη σε αυτόν τον φάκελο στο Finder και ανοίξτε τον ξανά."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MapForge abre los mapas desde tu espacio de trabajo, «%@», y guarda los muros, las luces y las fichas de cada mapa en un archivo junto a él. Mueve el mapa a esa carpeta en el Finder y vuelve a abrirlo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MapForge ouvre les cartes depuis votre espace de travail, « %@ », et conserve les murs, les lumières et les pions de chaque carte dans un fichier à côté d’elle. Déplacez la carte dans ce dossier dans le Finder, puis ouvrez-la à nouveau."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MapForge apre le mappe dalla tua area di lavoro, “%@”, e conserva i muri, le luci e le pedine di ogni mappa in un file accanto a essa. Sposta la mappa in quella cartella nel Finder, poi aprila di nuovo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O MapForge abre mapas de dentro do seu espaço de trabalho, “%@”, e guarda as paredes, as luzes e as peças de cada mapa em um arquivo ao lado dele. Mova o mapa para essa pasta no Finder e abra-o de novo."
+          }
+        }
+      }
+    },
     "MapForge will rename the damaged file to “parties.json.damaged” and start an empty roster. Nothing in it is deleted, so you can still open it yourself.": {
       "localizations": {
         "de": {
@@ -12821,6 +12861,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não foi possível ler o registro de combate deste encontro — %1$@, %2$@"
+          }
+        }
+      }
+    },
+    "This Map isn't in your Workspace": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Karte ist nicht in deinem Arbeitsbereich"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Αυτός ο χάρτης δεν βρίσκεται στον χώρο εργασίας σας"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este mapa no está en tu espacio de trabajo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette carte n’est pas dans votre espace de travail"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa mappa non è nella tua area di lavoro"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este mapa não está no seu espaço de trabalho"
           }
         }
       }
