@@ -130,46 +130,6 @@
         }
       }
     },
-    "%@ could not be read.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ konnte nicht gelesen werden."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Δεν ήταν δυνατή η ανάγνωση: %@."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No se ha podido leer %@."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impossible de lire %@."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impossibile leggere %@."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não foi possível ler %@."
-          }
-        }
-      }
-    },
     "%@ is now stored in this Workspace, in “%@”. Parties live in a Workspace now rather than on this Mac, so another Workspace starts with an empty roster.": {
       "localizations": {
         "de": {
@@ -2396,42 +2356,43 @@
         }
       }
     },
-    "AC:": {
+    "AC %@ · HP %@ · Initiative %@": {
+      "comment": "A Character's numbers as its note gives them, read-only",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "RK:"
+            "value": "RK %@ · TP %@ · Initiative %@"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "AC:"
+            "value": "AC %@ · HP %@ · Initiative %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "CA:"
+            "value": "CA %@ · PG %@ · Iniciativa %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "CA :"
+            "value": "CA %@ · Pv %@ · Initiative %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "CA:"
+            "value": "CA %@ · PF %@ · Iniziativa %@"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "CA:"
+            "value": "CA %@ · PV %@ · Iniciativa %@"
           }
         }
       }
@@ -3647,6 +3608,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cancelar"
+          }
+        }
+      }
+    },
+    "Character notes the app could not take": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Charakternotizen, die die App nicht übernehmen konnte"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Σημειώσεις χαρακτήρων που η εφαρμογή δεν μπόρεσε να δεχτεί"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas de personajes que la app no ha podido admitir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes de personnages que l’app n’a pas pu prendre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note dei personaggi che l'app non ha potuto accettare"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas de personagens que o app não conseguiu aceitar"
           }
         }
       }
@@ -5947,6 +5948,46 @@
         }
       }
     },
+    "Forget this note. The Character stamps no numbers until it has one.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Notiz vergessen. Der Charakter erhält keine Werte, bis er wieder eine hat."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ξεχάστε αυτή τη σημείωση. Ο χαρακτήρας δεν παίρνει αριθμούς μέχρι να αποκτήσει μία."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olvidar esta nota. El personaje no tendrá valores hasta que tenga una."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oublier cette note. Le personnage n’a pas de valeurs tant qu’il n’en a pas une."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dimentica questa nota. Il personaggio non ha valori finché non ne ha una."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esquecer esta nota. O personagem fica sem números até ter uma."
+          }
+        }
+      }
+    },
     "Frightened": {
       "comment": "A Condition: the rulebook heading form, never agreeing with a Pawn",
       "localizations": {
@@ -6186,46 +6227,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "PV"
-          }
-        }
-      }
-    },
-    "HP:": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TP:"
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "HP:"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "PG:"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pv :"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "PF:"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "PV:"
           }
         }
       }
@@ -6753,46 +6754,6 @@
         }
       }
     },
-    "Initiative:": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Initiative:"
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Initiative:"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Iniciativa:"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Initiative :"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Iniziativa:"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Iniciativa:"
-          }
-        }
-      }
-    },
     "Insight": {
       "localizations": {
         "de": {
@@ -7190,6 +7151,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ações Lendárias"
+          }
+        }
+      }
+    },
+    "Level %@": {
+      "comment": "A Character's level, under its name",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stufe %@"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Level %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nivel %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niveau %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Livello %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nível %@"
           }
         }
       }
@@ -7996,46 +7998,6 @@
         }
       }
     },
-    "No %@ in this Workspace.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keine Datei %@ in diesem Arbeitsbereich."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Το %@ δεν υπάρχει σε αυτόν τον χώρο εργασίας."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No hay %@ en este espacio de trabajo."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aucun fichier %@ dans cet espace de travail."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nessun file %@ in quest'area di lavoro."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não há %@ neste espaço de trabalho."
-          }
-        }
-      }
-    },
     "No Grid declared, so these radii have no physical size yet.": {
       "localizations": {
         "de": {
@@ -8156,42 +8118,42 @@
         }
       }
     },
-    "No Monsters found in the Bestiary folder.": {
+    "No Monsters found in this Workspace.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keine Monster im Bestiariumsordner gefunden."
+            "value": "Keine Monster in diesem Arbeitsbereich gefunden."
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Δεν βρέθηκαν τέρατα στον φάκελο του θηριολογίου."
+            "value": "Δεν βρέθηκαν τέρατα σε αυτόν τον χώρο εργασίας."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se han encontrado monstruos en la carpeta del bestiario."
+            "value": "No se han encontrado monstruos en este espacio de trabajo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucun monstre trouvé dans le dossier du bestiaire."
+            "value": "Aucun monstre trouvé dans cet espace de travail."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nessun mostro trovato nella cartella del bestiario."
+            "value": "Nessun mostro trovato in quest'area di lavoro."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nenhum monstro encontrado na pasta do bestiário."
+            "value": "Nenhum monstro encontrado neste espaço de trabalho."
           }
         }
       }
@@ -8316,46 +8278,6 @@
         }
       }
     },
-    "No bestiaryStatBlockPath in %@.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kein bestiaryStatBlockPath in %@."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Δεν υπάρχει bestiaryStatBlockPath στο %@."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No hay bestiaryStatBlockPath en %@."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aucun bestiaryStatBlockPath dans %@."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nessun bestiaryStatBlockPath in %@."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não há bestiaryStatBlockPath em %@."
-          }
-        }
-      }
-    },
     "No hit points yet — fill them in below.": {
       "localizations": {
         "de": {
@@ -8392,6 +8314,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ainda sem pontos de vida — preencha-os abaixo."
+          }
+        }
+      }
+    },
+    "No note gives this Character's numbers: its Pawns are stamped without them.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Notiz liefert die Werte dieses Charakters: Seine Spielfiguren erhalten keine."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Καμία σημείωση δεν δίνει τους αριθμούς αυτού του χαρακτήρα: τα πιόνια του τοποθετούνται χωρίς αυτούς."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ninguna nota da los valores de este personaje: sus fichas se colocan sin ellos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune note ne donne les valeurs de ce personnage : ses pions sont posés sans elles."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna nota dà i valori di questo personaggio: le sue pedine vengono piazzate senza."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma nota dá os números deste personagem: suas peças são colocadas sem eles."
+          }
+        }
+      }
+    },
+    "No note: its Pawns are stamped without numbers.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Notiz: Seine Spielfiguren erhalten keine Werte."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Χωρίς σημείωση: τα πιόνια του τοποθετούνται χωρίς αριθμούς."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin nota: sus fichas se colocan sin valores."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sans note : ses pions sont posés sans valeurs."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna nota: le sue pedine vengono piazzate senza valori."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem nota: suas peças são colocadas sem números."
           }
         }
       }
@@ -10934,6 +10936,46 @@
         }
       }
     },
+    "Search Characters' notes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notizen der Charaktere suchen"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Αναζήτηση σημειώσεων χαρακτήρων"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar notas de personajes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechercher des notes de personnages"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerca note dei personaggi"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar notas de personagens"
+          }
+        }
+      }
+    },
     "Search Monsters": {
       "localizations": {
         "de": {
@@ -11690,6 +11732,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Deslocamento"
+          }
+        }
+      }
+    },
+    "Spells": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zauber"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spells"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conjuros"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sorts"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incantesimi"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Magias"
           }
         }
       }
@@ -12497,86 +12579,6 @@
         }
       }
     },
-    "The Bestiary folder “%@” was not found in this Workspace.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Bestiariumsordner „%@“ wurde in diesem Arbeitsbereich nicht gefunden."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ο φάκελος θηριολογίου «%@» δεν βρέθηκε σε αυτόν τον χώρο εργασίας."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No se ha encontrado la carpeta del bestiario «%@» en este espacio de trabajo."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le dossier du bestiaire « %@ » est introuvable dans cet espace de travail."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La cartella del bestiario “%@” non è stata trovata in quest'area di lavoro."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A pasta do bestiário “%@” não foi encontrada neste espaço de trabalho."
-          }
-        }
-      }
-    },
-    "The Bestiary is read when the Workspace opens.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Das Bestiarium wird beim Öffnen des Arbeitsbereichs gelesen."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Το θηριολόγιο διαβάζεται όταν ανοίγει ο χώρος εργασίας."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "El bestiario se lee al abrir el espacio de trabajo."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le bestiaire est lu à l’ouverture de l’espace de travail."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il bestiario viene letto all'apertura dell'area di lavoro."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O bestiário é lido quando o espaço de trabalho é aberto."
-          }
-        }
-      }
-    },
     "The Combat Log is closed. Nobody is healed and no Condition is cleared.": {
       "localizations": {
         "de": {
@@ -12733,6 +12735,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "A pasta onde ficam seus mapas. O MapForge guarda ali seus grupos e ajustes."
+          }
+        }
+      }
+    },
+    "The notes are read when the Workspace opens.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Notizen werden beim Öffnen des Arbeitsbereichs gelesen."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Οι σημειώσεις διαβάζονται όταν ανοίγει ο χώρος εργασίας."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las notas se leen al abrir el espacio de trabajo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les notes sont lues à l’ouverture de l’espace de travail."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le note vengono lette all'apertura dell'area di lavoro."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As notas são lidas quando o espaço de trabalho é aberto."
           }
         }
       }
@@ -13825,46 +13867,6 @@
         }
       }
     },
-    "bestiaryStatBlockPath must be a folder inside this Workspace, written relative to it — “03_Bestiario”, not a full path.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "bestiaryStatBlockPath muss ein Ordner in diesem Arbeitsbereich sein, relativ dazu angegeben — „03_Bestiario“, kein vollständiger Pfad."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Το bestiaryStatBlockPath πρέπει να είναι φάκελος μέσα σε αυτόν τον χώρο εργασίας, γραμμένος σε σχέση με αυτόν — «03_Bestiario», όχι πλήρης διαδρομή."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "bestiaryStatBlockPath debe ser una carpeta dentro de este espacio de trabajo, escrita de forma relativa a él — «03_Bestiario», no una ruta completa."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "bestiaryStatBlockPath doit être un dossier de cet espace de travail, indiqué relativement à celui-ci — « 03_Bestiario », pas un chemin complet."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "bestiaryStatBlockPath deve essere una cartella dentro quest'area di lavoro, indicata in modo relativo — “03_Bestiario”, non un percorso completo."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "bestiaryStatBlockPath deve ser uma pasta dentro deste espaço de trabalho, escrita em relação a ele — “03_Bestiario”, não um caminho completo."
-          }
-        }
-      }
-    },
     "choose the ability": {
       "localizations": {
         "de": {
@@ -14065,6 +14067,86 @@
         }
       }
     },
+    "extends: “%@” names a Monster no note defines": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "extends: „%@“ nennt ein Monster, das keine Notiz definiert"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "το extends: «%@» ονομάζει ένα τέρας που δεν ορίζει καμία σημείωση"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "extends: «%@» nombra un monstruo que ninguna nota define"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "extends : « %@ » nomme un monstre qu’aucune note ne définit"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "extends: “%@” nomina un mostro che nessuna nota definisce"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "extends: “%@” nomeia um monstro que nenhuma nota define"
+          }
+        }
+      }
+    },
+    "its extends chain comes back to itself": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "seine extends-Kette führt zu ihm selbst zurück"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "η αλυσίδα extends του επιστρέφει στον εαυτό του"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "su cadena de extends vuelve sobre sí misma"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sa chaîne d’extends revient sur elle-même"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "la sua catena di extends torna su sé stessa"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sua cadeia de extends volta para si mesma"
+          }
+        }
+      }
+    },
     "label": {
       "localizations": {
         "de": {
@@ -14181,6 +14263,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "sem mapa"
+          }
+        }
+      }
+    },
+    "no note": {
+      "comment": "Beside a Character whose numbers no note gives",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "keine Notiz"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "χωρίς σημείωση"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sin nota"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sans note"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nessuna nota"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sem nota"
           }
         }
       }
@@ -14638,6 +14761,46 @@
     "—": {
       "shouldTranslate": false
     },
+    "— not found": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— nicht gefunden"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— δεν βρέθηκε"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— no encontrada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— introuvable"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— non trovata"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— não encontrada"
+          }
+        }
+      }
+    },
     "— not in the Bestiary": {
       "localizations": {
         "de": {
@@ -14718,6 +14881,46 @@
         }
       }
     },
+    "“%@” has no note. Choose one with Edit… in the Party panel.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ hat keine Notiz. Wähle eine mit Bearbeiten … im Bereich Gruppe."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το «%@» δεν έχει σημείωση. Επιλέξτε μία με Επεξεργασία… στο πλαίσιο Ομάδα."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» no tiene nota. Elige una con Editar… en el panel Grupo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %@ » n’a pas de note. Choisissez-en une avec Modifier… dans le panneau Groupe."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” non ha una nota. Sceglila con Modifica… nel pannello Gruppo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” não tem nota. Escolha uma com Editar… no painel Grupo."
+          }
+        }
+      }
+    },
     "“%@” is not in the Bestiary. Its numbers above are its own and are unaffected.": {
       "localizations": {
         "de": {
@@ -14754,6 +14957,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "“%@” não está no bestiário. Os números acima são próprios e não são afetados."
+          }
+        }
+      }
+    },
+    "“%@” is not in the notes. Its numbers above are its own and are unaffected.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ ist nicht in den Notizen. Die Werte oben gehören der Spielfigur und bleiben unverändert."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το «%@» δεν υπάρχει στις σημειώσεις. Οι αριθμοί του παραπάνω είναι δικοί του και δεν επηρεάζονται."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» no está en las notas. Sus números de arriba son propios y no cambian."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %@ » n’est pas dans les notes. Les valeurs ci-dessus lui sont propres et restent inchangées."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” non è tra le note. I valori qui sopra sono i suoi e restano invariati."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” não está nas notas. Os números acima são próprios e não são afetados."
           }
         }
       }

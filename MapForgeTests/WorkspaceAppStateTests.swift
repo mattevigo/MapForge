@@ -37,7 +37,7 @@ final class WorkspaceAppStateTests: XCTestCase {
     }
 
     private let thorin = PartyCharacter(name: "Thorin", colorHex: "#C81E1E",
-                                        sightSquares: 6, isBig: false)
+                                        sightSquares: 6)
 
     // MARK: - Alive before a Workspace
 

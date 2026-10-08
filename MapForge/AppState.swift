@@ -148,6 +148,11 @@ final class AppState: ObservableObject {
     /// Settable so a test can hand one over without a folder of notes.
     @Published var bestiary = Bestiary.closed
 
+    /// Every Character's note read from the open Workspace, in the same walk as the Bestiary
+    /// and on the same terms: never written anywhere (ADR-0024). Empty until it lands.
+    /// Settable so a test can hand some over without a folder of notes.
+    @Published var characterNotes = CharacterNotes()
+
     /// The read in flight, kept so a test can wait for it and a switch can abandon it.
     private(set) var bestiaryLoad: Task<Void, Never>?
     /// Which Party the panel offers. Remembered in the Workspace, per ADR-0012.
@@ -759,19 +764,51 @@ final class AppState: ObservableObject {
     /// Returns whether anything was placed, so the drop can report a miss to SwiftUI.
     @discardableResult
     func stamp(_ character: PartyCharacter, at droppedPoint: CGPoint, frame: CGRect) -> Bool {
+        let note = note(for: character)
         guard let map = mapScale,
-              let pawn = Stamp.pawn(from: character, droppedAt: droppedPoint,
+              let pawn = Stamp.pawn(from: character, note: note, droppedAt: droppedPoint,
                                     map: map, frame: frame) else { return false }
-        // The Character's combat numbers, copied at drag time like every other field —
-        // ADR-0007's rule reaching more of them. Before `addPawnToMap`, because joining a
-        // running fight reads the Stat Block to snapshot it into the Log.
-        setStatBlock(Stamp.statBlock(from: character), for: pawn.id)
+        // The combat numbers its note gives, copied at drag time like every other field —
+        // ADR-0007's rule reaching more of them (ADR-0024). Before `addPawnToMap`, because
+        // joining a running fight reads the Stat Block to snapshot it into the Log. A
+        // Character with no note the app could read stamps none.
+        if let block = Stamp.statBlock(from: note) {
+            setStatBlock(block, for: pawn.id)
+        }
         // Through `addPawnToMap` rather than appending here, so a Character Stamped while
         // a fight is running rolls Initiative and joins the Order. It also flushes: a drop
         // is one completed action, not a stream of positions, and should be on disk before
         // the DM's next click, exactly as the end of a drag is.
         addPawnToMap(pawn)
         return true
+    }
+
+    /// The note a Character reads its numbers from, when the DM has said which and the
+    /// Workspace's notes still hold one of that name.
+    func note(for character: PartyCharacter) -> CharacterNote? {
+        characterNotes.note(named: character.noteName)
+    }
+
+    /// The page the Combat tab shows for a Pawn Stamped from a Character.
+    ///
+    /// Looked up live, each time it is drawn, through the Pawn's `characterID` and the
+    /// Character's note (ADR-0007, amended) — never from a name copied at the Stamp, so a
+    /// Character the DM links tonight reaches the Pawns already on tonight's Map.
+    func characterPage(for pawn: Pawn) -> CharacterPage? {
+        guard let id = pawn.characterID, let character = character(id: id) else { return nil }
+        guard let noteName = character.noteName else {
+            return .unlinked(characterName: character.name)
+        }
+        if let note = characterNotes.note(named: noteName) { return .note(note) }
+        if let unavailable = bestiary.unavailable { return .unavailable(unavailable) }
+        return .missing(noteName: noteName)
+    }
+
+    /// Whether the roster should say a Character has no note. Not while the notes are still
+    /// being read — every Character would flash "no note" each time the Workspace opens —
+    /// and the Bestiary is the read's progress, the two coming from one walk.
+    func isUnlinked(_ character: PartyCharacter) -> Bool {
+        bestiary != .reading && note(for: character) == nil
     }
 
     /// A Party drag landing on the Map: the pasteboard's payload, resolved and Stamped.
@@ -879,6 +916,7 @@ final class AppState: ObservableObject {
         bestiaryLoad?.cancel()
         bestiaryLoad = nil
         bestiary = .closed
+        characterNotes = CharacterNotes()
         partyStore = nil
         workspacePreferences = nil
         partyBook = PartyBook()
@@ -890,7 +928,7 @@ final class AppState: ObservableObject {
         playerScreen = nil
     }
 
-    /// Reads the Workspace's Monsters, off the main thread.
+    /// Reads the Workspace's Monsters and Characters' notes, off the main thread.
     ///
     /// The one moment the DM's notes are read (ADR-0020): no rescan, no watching. Off the
     /// main thread because it is a walk over a folder of the DM's choosing, and a vault is
@@ -899,12 +937,14 @@ final class AppState: ObservableObject {
     private func readBestiary(of workspace: Workspace) {
         bestiaryLoad?.cancel()
         bestiary = .reading
+        characterNotes = CharacterNotes()
         bestiaryLoad = Task { [weak self] in
             let read = await Task.detached(priority: .userInitiated) {
-                BestiaryStore.load(for: workspace)
+                BestiaryStore.read(workspace)
             }.value
             guard let self, !Task.isCancelled, self.workspace == workspace else { return }
-            self.bestiary = read
+            self.bestiary = read.bestiary
+            self.characterNotes = read.characters
         }
     }
 

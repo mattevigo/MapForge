@@ -1934,6 +1934,9 @@ struct ControlView: View {
                     // a short drag to the Map is the whole point of it being here rather
                     // than in a window of its own.
                     partyGroup
+                        // Above its neighbours, so the Character editor's note results can
+                        // float over the Lights below rather than under them.
+                        .zIndex(1)
                     if !appState.fog.lights.isEmpty {
                         liveGroup(String(localized: "Lights"), count: appState.fog.lights.count) {
                             ForEach(Array(appState.fog.lights.enumerated()), id: \.element.id) { index, light in
@@ -2050,12 +2053,12 @@ struct ControlView: View {
                 } else if let party = appState.activeParty {
                     ForEach(party.characters) { character in
                         if editedCharacter?.id == character.id {
-                            characterEditor()
+                            characterEditor().zIndex(1)
                         } else {
                             characterRow(character)
                         }
                     }
-                    if isAddingCharacter { characterEditor() }
+                    if isAddingCharacter { characterEditor().zIndex(1) }
                 }
                 }
             }
@@ -2165,10 +2168,18 @@ struct ControlView: View {
     private func characterRow(_ character: PartyCharacter) -> some View {
         let placed = appState.placedCount(of: character)
         return HStack(spacing: 6) {
-            PawnToken(pawn: Stamp.preview(of: character), squareSide: 14,
-                      scalesWithFootprint: false)
+            PawnToken(pawn: Stamp.preview(of: character, note: appState.note(for: character)),
+                      squareSide: 14, scalesWithFootprint: false)
             Text(character.name).lineLimit(1)
             Spacer(minLength: 0)
+            if appState.isUnlinked(character) {
+                // Said, not hidden: a Character with no note Stamps a Pawn with no numbers,
+                // and a DM who learns that from an empty tracker mid-fight learns it late.
+                Text("no note", comment: "Beside a Character whose numbers no note gives")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .help("No note gives this Character's numbers: its Pawns are stamped without them.")
+            }
             if placed > 0 {
                 // Decoration, never a constraint: duplicates are deliberate, and this is
                 // what makes an accidental second drop visible without forbidding a summon.
@@ -2183,7 +2194,8 @@ struct ControlView: View {
             // The drag preview, which macOS renders under the cursor. This one DOES scale
             // with the footprint, unlike the row's token: it is headed for the Map, where a
             // Big Pawn's two squares are the thing the DM is judging the drop against.
-            PawnToken(pawn: Stamp.preview(of: character), squareSide: 20)
+            PawnToken(pawn: Stamp.preview(of: character, note: appState.note(for: character)),
+                      squareSide: 20)
         }
         .contextMenu {
             Button("Edit…") {
@@ -2194,8 +2206,8 @@ struct ControlView: View {
         }
     }
 
-    /// The inline editor for a Character, new or existing. The same four fields the
-    /// `pawnInspector` uses, stacked to fit the panel's 236pt.
+    /// The inline editor for a Character, new or existing: what the app holds of it — its
+    /// label, colour and sight. Its numbers and size are its note's (ADR-0024).
     @ViewBuilder
     private func characterEditor() -> some View {
         if let character = editedCharacter {
@@ -2203,6 +2215,16 @@ struct ControlView: View {
                 TextField("Name", text: bindingForCharacter(\.name))
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { commitCharacter() }
+                // Which note gives its numbers and size. Part of the edit like every other
+                // field: Save links, Cancel forgets the pick (ADR-0024).
+                CharacterNoteField(notes: appState.characterNotes,
+                                   noteName: character.noteName,
+                                   isRead: appState.bestiary != .reading,
+                                   onPick: { editedCharacter?.link(to: $0) },
+                                   onClear: { editedCharacter?.unlink() })
+                    // Above the colour and sight row and the buttons, which its results
+                    // float over.
+                    .zIndex(1)
                 HStack(spacing: 6) {
                     ColorPicker("", selection: Binding(
                         get: { Color(hex: character.colorHex) ?? .red },
@@ -2218,39 +2240,6 @@ struct ControlView: View {
                     ), format: .number)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 44)
-                    Toggle("Big", isOn: bindingForCharacter(\.isBig))
-                        .toggleStyle(.checkbox)
-                }
-                // The combat numbers. A Character has carried these since the Party
-                // existed and the Stamp has always copied them, but nothing could type
-                // them — so every Stamped Pawn arrived at +0 / AC 10 / no hit points, and
-                // the DM filled them in again on the Map at every encounter. That is the
-                // exact retyping the Party exists to stop.
-                //
-                // Only these three. Conditions, exhaustion and temporary hit points are
-                // things that happen on a Map, and a Character has never been on one —
-                // the split `Stamp.statBlock(from:)` already reasons about.
-                HStack(spacing: 6) {
-                    Text("Initiative:").font(.caption)
-                    TextField("", value: bindingForCharacter(\.initiativeBonus),
-                              format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 36)
-                        .accessibilityIdentifier("character-initiative-bonus")
-                    Text("AC:").font(.caption)
-                    TextField("", value: bindingForCharacter(\.armorClass), format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 36)
-                        .accessibilityIdentifier("character-armor-class")
-                    Text("HP:").font(.caption)
-                    // The only optional of the three, and it stays optional all the way to
-                    // the field: a Character sketched in without hit points has none, and a
-                    // 0 there would read as "already unconscious". An empty field means
-                    // absent, which is what `.number` gives back for a nil Int?.
-                    TextField("", value: bindingForCharacter(\.maxHP), format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 44)
-                        .accessibilityIdentifier("character-max-hp")
                 }
                 HStack(spacing: 6) {
                     Spacer(minLength: 0)

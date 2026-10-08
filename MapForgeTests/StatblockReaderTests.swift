@@ -95,6 +95,34 @@ final class StatblockReaderTests: XCTestCase {
         XCTAssertEqual(monster(fence("ac: 15 (armatura naturale)"))?.armorClass, 15)
     }
 
+    func testAPlusSignAndAnUnquotedNegativeAreNumbers() {
+        XCTAssertEqual(monster(fence("initiative: +2"))?.initiativeBonus, 2)
+        XCTAssertEqual(monster(fence("initiative: -1"))?.initiativeBonus, -1)
+        XCTAssertEqual(monster(fence("initiative: \"+2\""))?.initiativeBonus, 2)
+    }
+
+    func testAFormulaIsNoNumberAndTheMonsterStaysAMonster() {
+        // A summoned spirit, as DM Realm imports it. Its leading 11 is wrong at every spell
+        // level, so it is not taken (ADR-0023).
+        let spirit = monster(fence("""
+        ac: 11 + il livello dell'incantesimo
+        hp: 40 + 10 per ogni livello dell'incantesimo superiore al 4°
+        initiative: 2
+        """))
+        XCTAssertNotNil(spirit)
+        XCTAssertNil(spirit?.armorClass)
+        XCTAssertNil(spirit?.hitPoints)
+        XCTAssertEqual(spirit?.initiativeBonus, 2)
+    }
+
+    func testOnlyABracketMayFollowTheNumber() {
+        XCTAssertNil(monster(fence("ac: 15 armatura naturale"))?.armorClass)
+        XCTAssertNil(monster(fence("ac: 15.5"))?.armorClass)
+        XCTAssertNil(monster(fence("ac: armatura 15"))?.armorClass)
+        XCTAssertNil(monster(fence("ac: \"−\""))?.armorClass)
+        XCTAssertEqual(monster(fence("ac: 15(armatura naturale)"))?.armorClass, 15)
+    }
+
     func testAMonsterMissingNumbersIsStillAMonster() {
         // Offered anyway: it stamps what it has, and the tracker flags the rest.
         let bare = monster(fence("size: Media"))
@@ -166,6 +194,45 @@ final class StatblockReaderTests: XCTestCase {
                        .skipped(reason: "the statblock has no name"))
         XCTAssertEqual(StatblockReader.read("```statblock\nname: \"  \"\nac: 12\n```\n"),
                        .skipped(reason: "the statblock has no name"))
+    }
+
+    func testAFenceMarkedOutOfTheBestiaryIsNotAMonster() {
+        // A Character's past build and a template, as DM Realm writes them (ADR-0023). The
+        // template has no name, and is still not skipped: it said what it is first.
+        XCTAssertEqual(StatblockReader.read(fence("bestiary: false\nac: 14")), .notAMonster)
+        XCTAssertEqual(StatblockReader.read("```statblock\nbestiary: false\n```\n"), .notAMonster)
+        XCTAssertEqual(monster(fence("bestiary: true\nac: 14"))?.armorClass, 14)
+    }
+
+    func testACharactersFenceIsNotAMonster() {
+        let durga = """
+        ```statblock
+        layout: DM Realm Character
+        name: Durga Pietraferma
+        player: Baldu
+        ac: 14
+        hp: 48
+        ```
+        """
+        XCTAssertEqual(StatblockReader.read(durga), .notAMonster)
+    }
+
+    func testACharacterNobodyPlaysYetIsStillNotAMonster() {
+        // Zharyn, as DM Realm writes her: no `player`, but the keys only a Character has.
+        let zharyn = """
+        ```statblock
+        layout: DM Realm Character
+        name: Zharyn il Velato
+        species: Dragonide (Ottone)
+        class: Mago
+        level: 2
+        ac: 12
+        ```
+        """
+        XCTAssertEqual(StatblockReader.read(zharyn), .notAMonster)
+        XCTAssertEqual(StatblockReader.read(fence("species: Umano")), .notAMonster)
+        XCTAssertEqual(StatblockReader.read(fence("class: Mago")), .notAMonster)
+        XCTAssertEqual(StatblockReader.read(fence("level: 2")), .notAMonster)
     }
 
     func testWindowsLineEndingsAreRead() {

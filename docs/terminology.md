@@ -133,6 +133,8 @@ official word, and listed so they stay one choice:
 | Bonus Actions (heading) | Azioni bonus | Bonusaktionen | Actions Bonus | Acciones adicionales | Ações Bônus |
 | Reactions (heading) | Reazioni | Reaktionen | Réactions | Reacciones | Reações |
 | Legendary Actions (heading) | Azioni leggendarie | Legendäre Aktionen | Actions Légendaires | Acciones legendarias | Ações Lendárias |
+| Spells (heading) | Incantesimi | Zauber | Sorts | Conjuros | Magias |
+| Level (a Character's) | Livello | Stufe | Niveau | Nivel | Nível |
 | Challenge Rating (CR) | GS | HG | FP | VD | ND |
 | Speed (stat-block label) | Velocità | Bewegungsrate | Vitesse | Velocidad | Deslocamento |
 | Senses (stat-block label) | Sensi | Sinne | Sens | Sentidos | Sentidos |

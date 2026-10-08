@@ -17,8 +17,6 @@ final class BestiaryUITests: XCTestCase {
         try FileManager.default.createDirectory(at: notes, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: root.appendingPathComponent(".mapforge"),
                                                 withIntermediateDirectories: true)
-        try Data("{ \"bestiaryStatBlockPath\": \"03_Bestiario\" }".utf8)
-            .write(to: root.appendingPathComponent(".mapforge/config.json"))
         try Data("""
         ```statblock
         name: Gnoll Guerriero

@@ -198,11 +198,13 @@ final class MovementLoggingTests: XCTestCase {
     }
 
     func testStampingACharacterCarriesItsCombatNumbers() {
-        // ADR-0007's copy rule reaching the Stat Block: a DM who entered their party's
-        // armour class once does not enter it again every session.
+        // ADR-0007's copy rule reaching the Stat Block, the numbers coming from the
+        // Character's note (ADR-0024).
         let state = makeAppState()
-        let thorin = PartyCharacter(name: "Thorin", initiativeBonus: 3,
-                                    armorClass: 18, maxHP: 44)
+        state.characterNotes = CharacterNotes(notes: [
+            CharacterNote(name: "Thorin Scudodiquercia", armorClass: 18, maxHP: 44, initiativeBonus: 3),
+        ])
+        let thorin = PartyCharacter(name: "Thorin", noteName: "Thorin Scudodiquercia")
         let frame = CGRect(x: 0, y: 0, width: 500, height: 400)
 
         XCTAssertTrue(state.stamp(thorin, at: CGPoint(x: 100, y: 80), frame: frame))
@@ -218,7 +220,10 @@ final class MovementLoggingTests: XCTestCase {
         state.fog.pawns = [pawn("Goblin", at: 400, kind: .creature)]
         state.startEncounter()
 
-        let thorin = PartyCharacter(name: "Thorin", armorClass: 18, maxHP: 44)
+        state.characterNotes = CharacterNotes(notes: [
+            CharacterNote(name: "Thorin Scudodiquercia", armorClass: 18, maxHP: 44),
+        ])
+        let thorin = PartyCharacter(name: "Thorin", noteName: "Thorin Scudodiquercia")
         XCTAssertTrue(state.stamp(thorin, at: CGPoint(x: 100, y: 80),
                                   frame: CGRect(x: 0, y: 0, width: 500, height: 400)))
 

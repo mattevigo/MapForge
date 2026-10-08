@@ -27,6 +27,8 @@ struct EditPawnDraft: Equatable {
     /// keep the label and the size in step with it.
     private(set) var monsterName: String?
 
+    /// The Pawn being edited, so numbering a label does not count the label it is replacing.
+    private let pawnID: Pawn.ID
     /// The Monster the Pawn had when the sheet opened — what decides whether OK stamps.
     private let openedWithMonster: String?
     /// The label the Pawn had when the sheet opened, to give back if a pick is undone.
@@ -36,6 +38,7 @@ struct EditPawnDraft: Equatable {
     private var pickedLabel: String?
 
     init(pawn: Pawn) {
+        pawnID = pawn.id
         label = pawn.label
         colorHex = pawn.colorHex
         kind = pawn.kind
@@ -47,8 +50,9 @@ struct EditPawnDraft: Equatable {
     }
 
     /// Say which Monster this Creature is, and show the DM what follows from it in the
-    /// fields they can see: the size, and a label still the bare number the Pawn was born
-    /// with becomes "GG1". Both stay the DM's to overtype before OK.
+    /// fields they can see: the size, and a label the app gave — the bare number the Pawn
+    /// was born with, or the initials of the Monster it was — becomes "GG1". Both stay the
+    /// DM's to overtype before OK.
     ///
     /// `pawns` is the Map as it stands, for the label's number.
     mutating func pick(_ monster: Monster, among pawns: [Pawn]) {
@@ -57,7 +61,9 @@ struct EditPawnDraft: Equatable {
         // A label this sheet wrote is not one the DM typed: changing one's mind from an
         // Ogre to a Gnoll should not leave the gnoll called "Og1".
         let replaceable = label == pickedLabel ? openedWithLabel : label
-        let relabelled = MonsterStamp.label(for: monster, replacing: replaceable, among: pawns)
+        let relabelled = MonsterStamp.label(for: monster, replacing: replaceable,
+                                            from: openedWithMonster,
+                                            among: pawns.filter { $0.id != pawnID })
         guard relabelled != replaceable else { return }
         label = relabelled
         pickedLabel = relabelled

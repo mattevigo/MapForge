@@ -246,10 +246,11 @@ struct Pawn: Codable, Equatable, Identifiable {
 
     /// Which `PartyCharacter` Stamped this Pawn, when one did.
     ///
-    /// **Advisory, and read by exactly one thing**: the Party panel's count of how many of a
-    /// Character's Pawns stand on this Map. Nothing about drawing, lighting, discovery or
-    /// persistence may branch on it, and a Pawn whose Character has been deleted is in no way
-    /// diminished — it simply stops being counted.
+    /// **Advisory, and read by exactly two things**: the Party panel's count of how many of a
+    /// Character's Pawns stand on this Map, and the Combat tab's Character page, looked up
+    /// through it (`AppState.characterPage(for:)`, ADR-0007 amended). Nothing about drawing,
+    /// lighting, discovery or persistence may branch on it, and a Pawn whose Character has
+    /// been deleted is in no way diminished — it stops being counted and loses a page.
     ///
     /// This is not a link. The Pawn holds its own label, colour and sight, copied at the
     /// moment of the drag, so `<map>.fog.json` stays readable with no roster present. See

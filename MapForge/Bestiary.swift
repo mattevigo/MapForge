@@ -18,7 +18,7 @@ struct Bestiary: Equatable {
     var unavailable: String?
 
     struct Skipped: Equatable, Identifiable {
-        /// Relative to the Bestiary folder, so it reads as the DM sees it in their vault.
+        /// Relative to the Workspace root, so it reads as the DM sees it in their vault.
         var file: String
         var reason: String
         var id: String { file }
@@ -33,7 +33,7 @@ struct Bestiary: Equatable {
     /// What stands in before a Workspace is open.
     static var closed: Bestiary { Bestiary(unavailable: String(localized: "No Workspace is open.")) }
 
-    /// What stands in while the folder is being read, so the search box can say so.
+    /// What stands in while the notes are being read, so the search box can say so.
     static var reading: Bestiary { Bestiary(unavailable: String(localized: "Reading the Bestiary…")) }
 
     /// Whether there is anything to search. The search box is disabled without it.
@@ -50,13 +50,7 @@ struct Bestiary: Equatable {
     /// Monsters whose name contains `query`, ignoring case and accents, those that *start*
     /// with it first. An empty query offers everything.
     func search(_ query: String) -> [Monster] {
-        let needle = Self.folded(query.trimmingCharacters(in: .whitespaces))
-        guard !needle.isEmpty else { return monsters }
-        let matches = monsters.filter { Self.folded($0.name).contains(needle) }
-        // A stable partition rather than a sort, so each half keeps the Bestiary's own
-        // alphabetical order.
-        return matches.filter { Self.folded($0.name).hasPrefix(needle) }
-            + matches.filter { !Self.folded($0.name).hasPrefix(needle) }
+        NameSearch.matches(query, among: monsters, name: \.name)
     }
 
     /// The one line under the search box, or nil when there is nothing to say.
@@ -65,12 +59,30 @@ struct Bestiary: Equatable {
     /// stops seeing — and this is the only place a skipped note is ever mentioned.
     var caption: String? {
         if let unavailable { return unavailable }
-        if monsters.isEmpty && skipped.isEmpty { return String(localized: "No Monsters found in the Bestiary folder.") }
+        if monsters.isEmpty && skipped.isEmpty { return String(localized: "No Monsters found in this Workspace.") }
         guard !skipped.isEmpty else { return nil }
         // Plurals come from the catalogue, which knows every form a language has.
         let monsterCount = String(localized: "\(monsters.count) Monsters")
         let skippedCount = String(localized: "\(skipped.count) files skipped")
         return "\(monsterCount) · \(skippedCount)"
+    }
+
+}
+
+/// Finding a name the DM half-remembers: the search behind the Monster box and the Character
+/// note box alike, so the two answer one query the same way.
+enum NameSearch {
+    /// Items whose name contains `query`, ignoring case and accents, those that *start* with
+    /// it first. An empty query offers everything.
+    static func matches<Item>(_ query: String, among items: [Item],
+                              name: (Item) -> String) -> [Item] {
+        let needle = folded(query.trimmingCharacters(in: .whitespaces))
+        guard !needle.isEmpty else { return items }
+        let found = items.filter { folded(name($0)).contains(needle) }
+        // A stable partition rather than a sort, so each half keeps the list's own
+        // alphabetical order.
+        return found.filter { folded(name($0)).hasPrefix(needle) }
+            + found.filter { !folded(name($0)).hasPrefix(needle) }
     }
 
     private static func folded(_ text: String) -> String {
