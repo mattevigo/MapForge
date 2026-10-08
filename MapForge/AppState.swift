@@ -148,6 +148,11 @@ final class AppState: ObservableObject {
     /// Settable so a test can hand one over without a folder of notes.
     @Published var bestiary = Bestiary.closed
 
+    /// Every Character's note read from the open Workspace, in the same walk as the Bestiary
+    /// and on the same terms: never written anywhere (ADR-0024). Empty until it lands.
+    /// Settable so a test can hand some over without a folder of notes.
+    @Published var characterNotes = CharacterNotes()
+
     /// The read in flight, kept so a test can wait for it and a switch can abandon it.
     private(set) var bestiaryLoad: Task<Void, Never>?
     /// Which Party the panel offers. Remembered in the Workspace, per ADR-0012.
@@ -879,6 +884,7 @@ final class AppState: ObservableObject {
         bestiaryLoad?.cancel()
         bestiaryLoad = nil
         bestiary = .closed
+        characterNotes = CharacterNotes()
         partyStore = nil
         workspacePreferences = nil
         partyBook = PartyBook()
@@ -890,7 +896,7 @@ final class AppState: ObservableObject {
         playerScreen = nil
     }
 
-    /// Reads the Workspace's Monsters, off the main thread.
+    /// Reads the Workspace's Monsters and Characters' notes, off the main thread.
     ///
     /// The one moment the DM's notes are read (ADR-0020): no rescan, no watching. Off the
     /// main thread because it is a walk over a folder of the DM's choosing, and a vault is
@@ -899,12 +905,14 @@ final class AppState: ObservableObject {
     private func readBestiary(of workspace: Workspace) {
         bestiaryLoad?.cancel()
         bestiary = .reading
+        characterNotes = CharacterNotes()
         bestiaryLoad = Task { [weak self] in
             let read = await Task.detached(priority: .userInitiated) {
-                BestiaryStore.load(for: workspace)
+                BestiaryStore.read(workspace)
             }.value
             guard let self, !Task.isCancelled, self.workspace == workspace else { return }
-            self.bestiary = read
+            self.bestiary = read.bestiary
+            self.characterNotes = read.characters
         }
     }
 

@@ -246,6 +246,88 @@ final class BestiaryTests: XCTestCase {
                        ["extends: “Durga Pietraferma” names a Monster no note defines"])
     }
 
+    // MARK: Characters' notes
+
+    /// The nine heroes of the real Workspace, as DM Realm writes them: Zharyn and Drusilla
+    /// have no player yet, Durga and Krathos no size.
+    private let heroes: [(name: String, keys: String)] = [
+        ("Drusilla Frazer Mckenzie", "size: Media\nspecies: Aasimar\nclass: Druido\nlevel: 1\nac: 14\nhp: 10\ninitiative: 1"),
+        ("Durga Pietraferma", "species: Umano\nclass: Chierico\nlevel: 5\nplayer: Baldu\nac: 14\nhp: 48\ninitiative: -1"),
+        ("Gastonius Crystalbosco", "size: Piccola\nspecies: Gnomo\nclass: Mago\nlevel: 1\nplayer: Anna\nac: 12\nhp: 7\ninitiative: 2"),
+        ("Govinda", "size: Media\nspecies: Elfo\nclass: Ranger\nlevel: 5\nplayer: Leo\nac: 16\nhp: 44\ninitiative: 3"),
+        ("Jonny Blade", "size: Media\nspecies: Umano\nclass: Ladro\nlevel: 5\nplayer: Sara\nac: 13\nhp: 38\ninitiative: 2"),
+        ("Krathos", "species: Goliath\nclass: Barbaro\nlevel: 5\nplayer: Max\nac: 16\nhp: 60\ninitiative: 2"),
+        ("Lodovico Mezzacorda", "size: Media\nspecies: Mezzelfo\nclass: Bardo\nlevel: 5\nplayer: Gio\nac: 15\nhp: 38\ninitiative: 3"),
+        ("Rio Clutch", "size: Piccola\nspecies: Halfling\nclass: Monaco\nlevel: 5\nplayer: Ale\nac: 12\nhp: 32\ninitiative: 2"),
+        ("Zharyn il Velato", "size: Media\nspecies: Dragonide\nclass: Mago\nlevel: 2\nac: 12\nhp: 14\ninitiative: 2"),
+    ]
+
+    private func writeHeroes() throws {
+        for hero in heroes {
+            let file = hero.name.replacingOccurrences(of: " ", with: "_")
+            try write(note(hero.name, "layout: DM Realm Character\n" + hero.keys),
+                      to: "Personaggi/\(file)/\(file).md")
+        }
+    }
+
+    func testEveryCharactersNoteIsReadWithItsNumbers() throws {
+        try writeHeroes()
+        try write(note("Goblin Guerriero"), to: "Riferimento/Mostri/Goblin_Guerriero.md")
+
+        let reading = BestiaryStore.read(workspace)
+        XCTAssertEqual(reading.characters.notes.map(\.name), heroes.map(\.name))
+        XCTAssertEqual(reading.characters.skipped, [])
+        XCTAssertEqual(reading.bestiary.monsters.map(\.name), ["Goblin Guerriero"])
+
+        let durga = try XCTUnwrap(reading.characters.note(named: "Durga Pietraferma"))
+        XCTAssertEqual(durga, CharacterNote(name: "Durga Pietraferma", armorClass: 14, maxHP: 48,
+                                            initiativeBonus: -1, isBig: false, size: nil))
+        let zharyn = try XCTUnwrap(reading.characters.note(named: "Zharyn il Velato"))
+        XCTAssertEqual(zharyn.maxHP, 14, "a Character nobody plays yet is read all the same")
+        XCTAssertEqual(zharyn.size, "Media")
+    }
+
+    func testAPastBuildIsNotACharactersNote() throws {
+        try write(note("Durga Pietraferma", "player: Baldu\nlevel: 5\nhp: 48"),
+                  to: "Personaggi/Durga_Pietraferma/Durga_Pietraferma.md")
+        try write(note("Durga Pietraferma", "bestiary: false\nplayer: Baldu\nlevel: 3\nhp: 27"),
+                  to: "Personaggi/Durga_Pietraferma/Build_Passate/Durga_Pietraferma_01.md")
+
+        let characters = BestiaryStore.read(workspace).characters
+        XCTAssertEqual(characters.notes.map(\.maxHP), [48])
+        XCTAssertEqual(characters.skipped, [])
+    }
+
+    func testTheSecondCharactersNoteOfANameIsSkippedAndNamed() throws {
+        try write(note("Krathos", "player: Max\nhp: 60"), to: "Personaggi/Krathos/Krathos.md")
+        try write(note("Krathos", "player: Max\nhp: 1"), to: "Personaggi/Krathos/Krathos_copia.md")
+
+        let characters = BestiaryStore.read(workspace).characters
+        XCTAssertEqual(characters.notes.map(\.maxHP), [60])
+        XCTAssertEqual(characters.skipped,
+                       [Bestiary.Skipped(file: "Personaggi/Krathos/Krathos_copia.md",
+                                         reason: "another note already defines “Krathos”")])
+    }
+
+    func testACharactersFenceWithNoNameIsSkippedAndNamed() throws {
+        try write("```statblock\nplayer: Max\nhp: 60\n```\n", to: "Personaggi/Senza_Nome.md")
+        XCTAssertEqual(BestiaryStore.read(workspace).characters.skipped,
+                       [Bestiary.Skipped(file: "Personaggi/Senza_Nome.md",
+                                         reason: "the statblock has no name")])
+    }
+
+    func testAMonsterAndACharacterMayShareAName() throws {
+        // Two different lists: a Character's note and a Monster are never confused, so a hero
+        // named like a creature takes nothing from it.
+        try write(note("Ombra", "ac: 12"), to: "Riferimento/Mostri/Ombra.md")
+        try write(note("Ombra", "player: Ale\nac: 15"), to: "Personaggi/Ombra/Ombra.md")
+
+        let reading = BestiaryStore.read(workspace)
+        XCTAssertEqual(reading.bestiary.monster(named: "Ombra")?.armorClass, 12)
+        XCTAssertEqual(reading.characters.note(named: "Ombra")?.armorClass, 15)
+        XCTAssertEqual(reading.bestiary.skipped + reading.characters.skipped, [])
+    }
+
     // MARK: The old configuration
 
     func testAWorkspaceWithoutAConfigurationHasABestiary() throws {

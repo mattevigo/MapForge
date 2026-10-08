@@ -108,6 +108,29 @@ enum StatblockReader {
         return .monster(monster)
     }
 
+    enum CharacterReading: Equatable {
+        /// A Monster's fence, a fence kept out of the bestiary, or no fence at all.
+        case notACharacter
+        case character(CharacterNote)
+        case skipped(reason: String)
+    }
+
+    /// The Character a fence defines, when it is a Character's (ADR-0024). A past build kept
+    /// with `bestiary: false` is not: a hero has one note and one set of numbers.
+    static func character(from fields: Fields) -> CharacterReading {
+        guard isCharacter(fields), !isOutOfBestiary(fields) else { return .notACharacter }
+        guard let name = name(of: fields) else {
+            return .skipped(reason: String(localized: "the statblock has no name"))
+        }
+        var note = CharacterNote(name: name)
+        note.armorClass = number(fields["ac"])
+        note.maxHP = number(fields["hp"])
+        note.initiativeBonus = number(fields["initiative"])
+        note.size = text(fields["size"])
+        note.isBig = isBig(size: note.size)
+        return .character(note)
+    }
+
     /// The name a fence goes by — what `extends` and a Pawn's `monsterName` match on.
     static func name(of fields: Fields) -> String? {
         text(fields["name"])

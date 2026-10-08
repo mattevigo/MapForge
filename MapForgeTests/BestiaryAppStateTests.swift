@@ -192,7 +192,7 @@ final class BestiaryAppStateTests: XCTestCase {
 
     // MARK: The Workspace
 
-    func testOpeningAWorkspaceReadsItsBestiaryAndClosingForgetsIt() async throws {
+    func testOpeningAWorkspaceReadsItsNotesAndClosingForgetsThem() async throws {
         let root = directory.appendingPathComponent("Vault")
         let support = root.appendingPathComponent(".mapforge")
         let notes = root.appendingPathComponent("03_Bestiario")
@@ -200,6 +200,8 @@ final class BestiaryAppStateTests: XCTestCase {
         try FileManager.default.createDirectory(at: notes, withIntermediateDirectories: true)
         try Data("```statblock\nname: Wraith\nhp: 67 (9d8 + 27)\n```\n".utf8)
             .write(to: notes.appendingPathComponent("Wraith.md"))
+        try Data("```statblock\nname: Durga Pietraferma\nplayer: Baldu\nhp: 48\n```\n".utf8)
+            .write(to: notes.appendingPathComponent("Durga.md"))
 
         let state = makeAppState()
         state.open(Workspace(url: root))
@@ -207,8 +209,10 @@ final class BestiaryAppStateTests: XCTestCase {
 
         XCTAssertEqual(state.bestiary.monsters.map(\.name), ["Wraith"])
         XCTAssertEqual(state.bestiary.monsters.first?.hitPoints, 67)
+        XCTAssertEqual(state.characterNotes.notes.map(\.name), ["Durga Pietraferma"])
 
         state.closeWorkspace()
         XCTAssertEqual(state.bestiary, .closed)
+        XCTAssertEqual(state.characterNotes, CharacterNotes())
     }
 }

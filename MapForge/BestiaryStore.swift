@@ -11,8 +11,20 @@ import Foundation
 /// thread — `AppState.open` runs it off the main one — and a test can point it at a
 /// temporary folder.
 enum BestiaryStore {
+    /// What one walk over the Workspace's notes finds: its Monsters, and its Characters'
+    /// notes (ADR-0024), read together because they are told apart only by their fences.
+    struct Reading: Equatable {
+        var bestiary: Bestiary
+        var characters: CharacterNotes
+    }
+
     static func load(for workspace: Workspace,
                      fileManager: FileManager = .default) -> Bestiary {
+        read(workspace, fileManager: fileManager).bestiary
+    }
+
+    static func read(_ workspace: Workspace,
+                     fileManager: FileManager = .default) -> Reading {
         let root = workspace.url.path
         var bestiary = Bestiary()
 
@@ -54,7 +66,35 @@ enum BestiaryStore {
         }
         // Read in two passes, reported in one order: the vault's.
         bestiary.skipped.sort { $0.file < $1.file }
-        return bestiary
+        return Reading(bestiary: bestiary, characters: characters(among: fences))
+    }
+
+    /// The Characters' notes among the fences, the first by path winning a name as a
+    /// Monster's does.
+    private static func characters(
+        among fences: [(file: String, fields: StatblockReader.Fields)]
+    ) -> CharacterNotes {
+        var characters = CharacterNotes()
+        var names: Set<String> = []
+        for fence in fences {
+            switch StatblockReader.character(from: fence.fields) {
+            case .notACharacter:
+                continue
+            case .skipped(let reason):
+                characters.skipped.append(.init(file: fence.file, reason: reason))
+            case .character(let note):
+                guard names.insert(note.name).inserted else {
+                    characters.skipped.append(.init(
+                        file: fence.file, reason: String(localized: "another note already defines “\(note.name)”")))
+                    continue
+                }
+                characters.notes.append(note)
+            }
+        }
+        characters.notes.sort {
+            $0.name.localizedStandardCompare($1.name) == .orderedAscending
+        }
+        return characters
     }
 
     /// What `extends` can name: every named fence that is not a Character's, by name, the
