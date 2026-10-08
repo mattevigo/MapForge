@@ -113,6 +113,139 @@ final class BestiaryTests: XCTestCase {
                                          reason: "another note already defines “Lich”")])
     }
 
+    // MARK: A Monster written as another
+
+    private let esploratore = """
+        ac: 13
+        ac_class: armatura di cuoio
+        hp: 16
+        initiative: 2
+        size: Media
+        languages: Comune
+        actions:
+          - name: Spada Corta
+            desc: "+4 al tiro per colpire."
+          - name: Arco Lungo
+            desc: "+4 al tiro per colpire."
+        """
+
+    private func monster(_ name: String, in bestiary: Bestiary) -> Monster? {
+        bestiary.monster(named: name)
+    }
+
+    func testAnNPCIsItsBaseWithItsOwnChangesLaidOver() throws {
+        // Vinx, as DM Realm writes a campaign NPC.
+        try write(note("Esploratore", esploratore), to: "Riferimento/Mostri/Esploratore.md")
+        try write(note("Vinx", "extends: Esploratore\nsize: Piccola\nlanguages: Comune e Nanico"),
+                  to: "Campagne/Eroi/PNG/Vinx.md")
+
+        let bestiary = BestiaryStore.load(for: workspace)
+        let vinx = try XCTUnwrap(monster("Vinx", in: bestiary))
+        XCTAssertEqual(vinx.name, "Vinx")
+        XCTAssertEqual(vinx.armorClass, 13)
+        XCTAssertEqual(vinx.hitPoints, 16)
+        XCTAssertEqual(vinx.initiativeBonus, 2)
+        XCTAssertEqual(vinx.size, "Piccola")
+        XCTAssertEqual(vinx.languages, "Comune e Nanico")
+        XCTAssertEqual(vinx.actions.map(\.name), ["Spada Corta", "Arco Lungo"])
+        XCTAssertNotNil(monster("Esploratore", in: bestiary), "the base is still a Monster")
+        XCTAssertEqual(bestiary.skipped, [])
+    }
+
+    func testAnNPCsNumbersReplaceTheBases() throws {
+        // Ugof overrides armour and hit points and keeps the base's initiative.
+        try write(note("Esploratore", esploratore), to: "Riferimento/Mostri/Esploratore.md")
+        try write(note("Ugof", "extends: Esploratore\nac: 12\nac_class: senza armatura\nhp: 58"),
+                  to: "Campagne/Eroi/PNG/Ugof.md")
+
+        let ugof = try XCTUnwrap(monster("Ugof", in: BestiaryStore.load(for: workspace)))
+        XCTAssertEqual(ugof.armorClass, 12)
+        XCTAssertEqual(ugof.hitPoints, 58)
+        XCTAssertEqual(ugof.initiativeBonus, 2)
+    }
+
+    func testAListTheNPCWritesReplacesTheBasesWhole() throws {
+        try write(note("Esploratore", esploratore), to: "Riferimento/Mostri/Esploratore.md")
+        try write(note("Narthus", """
+            extends: Esploratore
+            actions:
+              - name: Pugnale
+                desc: "+3 al tiro per colpire."
+            """), to: "Campagne/Eroi/PNG/Narthus.md")
+
+        let narthus = try XCTUnwrap(monster("Narthus", in: BestiaryStore.load(for: workspace)))
+        XCTAssertEqual(narthus.actions.map(\.name), ["Pugnale"])
+    }
+
+    func testAChainIsFollowedAndTheNearestChangeWins() throws {
+        // A base defined *after* the note extending it in path order is found all the same.
+        try write(note("Capo", "extends: Veterano\nhp: 90"), to: "A/Capo.md")
+        try write(note("Veterano", "extends: Esploratore\nac: 17\nhp: 58"), to: "B/Veterano.md")
+        try write(note("Esploratore", esploratore), to: "C/Esploratore.md")
+
+        let capo = try XCTUnwrap(monster("Capo", in: BestiaryStore.load(for: workspace)))
+        XCTAssertEqual(capo.armorClass, 17)
+        XCTAssertEqual(capo.hitPoints, 90)
+        XCTAssertEqual(capo.initiativeBonus, 2)
+    }
+
+    func testSeveralBasesAreLaidInOrder() throws {
+        try write(note("Esploratore", esploratore), to: "Esploratore.md")
+        try write(note("Bandito", "ac: 12\nhp: 11"), to: "Bandito.md")
+        try write(note("Ladro", "extends: [Esploratore, Bandito]"), to: "Ladro.md")
+
+        let ladro = try XCTUnwrap(monster("Ladro", in: BestiaryStore.load(for: workspace)))
+        XCTAssertEqual(ladro.armorClass, 12)
+        XCTAssertEqual(ladro.initiativeBonus, 2)
+    }
+
+    func testABaseKeptOutOfTheBestiaryCanStillBeExtended() throws {
+        try write(note("Guardia Base", "bestiary: false\nac: 16\nhp: 11"), to: "Modelli/Guardia_Base.md")
+        try write(note("Guardia del Porto", "extends: Guardia Base"), to: "PNG/Guardia_del_Porto.md")
+
+        let bestiary = BestiaryStore.load(for: workspace)
+        XCTAssertEqual(bestiary.monsters.map(\.name), ["Guardia del Porto"])
+        XCTAssertEqual(monster("Guardia del Porto", in: bestiary)?.armorClass, 16)
+    }
+
+    func testAHiddenDraftNeverTakesTheNameOfAListedMonster() throws {
+        // The draft comes first by path, and still loses the name to the Monster the DM sees.
+        try write(note("Esploratore", "bestiary: false\nac: 99"), to: "A/Bozza.md")
+        try write(note("Esploratore", esploratore), to: "B/Esploratore.md")
+        try write(note("Vinx", "extends: Esploratore"), to: "C/Vinx.md")
+
+        XCTAssertEqual(monster("Vinx", in: BestiaryStore.load(for: workspace))?.armorClass, 13)
+    }
+
+    func testAMissingBaseIsSkippedAndNamed() throws {
+        try write(note("Vinx", "extends: Esploratore"), to: "PNG/Vinx.md")
+
+        let bestiary = BestiaryStore.load(for: workspace)
+        XCTAssertEqual(bestiary.monsters, [])
+        XCTAssertEqual(bestiary.skipped,
+                       [Bestiary.Skipped(file: "PNG/Vinx.md",
+                                         reason: "extends: “Esploratore” names a Monster no note defines")])
+    }
+
+    func testALoopIsSkippedRatherThanFollowed() throws {
+        try write(note("Uno", "extends: Due"), to: "Uno.md")
+        try write(note("Due", "extends: Uno"), to: "Due.md")
+        try write(note("Tre", "extends: Tre"), to: "Tre.md")
+
+        let bestiary = BestiaryStore.load(for: workspace)
+        XCTAssertEqual(bestiary.monsters, [])
+        XCTAssertEqual(bestiary.skipped.map(\.file), ["Due.md", "Tre.md", "Uno.md"])
+        XCTAssertEqual(Set(bestiary.skipped.map(\.reason)), ["its extends chain comes back to itself"])
+    }
+
+    func testACharacterIsNeverABase() throws {
+        try write(note("Durga Pietraferma", "player: Baldu\nac: 14"), to: "Personaggi/Durga.md")
+        try write(note("Sosia", "extends: Durga Pietraferma"), to: "PNG/Sosia.md")
+
+        XCTAssertEqual(BestiaryStore.load(for: workspace).skipped.map(\.reason),
+                       ["extends: “Durga Pietraferma” names a Monster no note defines"])
+    }
+
     // MARK: The old configuration
 
     func testAWorkspaceWithoutAConfigurationHasABestiary() throws {

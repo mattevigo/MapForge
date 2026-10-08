@@ -13865,6 +13865,86 @@
         }
       }
     },
+    "extends: “%@” names a Monster no note defines": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "extends: „%@“ nennt ein Monster, das keine Notiz definiert"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "το extends: «%@» ονομάζει ένα τέρας που δεν ορίζει καμία σημείωση"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "extends: «%@» nombra un monstruo que ninguna nota define"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "extends : « %@ » nomme un monstre qu’aucune note ne définit"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "extends: “%@” nomina un mostro che nessuna nota definisce"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "extends: “%@” nomeia um monstro que nenhuma nota define"
+          }
+        }
+      }
+    },
+    "its extends chain comes back to itself": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "seine extends-Kette führt zu ihm selbst zurück"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "η αλυσίδα extends του επιστρέφει στον εαυτό του"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "su cadena de extends vuelve sobre sí misma"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sa chaîne d’extends revient sur elle-même"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "la sua catena di extends torna su sé stessa"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sua cadeia de extends volta para si mesma"
+          }
+        }
+      }
+    },
     "label": {
       "localizations": {
         "de": {

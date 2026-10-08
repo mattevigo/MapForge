@@ -264,7 +264,8 @@ The **Bestiary is never saved**: it is a reading of every markdown note in the W
 hidden folders (`.git`, `.obsidian`, `.mapforge`) aside, taken when the Workspace opens and at
 no other time. A note is a Monster when it contains a ```` ```statblock ```` YAML fence with
 at least a `name`, unless the fence says `bestiary: false` or has a key only a
-Character's has (`player`, `species`, `class`, `level`). What a Monster stamps onto a Pawn
+Character's has (`player`, `species`, `class`, `level`). A fence with `extends: <name>` is
+that Monster with the fence's own keys laid over it, each replacing the base's value whole. What a Monster stamps onto a Pawn
 (`armorClass`, `hitPoints` → `maxHP`/`currentHP`, `initiativeBonus`, size → `isBig`) is
 copied into `stats.json` and `.fog.json`; only the name is remembered in `monsterName`.
 

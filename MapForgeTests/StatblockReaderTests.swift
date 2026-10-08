@@ -95,6 +95,34 @@ final class StatblockReaderTests: XCTestCase {
         XCTAssertEqual(monster(fence("ac: 15 (armatura naturale)"))?.armorClass, 15)
     }
 
+    func testAPlusSignAndAnUnquotedNegativeAreNumbers() {
+        XCTAssertEqual(monster(fence("initiative: +2"))?.initiativeBonus, 2)
+        XCTAssertEqual(monster(fence("initiative: -1"))?.initiativeBonus, -1)
+        XCTAssertEqual(monster(fence("initiative: \"+2\""))?.initiativeBonus, 2)
+    }
+
+    func testAFormulaIsNoNumberAndTheMonsterStaysAMonster() {
+        // A summoned spirit, as DM Realm imports it. Its leading 11 is wrong at every spell
+        // level, so it is not taken (ADR-0023).
+        let spirit = monster(fence("""
+        ac: 11 + il livello dell'incantesimo
+        hp: 40 + 10 per ogni livello dell'incantesimo superiore al 4°
+        initiative: 2
+        """))
+        XCTAssertNotNil(spirit)
+        XCTAssertNil(spirit?.armorClass)
+        XCTAssertNil(spirit?.hitPoints)
+        XCTAssertEqual(spirit?.initiativeBonus, 2)
+    }
+
+    func testOnlyABracketMayFollowTheNumber() {
+        XCTAssertNil(monster(fence("ac: 15 armatura naturale"))?.armorClass)
+        XCTAssertNil(monster(fence("ac: 15.5"))?.armorClass)
+        XCTAssertNil(monster(fence("ac: armatura 15"))?.armorClass)
+        XCTAssertNil(monster(fence("ac: \"−\""))?.armorClass)
+        XCTAssertEqual(monster(fence("ac: 15(armatura naturale)"))?.armorClass, 15)
+    }
+
     func testAMonsterMissingNumbersIsStillAMonster() {
         // Offered anyway: it stamps what it has, and the tracker flags the rest.
         let bare = monster(fence("size: Media"))

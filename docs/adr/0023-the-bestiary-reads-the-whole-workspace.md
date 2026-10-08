@@ -28,7 +28,9 @@ nobody plays yet, as it did for two of the first nine. Hidden folders (`.git`, `
 A DM Realm NPC is usually written as `extends: Esploratore` plus the values that change. Such
 a Monster is its base with the NPC's keys laid over it, as Fantasy Statblocks resolves it. Each
 key the NPC writes replaces the base's value whole, so an NPC's `actions` replace the base's
-list rather than adding to it. Chains are followed. A base that no note defines, or a loop, is
+list rather than adding to it. Chains are followed, and several bases (`extends: [A, B]`)
+are laid in order, the later winning. A base marked `bestiary: false` can still be extended,
+but never takes the name of a Monster the DM can see, and a Character is never a base. A base that no note defines, or a loop, is
 **skipped and listed** with its reason, which is how ADR-0020 reports any note it cannot read.
 
 ## Numbers are numbers, or nothing

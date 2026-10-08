@@ -15,22 +15,35 @@ enum BestiaryStore {
                      fileManager: FileManager = .default) -> Bestiary {
         let root = workspace.url.path
         var bestiary = Bestiary()
-        var names: Set<String> = []
+
+        // Every fence first, because a Monster may `extend` one in a note further down the
+        // path order — a campaign's NPC is a reference Monster with changes (ADR-0023).
+        var fences: [(file: String, fields: StatblockReader.Fields)] = []
         for path in notes(under: root, fileManager: fileManager) {
             let url = URL(fileURLWithPath: (root as NSString).appendingPathComponent(path))
             guard let markdown = try? String(contentsOf: url, encoding: .utf8) else {
                 bestiary.skipped.append(.init(file: path, reason: String(localized: "the note could not be read")))
                 continue
             }
-            switch StatblockReader.read(markdown) {
+            switch StatblockReader.fields(in: markdown) {
+            case .none: continue
+            case .unreadable(let reason): bestiary.skipped.append(.init(file: path, reason: reason))
+            case .fields(let fields): fences.append((path, fields))
+            }
+        }
+
+        let bases = Self.bases(among: fences.map(\.fields))
+        var names: Set<String> = []
+        for fence in fences {
+            switch StatblockReader.monster(from: fence.fields, bases: bases) {
             case .notAMonster:
                 continue
             case .skipped(let reason):
-                bestiary.skipped.append(.init(file: path, reason: reason))
+                bestiary.skipped.append(.init(file: fence.file, reason: reason))
             case .monster(let monster):
                 guard names.insert(monster.name).inserted else {
                     bestiary.skipped.append(.init(
-                        file: path, reason: String(localized: "another note already defines “\(monster.name)”")))
+                        file: fence.file, reason: String(localized: "another note already defines “\(monster.name)”")))
                     continue
                 }
                 bestiary.monsters.append(monster)
@@ -39,7 +52,26 @@ enum BestiaryStore {
         bestiary.monsters.sort {
             $0.name.localizedStandardCompare($1.name) == .orderedAscending
         }
+        // Read in two passes, reported in one order: the vault's.
+        bestiary.skipped.sort { $0.file < $1.file }
         return bestiary
+    }
+
+    /// What `extends` can name: every named fence that is not a Character's, by name, the
+    /// first by path winning as it does in the list. Fences kept out of the Bestiary count
+    /// too — `bestiary: false` keeps a base out of the search, not out of reach — but only
+    /// for names no listed Monster already holds, so a hidden draft never takes the name of
+    /// the Monster the DM sees.
+    static func bases(among fences: [StatblockReader.Fields]) -> [String: StatblockReader.Fields] {
+        var bases: [String: StatblockReader.Fields] = [:]
+        let candidates = fences.filter { !StatblockReader.isCharacter($0) }
+        for outOfBestiary in [false, true] {
+            for fields in candidates where StatblockReader.isOutOfBestiary(fields) == outOfBestiary {
+                guard let name = StatblockReader.name(of: fields), bases[name] == nil else { continue }
+                bases[name] = fields
+            }
+        }
+        return bases
     }
 
     /// Every markdown note under `root`, relative to it, in path order — so that which of two

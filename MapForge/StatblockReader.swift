@@ -8,13 +8,14 @@ import Yams
 /// DM's prose and is ignored.
 ///
 /// **The only place YAML is known about** (ADR-0019). Yams turns the fence into a tree; what
-/// a Monster *is* — which integer `hp: 67 (9d8 + 27)` means, that `−` is a minus — is decided
-/// here, on top of that tree.
+/// a Monster *is* — which integer `hp: 67 (9d8 + 27)` means, that `−` is a minus, what
+/// `extends` lays over what — is decided here, on top of that tree.
 ///
-/// **Lenient, because the notes are hand-written** (ADR-0020). A value that cannot be read
-/// is absent rather than fatal; only a fence that is not YAML at all, or names nothing, is
-/// refused — and then with a reason, because a Monster silently missing from a search is the
-/// failure a DM cannot diagnose.
+/// **Lenient with prose, strict with numbers** (ADR-0020, ADR-0023). A value that cannot be
+/// read is absent rather than fatal; only a fence that is not YAML at all, names nothing, or
+/// extends what cannot be found is refused — and then with a reason, because a Monster
+/// silently missing from a search is the failure a DM cannot diagnose. A number is a number
+/// or nothing: an empty field asks the DM, a wrong one does not.
 enum StatblockReader {
     enum Reading: Equatable {
         /// No fence — a note about a tavern, an image, anything — or a fence that says it is
@@ -25,35 +26,64 @@ enum StatblockReader {
         case skipped(reason: String)
     }
 
+    /// A fence's fields as YAML gives them, before they are a Monster.
+    typealias Fields = [String: Any]
+
+    enum Fence {
+        case none
+        case fields(Fields)
+        /// A fence that is not YAML, or not a list of fields.
+        case unreadable(reason: String)
+    }
+
+    /// One note on its own. A note that `extends` another cannot be read this way — the
+    /// Bestiary reads every fence first and calls `monster(from:bases:)`.
     static func read(_ markdown: String) -> Reading {
-        guard let yaml = fence(in: markdown) else { return .notAMonster }
-
-        let tree: [String: Any]
-        do {
-            guard let loaded = try Yams.load(yaml: yaml) as? [String: Any] else {
-                return .skipped(reason: String(localized: "the statblock is not a list of fields"))
-            }
-            tree = loaded
-        } catch {
-            return .skipped(reason: String(localized: "the statblock is not valid YAML"))
+        switch fields(in: markdown) {
+        case .none: return .notAMonster
+        case .unreadable(let reason): return .skipped(reason: reason)
+        case .fields(let fields): return monster(from: fields, bases: [:])
         }
+    }
 
+    /// The fields of the note's statblock, read but not yet judged.
+    static func fields(in markdown: String) -> Fence {
+        guard let yaml = fence(in: markdown) else { return .none }
+        do {
+            guard let loaded = try Yams.load(yaml: yaml) as? Fields else {
+                return .unreadable(reason: String(localized: "the statblock is not a list of fields"))
+            }
+            return .fields(loaded)
+        } catch {
+            return .unreadable(reason: String(localized: "the statblock is not valid YAML"))
+        }
+    }
+
+    /// The Monster a fence defines, with what it `extends` taken from `bases` — every named
+    /// fence in the Workspace that is not a Character's, by name.
+    static func monster(from fields: Fields, bases: [String: Fields]) -> Reading {
         // Not every fence is a Monster (ADR-0023). `bestiary: false` is Fantasy Statblocks'
         // own word for one that is not — a Character's past build, a template — and a fence
         // with a key only a Character has is a Character's. Neither is reported: the note is
         // saying what it is, before it has a name to be skipped under.
-        if tree["bestiary"] as? Bool == false || isCharacter(tree) {
+        if isOutOfBestiary(fields) || isCharacter(fields) {
             return .notAMonster
         }
 
-        guard let name = text(tree["name"]) else {
+        guard let name = name(of: fields) else {
             return .skipped(reason: String(localized: "the statblock has no name"))
         }
 
+        let tree: Fields
+        switch resolved(fields, bases: bases, chain: [name]) {
+        case .success(let merged): tree = merged
+        case .failure(let unresolved): return .skipped(reason: unresolved.reason)
+        }
+
         var monster = Monster(name: name)
-        monster.armorClass = leadingInteger(tree["ac"])
-        monster.hitPoints = leadingInteger(tree["hp"])
-        monster.initiativeBonus = leadingInteger(tree["initiative"])
+        monster.armorClass = number(tree["ac"])
+        monster.hitPoints = number(tree["hp"])
+        monster.initiativeBonus = number(tree["initiative"])
         monster.size = text(tree["size"])
         monster.isBig = isBig(size: monster.size)
         monster.type = text(tree["type"])
@@ -76,6 +106,63 @@ enum StatblockReader {
         monster.reactions = features(tree["reactions"])
         monster.legendaryActions = features(tree["legendary_actions"])
         return .monster(monster)
+    }
+
+    /// The name a fence goes by — what `extends` and a Pawn's `monsterName` match on.
+    static func name(of fields: Fields) -> String? {
+        text(fields["name"])
+    }
+
+    /// `bestiary: false`: kept out of the list, though another fence may still extend it.
+    static func isOutOfBestiary(_ fields: Fields) -> Bool {
+        fields["bestiary"] as? Bool == false
+    }
+
+    // MARK: Extends
+
+    enum Unresolved: Error, Equatable {
+        case missing(String)
+        case loop
+
+        var reason: String {
+            switch self {
+            case .missing(let base):
+                return String(localized: "extends: “\(base)” names a Monster no note defines")
+            case .loop:
+                return String(localized: "its extends chain comes back to itself")
+            }
+        }
+    }
+
+    /// A fence with what it `extends` laid underneath, as Fantasy Statblocks resolves it: each
+    /// key the fence writes replaces the base's value whole — an NPC's `actions` are its
+    /// actions, not the base's plus its own — and the rest is the base's. Several bases
+    /// (`extends: [A, B]`) are laid in order, the later winning. `chain` holds every name
+    /// already on the way down, so a loop is caught rather than followed forever.
+    static func resolved(_ fields: Fields, bases: [String: Fields],
+                         chain: [String]) -> Result<Fields, Unresolved> {
+        let parents = baseNames(fields["extends"])
+        guard !parents.isEmpty else { return .success(fields) }
+        var merged: Fields = [:]
+        for parent in parents {
+            guard !chain.contains(parent) else { return .failure(.loop) }
+            guard let base = bases[parent] else { return .failure(.missing(parent)) }
+            switch resolved(base, bases: bases, chain: chain + [parent]) {
+            case .failure(let unresolved): return .failure(unresolved)
+            case .success(let full): merged.merge(full) { _, later in later }
+            }
+        }
+        // Whether a fence is listed is its own say, never its base's.
+        merged["bestiary"] = nil
+        merged.merge(fields) { _, own in own }
+        merged["extends"] = nil
+        return .success(merged)
+    }
+
+    /// `extends: Esploratore` or `extends: [Esploratore, Bandito]`.
+    private static func baseNames(_ value: Any?) -> [String] {
+        if let list = value as? [Any] { return list.compactMap(text) }
+        return text(value).map { [$0] } ?? []
     }
 
     /// The text inside the note's first `statblock` fence, or nil when it has none.
@@ -137,21 +224,25 @@ enum StatblockReader {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    /// The signed integer a value starts with: 27 from `27`, 67 from `67 (9d8 + 27)`, −1
-    /// from `"−1 (9)"`.
-    private static func leadingInteger(_ value: Any?) -> Int? {
+    /// A signed integer, alone or followed by a bracket: 27, `67 (9d8 + 27)`, `"−1 (9)"`.
+    /// Anything else is no number at all — `11 + il livello dell'incantesimo` is a formula
+    /// whose leading 11 is wrong at every spell level, and a wrong number looks trustworthy
+    /// where an empty field asks (ADR-0023).
+    static func number(_ value: Any?) -> Int? {
         if let value = value as? Int { return value }
         guard let text = text(value) else { return nil }
-        var digits = ""
+        var rest = Substring(text)
         var sign = 1
-        for (index, character) in text.enumerated() {
-            if index == 0, character == "+" { continue }
-            // U+2212 is what a typographically careful note uses, and `Int("−1")` is nil.
-            if index == 0, character == "-" || character == "\u{2212}" { sign = -1; continue }
-            guard character.isASCII, character.isNumber else { break }
-            digits.append(character)
+        // U+2212 is what a typographically careful note uses, and `Int("−1")` is nil.
+        if let first = rest.first, first == "+" || first == "-" || first == "\u{2212}" {
+            sign = first == "+" ? 1 : -1
+            rest = rest.dropFirst()
         }
-        return Int(digits).map { $0 * sign }
+        let digits = rest.prefix { $0.isASCII && $0.isNumber }
+        guard let magnitude = Int(digits) else { return nil }
+        let tail = rest.dropFirst(digits.count).trimmingCharacters(in: .whitespaces)
+        guard tail.isEmpty || (tail.hasPrefix("(") && tail.hasSuffix(")")) else { return nil }
+        return magnitude * sign
     }
 
     private static func features(_ value: Any?) -> [Monster.Feature] {
@@ -174,7 +265,7 @@ enum StatblockReader {
         }
         return maps.flatMap { map in
             map.keys.sorted().compactMap { key in
-                leadingInteger(map[key]).map { Monster.Proficiency(name: key, bonus: $0) }
+                number(map[key]).map { Monster.Proficiency(name: key, bonus: $0) }
             }
         }
     }
