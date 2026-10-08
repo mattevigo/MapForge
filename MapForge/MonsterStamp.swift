@@ -57,13 +57,15 @@ enum MonsterStamp {
 
     /// The label a Pawn takes on becoming `monster`: "GG1", "GG2" for two Gnoll Guerrieri.
     ///
-    /// Only a label that is still the bare number the Pawn was born with
-    /// (`Pawn.nextLabel`) is replaced — anything else is something the DM typed, and is
+    /// Only a label the app gave is replaced: the bare number the Pawn was born with
+    /// (`Pawn.nextLabel`), or the one a `previous` Monster gave it — "GG1" on a Gnoll
+    /// Guerriero the DM is making an Ogre. Anything else is something the DM typed, and is
     /// theirs. Numbered one past the highest label of the same initials on the Map, whatever
     /// Monster it belongs to: Gnoll Guerriero and Goblin Guerriero share "GG" and share one
     /// run of numbers, because what a label is *for* in the Order is telling two rows apart.
-    static func label(for monster: Monster, replacing label: String, among pawns: [Pawn]) -> String {
-        guard Int(label) != nil else { return label }
+    static func label(for monster: Monster, replacing label: String, from previous: String? = nil,
+                      among pawns: [Pawn]) -> String {
+        guard Int(label) != nil || isLabel(label, givenBy: previous) else { return label }
         let prefix = initials(of: monster.name)
         guard !prefix.isEmpty else { return label }
         let highest = pawns.compactMap { pawn -> Int? in
@@ -71,6 +73,14 @@ enum MonsterStamp {
             return Int(pawn.label.dropFirst(prefix.count))
         }.max() ?? 0
         return "\(prefix)\(highest + 1)"
+    }
+
+    /// Whether `label` is one `monsterName` would have given: its initials and a number.
+    static func isLabel(_ label: String, givenBy monsterName: String?) -> Bool {
+        guard let monsterName else { return false }
+        let prefix = initials(of: monsterName)
+        guard !prefix.isEmpty, label.hasPrefix(prefix) else { return false }
+        return Int(label.dropFirst(prefix.count)) != nil
     }
 
     /// The first letter of each word, capitalised — or the first two letters of a name that

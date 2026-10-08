@@ -40,6 +40,34 @@ final class EditPawnDraftMonsterTests: XCTestCase {
         XCTAssertEqual(draft.label, "GG1")
     }
 
+    func testANewMonsterRelabelsWhatTheOldOneLabelled() {
+        // "GG1" was the app's label for the Gnoll, given in an earlier sheet or by Add: the
+        // DM making it an Ogre tonight should not be left with an Ogre called GG1.
+        let gg1 = creature("GG1", monsterName: "Gnoll Guerriero")
+        var draft = EditPawnDraft(pawn: gg1)
+        draft.pick(ogre, among: [gg1, creature("Og1", monsterName: "Ogre")])
+        XCTAssertEqual(draft.label, "Og2")
+    }
+
+    func testAMonsterWithTheSameInitialsKeepsItsNumber() {
+        // Gnoll Guerriero to Goblin Guerriero: still GG, and not counted against itself.
+        let gg1 = creature("GG1", monsterName: "Gnoll Guerriero")
+        var draft = EditPawnDraft(pawn: gg1)
+        draft.pick(Monster(name: "Goblin Guerriero"), among: [gg1])
+        XCTAssertEqual(draft.label, "GG1")
+    }
+
+    func testALabelThatIsNotTheOldMonstersStaysTheDMs() {
+        var named = EditPawnDraft(pawn: creature("Il Capobranco", monsterName: "Gnoll Guerriero"))
+        named.pick(ogre, among: [])
+        XCTAssertEqual(named.label, "Il Capobranco")
+
+        // Initials, but not the Gnoll's: the DM typed them.
+        var typed = EditPawnDraft(pawn: creature("Wr2", monsterName: "Gnoll Guerriero"))
+        typed.pick(ogre, among: [])
+        XCTAssertEqual(typed.label, "Wr2")
+    }
+
     func testALabelTheDMTypedSurvivesAPick() {
         var draft = EditPawnDraft(pawn: creature("Il Capobranco"))
         draft.pick(gnoll, among: [])
