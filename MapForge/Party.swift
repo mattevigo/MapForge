@@ -45,6 +45,20 @@ struct PartyCharacter: Codable, Equatable, Identifiable {
         self.noteName = noteName
     }
 
+    /// Says which note is this Character's own. A Character still nameless — one being
+    /// created from the note — takes the note's full name for the DM to shorten; one that has
+    /// a name keeps it, because "Durga" is the DM's label and the note's "Durga Pietraferma"
+    /// is not a correction of it.
+    mutating func link(to note: CharacterNote) {
+        noteName = note.name
+        if name.trimmingCharacters(in: .whitespaces).isEmpty { name = note.name }
+    }
+
+    /// Forgets which note is its own: it stamps no numbers until linked again.
+    mutating func unlink() {
+        noteName = nil
+    }
+
     private enum CodingKeys: String, CodingKey {
         case id, name, colorHex, sightSquares, noteName
     }

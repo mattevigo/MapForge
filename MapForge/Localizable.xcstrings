@@ -2356,6 +2356,47 @@
         }
       }
     },
+    "AC %@ · HP %@ · Initiative %@": {
+      "comment": "A Character's numbers as its note gives them, read-only",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RK %@ · TP %@ · Initiative %@"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AC %@ · HP %@ · Initiative %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CA %@ · PG %@ · Iniciativa %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CA %@ · Pv %@ · Initiative %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CA %@ · PF %@ · Iniziativa %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CA %@ · PV %@ · Iniciativa %@"
+          }
+        }
+      }
+    },
     "Ability Check": {
       "localizations": {
         "de": {
@@ -3567,6 +3608,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cancelar"
+          }
+        }
+      }
+    },
+    "Character notes the app could not take": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Charakternotizen, die die App nicht übernehmen konnte"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Σημειώσεις χαρακτήρων που η εφαρμογή δεν μπόρεσε να δεχτεί"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas de personajes que la app no ha podido admitir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes de personnages que l’app n’a pas pu prendre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note dei personaggi che l'app non ha potuto accettare"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas de personagens que o app não conseguiu aceitar"
           }
         }
       }
@@ -5863,6 +5944,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Esquecer o monstro. O bloco de estatísticas mantém os números."
+          }
+        }
+      }
+    },
+    "Forget this note. The Character stamps no numbers until it has one.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Notiz vergessen. Der Charakter erhält keine Werte, bis er wieder eine hat."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ξεχάστε αυτή τη σημείωση. Ο χαρακτήρας δεν παίρνει αριθμούς μέχρι να αποκτήσει μία."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olvidar esta nota. El personaje no tendrá valores hasta que tenga una."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oublier cette note. Le personnage n’a pas de valeurs tant qu’il n’en a pas une."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dimentica questa nota. Il personaggio non ha valori finché non ne ha una."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esquecer esta nota. O personagem fica sem números até ter uma."
           }
         }
       }
@@ -8192,6 +8313,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nenhuma nota dá os números deste personagem: suas peças são colocadas sem eles."
+          }
+        }
+      }
+    },
+    "No note: its Pawns are stamped without numbers.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Notiz: Seine Spielfiguren erhalten keine Werte."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Χωρίς σημείωση: τα πιόνια του τοποθετούνται χωρίς αριθμούς."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin nota: sus fichas se colocan sin valores."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sans note : ses pions sont posés sans valeurs."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna nota: le sue pedine vengono piazzate senza valori."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem nota: suas peças são colocadas sem números."
           }
         }
       }
@@ -10734,6 +10895,46 @@
         }
       }
     },
+    "Search Characters' notes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notizen der Charaktere suchen"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Αναζήτηση σημειώσεων χαρακτήρων"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar notas de personajes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechercher des notes de personnages"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerca note dei personaggi"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar notas de personagens"
+          }
+        }
+      }
+    },
     "Search Monsters": {
       "localizations": {
         "de": {
@@ -12297,46 +12498,6 @@
         }
       }
     },
-    "The Bestiary is read when the Workspace opens.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Das Bestiarium wird beim Öffnen des Arbeitsbereichs gelesen."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Το θηριολόγιο διαβάζεται όταν ανοίγει ο χώρος εργασίας."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "El bestiario se lee al abrir el espacio de trabajo."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le bestiaire est lu à l’ouverture de l’espace de travail."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il bestiario viene letto all'apertura dell'area di lavoro."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O bestiário é lido quando o espaço de trabalho é aberto."
-          }
-        }
-      }
-    },
     "The Combat Log is closed. Nobody is healed and no Condition is cleared.": {
       "localizations": {
         "de": {
@@ -12493,6 +12654,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "A pasta onde ficam seus mapas. O MapForge guarda ali seus grupos e ajustes."
+          }
+        }
+      }
+    },
+    "The notes are read when the Workspace opens.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Notizen werden beim Öffnen des Arbeitsbereichs gelesen."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Οι σημειώσεις διαβάζονται όταν ανοίγει ο χώρος εργασίας."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las notas se leen al abrir el espacio de trabajo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les notes sont lues à l’ouverture de l’espace de travail."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le note vengono lette all'apertura dell'area di lavoro."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As notas são lidas quando o espaço de trabalho é aberto."
           }
         }
       }
@@ -14478,6 +14679,46 @@
     },
     "—": {
       "shouldTranslate": false
+    },
+    "— not found": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— nicht gefunden"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— δεν βρέθηκε"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— no encontrada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— introuvable"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— non trovata"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— não encontrada"
+          }
+        }
+      }
     },
     "— not in the Bestiary": {
       "localizations": {

@@ -21,8 +21,8 @@ text that varies between Workspaces and carries conditions ("with the goggles wo
 ## The DM says which note is a Character's own
 
 A Character remembers its note by the fence's `name`, as a Pawn remembers its Monster
-(ADR-0020): a name, not a path. The DM picks the note from a search in the Character sheet,
-which then shows the note's numbers read-only. The app never links a Character by guessing
+(ADR-0020): a name, not a path. The DM picks the note from a search in the roster's
+Character editor, which then shows the note's numbers read-only. The app never links a Character by guessing
 from its name, not even on upgrade, when "Durga" plainly means Durga Pietraferma. Existing
 Characters therefore start unlinked, and the numbers typed into `parties.json` are dropped
 rather than kept as a fallback.

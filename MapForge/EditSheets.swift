@@ -321,20 +321,23 @@ private struct MonsterSearchField: View {
     }
 }
 
-/// "37 Monsters · 1 file skipped", opening onto which files and why.
-private struct SkippedNotesButton: View {
+/// "37 Monsters · 1 file skipped", opening onto which files and why. Also under the
+/// Character note box, with its own `title`.
+struct SkippedNotesButton: View {
     let caption: String
     let skipped: [Bestiary.Skipped]
+    var title = String(localized: "Notes with a statblock the Bestiary could not take")
+    var identifier = "bestiary-caption"
     @State private var isShowing = false
 
     var body: some View {
         Button(caption) { isShowing = true }
             .buttonStyle(.link)
             .font(.caption)
-            .accessibilityIdentifier("bestiary-caption")
+            .accessibilityIdentifier(identifier)
             .popover(isPresented: $isShowing, arrowEdge: .bottom) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Notes with a statblock the Bestiary could not take")
+                    Text(title)
                         .font(.caption.weight(.semibold))
                     ForEach(skipped) { note in
                         VStack(alignment: .leading, spacing: 1) {
@@ -342,7 +345,7 @@ private struct SkippedNotesButton: View {
                             Text(note.reason).font(.caption).foregroundStyle(.secondary)
                         }
                     }
-                    Text("The Bestiary is read when the Workspace opens.")
+                    Text("The notes are read when the Workspace opens.")
                         .font(.caption2).foregroundStyle(.secondary)
                 }
                 .padding(12)

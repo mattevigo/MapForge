@@ -1934,6 +1934,9 @@ struct ControlView: View {
                     // a short drag to the Map is the whole point of it being here rather
                     // than in a window of its own.
                     partyGroup
+                        // Above its neighbours, so the Character editor's note results can
+                        // float over the Lights below rather than under them.
+                        .zIndex(1)
                     if !appState.fog.lights.isEmpty {
                         liveGroup(String(localized: "Lights"), count: appState.fog.lights.count) {
                             ForEach(Array(appState.fog.lights.enumerated()), id: \.element.id) { index, light in
@@ -2050,12 +2053,12 @@ struct ControlView: View {
                 } else if let party = appState.activeParty {
                     ForEach(party.characters) { character in
                         if editedCharacter?.id == character.id {
-                            characterEditor()
+                            characterEditor().zIndex(1)
                         } else {
                             characterRow(character)
                         }
                     }
-                    if isAddingCharacter { characterEditor() }
+                    if isAddingCharacter { characterEditor().zIndex(1) }
                 }
                 }
             }
@@ -2212,6 +2215,13 @@ struct ControlView: View {
                 TextField("Name", text: bindingForCharacter(\.name))
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { commitCharacter() }
+                // Which note gives its numbers and size. Part of the edit like every other
+                // field: Save links, Cancel forgets the pick (ADR-0024).
+                CharacterNoteField(notes: appState.characterNotes,
+                                   noteName: character.noteName,
+                                   isRead: appState.bestiary != .reading,
+                                   onPick: { editedCharacter?.link(to: $0) },
+                                   onClear: { editedCharacter?.unlink() })
                 HStack(spacing: 6) {
                     ColorPicker("", selection: Binding(
                         get: { Color(hex: character.colorHex) ?? .red },

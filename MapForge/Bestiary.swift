@@ -50,13 +50,7 @@ struct Bestiary: Equatable {
     /// Monsters whose name contains `query`, ignoring case and accents, those that *start*
     /// with it first. An empty query offers everything.
     func search(_ query: String) -> [Monster] {
-        let needle = Self.folded(query.trimmingCharacters(in: .whitespaces))
-        guard !needle.isEmpty else { return monsters }
-        let matches = monsters.filter { Self.folded($0.name).contains(needle) }
-        // A stable partition rather than a sort, so each half keeps the Bestiary's own
-        // alphabetical order.
-        return matches.filter { Self.folded($0.name).hasPrefix(needle) }
-            + matches.filter { !Self.folded($0.name).hasPrefix(needle) }
+        NameSearch.matches(query, among: monsters, name: \.name)
     }
 
     /// The one line under the search box, or nil when there is nothing to say.
@@ -71,6 +65,24 @@ struct Bestiary: Equatable {
         let monsterCount = String(localized: "\(monsters.count) Monsters")
         let skippedCount = String(localized: "\(skipped.count) files skipped")
         return "\(monsterCount) · \(skippedCount)"
+    }
+
+}
+
+/// Finding a name the DM half-remembers: the search behind the Monster box and the Character
+/// note box alike, so the two answer one query the same way.
+enum NameSearch {
+    /// Items whose name contains `query`, ignoring case and accents, those that *start* with
+    /// it first. An empty query offers everything.
+    static func matches<Item>(_ query: String, among items: [Item],
+                              name: (Item) -> String) -> [Item] {
+        let needle = folded(query.trimmingCharacters(in: .whitespaces))
+        guard !needle.isEmpty else { return items }
+        let found = items.filter { folded(name($0)).contains(needle) }
+        // A stable partition rather than a sort, so each half keeps the list's own
+        // alphabetical order.
+        return found.filter { folded(name($0)).hasPrefix(needle) }
+            + found.filter { !folded(name($0)).hasPrefix(needle) }
     }
 
     private static func folded(_ text: String) -> String {

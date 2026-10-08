@@ -37,4 +37,9 @@ struct CharacterNotes: Equatable {
         guard let name else { return nil }
         return notes.first { $0.name == name }
     }
+
+    /// The notes a DM typing `query` means, as the Bestiary's search finds Monsters.
+    func search(_ query: String) -> [CharacterNote] {
+        NameSearch.matches(query, among: notes, name: \.name)
+    }
 }
