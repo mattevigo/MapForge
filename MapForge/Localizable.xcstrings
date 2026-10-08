@@ -7155,6 +7155,47 @@
         }
       }
     },
+    "Level %@": {
+      "comment": "A Character's level, under its name",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stufe %@"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Level %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nivel %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niveau %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Livello %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nível %@"
+          }
+        }
+      }
+    },
     "Light": {
       "localizations": {
         "de": {
@@ -11695,6 +11736,46 @@
         }
       }
     },
+    "Spells": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zauber"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spells"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conjuros"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sorts"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incantesimi"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Magias"
+          }
+        }
+      }
+    },
     "Square": {
       "comment": "A Measurement Shape, drawn around its Origin by side length",
       "localizations": {
@@ -14800,6 +14881,46 @@
         }
       }
     },
+    "“%@” has no note. Choose one with Edit… in the Party panel.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ hat keine Notiz. Wähle eine mit Bearbeiten … im Bereich Gruppe."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το «%@» δεν έχει σημείωση. Επιλέξτε μία με Επεξεργασία… στο πλαίσιο Ομάδα."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» no tiene nota. Elige una con Editar… en el panel Grupo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %@ » n’a pas de note. Choisissez-en une avec Modifier… dans le panneau Groupe."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” non ha una nota. Sceglila con Modifica… nel pannello Gruppo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” não tem nota. Escolha uma com Editar… no painel Grupo."
+          }
+        }
+      }
+    },
     "“%@” is not in the Bestiary. Its numbers above are its own and are unaffected.": {
       "localizations": {
         "de": {
@@ -14836,6 +14957,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "“%@” não está no bestiário. Os números acima são próprios e não são afetados."
+          }
+        }
+      }
+    },
+    "“%@” is not in the notes. Its numbers above are its own and are unaffected.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ ist nicht in den Notizen. Die Werte oben gehören der Spielfigur und bleiben unverändert."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το «%@» δεν υπάρχει στις σημειώσεις. Οι αριθμοί του παραπάνω είναι δικοί του και δεν επηρεάζονται."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» no está en las notas. Sus números de arriba son propios y no cambian."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %@ » n’est pas dans les notes. Les valeurs ci-dessus lui sont propres et restent inchangées."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” non è tra le note. I valori qui sopra sono i suoi e restano invariati."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” não está nas notas. Os números acima são próprios e não são afetados."
           }
         }
       }

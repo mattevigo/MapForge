@@ -19,6 +19,23 @@ struct CharacterNote: Equatable, Identifiable {
     var isBig = false
     var size: String?
 
+    // The page the Combat tab shows while the Character's Pawn fights (ADR-0007, amended):
+    // the note's own words, never computed from. Read with the numbers, in the same pass.
+    var species: String?
+    /// The note's `class`, subclass and all: "Chierico (Dominio dell'Inganno)".
+    var characterClass: String?
+    var level: String?
+    var speed: String?
+    var senses: String?
+    var languages: String?
+    var saves: [Monster.Proficiency] = []
+    var skills: [Monster.Proficiency] = []
+    var traits: [Monster.Feature] = []
+    var actions: [Monster.Feature] = []
+    /// Lines, as the note writes them: the spellcasting ability, save DC and attack bonus,
+    /// then the slots per level. No layout of their own — there is nothing in them but text.
+    var spells: [String] = []
+
     var id: String { name }
 }
 

@@ -60,4 +60,5 @@ Character and the next Stamp, never a Pawn already on a Map.
   DM's decision, and a guess that happens to be right this time is still a guess.
 - **Read the Party from the Campaign's group**: rejected, as above.
 - **Derive sight from darkvision**: rejected, as above.
-- **Show the Character's page in the Combat tab**: not rejected. It is a later update.
+- **Show the Character's page in the Combat tab**: not rejected, and built after this
+  decision. How a Player Pawn finds that page is settled in ADR-0007's amendment.

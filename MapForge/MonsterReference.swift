@@ -11,9 +11,17 @@ enum MonsterReference {
         var value: String
     }
 
+    /// A heading on the page — Traits, Actions — and what it holds.
     struct Group: Equatable {
         var title: String
-        var features: [Monster.Feature]
+        var paragraphs: [Paragraph]
+    }
+
+    /// One paragraph under a Group: a named feature, or a line the note writes as it is — a
+    /// Character's spellcasting, which has no name to put in front of it.
+    enum Paragraph: Equatable {
+        case feature(Monster.Feature)
+        case plain(String)
     }
 
     /// The one-line facts above the actions, in the order the rulebook prints them.
@@ -38,15 +46,19 @@ enum MonsterReference {
     }
 
     static func groups(of monster: Monster) -> [Group] {
-        [Group(title: String(localized: "Traits"), features: monster.traits),
-         Group(title: String(localized: "Actions"), features: monster.actions),
-         Group(title: String(localized: "Bonus Actions"), features: monster.bonusActions),
-         Group(title: String(localized: "Reactions"), features: monster.reactions),
-         Group(title: String(localized: "Legendary Actions"), features: monster.legendaryActions)]
-            .filter { !$0.features.isEmpty }
+        [features(String(localized: "Traits"), monster.traits),
+         features(String(localized: "Actions"), monster.actions),
+         features(String(localized: "Bonus Actions"), monster.bonusActions),
+         features(String(localized: "Reactions"), monster.reactions),
+         features(String(localized: "Legendary Actions"), monster.legendaryActions)]
+            .filter { !$0.paragraphs.isEmpty }
     }
 
-    private static func bonuses(_ proficiencies: [Monster.Proficiency]) -> String? {
+    static func features(_ title: String, _ features: [Monster.Feature]) -> Group {
+        Group(title: title, paragraphs: features.map(Paragraph.feature))
+    }
+
+    static func bonuses(_ proficiencies: [Monster.Proficiency]) -> String? {
         guard !proficiencies.isEmpty else { return nil }
         return proficiencies
             .map { "\($0.name) \($0.bonus < 0 ? "−" : "+")\(abs($0.bonus))" }
@@ -101,46 +113,54 @@ struct MonsterReferenceView: View {
 
     var body: some View {
         if let monster = bestiary.monster(named: monsterName) {
-            page(monster)
+            ReferencePageView(name: monster.name,
+                              heading: [monster.size, monster.type, monster.alignment]
+                                  .compactMap { $0 }.joined(separator: " · "),
+                              lines: MonsterReference.lines(of: monster),
+                              groups: MonsterReference.groups(of: monster))
+                .accessibilityIdentifier("monster-reference")
         } else if let unavailable = bestiary.unavailable {
             // Still being read, or not configured: not the same thing as this Monster
             // having left the notes, and not to be reported as it.
-            Text(unavailable)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            ReferenceCaption(text: Text(unavailable))
         } else {
-            Text("“\(monsterName)” is not in the Bestiary. Its numbers above are its own and are unaffected.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            ReferenceCaption(text: Text("“\(monsterName)” is not in the Bestiary. Its numbers above are its own and are unaffected."))
                 .accessibilityIdentifier("monster-reference-missing")
         }
     }
+}
 
-    private func page(_ monster: Monster) -> some View {
+/// A page of the DM's notes under the Stat Block editor — a Monster's or a Character's, laid
+/// out alike so the DM reads both the same way mid-fight.
+struct ReferencePageView: View {
+    let name: String
+    /// Under the name: what the thing is. Left out when the note says nothing of it.
+    let heading: String
+    let lines: [MonsterReference.Line]
+    let groups: [MonsterReference.Group]
+
+    var body: some View {
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 6) {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(monster.name).font(.caption.weight(.semibold))
-                    Text([monster.size, monster.type, monster.alignment]
-                        .compactMap { $0 }.joined(separator: " · "))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                    Text(name).font(.caption.weight(.semibold))
+                    if !heading.isEmpty {
+                        Text(heading)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                ForEach(MonsterReference.lines(of: monster), id: \.label) { line in
+                ForEach(lines, id: \.label) { line in
                     (Text(line.label + " ").fontWeight(.semibold) + Text(line.value))
                         .font(.caption)
                 }
-                ForEach(MonsterReference.groups(of: monster), id: \.title) { group in
+                ForEach(groups, id: \.title) { group in
                     Text(group.title.uppercased())
                         .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(.secondary)
                         .padding(.top, 2)
-                    ForEach(Array(group.features.enumerated()), id: \.offset) { _, feature in
-                        (Text(feature.name + ". ").fontWeight(.semibold).italic()
-                            + Text(MonsterReference.attributed(feature.desc)))
-                            .font(.caption)
+                    ForEach(Array(group.paragraphs.enumerated()), id: \.offset) { _, paragraph in
+                        text(paragraph).font(.caption)
                     }
                 }
             }
@@ -154,6 +174,27 @@ struct MonsterReferenceView: View {
         // scrolling three lines at a time. A ScrollView cannot push anything: it shares
         // the height with the Order's instead.
         .frame(maxHeight: .infinity)
-        .accessibilityIdentifier("monster-reference")
+    }
+
+    private func text(_ paragraph: MonsterReference.Paragraph) -> Text {
+        switch paragraph {
+        case .feature(let feature):
+            return Text(feature.name + ". ").fontWeight(.semibold).italic()
+                + Text(MonsterReference.attributed(feature.desc))
+        case .plain(let line):
+            return Text(MonsterReference.attributed(line))
+        }
+    }
+}
+
+/// What stands where a page would be, when there is none to show: one quiet line.
+struct ReferenceCaption: View {
+    let text: Text
+
+    var body: some View {
+        text
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }

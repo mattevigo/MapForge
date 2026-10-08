@@ -281,7 +281,8 @@ final class BestiaryTests: XCTestCase {
 
         let durga = try XCTUnwrap(reading.characters.note(named: "Durga Pietraferma"))
         XCTAssertEqual(durga, CharacterNote(name: "Durga Pietraferma", armorClass: 14, maxHP: 48,
-                                            initiativeBonus: -1, isBig: false, size: nil))
+                                            initiativeBonus: -1, isBig: false, size: nil,
+                                            species: "Umano", characterClass: "Chierico", level: "5"))
         let zharyn = try XCTUnwrap(reading.characters.note(named: "Zharyn il Velato"))
         XCTAssertEqual(zharyn.maxHP, 14, "a Character nobody plays yet is read all the same")
         XCTAssertEqual(zharyn.size, "Media")

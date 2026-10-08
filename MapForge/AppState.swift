@@ -789,6 +789,21 @@ final class AppState: ObservableObject {
         characterNotes.note(named: character.noteName)
     }
 
+    /// The page the Combat tab shows for a Pawn Stamped from a Character.
+    ///
+    /// Looked up live, each time it is drawn, through the Pawn's `characterID` and the
+    /// Character's note (ADR-0007, amended) — never from a name copied at the Stamp, so a
+    /// Character the DM links tonight reaches the Pawns already on tonight's Map.
+    func characterPage(for pawn: Pawn) -> CharacterPage? {
+        guard let id = pawn.characterID, let character = character(id: id) else { return nil }
+        guard let noteName = character.noteName else {
+            return .unlinked(characterName: character.name)
+        }
+        if let note = characterNotes.note(named: noteName) { return .note(note) }
+        if let unavailable = bestiary.unavailable { return .unavailable(unavailable) }
+        return .missing(noteName: noteName)
+    }
+
     /// Whether the roster should say a Character has no note. Not while the notes are still
     /// being read — every Character would flash "no note" each time the Workspace opens —
     /// and the Bestiary is the read's progress, the two coming from one walk.

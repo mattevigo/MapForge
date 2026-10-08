@@ -27,6 +27,11 @@ struct StatEditor: View {
                 if let monsterName = pawn.monsterName {
                     Divider()
                     MonsterReferenceView(monsterName: monsterName, bestiary: appState.bestiary)
+                } else if let page = appState.characterPage(for: pawn) {
+                    // And the Character's, for a Pawn Stamped from one: "what's my spell
+                    // save DC again?" without asking the player (ADR-0007, amended).
+                    Divider()
+                    CharacterReferenceView(page: page)
                 }
             }
             if appState.encounter != nil {

@@ -128,6 +128,17 @@ enum StatblockReader {
         note.initiativeBonus = number(fields["initiative"])
         note.size = text(fields["size"])
         note.isBig = isBig(size: note.size)
+        note.species = text(fields["species"])
+        note.characterClass = text(fields["class"])
+        note.level = text(fields["level"])
+        note.speed = text(fields["speed"])
+        note.senses = text(fields["senses"])
+        note.languages = text(fields["languages"])
+        note.saves = proficiencies(fields["saves"])
+        note.skills = proficiencies(fields["skillsaves"])
+        note.traits = features(fields["traits"])
+        note.actions = features(fields["actions"])
+        note.spells = textList(fields["spells"])
         return .character(note)
     }
 
@@ -274,6 +285,22 @@ enum StatblockReader {
             guard let fields = item as? [String: Any], let name = text(fields["name"])
             else { return nil }
             return Monster.Feature(name: name, desc: text(fields["desc"]) ?? "")
+        }
+    }
+
+    /// `spells:` — a list of text, one line each. A line with a colon in it,
+    /// `- 1° livello: 4 slot`, is a map of one key to YAML, and is put back together as the
+    /// line the DM wrote. Anything else in the list — a bare number, a nested list — is not
+    /// a line of the note's and is left out.
+    private static func textList(_ value: Any?) -> [String] {
+        guard let items = value as? [Any] else { return [] }
+        return items.compactMap { item in
+            if let map = item as? [String: Any] {
+                guard map.count == 1, let (key, value) = map.first,
+                      let text = text(value) else { return nil }
+                return "\(key): \(text)"
+            }
+            return (item as? String).flatMap(text)
         }
     }
 
