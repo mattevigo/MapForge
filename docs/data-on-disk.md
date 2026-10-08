@@ -40,7 +40,7 @@ MyGame/                              ← the Workspace (any folder the DM adopte
             ├── 2026-09-09T191200Z.jsonl ← one Combat Log per Encounter
             └── 2026-09-16T201500Z.jsonl
 
-~/Library/Preferences/…MapForge.plist  ← UserDefaults: recentWorkspaces
+~/Library/Preferences/…MapForge.plist  ← UserDefaults: recentWorkspaces, recentWorkspaceBookmarks
 ```
 
 Maps may sit anywhere inside the Workspace, in whatever subfolders the DM likes. A Map opened
@@ -314,11 +314,17 @@ malformed final line is dropped on read.
 
 ## The machine: `UserDefaults`
 
-One key, `recentWorkspaces`: the paths of Workspaces this Mac has opened, most recent first,
+`recentWorkspaces`: the paths of Workspaces this Mac has opened, most recent first,
 capped at 20. It is the bootstrap pointer — the one thing that cannot live inside the
 Workspace it points at — and it is the list the Workspace picker offers. Nothing is
 removed automatically: an unplugged drive stays listed as unavailable until the DM forgets
 it. UI tests run against a throwaway suite so they never touch this list.
+
+`recentWorkspaceBookmarks`: a security-scoped bookmark for each of those entries, keyed by
+its path, which is how a Workspace is reached on a later launch under the App Sandbox
+(ADR-0025). Rewritten every time the Workspace opens, and dropped with its entry. An entry
+with no bookmark — written before bookmarks existed — gets one made from its path the first
+time the picker lists it, where that is allowed.
 
 **Calibration** (the per-display True Scale correction) will live here too, keyed by Display
 Identity, when it is built. It is not built; nothing is stored for it yet.

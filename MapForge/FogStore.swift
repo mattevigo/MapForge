@@ -8,8 +8,9 @@ import Foundation
 /// unreadable file is reported and left untouched, and an empty document deletes rather
 /// than writes.
 ///
-/// Ad-hoc signed with no App Sandbox, so writing next to a user-picked image needs no
-/// security-scoped bookmarks. Revisit if sandboxing is ever turned on.
+/// Writes next to the Map with no grant of its own: under the App Sandbox it relies on the
+/// access the open Workspace holds, which reaches only Maps inside that Workspace. See
+/// ADR-0025.
 final class FogStore {
     /// Thrown when a fog file exists but cannot be read. Deliberately not swallowed: the
     /// alternative is a DM who reopens a Map, sees no Walls, redraws them, and overwrites

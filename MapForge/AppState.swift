@@ -188,6 +188,10 @@ final class AppState: ObservableObject {
     /// omission — a test that constructs an `AppState` and opens a temp Workspace would
     /// otherwise migrate and destroy the developer's own party. It did, once.
     private let migration: WorkspaceMigration?
+    private let securityScope: SecurityScope
+    /// The URL whose security-scoped access the open Workspace holds, if any. One at a time:
+    /// opening another Workspace or closing this one gives it back. See ADR-0025.
+    private var heldAccess: URL?
     /// This Workspace's own settings, held in memory and written through on change.
     private var settings = WorkspaceSettings()
     /// Recomputes Visibility only when the fog actually changes — never on a Viewport pan,
@@ -202,10 +206,12 @@ final class AppState: ObservableObject {
          migration: WorkspaceMigration? = nil,
          fogStore: FogStore = FogStore(),
          partyStore: PartyStore? = nil,
-         statsStore: StatsStore = StatsStore()) {
+         statsStore: StatsStore = StatsStore(),
+         securityScope: SecurityScope = .system) {
         self.preferences = preferences
         self.workspaceStore = workspaceStore
         self.migration = migration
+        self.securityScope = securityScope
         self.fogStore = fogStore
         self.statsStore = statsStore
         // No roster is read here. Until the DM picks a Workspace there is no roster to read —
@@ -860,6 +866,42 @@ final class AppState: ObservableObject {
         objectWillChange.send()
     }
 
+    /// Whether a recent Workspace can be opened: its folder can be reached, and is still a
+    /// Workspace.
+    ///
+    /// The check is made under the folder's own access. Under the sandbox a path the app holds
+    /// no grant for reads as missing, so a check made without it would mark every recent
+    /// unavailable.
+    func isRecentWorkspaceAvailable(_ url: URL) -> Bool {
+        guard let located = preferences.locateWorkspace(url) else { return false }
+        return withAccess(to: located) { workspaceStore.isWorkspace(located) }
+    }
+
+    /// Opens a recent Workspace through its bookmark, wherever its folder now is.
+    func openRecentWorkspace(_ url: URL) -> Result<Workspace, WorkspaceStore.OpenFailure> {
+        guard let located = preferences.locateWorkspace(url) else {
+            return .failure(.unreachable(Workspace(url: url).url))
+        }
+        let result = withAccess(to: located) { workspaceStore.open(located) }
+        if case .success(let workspace) = result {
+            open(workspace, reachedThrough: located, replacing: url)
+        }
+        return result
+    }
+
+    /// Runs `body` with access to `url`, given back as soon as it returns.
+    private func withAccess<T>(to url: URL, _ body: () -> T) -> T {
+        let started = securityScope.start(url)
+        defer { if started { securityScope.stop(url) } }
+        return body()
+    }
+
+    /// Gives back the access the last Workspace held and takes it for `url`.
+    private func holdAccess(to url: URL?) {
+        if let heldAccess { securityScope.stop(heldAccess) }
+        heldAccess = url.flatMap { securityScope.start($0) ? $0 : nil }
+    }
+
     /// Whether switching Workspaces would end a fight in progress. The picker asks first when
     /// it would: switching is a navigation gesture, and the DM making it is not thinking about
     /// the Encounter.
@@ -872,11 +914,17 @@ final class AppState: ObservableObject {
     ///
     /// Everything read here was read at `init` before this feature, which is why it is a
     /// method at all — the DM picks the folder after the window is on screen.
-    func open(_ workspace: Workspace) {
+    ///
+    /// `url` is the URL the folder was handed over by — the open panel's, or a resolved
+    /// bookmark's — and `previous` the recents entry it was opened from; see
+    /// `DisplayPreferences.noteWorkspaceOpened`.
+    func open(_ workspace: Workspace, reachedThrough url: URL? = nil, replacing previous: URL? = nil) {
         // Switching comes through here rather than through `closeWorkspace`, so the running
         // evening is ended here too: its file lives in the Workspace it started in, and a
         // writer left open would append the next Workspace's lines to the last one's file.
         stopSession()
+        // After the Session's last line, which is written into the outgoing Workspace.
+        holdAccess(to: url ?? workspace.url)
         self.workspace = workspace
         readBestiary(of: workspace)
 
@@ -895,7 +943,7 @@ final class AppState: ObservableObject {
         activePartyID = settings.activePartyID
         chosenDisplay = nil
 
-        preferences.noteWorkspaceOpened(workspace)
+        preferences.noteWorkspaceOpened(workspace, reachedThrough: url, replacing: previous)
         // An evening that was running when the app last quit is still running.
         resumeSession(in: workspace)
         migration?.runIfNeeded(into: workspace) { [weak self] outcome in
@@ -912,6 +960,7 @@ final class AppState: ObservableObject {
         // Ended on the record rather than abandoned: a Session's file lives in the Workspace
         // it started in, and one that outlived its folder would write into the wrong one.
         stopSession()
+        holdAccess(to: nil)
         workspace = nil
         bestiaryLoad?.cancel()
         bestiaryLoad = nil

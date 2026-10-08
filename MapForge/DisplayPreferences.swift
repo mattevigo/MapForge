@@ -17,6 +17,7 @@ import Foundation
 final class DisplayPreferences {
     private enum Key {
         static let recentWorkspaces = "recentWorkspaces"
+        static let recentWorkspaceBookmarks = "recentWorkspaceBookmarks"
         static let appleLanguages = "AppleLanguages"
     }
 
@@ -30,10 +31,14 @@ final class DisplayPreferences {
     /// preferences, the suite's name for a throwaway one.
     private let domain: String
 
+    private let bookmarks: WorkspaceBookmarks
+
     init(defaults: UserDefaults = .standard,
-         domain: String = Bundle.main.bundleIdentifier ?? "com.mattevigo.MapForge") {
+         domain: String = Bundle.main.bundleIdentifier ?? "com.mattevigo.MapForge",
+         bookmarks: WorkspaceBookmarks = .securityScoped) {
         self.defaults = defaults
         self.domain = domain
+        self.bookmarks = bookmarks
     }
 
     /// The preferences this launch should use: the real ones, or a throwaway suite when
@@ -68,7 +73,39 @@ final class DisplayPreferences {
             (defaults.array(forKey: Key.recentWorkspaces) as? [String] ?? [])
                 .map { URL(fileURLWithPath: $0) }
         }
-        set { defaults.set(newValue.map(\.path), forKey: Key.recentWorkspaces) }
+        set {
+            let paths = newValue.map(\.path)
+            defaults.set(paths, forKey: Key.recentWorkspaces)
+            // A bookmark lives exactly as long as its entry, so forgetting and the cap
+            // drop it without either having to know it exists.
+            recentBookmarks = recentBookmarks.filter { paths.contains($0.key) }
+        }
+    }
+
+    /// Each recent Workspace's bookmark, keyed by the path `recentWorkspaces` lists it under.
+    ///
+    /// Beside the list rather than inside it, so the list keeps the shape every earlier
+    /// version wrote: a downgrade still finds its recents, and an entry from before bookmarks
+    /// is simply a path with nothing beside it.
+    private var recentBookmarks: [String: Data] {
+        get { defaults.dictionary(forKey: Key.recentWorkspaceBookmarks) as? [String: Data] ?? [:] }
+        set { defaults.set(newValue, forKey: Key.recentWorkspaceBookmarks) }
+    }
+
+    /// Where a recent Workspace can be reached now, or nil when it cannot.
+    ///
+    /// Through its bookmark when it has one, which follows a folder the DM has moved. An
+    /// entry from before bookmarks has only a path, and is upgraded here, quietly, if a
+    /// bookmark can be made from it: always, unsandboxed, for a folder that exists; never,
+    /// under the sandbox, which grants nothing for a path the DM has not chosen this launch.
+    /// Then it reads as unavailable, and choosing the folder again stores its bookmark.
+    func locateWorkspace(_ url: URL) -> URL? {
+        let path = Workspace(url: url).url.path
+        if let data = recentBookmarks[path] { return try? bookmarks.resolve(data) }
+        guard recentWorkspaces.contains(where: { $0.path == path }),
+              let data = try? bookmarks.make(url) else { return nil }
+        recentBookmarks[path] = data
+        return url
     }
 
     /// The Interface Language chosen on this Mac.
@@ -92,11 +129,26 @@ final class DisplayPreferences {
         }
     }
 
-    /// Moves a Workspace to the front of the list, deduplicating and capping.
-    func noteWorkspaceOpened(_ workspace: Workspace) {
-        var recents = recentWorkspaces.filter { Workspace(url: $0) != workspace }
+    /// Moves a Workspace to the front of the list, deduplicating and capping, and stores a
+    /// fresh bookmark to it.
+    ///
+    /// `url` is the URL the app was handed the folder by — the open panel's, or a resolved
+    /// bookmark's — which under the sandbox is the one carrying the grant. A fresh bookmark
+    /// on every open is the refresh a stale one needs; when one cannot be made, the last one
+    /// stored is kept. `previous` is the entry it was opened from, when that entry's folder
+    /// has since moved: the list follows the folder rather than keeping both.
+    func noteWorkspaceOpened(_ workspace: Workspace,
+                             reachedThrough url: URL? = nil,
+                             replacing previous: URL? = nil) {
+        let replaced = previous.map(Workspace.init(url:))
+        var recents = recentWorkspaces.filter {
+            Workspace(url: $0) != workspace && Workspace(url: $0) != replaced
+        }
         recents.insert(workspace.url, at: 0)
         recentWorkspaces = Array(recents.prefix(Self.recentsLimit))
+        if let data = try? bookmarks.make(url ?? workspace.url) {
+            recentBookmarks[workspace.url.path] = data
+        }
     }
 
     /// Forgets a Workspace. The DM's gesture, never the app's: an unreachable folder stays

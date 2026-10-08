@@ -227,3 +227,109 @@ final class WorkspaceAppStateTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: workspace.partiesURL), bytes)
     }
 }
+
+// MARK: - Reaching the Workspace (ADR-0025)
+
+/// Security-scoped access, counted per folder. A count above one is a grant that outlived its
+/// use; below zero, a stop with no start.
+private final class AccessLedger {
+    private(set) var held: [String: Int] = [:]
+
+    var scope: SecurityScope {
+        SecurityScope(
+            start: { [self] url in held[Workspace(url: url).url.path, default: 0] += 1; return true },
+            stop: { [self] url in held[Workspace(url: url).url.path, default: 0] -= 1 })
+    }
+
+    /// The folders with access held, and how many times over.
+    var outstanding: [String: Int] { held.filter { $0.value != 0 } }
+}
+
+extension WorkspaceAppStateTests {
+    private func makeAppState(_ ledger: AccessLedger) -> AppState {
+        AppState(preferences: DisplayPreferences(defaults: defaults), securityScope: ledger.scope)
+    }
+
+    func testTheOpenWorkspaceHoldsItsFolder() throws {
+        let workspace = try makeWorkspace("Eroi")
+        let ledger = AccessLedger()
+        let app = makeAppState(ledger)
+
+        app.open(workspace)
+
+        XCTAssertEqual(ledger.outstanding, [workspace.url.path: 1])
+    }
+
+    func testSwitchingBackAndForthHoldsOnlyTheOpenOne() throws {
+        let first = try makeWorkspace("Eroi")
+        let second = try makeWorkspace("Curse of Strahd")
+        let ledger = AccessLedger()
+        let app = makeAppState(ledger)
+
+        app.open(first)
+        app.open(second)
+        app.open(first)
+
+        XCTAssertEqual(ledger.outstanding, [first.url.path: 1])
+    }
+
+    func testClosingGivesTheAccessBack() throws {
+        let workspace = try makeWorkspace("Eroi")
+        let ledger = AccessLedger()
+        let app = makeAppState(ledger)
+        app.open(workspace)
+
+        app.closeWorkspace()
+
+        XCTAssertTrue(ledger.outstanding.isEmpty)
+    }
+
+    func testCheckingARecentHoldsNothingAfterwards() throws {
+        let workspace = try makeWorkspace("Eroi")
+        makeAppState(AccessLedger()).open(workspace)
+        let ledger = AccessLedger()
+        let app = makeAppState(ledger)
+
+        XCTAssertTrue(app.isRecentWorkspaceAvailable(workspace.url))
+        XCTAssertTrue(ledger.outstanding.isEmpty)
+    }
+
+    func testARecentWorkspaceOpensThroughItsBookmarkAfterARelaunch() throws {
+        let workspace = try makeWorkspace("Eroi")
+        makeAppState().open(workspace)
+        let ledger = AccessLedger()
+        let relaunched = makeAppState(ledger)
+
+        let result = relaunched.openRecentWorkspace(workspace.url)
+
+        XCTAssertEqual(try result.get(), workspace)
+        XCTAssertEqual(relaunched.workspace, workspace)
+        XCTAssertEqual(ledger.outstanding, [workspace.url.path: 1])
+    }
+
+    func testARecentWhoseFolderMovedOpensWhereItWent() throws {
+        let workspace = try makeWorkspace("Eroi")
+        makeAppState().open(workspace)
+        let moved = root.appendingPathComponent("Eroi delle Terre di Confine")
+        try FileManager.default.moveItem(at: workspace.url, to: moved)
+        let relaunched = makeAppState()
+
+        XCTAssertTrue(relaunched.isRecentWorkspaceAvailable(workspace.url))
+        _ = relaunched.openRecentWorkspace(workspace.url)
+
+        XCTAssertEqual(relaunched.workspace, Workspace(url: moved))
+        XCTAssertEqual(relaunched.recentWorkspaces.map(\.path), [Workspace(url: moved).url.path])
+    }
+
+    func testARecentWhoseFolderIsGoneIsUnavailableAndDoesNotOpen() throws {
+        let workspace = try makeWorkspace("Eroi")
+        makeAppState().open(workspace)
+        try FileManager.default.removeItem(at: workspace.url)
+        let relaunched = makeAppState()
+
+        XCTAssertFalse(relaunched.isRecentWorkspaceAvailable(workspace.url))
+        XCTAssertThrowsError(try relaunched.openRecentWorkspace(workspace.url).get())
+        XCTAssertNil(relaunched.workspace)
+        XCTAssertEqual(relaunched.recentWorkspaces.map(\.path), [workspace.url.path])
+    }
+}

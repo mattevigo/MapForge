@@ -84,4 +84,6 @@ DM's *other* material is kept, not a jurisdiction over files.
 - **Turn on the App Sandbox and do it properly with bookmarks** — deferred, not rejected. It is
   a prerequisite for distribution outside ad-hoc signing and it will make this decision cost
   what ADR-0007 thought it cost. It is a separate piece of work, and doing it first would block
-  a storage change on a signing change.
+  a storage change on a signing change. **Taken up in ADR-0025**: the app is headed for the
+  Mac App Store, and the Workspace is now reached through a security-scoped bookmark. The
+  decision above stands; its claim that bookmarks are not needed does not.
