@@ -27,6 +27,8 @@ struct EditPawnSheet: View {
     /// Whether a Grid has been declared. Sight is measured in Grid squares, so without one
     /// the number is inert — said plainly rather than by refusing the edit.
     let hasDeclaredGrid: Bool
+    /// What the sight is typed and shown in.
+    let unit: DistanceUnit
     /// What the search box searches.
     var bestiary = Bestiary.closed
     /// The Map as it stands, for numbering a picked Monster's label.
@@ -101,12 +103,12 @@ struct EditPawnSheet: View {
                     // A Pawn has one radius. The extra square the region fades over is not
                     // a second number the DM sets — it is there so the edge is not a hard
                     // cut — so it is not offered as one.
-                    SquaresField($draft.sightSquares,
-                                 unit: draft.kind.isDiscovered
-                                     ? (draft.kind == .treasure
-                                        ? String(localized: "squares — unused, a Treasure emits no Light")
-                                        : String(localized: "squares — unused, a Creature emits no Light"))
-                                     : String(localized: "squares"))
+                    DistanceField($draft.sightSquares, unit: unit,
+                                  caption: draft.kind.isDiscovered
+                                      ? (draft.kind == .treasure
+                                         ? String(localized: "\(unit.symbol) — unused, a Treasure emits no Light")
+                                         : String(localized: "\(unit.symbol) — unused, a Creature emits no Light"))
+                                      : unit.symbol)
                         // Across the Monster's column too, or this caption — the longest
                         // thing in the form — would set the second column's width and push
                         // the search box off the sheet.
@@ -363,6 +365,8 @@ struct SkippedNotesButton: View {
 struct EditLightSheet: View {
     @State var draft: EditLightDraft
     let hasDeclaredGrid: Bool
+    /// What the radii are typed and shown in.
+    let unit: DistanceUnit
     let onCommit: (EditLightDraft) -> Void
     let onCancel: () -> Void
 
@@ -380,11 +384,11 @@ struct EditLightSheet: View {
                 }
                 GridRow {
                     Text("Bright")
-                    SquaresField($draft.brightSquares)
+                    DistanceField($draft.brightSquares, unit: unit)
                 }
                 GridRow {
                     Text("Dim")
-                    SquaresField($draft.dimSquares)
+                    DistanceField($draft.dimSquares, unit: unit)
                 }
                 GridRow {
                     Text("Burning")
@@ -411,31 +415,37 @@ struct EditLightSheet: View {
     }
 }
 
-/// A distance in Grid squares, typed.
+/// A distance stored in Grid squares, typed and shown in the Distance Unit.
 ///
-/// Shared by both sheets rather than written twice: the CGFloat↔Double bridge below is the
-/// kind of incidental detail that drifts when it is duplicated, and a Pawn's sight and a
-/// Light's radii are the same quantity in the same unit.
-private struct SquaresField: View {
+/// Shared by both sheets and the Party roster rather than written three times: the
+/// squares↔unit bridge below is the kind of incidental detail that drifts when it is
+/// duplicated, and a Pawn's sight, a Character's and a Light's radii are the same quantity.
+/// `DistanceUnit.squares(entered:replacing:)` is what keeps a field the DM only tabbed through
+/// from rewriting a stored value it can show only rounded.
+struct DistanceField: View {
     @Binding private var squares: CGFloat
-    private let unit: String
+    private let unit: DistanceUnit
+    private let caption: String
+    private let width: CGFloat
 
-    init(_ squares: Binding<CGFloat>, unit: String = "squares") {
+    /// `caption` is what follows the field; the unit's symbol unless there is more to say.
+    init(_ squares: Binding<CGFloat>, unit: DistanceUnit, caption: String? = nil,
+         width: CGFloat = 60) {
         _squares = squares
         self.unit = unit
+        self.caption = caption ?? unit.symbol
+        self.width = width
     }
 
     var body: some View {
         HStack(spacing: 6) {
-            // Bridged through Double: CGFloat is not a `BinaryFloatingPoint` that SwiftUI's
-            // `.number` format accepts directly.
-            TextField("squares", value: Binding(
-                get: { Double(squares) },
-                set: { squares = CGFloat($0) }
+            TextField(unit.symbol, value: Binding(
+                get: { unit.roundedDisplay(squares: squares) },
+                set: { squares = unit.squares(entered: $0, replacing: squares) }
             ), format: .number)
                 .textFieldStyle(.roundedBorder)
-                .frame(width: 60)
-            Text(unit).foregroundStyle(.secondary)
+                .frame(width: width)
+            Text(caption).foregroundStyle(.secondary)
         }
     }
 }

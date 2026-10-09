@@ -38,11 +38,15 @@ enum DistanceUnit: String, CaseIterable, Identifiable {
         }
     }
 
-    /// The finest step a distance is said in: a tenth of a metre, but a whole foot — a
+    /// How many steps a distance is said in per unit: tenths of a metre, but whole feet — a
     /// square is 5 of them, and nobody says "37.3 feet" of a Line that does not snap.
-    private var roundingStep: CGFloat {
+    ///
+    /// A count to divide by rather than a step to multiply by, because 96 × 0.1 is
+    /// 9.600000000000001 while 96 / 10 is the 9.6 a field parses back from its own text — and
+    /// `squares(entered:replacing:)` relies on those being the same Double.
+    private var stepsPerUnit: CGFloat {
         switch self {
-        case .metres: 0.1
+        case .metres: 10
         case .feet: 1
         }
     }
@@ -58,16 +62,31 @@ enum DistanceUnit: String, CaseIterable, Identifiable {
 
     func squares(fromDisplay display: CGFloat) -> CGFloat { display / perSquare }
 
+    /// The number a field shows for a stored distance: the one `format` would say, without
+    /// the symbol — so "33" for the 6.667 squares a metric table typed as 10 m.
+    func roundedDisplay(squares: CGFloat) -> Double {
+        Double((display(fromSquares: squares) * stepsPerUnit).rounded() / stepsPerUnit)
+    }
+
+    /// The stored distance once a field hands a number back.
+    ///
+    /// Exact, never snapped: "sight 32 ft" is 6.4 squares, because the DM typed it and meant
+    /// it. But a number equal to what the field was showing is the field being left alone —
+    /// tabbing through it, or OK on a sheet the DM opened to change a colour — and leaves
+    /// `stored` untouched, or every save would grind a rounded reading back into the file.
+    func squares(entered: Double, replacing stored: CGFloat) -> CGFloat {
+        entered == roundedDisplay(squares: stored) ? stored : squares(fromDisplay: CGFloat(entered))
+    }
+
     /// A distance as the DM would say it: "9 m", "7.5 m", "7,5 m" at an Italian table, or
     /// "30 ft".
     ///
     /// A trailing `.0` is dropped because every whole distance is read aloud without it,
     /// while a half square has to keep its fraction — to two places in French, because the
     /// French book writes "1,50 m" (`docs/terminology.md`, Distances). Feet never have one —
-    /// see `roundingStep`.
+    /// see `stepsPerUnit`.
     func format(squares: CGFloat, locale: Locale = .interface) -> String {
-        let value = display(fromSquares: squares)
-        let rounded = Double((value / roundingStep).rounded() * roundingStep)
+        let rounded = roundedDisplay(squares: squares)
         let places = rounded == rounded.rounded() ? 0
             : locale.language.languageCode == .french ? 2 : 1
         let text = rounded.formatted(.number.precision(.fractionLength(places))
