@@ -72,7 +72,7 @@ enum MeasurementTyping {
         /// The typed distance in Grid squares.
         ///
         /// Deliberately **not** snapped, unlike a dragged distance: you typed it, you meant
-        /// it — and the common metric distances are not whole numbers of 1.5 m squares.
+        /// it — and a homebrew "10 m" or "32 ft" is not a whole number of squares.
         func squares(in unit: DistanceUnit) -> CGFloat? {
             guard let value, value > 0 else { return nil }
             return unit.squares(fromDisplay: value)

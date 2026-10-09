@@ -177,6 +177,17 @@ final class MeasurementTests: XCTestCase {
         XCTAssertEqual(readout(.line), "6 m")
     }
 
+    func testTheReadoutSpeaksFeetAtATableThatDoes() {
+        // Four squares: the book's 20 ft, never the tape measure's 19.7.
+        func readout(_ shape: MeasurementShape) -> String {
+            MapForge.Measurement(origin: .point(MapPoint(x: 0, y: 0)), shape: shape,
+                                 distance: 4, direction: 0).readout(in: .feet)
+        }
+        XCTAssertEqual(readout(.circle), "20 ft radius")
+        XCTAssertEqual(readout(.square), "20 ft across")
+        XCTAssertEqual(readout(.cone), "20 ft")
+    }
+
     func testTheReadoutDropsATrailingZero() {
         // A DM reads "9 m", not "9.0 m"; but 7.5 m has to keep its half.
         let whole = MapForge.Measurement(origin: .point(MapPoint(x: 0, y: 0)), shape: .line,

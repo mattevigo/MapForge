@@ -38,6 +38,22 @@ enum DistanceUnit: String, CaseIterable, Identifiable {
         }
     }
 
+    /// The finest step a distance is said in: a tenth of a metre, but a whole foot — a
+    /// square is 5 of them, and nobody says "37.3 feet" of a Line that does not snap.
+    private var roundingStep: CGFloat {
+        switch self {
+        case .metres: 0.1
+        case .feet: 1
+        }
+    }
+
+    /// The unit a Mac starts in before the DM chooses: feet where the region measures in US
+    /// customary units, metres everywhere else — the UK included, whose system is metric
+    /// with exceptions, and whose tables are the DM's to switch.
+    init(region: Locale) {
+        self = region.measurementSystem == .us ? .feet : .metres
+    }
+
     func display(fromSquares squares: CGFloat) -> CGFloat { squares * perSquare }
 
     func squares(fromDisplay display: CGFloat) -> CGFloat { display / perSquare }
@@ -47,12 +63,11 @@ enum DistanceUnit: String, CaseIterable, Identifiable {
     ///
     /// A trailing `.0` is dropped because every whole distance is read aloud without it,
     /// while a half square has to keep its fraction — to two places in French, because the
-    /// French book writes "1,50 m" (`docs/terminology.md`, Distances). Feet are always whole:
-    /// a square is 5 of them, and nobody says "37.3 feet" of a path that is not.
+    /// French book writes "1,50 m" (`docs/terminology.md`, Distances). Feet never have one —
+    /// see `roundingStep`.
     func format(squares: CGFloat, locale: Locale = .interface) -> String {
         let value = display(fromSquares: squares)
-        let rounded = self == .feet ? Double(value.rounded())
-            : Double((value * 10).rounded() / 10)
+        let rounded = Double((value / roundingStep).rounded() * roundingStep)
         let places = rounded == rounded.rounded() ? 0
             : locale.language.languageCode == .french ? 2 : 1
         let text = rounded.formatted(.number.precision(.fractionLength(places))

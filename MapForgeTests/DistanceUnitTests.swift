@@ -39,7 +39,7 @@ final class DistanceUnitTests: XCTestCase {
 
 /// Feet name the same Grid square at 5 ft (`CONTEXT.md`, **Distance Unit**): never a conversion
 /// of the metres, and always a whole number, because no table says "37.3 feet".
-final class FeetTests: XCTestCase {
+final class FeetFormattingTests: XCTestCase {
     private func format(_ squares: CGFloat, _ language: String) -> String {
         DistanceUnit.feet.format(squares: squares, locale: Locale(identifier: language))
     }

@@ -38,6 +38,12 @@ final class DistanceUnitPreferenceTests: XCTestCase {
         XCTAssertEqual(preferences(region: "en_GB").distanceUnit, .metres)
     }
 
+    func testAMacSetToMetricInsideTheUSStartsInMetres() {
+        // System Settings › Measurement system overrides the region's own, and the locale
+        // carries it as the `ms` extension.
+        XCTAssertEqual(preferences(region: "en-US-u-ms-metric").distanceUnit, .metres)
+    }
+
     func testAChoiceSurvivesANewInstanceAndOutranksTheRegion() {
         preferences(region: "en_US").distanceUnit = .metres
 

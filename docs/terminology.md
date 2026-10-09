@@ -152,7 +152,9 @@ fractional distance with two decimals — **1,50 m**, **4,50 m**, **7,50 m** —
 bare (**9 m**); the others write **1,5 m**. Greek follows the European editions: **1,5 m**.
 
 Feet are the English book's, at **5 ft** per square, and no edition in another language uses
-them, so a table that chooses feet reads **ft** in every language, never a translated word.
+them, so a table that chooses feet reads the symbol **ft** in every language, never a
+translated one. Only the Settings picker names the unit in words ("Piedi (ft)", "Fuß (ft)"),
+because there it is a choice being described rather than a distance being read.
 They are always whole (**20 ft**, **35 ft**), and the same square as 1,5 m: 6 m is 20 ft, as
 both books print it, not the 19.7 ft a conversion would give.
 

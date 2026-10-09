@@ -508,6 +508,15 @@ struct ControlView: View {
                 isShowingViewport = false
             }
         }
+        .onChange(of: appState.distanceUnit) { _, unit in
+            // Digits still being typed are read in the unit now in force, as Return would
+            // read them — otherwise the shape keeps the old unit's squares while its readout
+            // already speaks the new one, and jumps at the next keystroke.
+            guard var measurement = appState.resolvedMeasurement,
+                  let squares = typedDistance.squares(in: unit) else { return }
+            measurement.distance = squares
+            appState.setMeasurement(measurement)
+        }
         .onChange(of: appState.mapURL) { _, _ in
             // Every mode is authored against the Map that was open when it started, and
             // this @State survives the Map changing underneath it. Fog was the damaging

@@ -137,13 +137,13 @@ final class DisplayPreferences {
 
     /// The Distance Unit chosen on this Mac (ADR-0027), or the region's until one is.
     ///
-    /// Only a region that measures in US units starts in feet. The choice, once made, is
-    /// stored and outranks the region from then on — a DM who moves their Mac to another
-    /// country has not changed the table they play at.
+    /// The region decides only until the DM does (`DistanceUnit.init(region:)`). The choice,
+    /// once made, is stored and outranks the region from then on — a DM who moves their Mac
+    /// to another country has not changed the table they play at.
     var distanceUnit: DistanceUnit {
         get {
             defaults.string(forKey: Key.distanceUnit).flatMap(DistanceUnit.init(rawValue:))
-                ?? (region.measurementSystem == .us ? .feet : .metres)
+                ?? DistanceUnit(region: region)
         }
         set { defaults.set(newValue.rawValue, forKey: Key.distanceUnit) }
     }
