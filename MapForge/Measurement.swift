@@ -58,8 +58,8 @@ struct Measurement: Equatable, Identifiable {
     var origin: MeasurementOrigin
     var shape: MeasurementShape
 
-    /// In **Grid squares**, like a Light's radii and a Pawn's sight. Metres exist only at
-    /// the rendering edge.
+    /// In **Grid squares**, like a Light's radii and a Pawn's sight. Metres and feet exist
+    /// only at the rendering edge.
     var distance: CGFloat
 
     /// Radians, screen convention (+x is 0, growing clockwise as y grows downward).

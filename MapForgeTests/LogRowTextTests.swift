@@ -9,7 +9,7 @@ final class LogRowTextTests: XCTestCase {
 
     func testAHitPointChangeReadsBeforeAndAfterRatherThanADelta() {
         let text = LogRowText.describe(.hpChanged(combatantID: combatant, from: 22, to: 15),
-                                       combatantName: "Grix")
+                                       combatantName: "Grix", unit: .metres)
         XCTAssertEqual(text, "Grix — HP 22 → 15")
         XCTAssertFalse(text.contains("7"), "a delta is the thing ADR-0008 refused to store")
     }
@@ -18,18 +18,18 @@ final class LogRowTextTests: XCTestCase {
     /// difference between an unstatted monster and a dead one.
     func testAnUnsetHitPointTotalReadsAsADashAndNotAsZero() {
         let text = LogRowText.describe(.hpChanged(combatantID: combatant, from: nil, to: 12),
-                                       combatantName: "Ogre")
+                                       combatantName: "Ogre", unit: .metres)
         XCTAssertEqual(text, "Ogre — HP — → 12")
     }
 
     func testAConditionReadsAsAppliedAndRemoved() {
         XCTAssertEqual(
             LogRowText.describe(.conditionAdded(combatantID: combatant, condition: .prone),
-                                combatantName: "Grix"),
+                                combatantName: "Grix", unit: .metres),
             "Grix — Prone applied")
         XCTAssertEqual(
             LogRowText.describe(.conditionRemoved(combatantID: combatant, condition: .prone),
-                                combatantName: "Grix"),
+                                combatantName: "Grix", unit: .metres),
             "Grix — Prone removed")
     }
 
@@ -37,7 +37,7 @@ final class LogRowTextTests: XCTestCase {
     /// that matters is that the DM rearranged the Order.
     func testAnOrderChangeSaysOnlyThatItHappened() {
         let text = LogRowText.describe(.orderChanged(order: [UUID(), UUID(), UUID()]),
-                                       combatantName: "Grix")
+                                       combatantName: "Grix", unit: .metres)
         XCTAssertEqual(text, "Order changed")
     }
 
@@ -49,45 +49,58 @@ final class LogRowTextTests: XCTestCase {
         let text = LogRowText.describe(
             .moved(combatantID: combatant, from: MapPoint(x: 0, y: 0),
                    to: MapPoint(x: 100, y: 0), distanceSquares: 5),
-            combatantName: "Grix")
+            combatantName: "Grix", unit: .metres)
         XCTAssertEqual(text, "Grix — moved 7.5 m", "5 squares at 1.5 m to the square")
     }
 
     func testASessionMoveAlsoRendersInMetres() {
         let text = LogRowText.describe(.pawnMoved(label: "Grix", distanceSquares: 4,
-                                                  at: Date()))
+                                                  at: Date()), unit: .metres)
         XCTAssertEqual(text, "Grix moved 6 m")
+    }
+
+    func testTheSameLinesReadInFeetAtATableThatSpeaksThem() {
+        // The Line stores squares, so a switch re-reads the evening: 4 squares are 20 ft, the
+        // book's number, and never the tape measure's 19.7.
+        let session = LogRowText.describe(.pawnMoved(label: "Grix", distanceSquares: 4,
+                                                     at: Date()), unit: .feet)
+        let combat = LogRowText.describe(
+            .moved(combatantID: combatant, from: MapPoint(x: 0, y: 0),
+                   to: MapPoint(x: 100, y: 0), distanceSquares: 5),
+            combatantName: "Grix", unit: .feet)
+        XCTAssertEqual(session, "Grix moved 20 ft")
+        XCTAssertEqual(combat, "Grix — moved 25 ft")
     }
 
     // MARK: Rows that head groups
 
     func testALiveEncounterSaysItIsInProgress() {
-        XCTAssertEqual(LogRowText.describe(.encounterStarted(map: "dungeon.png", isLive: true)),
+        XCTAssertEqual(LogRowText.describe(.encounterStarted(map: "dungeon.png", isLive: true), unit: .metres),
                        "Encounter in progress")
     }
 
     func testAFinishedEncounterNamesItsMapByFileNameNotItsWholePath() {
         XCTAssertEqual(
-            LogRowText.describe(.encounterStarted(map: "maps/crypt/dungeon.png", isLive: false)),
+            LogRowText.describe(.encounterStarted(map: "maps/crypt/dungeon.png", isLive: false), unit: .metres),
             "Encounter on dungeon.png",
             "the path disambiguates the file; the DM reads the name")
     }
 
     func testAnUnreadableEncounterNamesWhatItLookedFor() {
         let text = LogRowText.describe(.encounterUnreadable(map: "dungeon.png",
-                                                            logFile: "gone.jsonl"))
+                                                            logFile: "gone.jsonl"), unit: .metres)
         XCTAssertTrue(text.contains("gone.jsonl"),
                       "a DM chasing a missing fight needs the file name it wanted")
     }
 
     func testACorrectionNamesTheTurnItAmends() {
         XCTAssertEqual(
-            LogRowText.describe(.correction(targetRound: 3, targetCombatantName: "Grix")),
+            LogRowText.describe(.correction(targetRound: 3, targetCombatantName: "Grix"), unit: .metres),
             "Correction to Round 3 — Grix")
     }
 
     func testAnOrphanCorrectionSaysItsTurnIsMissing() {
-        let text = LogRowText.describe(.orphanCorrection(targetRound: 9))
+        let text = LogRowText.describe(.orphanCorrection(targetRound: 9), unit: .metres)
         XCTAssertTrue(text.contains("not in this log"))
     }
 
@@ -109,7 +122,7 @@ final class LogRowTextTests: XCTestCase {
         let text = LogRowText.describe(
             .savingThrow(combatantID: combatant, name: "Grix", ability: .dexterity,
                          roll: Roll(d20: 16, modifier: 5, difficultyClass: 15)),
-            combatantName: "Grix")
+            combatantName: "Grix", unit: .metres)
         XCTAssertEqual(text, "Grix — DEX save 21 (16 + 5) vs DC 15 — succeeded")
     }
 
@@ -119,7 +132,7 @@ final class LogRowTextTests: XCTestCase {
         let text = LogRowText.describe(
             .savingThrow(combatantID: combatant, name: "Grix", ability: .wisdom,
                          roll: Roll(d20: 11, modifier: 2)),
-            combatantName: "Grix")
+            combatantName: "Grix", unit: .metres)
         XCTAssertEqual(text, "Grix — WIS save 13 (11 + 2)")
     }
 
@@ -129,7 +142,7 @@ final class LogRowTextTests: XCTestCase {
         let text = LogRowText.describe(
             .abilityCheck(combatantID: combatant, name: "Grix", skill: .stealth,
                           roll: Roll(d20: 12, modifier: 7, difficultyClass: 15)),
-            combatantName: "Grix")
+            combatantName: "Grix", unit: .metres)
         XCTAssertEqual(text, "Grix — Stealth (DEX) 19 (12 + 7) vs DC 15 — succeeded")
     }
 
@@ -137,7 +150,7 @@ final class LogRowTextTests: XCTestCase {
         let text = LogRowText.describe(
             .abilityCheck(combatantID: combatant, name: "Grix", skill: .perception,
                           roll: Roll(d20: 4, modifier: 1, difficultyClass: 15)),
-            combatantName: "Grix")
+            combatantName: "Grix", unit: .metres)
         XCTAssertEqual(text, "Grix — Perception (WIS) 5 (4 + 1) vs DC 15 — failed")
     }
 
@@ -147,7 +160,7 @@ final class LogRowTextTests: XCTestCase {
         let text = LogRowText.describe(
             .savingThrow(combatantID: combatant, name: "Grix", ability: .charisma,
                          roll: Roll(d20: 9, modifier: -1)),
-            combatantName: "Grix")
+            combatantName: "Grix", unit: .metres)
         XCTAssertEqual(text, "Grix — CHA save 8 (9 - 1)")
     }
 }

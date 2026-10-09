@@ -34,7 +34,7 @@ final class InitiativeBonusChangeTests: XCTestCase {
     func testTheLogSaysItInWords() {
         XCTAssertEqual(
             LogRowText.describe(.initiativeBonusChanged(combatantID: gnoll, from: 1, to: -2),
-                                combatantName: "GG1"),
+                                combatantName: "GG1", unit: .metres),
             "GG1 — initiative bonus +1 → −2")
     }
 }

@@ -127,7 +127,7 @@ final class RollRoutingTests: XCTestCase {
                        "a Roll by someone outside the Order must still name them")
 
         // And the row a DM reads says so too, rather than "Unknown Combatant".
-        let texts = LogViewModel.combatRows(lines).map { LogRowText.describe($0) }
+        let texts = LogViewModel.combatRows(lines).map { LogRowText.describe($0, unit: .metres) }
         XCTAssertTrue(texts.contains { $0.hasPrefix("Innkeeper — Persuasion (CHA)") },
                       "rows were: \(texts)")
     }

@@ -70,6 +70,9 @@ struct LogView: View {
     let rows: [LogRow]
     let hasWorkspace: Bool
     let hasSession: Bool
+    /// What a "moved" Line's distance is read in. Lines store squares, so a switch re-reads
+    /// the whole evening rather than only what is written after it.
+    let unit: DistanceUnit
 
     /// Whether the view is still following the newest Line.
     ///
@@ -131,7 +134,7 @@ struct LogView: View {
                 // the row rather than a shape this view has to walk.
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                        LogRowView(row: row)
+                        LogRowView(row: row, unit: unit)
                             .id(index)
                             // Addressed by identifier because every `staticText` in this
                             // window publishes an empty `label` on this macOS — see
@@ -191,13 +194,14 @@ private struct LogScrollOffset: PreferenceKey {
 /// One row. Indentation carries the grouping; colour carries what kind of thing it is.
 struct LogRowView: View {
     let row: LogRow
+    let unit: DistanceUnit
 
     var body: some View {
         switch row {
         case .mapSeparator:
-            separator(LogRowText.describe(row))
+            separator(LogRowText.describe(row, unit: unit))
         case .roundHeading:
-            heading(LogRowText.describe(row))
+            heading(LogRowText.describe(row, unit: unit))
         default:
             line
         }
@@ -210,7 +214,7 @@ struct LogRowView: View {
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(.tertiary)
             }
-            Text(LogRowText.describe(row))
+            Text(LogRowText.describe(row, unit: unit))
                 .font(font)
                 .foregroundStyle(colour)
                 .fixedSize(horizontal: false, vertical: true)

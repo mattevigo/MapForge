@@ -9,7 +9,7 @@ import Foundation
 /// they are reading it in front of players.
 enum MeasurementControl {
     enum UnavailableReason: CaseIterable {
-        /// Distances are in Grid squares, so without a Grid there is no metres conversion
+        /// Distances are in Grid squares, so without a Grid there is no Distance Unit to read
         /// and the readout would be a confident wrong number — the reasoning
         /// `AppState.litRegions` already gives for returning nothing until a Grid is
         /// declared: something wrong in the wrong places is worse than nothing at all.

@@ -880,6 +880,21 @@ final class AppState: ObservableObject {
         }
     }
 
+    // MARK: - The Distance Unit
+
+    /// The unit the table speaks distances in, chosen in Settings (ADR-0027).
+    ///
+    /// Live, unlike the Interface Language: every distance is stored in Grid squares and only
+    /// formatted when drawn, so a switch re-reads them all on both screens at once —
+    /// Measurements, Pinned ones and Log Lines alike — and records nothing.
+    var distanceUnit: DistanceUnit {
+        get { preferences.distanceUnit }
+        set {
+            preferences.distanceUnit = newValue
+            objectWillChange.send()
+        }
+    }
+
     // MARK: - The Workspace
 
     /// The Workspaces this Mac has opened, for the picker.

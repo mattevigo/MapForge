@@ -305,7 +305,7 @@ extension AppState {
     }
 
     /// Straight-line distance in Grid squares — the unit distances are *stored* in, as
-    /// `Measurement` does. Metres are what `DistanceUnit` turns it into for display.
+    /// `Measurement` does. The Distance Unit turns it into metres or feet for display.
     private func distanceInSquares(from: MapPoint, to: MapPoint) -> CGFloat {
         guard let map = mapScale, map.imagePixelSize.width > 0, squaresWide > 0 else { return 0 }
         let pixelsPerSquare = map.imagePixelSize.width / CGFloat(squaresWide)

@@ -19,6 +19,7 @@ final class DisplayPreferences {
         static let recentWorkspaces = "recentWorkspaces"
         static let recentWorkspaceBookmarks = "recentWorkspaceBookmarks"
         static let appleLanguages = "AppleLanguages"
+        static let distanceUnit = "distanceUnit"
     }
 
     /// Enough to recognise a campaign in the picker, few enough to stay a list and not a
@@ -33,12 +34,17 @@ final class DisplayPreferences {
 
     private let bookmarks: WorkspaceBookmarks
 
+    /// The Mac's region, which decides the Distance Unit until the DM does.
+    private let region: Locale
+
     init(defaults: UserDefaults = .standard,
          domain: String = Bundle.main.bundleIdentifier ?? "com.mattevigo.MapForge",
-         bookmarks: WorkspaceBookmarks = .securityScoped) {
+         bookmarks: WorkspaceBookmarks = .securityScoped,
+         region: Locale = .autoupdatingCurrent) {
         self.defaults = defaults
         self.domain = domain
         self.bookmarks = bookmarks
+        self.region = region
     }
 
     /// The preferences this launch should use: the real ones, or a throwaway suite when
@@ -127,6 +133,19 @@ final class DisplayPreferences {
                 defaults.set([newValue.rawValue], forKey: Key.appleLanguages)
             }
         }
+    }
+
+    /// The Distance Unit chosen on this Mac (ADR-0027), or the region's until one is.
+    ///
+    /// The region decides only until the DM does (`DistanceUnit.init(region:)`). The choice,
+    /// once made, is stored and outranks the region from then on — a DM who moves their Mac
+    /// to another country has not changed the table they play at.
+    var distanceUnit: DistanceUnit {
+        get {
+            defaults.string(forKey: Key.distanceUnit).flatMap(DistanceUnit.init(rawValue:))
+                ?? DistanceUnit(region: region)
+        }
+        set { defaults.set(newValue.rawValue, forKey: Key.distanceUnit) }
     }
 
     /// Moves a Workspace to the front of the list, deduplicating and capping, and stores a
