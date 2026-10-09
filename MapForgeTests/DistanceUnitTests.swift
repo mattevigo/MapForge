@@ -83,16 +83,38 @@ final class DistanceEntryTests: XCTestCase {
     }
 
     func testTheFieldShowsTheStoredDistanceAsTheUnitSaysIt() {
-        XCTAssertEqual(DistanceUnit.feet.entry(squares: 12), 60)
-        XCTAssertEqual(DistanceUnit.metres.entry(squares: 12), 18)
+        XCTAssertEqual(DistanceUnit.feet.roundedDisplay(squares: 12), 60)
+        XCTAssertEqual(DistanceUnit.metres.roundedDisplay(squares: 12), 18)
         // 10 m typed at a metric table, read at one in feet: 33.3 ft, said as 33.
-        XCTAssertEqual(DistanceUnit.feet.entry(squares: 10 / 1.5), 33)
+        XCTAssertEqual(DistanceUnit.feet.roundedDisplay(squares: 10 / 1.5), 33)
     }
 
     func testAnUntouchedFieldLeavesARoundedValueExactlyAsStored() {
         // The field shows 33 for 6.667 squares; handing 33 back must not make it 6.6.
         let stored: CGFloat = 10 / 1.5
-        let shown = DistanceUnit.feet.entry(squares: stored)
-        XCTAssertEqual(DistanceUnit.feet.squares(entered: shown, replacing: stored), stored)
+        XCTAssertEqual(DistanceUnit.feet.squares(entered: 33, replacing: stored), stored)
+    }
+
+    func testAnUntouchedMetricFieldLeavesItsSquaresBitIdentical() {
+        // 32 ft is 6.4 squares, shown at a metric table as "9.6" — which the field parses
+        // back as the Double 9.6, not as 96 × 0.1.
+        let stored: CGFloat = 6.4
+        XCTAssertEqual(DistanceUnit.metres.squares(entered: 9.6, replacing: stored), stored)
+    }
+
+    func testEveryValueTheFieldShowsComesBackAsTheSameStoredSquares() {
+        // Through the real formatter, as the field round-trips it: every whole foot from 0 to
+        // 199 ft, read in either unit, survives being shown and parsed back untouched.
+        let english = Locale(identifier: "en")
+        for unit in DistanceUnit.allCases {
+            for feet in 0..<200 {
+                let stored = CGFloat(feet) / 5
+                let text = unit.roundedDisplay(squares: stored)
+                    .formatted(.number.grouping(.never).locale(english))
+                let parsed = try! Double(text, format: .number.locale(english))
+                XCTAssertEqual(unit.squares(entered: parsed, replacing: stored), stored,
+                               "\(feet) ft read in \(unit)")
+            }
+        }
     }
 }

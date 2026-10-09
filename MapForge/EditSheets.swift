@@ -440,7 +440,7 @@ struct DistanceField: View {
     var body: some View {
         HStack(spacing: 6) {
             TextField(unit.symbol, value: Binding(
-                get: { unit.entry(squares: squares) },
+                get: { unit.roundedDisplay(squares: squares) },
                 set: { squares = unit.squares(entered: $0, replacing: squares) }
             ), format: .number)
                 .textFieldStyle(.roundedBorder)

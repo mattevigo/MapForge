@@ -1494,6 +1494,11 @@ struct ControlView: View {
     ///
     /// The write is `appState.setPawnLabel`, not `FogEdits`: a rename at the table is a
     /// live action and is not undoable, exactly as moving a Pawn is not.
+    /// A sight or a radius as the table speaks it, in the Distance Unit in force.
+    private func distance(_ squares: CGFloat) -> String {
+        appState.distanceUnit.format(squares: squares)
+    }
+
     private func pawnLiveRow(_ pawn: Pawn) -> some View {
         HStack(spacing: 6) {
             // The token, not a switch: it is how the DM finds this row, since it carries
@@ -1516,7 +1521,7 @@ struct ControlView: View {
                   ? (pawn.kind == .treasure
                      ? String(localized: "\(pawn.label): a Treasure — emits no Light. Click to douse the light it does not cast.")
                      : String(localized: "\(pawn.label): a Creature — emits no Light. Click to douse the light it does not cast."))
-                  : String(localized: "\(pawn.label): sight \(appState.distanceUnit.format(squares: pawn.light.brightSquares)). Click to douse."))
+                  : String(localized: "\(pawn.label): sight \(distance(pawn.light.brightSquares)). Click to douse."))
 
             // Fills the column rather than a fixed 72 pt: names like "Goblin B" need the
             // room, and the panel has a known width to give them.
@@ -2353,10 +2358,10 @@ struct ControlView: View {
             .lineLimit(1)
             .frame(minWidth: 0)
             Spacer(minLength: 0)
-            Text(appState.distanceUnit.format(squares: light.brightSquares))
+            Text(distance(light.brightSquares))
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .help(String(localized: "Bright \(appState.distanceUnit.format(squares: light.brightSquares)), dim \(appState.distanceUnit.format(squares: light.dimSquares))"))
+                .help(String(localized: "Bright \(distance(light.brightSquares)), dim \(distance(light.dimSquares))"))
         }
     }
 
