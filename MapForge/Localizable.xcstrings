@@ -1195,6 +1195,86 @@
         }
       }
     },
+    "%@ — unused, a Creature emits no Light": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — ungenutzt: Eine Kreatur sendet kein Licht aus"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — αχρησιμοποίητο· ένα πλάσμα δεν εκπέμπει φως"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — sin efecto: una criatura no emite luz"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — sans effet : une créature n’émet aucune lumière"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — inutilizzato, una creatura non emette luce"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — sem uso: uma criatura não emite luz"
+          }
+        }
+      }
+    },
+    "%@ — unused, a Treasure emits no Light": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — ungenutzt: Ein Schatz sendet kein Licht aus"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — αχρησιμοποίητο· ένας θησαυρός δεν εκπέμπει φως"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — sin efecto: un tesoro no emite luz"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — sans effet : un trésor n’émet aucune lumière"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — inutilizzato, un tesoro non emette luce"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — sem uso: um tesouro não emite luz"
+          }
+        }
+      }
+    },
     "%@: a Creature — emits no Light. Click to douse the light it does not cast.": {
       "localizations": {
         "de": {
@@ -1275,48 +1355,48 @@
         }
       }
     },
-    "%@: sight %lld squares. Click to douse.": {
+    "%@: sight %@. Click to douse.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@: Sicht %2$lld Quadrate. Klicke, um das Licht auszumachen."
+            "value": "%1$@: Sicht %2$@. Klicke, um das Licht auszumachen."
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@: όραση %2$lld τετράγωνα. Κάντε κλικ για σβήσιμο."
+            "value": "%1$@: όραση %2$@. Κάντε κλικ για σβήσιμο."
           }
         },
         "en": {
           "stringUnit": {
-            "state": "new",
-            "value": "%1$@: sight %2$lld squares. Click to douse."
+            "state": "translated",
+            "value": "%1$@: sight %2$@. Click to douse."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@: visión de %2$lld casillas. Haz clic para apagar."
+            "value": "%1$@: visión de %2$@. Haz clic para apagar."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@ : vision de %2$lld cases. Cliquez pour éteindre."
+            "value": "%1$@ : vision de %2$@. Cliquez pour éteindre."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@: vista %2$lld quadretti. Fai clic per spegnere."
+            "value": "%1$@: vista %2$@. Fai clic per spegnere."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@: visão de %2$lld quadrados. Clique para apagar."
+            "value": "%1$@: visão de %2$@. Clique para apagar."
           }
         }
       }
@@ -3284,48 +3364,48 @@
         }
       }
     },
-    "Bright %lld, dim %lld squares": {
+    "Bright %@, dim %@": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hell %1$lld, dämmrig %2$lld Quadrate"
+            "value": "Hell %1$@, dämmrig %2$@"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Έντονο %1$lld, αμυδρό %2$lld τετράγωνα"
+            "value": "Έντονο %1$@, αμυδρό %2$@"
           }
         },
         "en": {
           "stringUnit": {
-            "state": "new",
-            "value": "Bright %1$lld, dim %2$lld squares"
+            "state": "translated",
+            "value": "Bright %1$@, dim %2$@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Brillante %1$lld, tenue %2$lld casillas"
+            "value": "Brillante %1$@, tenue %2$@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lumière vive : %1$lld cases, faible : %2$lld cases"
+            "value": "Lumière vive : %1$@, faible : %2$@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Intensa %1$lld, fioca %2$lld quadretti"
+            "value": "Intensa %1$@, fioca %2$@"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Luz plena %1$lld, penumbra %2$lld quadrados"
+            "value": "Luz plena %1$@, penumbra %2$@"
           }
         }
       }
@@ -14591,126 +14671,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tesouros"
-          }
-        }
-      }
-    },
-    "squares": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quadrate"
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "τετράγωνα"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "casillas"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "cases"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "quadretti"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "quadrados"
-          }
-        }
-      }
-    },
-    "squares — unused, a Creature emits no Light": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quadrate — ungenutzt: Eine Kreatur sendet kein Licht aus"
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "τετράγωνα — αχρησιμοποίητο· ένα πλάσμα δεν εκπέμπει φως"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "casillas — sin efecto: una criatura no emite luz"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "cases — sans effet : une créature n’émet aucune lumière"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "quadretti — inutilizzato, una creatura non emette luce"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "quadrados — sem uso: uma criatura não emite luz"
-          }
-        }
-      }
-    },
-    "squares — unused, a Treasure emits no Light": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quadrate — ungenutzt: Ein Schatz sendet kein Licht aus"
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "τετράγωνα — αχρησιμοποίητο· ένας θησαυρός δεν εκπέμπει φως"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "casillas — sin efecto: un tesoro no emite luz"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "cases — sans effet : un trésor n’émet aucune lumière"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "quadretti — inutilizzato, un tesoro non emette luce"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "quadrados — sem uso: um tesouro não emite luz"
           }
         }
       }

@@ -69,3 +69,30 @@ final class FeetFormattingTests: XCTestCase {
         XCTAssertEqual(format(240, "en"), "1200 ft")
     }
 }
+
+/// A sight or a Light's radius typed in the Distance Unit (`CONTEXT.md`): stored exactly as
+/// typed, never snapped — and a field the DM never touched never rewrites what is stored.
+final class DistanceEntryTests: XCTestCase {
+    func testDarkvisionLandsOnTwelveSquaresInEitherUnit() {
+        XCTAssertEqual(DistanceUnit.feet.squares(entered: 60, replacing: 0), 12, accuracy: 1e-9)
+        XCTAssertEqual(DistanceUnit.metres.squares(entered: 18, replacing: 0), 12, accuracy: 1e-9)
+    }
+
+    func testAHomebrewSightIsStoredExactlyNotSnapped() {
+        XCTAssertEqual(DistanceUnit.feet.squares(entered: 32, replacing: 12), 6.4, accuracy: 1e-9)
+    }
+
+    func testTheFieldShowsTheStoredDistanceAsTheUnitSaysIt() {
+        XCTAssertEqual(DistanceUnit.feet.entry(squares: 12), 60)
+        XCTAssertEqual(DistanceUnit.metres.entry(squares: 12), 18)
+        // 10 m typed at a metric table, read at one in feet: 33.3 ft, said as 33.
+        XCTAssertEqual(DistanceUnit.feet.entry(squares: 10 / 1.5), 33)
+    }
+
+    func testAnUntouchedFieldLeavesARoundedValueExactlyAsStored() {
+        // The field shows 33 for 6.667 squares; handing 33 back must not make it 6.6.
+        let stored: CGFloat = 10 / 1.5
+        let shown = DistanceUnit.feet.entry(squares: stored)
+        XCTAssertEqual(DistanceUnit.feet.squares(entered: shown, replacing: stored), stored)
+    }
+}

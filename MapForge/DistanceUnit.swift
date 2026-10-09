@@ -58,6 +58,22 @@ enum DistanceUnit: String, CaseIterable, Identifiable {
 
     func squares(fromDisplay display: CGFloat) -> CGFloat { display / perSquare }
 
+    /// The number a field shows for a stored distance: the one `format` would say, without
+    /// the symbol — so "33" for the 6.667 squares a metric table typed as 10 m.
+    func entry(squares: CGFloat) -> Double {
+        Double((display(fromSquares: squares) / roundingStep).rounded() * roundingStep)
+    }
+
+    /// The stored distance once a field hands a number back.
+    ///
+    /// Exact, never snapped: "sight 32 ft" is 6.4 squares, because the DM typed it and meant
+    /// it. But a number equal to what the field was showing is the field being left alone —
+    /// tabbing through it, or OK on a sheet the DM opened to change a colour — and leaves
+    /// `stored` untouched, or every save would grind a rounded reading back into the file.
+    func squares(entered: Double, replacing stored: CGFloat) -> CGFloat {
+        entered == entry(squares: stored) ? stored : squares(fromDisplay: CGFloat(entered))
+    }
+
     /// A distance as the DM would say it: "9 m", "7.5 m", "7,5 m" at an Italian table, or
     /// "30 ft".
     ///
@@ -66,8 +82,7 @@ enum DistanceUnit: String, CaseIterable, Identifiable {
     /// French book writes "1,50 m" (`docs/terminology.md`, Distances). Feet never have one —
     /// see `roundingStep`.
     func format(squares: CGFloat, locale: Locale = .interface) -> String {
-        let value = display(fromSquares: squares)
-        let rounded = Double((value / roundingStep).rounded() * roundingStep)
+        let rounded = entry(squares: squares)
         let places = rounded == rounded.rounded() ? 0
             : locale.language.languageCode == .french ? 2 : 1
         let text = rounded.formatted(.number.precision(.fractionLength(places))

@@ -289,6 +289,7 @@ struct ControlView: View {
             case .pawn(let id, let draft):
                 EditPawnSheet(draft: draft,
                               hasDeclaredGrid: appState.hasDeclaredGrid,
+                              unit: appState.distanceUnit,
                               bestiary: appState.bestiary,
                               pawns: appState.fog.pawns,
                               // The fight's copy while one runs: that is the one a stamp
@@ -300,6 +301,7 @@ struct ControlView: View {
             case .light(let id, let draft):
                 EditLightSheet(draft: draft,
                                hasDeclaredGrid: appState.hasDeclaredGrid,
+                               unit: appState.distanceUnit,
                                onCommit: { appState.updateLight(id: id, with: $0); editing = nil },
                                onCancel: { editing = nil })
             }
@@ -1514,7 +1516,7 @@ struct ControlView: View {
                   ? (pawn.kind == .treasure
                      ? String(localized: "\(pawn.label): a Treasure — emits no Light. Click to douse the light it does not cast.")
                      : String(localized: "\(pawn.label): a Creature — emits no Light. Click to douse the light it does not cast."))
-                  : String(localized: "\(pawn.label): sight \(Int(pawn.light.brightSquares)) squares. Click to douse."))
+                  : String(localized: "\(pawn.label): sight \(appState.distanceUnit.format(squares: pawn.light.brightSquares)). Click to douse."))
 
             // Fills the column rather than a fixed 72 pt: names like "Goblin B" need the
             // room, and the panel has a known width to give them.
@@ -2257,14 +2259,13 @@ struct ControlView: View {
                     ), supportsOpacity: false)
                     .labelsHidden()
                     Text("Sight:").font(.caption)
-                    // Bridged through Double as `pawnInspector` does: CGFloat is not a
-                    // parseable format type.
-                    TextField("", value: Binding(
-                        get: { Double(character.sightSquares) },
-                        set: { editedCharacter?.sightSquares = CGFloat($0) }
-                    ), format: .number)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 44)
+                    // The same field the Edit Pawn sheet's sight uses: a Character's sight is
+                    // what its Stamp hands the Pawn, so it is typed in the same unit.
+                    DistanceField(Binding(
+                        get: { character.sightSquares },
+                        set: { editedCharacter?.sightSquares = $0 }
+                    ), unit: appState.distanceUnit, width: 44)
+                    .font(.caption)
                 }
                 HStack(spacing: 6) {
                     Spacer(minLength: 0)
@@ -2352,10 +2353,10 @@ struct ControlView: View {
             .lineLimit(1)
             .frame(minWidth: 0)
             Spacer(minLength: 0)
-            Text("\(Int(light.brightSquares))")
+            Text(appState.distanceUnit.format(squares: light.brightSquares))
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .help("Bright \(Int(light.brightSquares)), dim \(Int(light.dimSquares)) squares")
+                .help(String(localized: "Bright \(appState.distanceUnit.format(squares: light.brightSquares)), dim \(appState.distanceUnit.format(squares: light.dimSquares))"))
         }
     }
 
