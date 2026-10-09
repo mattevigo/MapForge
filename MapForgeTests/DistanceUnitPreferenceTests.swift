@@ -71,9 +71,9 @@ final class DistanceUnitPreferenceTests: XCTestCase {
     func testTheNotesOfferASwitchOnlyWhenTheyAllAgreeOnTheOtherUnit() {
         let state = AppState(preferences: preferences(region: "it_IT"))
         var ogre = Monster(name: "Ogre")
-        ogre.speed = "40 ft."
+        ogre.distanceUnits = [.feet]
         var durga = CharacterNote(name: "Durga Pietraferma")
-        durga.senses = "darkvision 60 ft"
+        durga.distanceUnits = [.feet]
         state.bestiary = Bestiary(monsters: [ogre, Monster(name: "Wraith")])
         state.characterNotes = CharacterNotes(notes: [durga])
 
@@ -82,7 +82,7 @@ final class DistanceUnitPreferenceTests: XCTestCase {
         // A Character's note counts as much as a Monster's: one in metres, and the notes
         // no longer agree.
         var govinda = CharacterNote(name: "Govinda")
-        govinda.speed = "9 m"
+        govinda.distanceUnits = [.metres]
         state.characterNotes.notes.append(govinda)
         XCTAssertNil(state.suggestedDistanceUnit)
 

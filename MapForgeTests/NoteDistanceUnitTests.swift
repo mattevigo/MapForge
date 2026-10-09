@@ -2,9 +2,9 @@ import XCTest
 @testable import MapForge
 
 /// Which Distance Unit a note writes its distances in, read from its Speed and Senses alone
-/// (ADR-0027) — the two fields every statblock has, short and predictable, where the prose of
-/// an action is neither.
-final class NoteUnitTests: XCTestCase {
+/// (ADR-0027) — the two fields every Monster's note has, short and predictable, where the
+/// prose of an action is neither.
+final class NoteDistanceUnitTests: XCTestCase {
     private func units(_ texts: String?...) -> Set<DistanceUnit> {
         DistanceUnit.named(in: texts)
     }
@@ -12,6 +12,13 @@ final class NoteUnitTests: XCTestCase {
     func testAMetricSpeedIsMetres() {
         XCTAssertEqual(units("9 m"), [.metres])
         XCTAssertEqual(units("9m, scalare 6m"), [.metres])
+        // How a hand-written Italian note abbreviates it, and German's dative plural.
+        XCTAssertEqual(units("9 mt"), [.metres])
+        XCTAssertEqual(units("Dunkelsicht 18 Metern"), [.metres])
+    }
+
+    func testOneSpeedNamingBothUnitsNamesBoth() {
+        XCTAssertEqual(units("9 m, nuotare 30 ft"), [.metres, .feet])
     }
 
     func testAnImperialSpeedIsFeet() {
@@ -54,19 +61,18 @@ final class NoteUnitTests: XCTestCase {
 /// The notes flagged for being in the unit the Mac is not set to, and the switch offered when
 /// every note that names a unit agrees on the other one (ADR-0027).
 final class OtherUnitNotesTests: XCTestCase {
-    private func monster(_ name: String, speed: String?, senses: String? = nil) -> Monster {
+    private func monster(_ name: String, _ units: Set<DistanceUnit>) -> Monster {
         var monster = Monster(name: name)
-        monster.speed = speed
-        monster.senses = senses
+        monster.distanceUnits = units
         monster.file = "Bestiario/\(name).md"
         return monster
     }
 
     func testOnlyNotesThatNameTheOtherUnitAreFlaggedAndMixedOnesAreAmongThem() {
-        let notes = [monster("Gnoll", speed: "9 m"),
-                     monster("Ogre", speed: "40 ft."),
-                     monster("Wraith", speed: nil, senses: "Percezione passiva 12"),
-                     monster("Sahuagin", speed: "9 m, nuotare 40 ft")]
+        let notes = [monster("Gnoll", [.metres]),
+                     monster("Ogre", [.feet]),
+                     monster("Wraith", []),
+                     monster("Sahuagin", [.metres, .feet])]
 
         let flagged = OtherUnitNotes(notes, current: .metres)
 
@@ -77,22 +83,22 @@ final class OtherUnitNotesTests: XCTestCase {
     }
 
     func testNothingIsSaidWhenEveryNoteSpeaksTheUnitInForce() {
-        let notes = [monster("Gnoll", speed: "9 m"), monster("Wraith", speed: nil)]
+        let notes = [monster("Gnoll", [.metres]), monster("Wraith", [])]
         XCTAssertNil(OtherUnitNotes(notes, current: .metres))
     }
 
     func testOneNoteIsCountedInTheSingular() {
-        XCTAssertEqual(OtherUnitNotes([monster("Gnoll", speed: "9 m")], current: .feet)?.caption,
+        XCTAssertEqual(OtherUnitNotes([monster("Gnoll", [.metres])], current: .feet)?.caption,
                        "1 note in metres")
     }
 
     func testTheReferencePageWarnsOnlyANoteInTheOtherUnit() {
-        XCTAssertEqual(monster("Ogre", speed: "40 ft.").warning(current: .metres),
-                       "This note's Speed and Senses are in feet.")
-        XCTAssertEqual(monster("Gnoll", speed: "9 m").warning(current: .feet),
-                       "This note's Speed and Senses are in metres.")
-        XCTAssertNil(monster("Gnoll", speed: "9 m").warning(current: .metres))
-        XCTAssertNil(monster("Wraith", speed: nil).warning(current: .feet))
+        XCTAssertEqual(monster("Ogre", [.feet]).warning(current: .metres),
+                       "This note gives distances in feet.")
+        XCTAssertEqual(monster("Sahuagin", [.metres, .feet]).warning(current: .feet),
+                       "This note gives distances in metres.")
+        XCTAssertNil(monster("Gnoll", [.metres]).warning(current: .metres))
+        XCTAssertNil(monster("Wraith", []).warning(current: .feet))
     }
 
     func testTheNotesAgreeOnlyWhenEveryUnitTheyNameIsTheSame() {

@@ -2,12 +2,12 @@ import Foundation
 
 /// Which Distance Unit the DM's notes are written in — read, never rewritten (ADR-0027).
 ///
-/// The Workspace holds no unit of its own: its unit is whatever its notes say. A note is
-/// judged by its Speed and Senses alone, because every statblock has them and they are short
-/// and predictable; the prose of a trait or an action is neither, and an "m" in it is as
+/// The Workspace holds no Distance Unit of its own: its unit is whatever its notes say. A note
+/// is judged by its Speed and Senses alone, because every Monster's note has them and they are
+/// short and predictable; the prose of a trait or an action is neither, and an "m" in it is as
 /// likely to be a typo as a metre.
 extension DistanceUnit {
-    /// The units these texts name, each a number followed by the unit's word.
+    /// The Distance Units these texts name, each a number followed by the unit's word.
     ///
     /// The words are every Interface Language's, whatever language the app is in: a DM's notes
     /// are in the DM's language, which need not be the one on screen. A word that only starts
@@ -32,8 +32,8 @@ extension DistanceUnit {
     }
 
     private static let metresPattern = unitPattern([
-        "m", "metri", "metro", "metres", "metre", "meters", "meter", "mètres", "mètre",
-        "metros", "μέτρα", "μέτρο", "μ",
+        "m", "mt", "metri", "metro", "metres", "metre", "meters", "meter", "metern", "mètres",
+        "mètre", "metros", "μέτρα", "μέτρο", "μ",
     ])
 
     private static let feetPattern = unitPattern([
@@ -56,22 +56,22 @@ extension DistanceUnit {
 protocol DistanceNote {
     var name: String { get }
     var file: String { get }
-    var speed: String? { get }
-    var senses: String? { get }
+    /// What its Speed and Senses name, as read when the Workspace opened.
+    var distanceUnits: Set<DistanceUnit> { get }
 }
 
 extension DistanceNote {
-    /// The units its Speed and Senses name — none, one, or both.
-    var namedUnits: Set<DistanceUnit> { DistanceUnit.named(in: [speed, senses]) }
+    /// Whether it names the unit not in force — wholly, or beside the one that is.
+    func isFlagged(current: DistanceUnit) -> Bool { distanceUnits.contains(current.other) }
 
     /// What its reference page says when the note is in the unit not in force, or nil. Read
     /// mid-fight, where a "9 m" at a table speaking feet is the number most likely to be
     /// misread aloud.
     func warning(current: DistanceUnit) -> String? {
-        guard let other = namedUnits.first(where: { $0 != current }) else { return nil }
-        switch other {
-        case .metres: return String(localized: "This note's Speed and Senses are in metres.")
-        case .feet: return String(localized: "This note's Speed and Senses are in feet.")
+        guard isFlagged(current: current) else { return nil }
+        switch current.other {
+        case .metres: return String(localized: "This note gives distances in metres.")
+        case .feet: return String(localized: "This note gives distances in feet.")
         }
     }
 }
@@ -109,10 +109,9 @@ struct OtherUnitNotes: Equatable {
     /// Nil when there is nothing to say, so the caption stays silent as the skipped count
     /// does. A note naming both units is flagged: half of it is in the other one.
     init?(_ notes: [some DistanceNote], current: DistanceUnit) {
-        let flagged = notes.filter { $0.namedUnits.contains { $0 != current } }
-        guard !flagged.isEmpty,
-              let other = DistanceUnit.allCases.first(where: { $0 != current }) else { return nil }
-        unit = other
+        let flagged = notes.filter { $0.isFlagged(current: current) }
+        guard !flagged.isEmpty else { return nil }
+        unit = current.other
         self.notes = flagged.map { Note(name: $0.name, file: $0.file) }
     }
 

@@ -36,8 +36,8 @@ struct EditPawnSheet: View {
     /// The Pawn's Stat Block as it stands, for knowing whether a stamp would heal it.
     var statBlock = StatBlock()
     /// The unit every note in the Workspace agrees on, when it is not `unit`.
-    var suggestedUnit: DistanceUnit?
-    var onSwitchUnit: (DistanceUnit) -> Void = { _ in }
+    let suggestedUnit: DistanceUnit?
+    let onSwitchUnit: (DistanceUnit) -> Void
     let onCommit: (EditPawnDraft) -> Void
     let onCancel: () -> Void
 
@@ -223,6 +223,9 @@ private struct MonsterSearchField: View {
                                 .offset(y: 26)
                         }
                     }
+                    // Over the caption below it, which the results float across: a click
+                    // meant for a result must never land on "Use feet" underneath.
+                    .zIndex(1)
             }
             caption
         }
@@ -380,7 +383,7 @@ struct OtherUnitNotesCaption: View {
     /// The unit every note agrees on, when it is not the one in force.
     let suggestedUnit: DistanceUnit?
     let onSwitchUnit: (DistanceUnit) -> Void
-    var identifier = "other-unit-notes"
+    let identifier: String
     @State private var isShowing = false
 
     var body: some View {

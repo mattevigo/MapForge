@@ -901,7 +901,7 @@ final class AppState: ObservableObject {
     /// Characters' alike — names this one, and it is not the one in force (ADR-0027). With the
     /// notes mixed, switching would fix nothing, and the caption's list is the useful part.
     var suggestedDistanceUnit: DistanceUnit? {
-        let units = bestiary.monsters.map(\.namedUnits) + characterNotes.notes.map(\.namedUnits)
+        let units = bestiary.monsters.map(\.distanceUnits) + characterNotes.notes.map(\.distanceUnits)
         return DistanceUnit.agreed(by: units).flatMap { $0 == distanceUnit ? nil : $0 }
     }
 

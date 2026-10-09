@@ -300,6 +300,21 @@ final class BestiaryTests: XCTestCase {
                        "Personaggi/Durga_Pietraferma/Durga_Pietraferma.md")
     }
 
+    func testEveryNoteIsReadForTheDistanceUnitItsSpeedAndSensesName() throws {
+        // Once, when the Workspace opens — not again on every keystroke in a search box.
+        try write(note("Ogre", "speed: 40 ft.\nsenses: darkvision 60 ft."), to: "Bestiario/Ogre.md")
+        try write(note("Gnoll", "speed: 9 m"), to: "Bestiario/Gnoll.md")
+        try write(note("Wraith"), to: "Bestiario/Wraith.md")
+        try write(note("Durga Pietraferma", "class: Chierico\nspeed: 9 m\nhp: 48"),
+                  to: "Personaggi/Durga.md")
+
+        let reading = BestiaryStore.read(workspace)
+        XCTAssertEqual(reading.bestiary.monster(named: "Ogre")?.distanceUnits, [.feet])
+        XCTAssertEqual(reading.bestiary.monster(named: "Gnoll")?.distanceUnits, [.metres])
+        XCTAssertEqual(reading.bestiary.monster(named: "Wraith")?.distanceUnits, [])
+        XCTAssertEqual(reading.characters.note(named: "Durga Pietraferma")?.distanceUnits, [.metres])
+    }
+
     func testAPastBuildIsNotACharactersNote() throws {
         try write(note("Durga Pietraferma", "player: Baldu\nlevel: 5\nhp: 48"),
                   to: "Personaggi/Durga_Pietraferma/Durga_Pietraferma.md")

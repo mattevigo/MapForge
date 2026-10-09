@@ -48,6 +48,9 @@ struct Monster: Equatable, Identifiable {
     /// The note it was read from, relative to the Workspace root — so a DM told that a
     /// Monster is written in the other unit can find the note to change.
     var file = ""
+    /// The Distance Units its Speed and Senses name — none, one or both — read once with the
+    /// rest of the note, never again on a redraw (ADR-0027).
+    var distanceUnits: Set<DistanceUnit> = []
 
     var id: String { name }
 

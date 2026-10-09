@@ -13565,82 +13565,82 @@
         }
       }
     },
-    "This note's Speed and Senses are in feet.": {
+    "This note gives distances in feet.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bewegungsrate und Sinne dieser Notiz sind in Fuß."
+            "value": "Diese Notiz gibt Entfernungen in Fuß an."
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Η Ταχύτητα και οι Αισθήσεις αυτής της σημείωσης είναι σε πόδια."
+            "value": "Αυτή η σημείωση δίνει αποστάσεις σε πόδια."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La Velocidad y los Sentidos de esta nota están en pies."
+            "value": "Esta nota da las distancias en pies."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "La Vitesse et les Sens de cette note sont en pieds."
+            "value": "Cette note donne les distances en pieds."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "La Velocità e i Sensi di questa nota sono in piedi."
+            "value": "Questa nota indica le distanze in piedi."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O Deslocamento e os Sentidos desta nota estão em pés."
+            "value": "Esta nota dá as distâncias em pés."
           }
         }
       }
     },
-    "This note's Speed and Senses are in metres.": {
+    "This note gives distances in metres.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bewegungsrate und Sinne dieser Notiz sind in Metern."
+            "value": "Diese Notiz gibt Entfernungen in Metern an."
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Η Ταχύτητα και οι Αισθήσεις αυτής της σημείωσης είναι σε μέτρα."
+            "value": "Αυτή η σημείωση δίνει αποστάσεις σε μέτρα."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La Velocidad y los Sentidos de esta nota están en metros."
+            "value": "Esta nota da las distancias en metros."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "La Vitesse et les Sens de cette note sont en mètres."
+            "value": "Cette note donne les distances en mètres."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "La Velocità e i Sensi di questa nota sono in metri."
+            "value": "Questa nota indica le distanze in metri."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O Deslocamento e os Sentidos desta nota estão em metros."
+            "value": "Esta nota dá as distâncias em metros."
           }
         }
       }

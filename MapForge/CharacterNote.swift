@@ -38,6 +38,8 @@ struct CharacterNote: Equatable, Identifiable {
 
     /// The note it was read from, relative to the Workspace root, as `Monster.file` is.
     var file = ""
+    /// The Distance Units its Speed and Senses name, as `Monster.distanceUnits` are.
+    var distanceUnits: Set<DistanceUnit> = []
 
     var id: String { name }
 }
