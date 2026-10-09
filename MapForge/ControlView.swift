@@ -485,7 +485,7 @@ struct ControlView: View {
                 preview
             } else {
                 LogView(rows: logRows, hasWorkspace: appState.workspace != nil,
-                        hasSession: appState.session != nil)
+                        hasSession: appState.session != nil, unit: appState.distanceUnit)
             }
 
             // The Comment Bar, beneath the Map and the width of the Map column — it used to
@@ -950,7 +950,8 @@ struct ControlView: View {
                 MeasurementLayer(measurement: $0.measurement,
                                  origin: $0.origin,
                                  map: map, frame: frame,
-                                 pixelsPerSquare: pixelsPerSquare)
+                                 pixelsPerSquare: pixelsPerSquare,
+                                 unit: appState.distanceUnit)
             }
         }
     }
@@ -1300,7 +1301,7 @@ struct ControlView: View {
             }
             return
         case .commit:
-            guard let squares = typedDistance.squares(in: DistanceUnit.current) else { return }
+            guard let squares = typedDistance.squares(in: appState.distanceUnit) else { return }
             measurement.distance = squares
             measurement.isDistanceTyped = true
             appState.setMeasurement(measurement)
@@ -1321,7 +1322,7 @@ struct ControlView: View {
 
         // Show the buffer as it is typed, so a mis-key is visible before Return rather
         // than after the shape jumps.
-        if let squares = typedDistance.squares(in: DistanceUnit.current) {
+        if let squares = typedDistance.squares(in: appState.distanceUnit) {
             measurement.distance = squares
             measurement.isDistanceTyped = true
             appState.setMeasurement(measurement)

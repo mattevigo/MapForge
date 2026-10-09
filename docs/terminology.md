@@ -151,6 +151,11 @@ Every edition above is metric at **1,5 m** per square, with a decimal comma. Fre
 fractional distance with two decimals — **1,50 m**, **4,50 m**, **7,50 m** — and whole ones
 bare (**9 m**); the others write **1,5 m**. Greek follows the European editions: **1,5 m**.
 
+Feet are the English book's, at **5 ft** per square, and no edition in another language uses
+them, so a table that chooses feet reads **ft** in every language, never a translated word.
+They are always whole (**20 ft**, **35 ft**), and the same square as 1,5 m: 6 m is 20 ft, as
+both books print it, not the 19.7 ft a conversion would give.
+
 ## MapForge's own terms
 
 No book has these, so each is a choice. *Rejected* lists what was turned down and why, the way
@@ -166,6 +171,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 |---|---|---|
 | Map | Mappa | |
 | Interface Language (the Settings label "Language") | Lingua | |
+| Distance Unit (the Settings label "Distances") | Distanze *(proposed)* | |
 | True Scale | Scala | *scala reale* (redundant at the table), *1:1* |
 | Player Display | Schermo dei giocatori | |
 | Control Window | Finestra di controllo | |
@@ -207,6 +213,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 |---|---|---|
 | Map | Karte | |
 | Interface Language (the Settings label "Language") | Sprache | |
+| Distance Unit (the Settings label "Distances") | Entfernungen | |
 | True Scale | Echter Maßstab | *Originalgröße* (actual size), *1:1* |
 | Player Display | Spielerbildschirm | |
 | Control Window | Steuerfenster | |
@@ -248,6 +255,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 |---|---|---|
 | Map | Carte | |
 | Interface Language (the Settings label "Language") | Langue | |
+| Distance Unit (the Settings label "Distances") | Distances | |
 | True Scale | Échelle réelle | *taille réelle* (actual size) |
 | Player Display | Écran des joueurs | *écran du MJ* is the DM's screen, a different thing |
 | Control Window | Fenêtre de contrôle | |
@@ -289,6 +297,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 |---|---|---|
 | Map | Mapa | |
 | Interface Language (the Settings label "Language") | Idioma | |
+| Distance Unit (the Settings label "Distances") | Distancias | |
 | True Scale | Escala real | *tamaño real* (actual size) |
 | Player Display | Pantalla de jugadores | |
 | Control Window | Ventana de control | |
@@ -330,6 +339,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 |---|---|---|
 | Map | Mapa | |
 | Interface Language (the Settings label "Language") | Idioma | |
+| Distance Unit (the Settings label "Distances") | Distâncias | |
 | True Scale | Escala real | *tamanho real* (actual size) |
 | Player Display | Tela dos jogadores | *escudo do mestre* is the DM's screen |
 | Control Window | Janela de controle | |
@@ -376,6 +386,7 @@ ordinary language are Greek: a Greek DM says *τέρας*, not "monster".
 |---|---|---|
 | Map | Χάρτης | |
 | Interface Language (the Settings label "Language") | Γλώσσα | |
+| Distance Unit (the Settings label "Distances") | Αποστάσεις | |
 | True Scale | Πραγματική κλίμακα | |
 | Player Display | Οθόνη παικτών | |
 | Control Window | Παράθυρο ελέγχου | |

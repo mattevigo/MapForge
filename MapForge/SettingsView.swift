@@ -3,8 +3,8 @@ import SwiftUI
 
 /// MapForge › Settings… (⌘,): what this Mac prefers, whichever Workspace is open.
 ///
-/// Tabbed from the start although General is its only tab: Distance Unit belongs here when it
-/// becomes a choice, and a window that grows a tab bar later moves every control in it.
+/// Tabbed from the start although General is its only tab: a window that grows a tab bar later
+/// moves every control in it.
 struct SettingsView: View {
     var body: some View {
         TabView {
@@ -42,6 +42,15 @@ private struct GeneralSettings: View {
                     Button("Relaunch Now", action: relaunch)
                 }
             }
+
+            // Applies at once, unlike the language above it: distances are formatted when
+            // drawn, so both screens re-read them the moment this changes (ADR-0027).
+            Picker("Distances", selection: $appState.distanceUnit) {
+                ForEach(DistanceUnit.allCases) { unit in
+                    Text(unit.name).tag(unit)
+                }
+            }
+            .accessibilityIdentifier("distance-unit")
         }
         .formStyle(.grouped)
     }
@@ -66,6 +75,17 @@ private struct GeneralSettings: View {
                                            configuration: configuration) { _, error in
             guard error == nil else { return }
             DispatchQueue.main.async { NSApp.terminate(nil) }
+        }
+    }
+}
+
+extension DistanceUnit {
+    /// How the picker names it, with its symbol, so the choice reads as what the table will
+    /// see: "Metres (m)", "Feet (ft)".
+    var name: String {
+        switch self {
+        case .metres: String(localized: "Metres (m)")
+        case .feet: String(localized: "Feet (ft)")
         }
     }
 }

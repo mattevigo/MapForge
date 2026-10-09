@@ -315,7 +315,7 @@ final class LogViewModelTests: XCTestCase {
         ])
 
         let rows = LogViewModel().rows(sessionLogAt: url, workspace: workspace)
-        let texts = rows.map { LogRowText.describe($0) }
+        let texts = rows.map { LogRowText.describe($0, unit: .metres) }
 
         // The session-side row, and the combat-side one, say the same thing.
         XCTAssertTrue(texts.contains("Grix — DEX save 21 (16 + 5) vs DC 15 — succeeded"),
@@ -368,7 +368,7 @@ final class LogViewModelTests: XCTestCase {
             if case .abilityCheck = $0 { true } else { false }
         })
         XCTAssertEqual(rollRow.indent, 0)
-        XCTAssertEqual(LogRowText.describe(rollRow),
+        XCTAssertEqual(LogRowText.describe(rollRow, unit: .metres),
                        "Grix — Perception (WIS) 5 (4 + 1) vs DC 15 — failed")
     }
 

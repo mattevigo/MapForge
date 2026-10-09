@@ -87,7 +87,8 @@ struct PlayerView: View {
                         ForEach(appState.playerMeasurements, id: \.measurement.id) {
                             MeasurementLayer(measurement: $0.measurement, origin: $0.origin,
                                              map: map, frame: frame,
-                                             pixelsPerSquare: pixelsPerSquare)
+                                             pixelsPerSquare: pixelsPerSquare,
+                                             unit: appState.distanceUnit)
                         }
                     }
                 }

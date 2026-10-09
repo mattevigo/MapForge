@@ -32,7 +32,7 @@ enum LogRowText {
 
     /// One `Change`, named for the Combatant it targets.
     static func describe(_ change: Change, combatantName: String,
-                         unit: DistanceUnit = .current) -> String {
+                         unit: DistanceUnit) -> String {
         switch change {
         case let .hpChanged(_, from, to):
             String(localized: "\(combatantName) — HP \(number(from)) → \(number(to))")
@@ -118,7 +118,7 @@ enum LogRowText {
     }
 
     /// A Session Line, or a row that heads a group.
-    static func describe(_ row: LogRow, unit: DistanceUnit = .current) -> String {
+    static func describe(_ row: LogRow, unit: DistanceUnit) -> String {
         switch row {
         // The time is drawn in its own column by every row that carries one, so these say
         // only what happened. Embedding it here too printed it twice on the one row that

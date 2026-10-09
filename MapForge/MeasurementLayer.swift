@@ -18,6 +18,9 @@ struct MeasurementLayer: View {
     let map: MapScale
     let frame: CGRect
     let pixelsPerSquare: CGFloat
+    /// The Distance Unit the readout speaks — the same on both screens, so the table and the
+    /// DM never read one distance two ways.
+    let unit: DistanceUnit
 
     /// Green, per the feature's spec. Translucent fill, solid border — the pairing
     /// `GridFitOverlay` and `ViewportOverlay` already use for "a region under discussion".
@@ -95,7 +98,7 @@ struct MeasurementLayer: View {
     /// map-scaled text on a True Scale display is illegible on a large Map and enormous on
     /// a small one.
     private var readout: some View {
-        Text(measurement.readout(in: DistanceUnit.current))
+        Text(measurement.readout(in: unit))
             .font(.caption.weight(.semibold))
             .foregroundStyle(.primary)
             .padding(.horizontal, 6)
