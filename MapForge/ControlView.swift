@@ -296,6 +296,8 @@ struct ControlView: View {
                               // would overwrite, and so the one to ask about.
                               statBlock: appState.encounter?.blocks[id]
                                   ?? appState.statBlock(for: id),
+                              suggestedUnit: appState.suggestedDistanceUnit,
+                              onSwitchUnit: { appState.distanceUnit = $0 },
                               onCommit: { appState.updatePawn(id: id, with: $0); editing = nil },
                               onCancel: { editing = nil })
             case .light(let id, let draft):
@@ -2252,6 +2254,9 @@ struct ControlView: View {
                 CharacterNoteField(notes: appState.characterNotes,
                                    noteName: character.noteName,
                                    isRead: appState.bestiary != .reading,
+                                   unit: appState.distanceUnit,
+                                   suggestedUnit: appState.suggestedDistanceUnit,
+                                   onSwitchUnit: { appState.distanceUnit = $0 },
                                    onPick: { editedCharacter?.link(to: $0) },
                                    onClear: { editedCharacter?.unlink() })
                     // Above the colour and sight row and the buttons, which its results

@@ -26,12 +26,13 @@ struct StatEditor: View {
                 // actions here rather than alt-tabbing to their notes mid-fight.
                 if let monsterName = pawn.monsterName {
                     Divider()
-                    MonsterReferenceView(monsterName: monsterName, bestiary: appState.bestiary)
+                    MonsterReferenceView(monsterName: monsterName, bestiary: appState.bestiary,
+                                         unit: appState.distanceUnit)
                 } else if let page = appState.characterPage(for: pawn) {
                     // And the Character's, for a Pawn Stamped from one: "what's my spell
                     // save DC again?" without asking the player (ADR-0007, amended).
                     Divider()
-                    CharacterReferenceView(page: page)
+                    CharacterReferenceView(page: page, unit: appState.distanceUnit)
                 }
             }
             if appState.encounter != nil {

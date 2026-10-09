@@ -18,6 +18,11 @@ struct CharacterNoteField: View {
     /// False while the Workspace's notes are still being read, when nothing can be found and
     /// nothing should be said to be missing.
     let isRead: Bool
+    /// The unit in force, which the notes are checked against.
+    let unit: DistanceUnit
+    /// The unit every note in the Workspace agrees on, when it is not `unit`.
+    let suggestedUnit: DistanceUnit?
+    let onSwitchUnit: (DistanceUnit) -> Void
     let onPick: (CharacterNote) -> Void
     let onClear: () -> Void
 
@@ -141,8 +146,8 @@ struct CharacterNoteField: View {
         .shadow(color: .black.opacity(0.18), radius: 6, y: 2)
     }
 
-    /// The one place a Character note the app could not take is mentioned. Silent when
-    /// every note was read.
+    /// The one place a Character note the app could not take is mentioned — then the notes
+    /// in the other unit. Silent when every note was read and speaks the unit in force.
     @ViewBuilder private var caption: some View {
         if !notes.skipped.isEmpty {
             SkippedNotesButton(caption: String(localized: "\(notes.skipped.count) files skipped"),
@@ -150,6 +155,9 @@ struct CharacterNoteField: View {
                                title: String(localized: "Character notes the app could not take"),
                                identifier: "character-note-caption")
         }
+        OtherUnitNotesCaption(flagged: OtherUnitNotes(notes.notes, current: unit),
+                              suggestedUnit: suggestedUnit, onSwitchUnit: onSwitchUnit,
+                              identifier: "character-note-other-unit")
     }
 
     private func move(_ step: Int) -> KeyPress.Result {

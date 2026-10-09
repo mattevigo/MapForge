@@ -59,12 +59,15 @@ enum CharacterReference {
 /// `AppState.characterPage(for:)`; this only lays it out. Never on the Player Display.
 struct CharacterReferenceView: View {
     let page: CharacterPage
+    /// The unit in force, which the note is checked against.
+    let unit: DistanceUnit
 
     var body: some View {
         switch page {
         case .note(let note):
             ReferencePageView(name: note.name,
                               heading: CharacterReference.heading(of: note),
+                              warning: note.warning(current: unit),
                               lines: CharacterReference.lines(of: note),
                               groups: CharacterReference.groups(of: note))
                 .accessibilityIdentifier("character-reference")

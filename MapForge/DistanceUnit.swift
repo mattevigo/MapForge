@@ -21,6 +21,14 @@ enum DistanceUnit: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// The unit that is not this one — what a note in the wrong unit is written in.
+    var other: DistanceUnit {
+        switch self {
+        case .metres: .feet
+        case .feet: .metres
+        }
+    }
+
     /// How much of this unit one Grid square is worth.
     var perSquare: CGFloat {
         switch self {

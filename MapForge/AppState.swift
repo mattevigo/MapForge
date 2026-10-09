@@ -895,6 +895,16 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// The unit to offer a one-click switch to, or nil when there is nothing to offer.
+    ///
+    /// Offered only when every note in the Workspace that names a unit — Monsters' and
+    /// Characters' alike — names this one, and it is not the one in force (ADR-0027). With the
+    /// notes mixed, switching would fix nothing, and the caption's list is the useful part.
+    var suggestedDistanceUnit: DistanceUnit? {
+        let units = bestiary.monsters.map(\.distanceUnits) + characterNotes.notes.map(\.distanceUnits)
+        return DistanceUnit.agreed(by: units).flatMap { $0 == distanceUnit ? nil : $0 }
+    }
+
     // MARK: - The Workspace
 
     /// The Workspaces this Mac has opened, for the picker.

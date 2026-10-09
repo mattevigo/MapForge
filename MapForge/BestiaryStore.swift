@@ -52,7 +52,9 @@ enum BestiaryStore {
                 continue
             case .skipped(let reason):
                 bestiary.skipped.append(.init(file: fence.file, reason: reason))
-            case .monster(let monster):
+            case .monster(var monster):
+                monster.file = fence.file
+                monster.distanceUnits = DistanceUnit.named(in: [monster.speed, monster.senses])
                 guard names.insert(monster.name).inserted else {
                     bestiary.skipped.append(.init(
                         file: fence.file, reason: String(localized: "another note already defines “\(monster.name)”")))
@@ -82,7 +84,9 @@ enum BestiaryStore {
                 continue
             case .skipped(let reason):
                 characters.skipped.append(.init(file: fence.file, reason: reason))
-            case .character(let note):
+            case .character(var note):
+                note.file = fence.file
+                note.distanceUnits = DistanceUnit.named(in: [note.speed, note.senses])
                 guard names.insert(note.name).inserted else {
                     characters.skipped.append(.init(
                         file: fence.file, reason: String(localized: "another note already defines “\(note.name)”")))

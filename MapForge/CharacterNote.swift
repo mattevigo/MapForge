@@ -36,6 +36,11 @@ struct CharacterNote: Equatable, Identifiable {
     /// then the slots per level. No layout of their own — there is nothing in them but text.
     var spells: [String] = []
 
+    /// The note it was read from, relative to the Workspace root, as `Monster.file` is.
+    var file = ""
+    /// The Distance Units its Speed and Senses name, as `Monster.distanceUnits` are.
+    var distanceUnits: Set<DistanceUnit> = []
+
     var id: String { name }
 }
 

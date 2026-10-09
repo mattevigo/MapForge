@@ -35,6 +35,9 @@ struct EditPawnSheet: View {
     var pawns: [Pawn] = []
     /// The Pawn's Stat Block as it stands, for knowing whether a stamp would heal it.
     var statBlock = StatBlock()
+    /// The unit every note in the Workspace agrees on, when it is not `unit`.
+    let suggestedUnit: DistanceUnit?
+    let onSwitchUnit: (DistanceUnit) -> Void
     let onCommit: (EditPawnDraft) -> Void
     let onCancel: () -> Void
 
@@ -84,6 +87,9 @@ struct EditPawnSheet: View {
                     // Character, and a Treasure has none.
                     if draft.kind.canBeMonster {
                         MonsterSearchField(bestiary: bestiary,
+                                           unit: unit,
+                                           suggestedUnit: suggestedUnit,
+                                           onSwitchUnit: onSwitchUnit,
                                            monsterName: draft.monsterName,
                                            isSearching: $isSearching,
                                            onPick: { draft.pick($0, among: pawns) },
@@ -177,6 +183,10 @@ struct EditPawnSheet: View {
 /// Holds no draft: it reports a pick or a clear and the sheet decides what that means.
 private struct MonsterSearchField: View {
     let bestiary: Bestiary
+    /// The unit in force, which the Monsters' notes are checked against.
+    let unit: DistanceUnit
+    let suggestedUnit: DistanceUnit?
+    let onSwitchUnit: (DistanceUnit) -> Void
     /// The Monster already chosen, shown instead of the field.
     let monsterName: String?
     @Binding var isSearching: Bool
@@ -213,6 +223,9 @@ private struct MonsterSearchField: View {
                                 .offset(y: 26)
                         }
                     }
+                    // Over the caption below it, which the results float across: a click
+                    // meant for a result must never land on "Use feet" underneath.
+                    .zIndex(1)
             }
             caption
         }
@@ -291,8 +304,9 @@ private struct MonsterSearchField: View {
         .shadow(color: .black.opacity(0.18), radius: 6, y: 2)
     }
 
-    /// The Bestiary's one line, and the only place a skipped note is ever mentioned. Silent
-    /// when everything was read.
+    /// The Bestiary's one line, and the only place a skipped note is ever mentioned — then,
+    /// under it, the Monsters whose notes are in the other unit. Silent when there is
+    /// nothing to say.
     @ViewBuilder private var caption: some View {
         if let text = bestiary.caption {
             if bestiary.skipped.isEmpty {
@@ -303,6 +317,9 @@ private struct MonsterSearchField: View {
                 SkippedNotesButton(caption: text, skipped: bestiary.skipped)
             }
         }
+        OtherUnitNotesCaption(flagged: OtherUnitNotes(bestiary.monsters, current: unit),
+                              suggestedUnit: suggestedUnit, onSwitchUnit: onSwitchUnit,
+                              identifier: "bestiary-other-unit")
     }
 
     private func move(_ step: Int) -> KeyPress.Result {
@@ -353,6 +370,69 @@ struct SkippedNotesButton: View {
                 .padding(12)
                 .frame(width: 320, alignment: .leading)
             }
+    }
+}
+
+/// "3 notes in feet", opening onto which notes and where they are — and "Use feet" beside it
+/// when every note in the Workspace agrees (ADR-0027). Under the Monster search and the
+/// Character note box alike, as `SkippedNotesButton` is; silent when there is nothing to say.
+///
+/// It only informs: nothing here rewrites a note or keeps a Monster from being Stamped.
+struct OtherUnitNotesCaption: View {
+    let flagged: OtherUnitNotes?
+    /// The unit every note agrees on, when it is not the one in force.
+    let suggestedUnit: DistanceUnit?
+    let onSwitchUnit: (DistanceUnit) -> Void
+    let identifier: String
+    @State private var isShowing = false
+
+    var body: some View {
+        if let flagged {
+            HStack(spacing: 8) {
+                Button(flagged.caption) { isShowing = true }
+                    .buttonStyle(.link)
+                    .font(.caption)
+                    .accessibilityIdentifier(identifier)
+                    .popover(isPresented: $isShowing, arrowEdge: .bottom) { list(flagged) }
+                if let suggestedUnit {
+                    Button(switchTitle(suggestedUnit)) { onSwitchUnit(suggestedUnit) }
+                        .buttonStyle(.link)
+                        .font(.caption)
+                        .accessibilityIdentifier("\(identifier)-switch")
+                }
+            }
+        }
+    }
+
+    private func list(_ flagged: OtherUnitNotes) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title(flagged.unit))
+                .font(.caption.weight(.semibold))
+            ForEach(flagged.notes) { note in
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(note.name).font(.caption)
+                    Text(note.file).font(.caption.monospaced()).foregroundStyle(.secondary)
+                }
+            }
+            Text("The notes are read when the Workspace opens.")
+                .font(.caption2).foregroundStyle(.secondary)
+        }
+        .padding(12)
+        .frame(width: 320, alignment: .leading)
+    }
+
+    private func title(_ unit: DistanceUnit) -> String {
+        switch unit {
+        case .metres: String(localized: "Notes whose Speed or Senses are in metres")
+        case .feet: String(localized: "Notes whose Speed or Senses are in feet")
+        }
+    }
+
+    private func switchTitle(_ unit: DistanceUnit) -> String {
+        switch unit {
+        case .metres: String(localized: "Use metres")
+        case .feet: String(localized: "Use feet")
+        }
     }
 }
 
