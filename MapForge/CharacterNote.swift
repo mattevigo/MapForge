@@ -36,6 +36,9 @@ struct CharacterNote: Equatable, Identifiable {
     /// then the slots per level. No layout of their own — there is nothing in them but text.
     var spells: [String] = []
 
+    /// The note it was read from, relative to the Workspace root, as `Monster.file` is.
+    var file = ""
+
     var id: String { name }
 }
 

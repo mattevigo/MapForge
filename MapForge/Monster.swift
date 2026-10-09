@@ -45,6 +45,10 @@ struct Monster: Equatable, Identifiable {
     var reactions: [Feature] = []
     var legendaryActions: [Feature] = []
 
+    /// The note it was read from, relative to the Workspace root — so a DM told that a
+    /// Monster is written in the other unit can find the note to change.
+    var file = ""
+
     var id: String { name }
 
     /// One named thing a Monster can do or is: a trait, an action, a reaction.

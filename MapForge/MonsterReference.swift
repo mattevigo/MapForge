@@ -110,12 +110,15 @@ struct MonsterReferenceView: View {
     /// The name the Pawn remembers.
     let monsterName: String
     let bestiary: Bestiary
+    /// The unit in force, which the note is checked against.
+    let unit: DistanceUnit
 
     var body: some View {
         if let monster = bestiary.monster(named: monsterName) {
             ReferencePageView(name: monster.name,
                               heading: [monster.size, monster.type, monster.alignment]
                                   .compactMap { $0 }.joined(separator: " · "),
+                              warning: monster.warning(current: unit),
                               lines: MonsterReference.lines(of: monster),
                               groups: MonsterReference.groups(of: monster))
                 .accessibilityIdentifier("monster-reference")
@@ -139,6 +142,9 @@ struct ReferencePageView: View {
     let name: String
     /// Under the name: what the thing is. Left out when the note says nothing of it.
     let heading: String
+    /// Under the heading, when the note is in the Distance Unit not in force (ADR-0027) — so
+    /// a "9 m" is not read aloud to a table that speaks feet as if it were.
+    let warning: String?
     let lines: [MonsterReference.Line]
     let groups: [MonsterReference.Group]
 
@@ -151,6 +157,12 @@ struct ReferencePageView: View {
                         Text(heading)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                    }
+                    if let warning {
+                        Label(warning, systemImage: "ruler")
+                            .font(.subheadline)
+                            .foregroundStyle(.orange)
+                            .accessibilityIdentifier("reference-other-unit")
                     }
                 }
                 ForEach(lines, id: \.label) { line in

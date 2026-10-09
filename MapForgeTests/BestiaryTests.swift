@@ -282,10 +282,22 @@ final class BestiaryTests: XCTestCase {
         let durga = try XCTUnwrap(reading.characters.note(named: "Durga Pietraferma"))
         XCTAssertEqual(durga, CharacterNote(name: "Durga Pietraferma", armorClass: 14, maxHP: 48,
                                             initiativeBonus: -1, isBig: false, size: nil,
-                                            species: "Umano", characterClass: "Chierico", level: "5"))
+                                            species: "Umano", characterClass: "Chierico", level: "5",
+                                            file: "Personaggi/Durga_Pietraferma/Durga_Pietraferma.md"))
         let zharyn = try XCTUnwrap(reading.characters.note(named: "Zharyn il Velato"))
         XCTAssertEqual(zharyn.maxHP, 14, "a Character nobody plays yet is read all the same")
         XCTAssertEqual(zharyn.size, "Media")
+    }
+
+    func testEveryNoteRemembersTheFileItWasReadFrom() throws {
+        // So a DM told a note is in the other Distance Unit can find it to change it.
+        try writeHeroes()
+        try write(note("Lich"), to: "Bestiario/Non_morti/Lich.md")
+
+        let reading = BestiaryStore.read(workspace)
+        XCTAssertEqual(reading.bestiary.monster(named: "Lich")?.file, "Bestiario/Non_morti/Lich.md")
+        XCTAssertEqual(reading.characters.note(named: "Durga Pietraferma")?.file,
+                       "Personaggi/Durga_Pietraferma/Durga_Pietraferma.md")
     }
 
     func testAPastBuildIsNotACharactersNote() throws {
