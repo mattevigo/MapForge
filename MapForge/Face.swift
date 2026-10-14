@@ -22,7 +22,7 @@ struct PawnFace: Codable, Equatable {
     var origin: Origin
 
     enum Origin: String, Codable {
-        /// Cut by the DM for this Pawn alone.
+        /// Cut by the DM for this Pawn, or for the one it inherited the Face from under Add.
         case hand
     }
 

@@ -7,8 +7,8 @@ import CoreGraphics
 /// without driving a window.
 ///
 /// Inheritance is the whole point. A DM populating an encounter places six goblins, and each
-/// one arriving with the wrong colour, size or sight is a correction they have to notice and
-/// make — six chances to miss one and light the room with it. It is **per Kind** rather than
+/// one arriving with the wrong colour, size, sight or Face is a correction they have to notice
+/// and make — six chances to miss one and light the room with it. It is **per Kind** rather than
 /// per Pawn: a DM's Creatures and Players are differently coloured, so following whatever was
 /// placed most recently would drag a goblin's green onto a party member.
 enum AddPlacement {
@@ -27,6 +27,9 @@ enum AddPlacement {
     /// points by `AppState.addPawnToMap`, never with its sibling's wounds. Only when
     /// `bestiary` still has that Monster: with nothing to copy the numbers from, the new Pawn
     /// claims to be nothing.
+    ///
+    /// Any Kind inherits the last one's **Face**, so the second skeleton arrives wearing the
+    /// first one's with no second cut. See `inherited(_:)`.
     static func pawn(kind: PawnKind, at point: MapPoint, existing: [Pawn],
                      imageSize: CGSize? = nil, bestiary: Bestiary = Bestiary()) -> Pawn? {
         guard isInside(point, imageSize) else { return nil }
@@ -41,7 +44,24 @@ enum AddPlacement {
                     brightSquares: previous?.light.brightSquares ?? defaultSightSquares,
                     kind: kind,
                     isBig: previous?.isBig ?? false,
-                    monsterName: monster?.name)
+                    monsterName: monster?.name,
+                    face: inherited(previous?.face))
+    }
+
+    /// The Face a new Pawn takes from the last of its Kind.
+    ///
+    /// The new Pawn shares the kept file rather than having it written again: `FaceLibrary`
+    /// neither rewrites nor deletes a cut, and a re-cut is kept under a new name, so either
+    /// Pawn can lose or change its Face without the other noticing.
+    ///
+    /// Asked per origin, so each new one has to say what Add does with it. One the DM cut by
+    /// hand passes on as cut by hand: the DM chose it for this Kind, and it is theirs to keep
+    /// when the Pawn becomes a Monster.
+    static func inherited(_ face: PawnFace?) -> PawnFace? {
+        guard let face else { return nil }
+        switch face.origin {
+        case .hand: return face
+        }
     }
 
     /// A new Light at `point`, or nil when the point is outside the image.

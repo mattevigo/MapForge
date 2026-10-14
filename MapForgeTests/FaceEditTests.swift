@@ -131,6 +131,50 @@ final class FaceEditTests: XCTestCase {
         XCTAssertEqual(state.fog.pawns[0].colorHex, "#C81E1E")
     }
 
+    // MARK: A cut shared under Add
+
+    /// A Pawn given a Face by hand, and a second placed with Add after it, sharing the cut.
+    private func makeSkeletonAndItsSibling() throws -> (AppState, first: Pawn, second: Pawn) {
+        let (state, _) = try makeAppStateInWorkspace()
+        let first = makePawn()
+        state.fog.pawns = [first]
+        var draft = EditPawnDraft(pawn: first)
+        draft.choosePicture(try XCTUnwrap(FacePicture.load(try makePicture())))
+        state.updatePawn(id: first.id, with: draft)
+        let second = try XCTUnwrap(AddPlacement.pawn(kind: .creature,
+                                                     at: MapPoint(x: 200, y: 100),
+                                                     existing: state.fog.pawns))
+        state.addPawnToMap(second)
+        XCTAssertEqual(second.face, state.fog.pawns[0].face)
+        return (state, state.fog.pawns[0], second)
+    }
+
+    func testRemovingTheInheritedFaceLeavesTheOneItCameFrom() throws {
+        let (state, first, second) = try makeSkeletonAndItsSibling()
+        var draft = EditPawnDraft(pawn: second)
+        draft.removeFace()
+
+        state.updatePawn(id: second.id, with: draft)
+
+        XCTAssertNil(state.fog.pawns[1].face)
+        let face = try XCTUnwrap(state.fog.pawns[0].face)
+        XCTAssertEqual(face, first.face)
+        XCTAssertNotNil(try XCTUnwrap(state.faceLibrary).image(for: face))
+    }
+
+    func testReCuttingTheInheritedFaceLeavesTheOneItCameFrom() throws {
+        let (state, first, second) = try makeSkeletonAndItsSibling()
+        var draft = EditPawnDraft(pawn: second)
+        draft.choosePicture(try FaceFixture.halves(width: 100, height: 100))
+
+        state.updatePawn(id: second.id, with: draft)
+
+        let face = try XCTUnwrap(state.fog.pawns[0].face)
+        XCTAssertEqual(face, first.face)
+        XCTAssertNotEqual(state.fog.pawns[1].face, face)
+        XCTAssertNotNil(try XCTUnwrap(state.faceLibrary).image(for: face))
+    }
+
     func testWithNoWorkspaceACutChangesNothing() throws {
         // Nowhere to keep it. The sheet does not offer a picture then; this is the backstop.
         let state = AppState(preferences: DisplayPreferences(defaults: defaults))
