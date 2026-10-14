@@ -47,6 +47,10 @@ struct EditPawnSheet: View {
     var recutPicture: (() -> PendingFaceCut?)?
     /// The Monster or Character "every" re-cuts, when the Face came from one still defined.
     var recutName: String?
+    /// The Face of a Monster, its picture cut now if no Pawn has taken it yet — for a
+    /// Creature that is that Monster already. That cut is the Monster's, shared by every Pawn
+    /// that takes its Face, so it is no litter if the sheet is cancelled.
+    var monsterFace: ((Monster) -> PawnFace?)?
     let onCommit: (EditPawnDraft) -> Void
     let onCancel: () -> Void
 
@@ -118,7 +122,8 @@ struct EditPawnSheet: View {
                 GridRow(alignment: .top) {
                     Text("Face")
                     FaceEditor(face: $draft.face, kind: draft.kind, library: faceLibrary,
-                               wearer: .pawn, recutPicture: recutPicture)
+                               wearer: .pawn, recutPicture: recutPicture,
+                               useMonsterFace: useMonsterFace)
                         // Across the Monster's column, as the Sight row is: the cut is the
                         // widest thing the sheet shows.
                         .gridCellColumns(2)
@@ -200,6 +205,18 @@ struct EditPawnSheet: View {
         }
     }
 
+    /// Gives the Pawn its Monster's Face, when the sheet offers it — false when the Face
+    /// could not be had after all.
+    private var useMonsterFace: (() -> Bool)? {
+        let monster = bestiary.monster(named: draft.monsterName)
+        guard let monster, let monsterFace, draft.offersMonsterFace(of: monster) else { return nil }
+        return {
+            guard let face = monsterFace(monster) else { return false }
+            draft.takeMonsterFace(face, of: monster.name)
+            return true
+        }
+    }
+
     /// OK. Asks first only when the stamp would overwrite hit points that exist — a dialog
     /// that appears when nothing can be lost is one the DM learns to click through.
     private func commit() {
@@ -216,8 +233,10 @@ struct EditPawnSheet: View {
 /// Choose a picture, cut a square of it, or take the Face away — for a Pawn in the Edit Pawn
 /// sheet, or for a Character in the Party panel.
 ///
-/// Nothing is kept here: the cut is a draft until the editor's OK or Save, and only that copies
-/// the square into the Workspace (`FaceDraft.resolved`), so Cancel leaves no file behind.
+/// Nothing of the wearer's own is kept here: the cut is a draft until the editor's OK or Save,
+/// and only that copies the square into the Workspace (`FaceDraft.resolved`), so Cancel leaves
+/// no file behind. The one exception is "Use the Monster's Face", which may make the Monster's
+/// shared cut — the cut the next Pawn to take that Face would make the same.
 struct FaceEditor: View {
     @Binding var face: FaceDraft
     /// The shape the Face will be worn in.
@@ -229,6 +248,9 @@ struct FaceEditor: View {
     /// The picture the Face was cut from and its square, when it keeps one — a Face cut from
     /// a note's picture. Offers "Re-cut…" when there is one.
     var recutPicture: (() -> PendingFaceCut?)? = nil
+    /// Gives the wearer the Face of the Monster it is, when it may take it, reporting whether
+    /// it could. Offers "Use the Monster's Face" when there is one.
+    var useMonsterFace: (() -> Bool)? = nil
 
     /// Who will wear the Face, which is all that changes what the editor says.
     enum Wearer {
@@ -286,6 +308,10 @@ struct FaceEditor: View {
                         face.recut(source.picture, from: source.cut)
                     }
                     .accessibilityIdentifier("\(wearer.identifier)-recut-face")
+                }
+                if let useMonsterFace {
+                    Button("Use the Monster's Face") { pictureFailed = !useMonsterFace() }
+                    .accessibilityIdentifier("\(wearer.identifier)-monster-face")
                 }
                 if face.hasFace {
                     Button("Remove Face") { face.remove() }

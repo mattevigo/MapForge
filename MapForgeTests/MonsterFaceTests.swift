@@ -217,4 +217,99 @@ final class MonsterFaceTests: XCTestCase {
         XCTAssertNotNil(face(of: second.id, in: state))
         XCTAssertNotEqual(face(of: second.id, in: state), before)
     }
+
+    // MARK: Taking the Face of the Monster it already is
+
+    private func gnollAlready(face: PawnFace? = nil) -> Pawn {
+        Pawn(at: MapPoint(x: 100, y: 100), label: "GG1", colorHex: "#C81E1E",
+             brightSquares: 6, kind: .creature, monsterName: "Gnoll Guerriero", face: face)
+    }
+
+    func testACreatureAlreadyAMonsterIsOfferedItsFace() {
+        let gnoll = gnoll(picture: "Allegati/Gnoll.png")
+
+        XCTAssertTrue(EditPawnDraft(pawn: gnollAlready()).offersMonsterFace(of: gnoll))
+        XCTAssertTrue(EditPawnDraft(pawn: gnollAlready(face: PawnFace(file: "mine.png", origin: .hand)))
+            .offersMonsterFace(of: gnoll))
+    }
+
+    func testTheMonstersFaceIsNotOfferedWhereItCannotBeOrAlreadyIs() {
+        let pictured = gnoll(picture: "Allegati/Gnoll.png")
+
+        XCTAssertFalse(EditPawnDraft(pawn: gnollAlready(face: PawnFace(file: "g.png", origin: .monster)))
+            .offersMonsterFace(of: pictured), "already wearing it")
+        XCTAssertFalse(EditPawnDraft(pawn: gnollAlready()).offersMonsterFace(of: gnoll(picture: nil)),
+                       "no picture")
+        var notAMonster = gnollAlready()
+        notAMonster.monsterName = nil
+        XCTAssertFalse(EditPawnDraft(pawn: notAMonster).offersMonsterFace(of: nil))
+    }
+
+    func testOKGivesTheCreatureItsMonstersFaceAndLeavesItsWoundsAlone() async throws {
+        let (state, _) = try await makeAppState()
+        let pawn = gnollAlready()
+        state.fog.pawns = [pawn]
+        state.setStatBlock(StatBlock(armorClass: 15, currentHP: 9, maxHP: 27), for: pawn.id)
+        var draft = EditPawnDraft(pawn: pawn)
+        let gnoll = try XCTUnwrap(state.bestiary.monster(named: "Gnoll Guerriero"))
+
+        draft.takeMonsterFace(try XCTUnwrap(state.monsterFace(for: gnoll)), of: gnoll.name)
+        state.updatePawn(id: pawn.id, with: draft)
+
+        XCTAssertEqual(face(of: pawn.id, in: state)?.origin, .monster)
+        XCTAssertNotNil(try XCTUnwrap(state.faceLibrary).image(for: try XCTUnwrap(face(of: pawn.id, in: state))))
+        XCTAssertEqual(state.statBlock(for: pawn.id).currentHP, 9)
+    }
+
+    func testTakingTheMonstersFaceInTheSheetIsUndoneByCancel() async throws {
+        let (state, _) = try await makeAppState()
+        let pawn = gnollAlready()
+        state.fog.pawns = [pawn]
+        var draft = EditPawnDraft(pawn: pawn)
+        let gnoll = try XCTUnwrap(state.bestiary.monster(named: "Gnoll Guerriero"))
+
+        draft.takeMonsterFace(try XCTUnwrap(state.monsterFace(for: gnoll)), of: gnoll.name)
+
+        XCTAssertTrue(draft.face.hasFace)
+        XCTAssertEqual(state.fog.pawns, [pawn], "nothing reaches the Pawn before OK")
+    }
+
+    func testAFaceCutByHandCanBeReplacedByTheMonsters() async throws {
+        let (state, _) = try await makeAppState()
+        let pawn = gnollAlready(face: PawnFace(file: "mine.png", origin: .hand))
+        state.fog.pawns = [pawn]
+        var draft = EditPawnDraft(pawn: pawn)
+        let gnoll = try XCTUnwrap(state.bestiary.monster(named: "Gnoll Guerriero"))
+
+        draft.takeMonsterFace(try XCTUnwrap(state.monsterFace(for: gnoll)), of: gnoll.name)
+        state.updatePawn(id: pawn.id, with: draft)
+
+        XCTAssertEqual(face(of: pawn.id, in: state)?.origin, .monster)
+    }
+
+    /// A Face taken from one Monster is not carried onto another picked in the same sheet:
+    /// the Pawn becomes the new one, and wears what the new one gives.
+    func testPickingAnotherMonsterAfterTakingAFaceGivesTheNewMonstersFace() async throws {
+        let (state, _) = try await makeAppState()
+        let pawn = gnollAlready()
+        state.fog.pawns = [pawn]
+        var draft = EditPawnDraft(pawn: pawn)
+        let gnoll = try XCTUnwrap(state.bestiary.monster(named: "Gnoll Guerriero"))
+        draft.takeMonsterFace(try XCTUnwrap(state.monsterFace(for: gnoll)), of: gnoll.name)
+
+        draft.pick(ogre(picture: nil), among: state.fog.pawns)
+        state.updatePawn(id: pawn.id, with: draft)
+
+        XCTAssertNil(face(of: pawn.id, in: state), "the Ogre has no picture")
+    }
+
+    func testTheMonstersFaceIsNotOfferedAgainOnceTaken() throws {
+        var draft = EditPawnDraft(pawn: gnollAlready())
+        let pictured = ogre(picture: "Allegati/Ogre.png")
+        draft.pick(pictured, among: [])
+
+        draft.takeMonsterFace(PawnFace(file: "ogre.png", origin: .monster), of: pictured.name)
+
+        XCTAssertFalse(draft.offersMonsterFace(of: pictured))
+    }
 }

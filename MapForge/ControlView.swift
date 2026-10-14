@@ -306,6 +306,7 @@ struct ControlView: View {
                               faceLibrary: appState.faceLibrary,
                               recutPicture: appState.recutPicture(forPawn: id),
                               recutName: appState.recutName(for: draft.recutSource),
+                              monsterFace: { appState.monsterFace(for: $0) },
                               onCommit: { appState.updatePawn(id: id, with: $0); editing = nil },
                               onCancel: { editing = nil })
             case .light(let id, let draft):
