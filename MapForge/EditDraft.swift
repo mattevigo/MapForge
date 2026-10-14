@@ -8,8 +8,9 @@ import Foundation
 /// un-apply. Editing a copy and committing it in one write is what makes that true — a
 /// sheet that wrote through per keystroke would leave half the edit behind on Escape.
 ///
-/// Exactly the six fields the fog editor's inspector had, less position: a Pawn is moved by
-/// dragging it, which is a live action of its own.
+/// The six fields the fog editor's inspector had, less position — a Pawn is moved by dragging
+/// it, which is a live action of its own — and its Face. A Face cut here is a draft like the
+/// rest: only OK keeps the cut in the Workspace, so Cancel leaves no file behind.
 ///
 /// **No Stat Block field is here, and none may be added.** The numbers live in their own file
 /// and have their own editor (ADR-0009); a hit point total half-typed into this sheet and
@@ -26,6 +27,11 @@ struct EditPawnDraft: Equatable {
     /// The Monster this Creature is, by name. Set through `pick` and `clearMonster`, which
     /// keep the label and the size in step with it.
     private(set) var monsterName: String?
+    /// The Face the Pawn is drawn as, as the sheet opened with it — or nil once removed.
+    private(set) var face: PawnFace?
+    /// A Face picked and cut in this sheet, not yet kept. Kept by OK alone
+    /// (`AppState.updatePawn`), so Cancel leaves nothing in the Workspace.
+    private(set) var newCut: PendingFaceCut?
 
     /// The Pawn being edited, so numbering a label does not count the label it is replacing.
     private let pawnID: Pawn.ID
@@ -45,6 +51,7 @@ struct EditPawnDraft: Equatable {
         isBig = pawn.isBig
         sightSquares = pawn.light.brightSquares
         monsterName = pawn.monsterName
+        face = pawn.face
         openedWithMonster = pawn.monsterName
         openedWithLabel = pawn.label
     }
@@ -77,6 +84,38 @@ struct EditPawnDraft: Equatable {
         pickedLabel = nil
     }
 
+    /// Whether the Pawn will be drawn as a Face once OK is pressed.
+    var hasFace: Bool { face != nil || newCut != nil }
+
+    /// Start a cut from `picture`: the largest centred square, for the DM to move and resize.
+    mutating func choosePicture(_ picture: CGImage) {
+        newCut = PendingFaceCut(picture: picture,
+                                cut: FaceCut.centredSquare(in: picture.pixelSize))
+    }
+
+    /// Place the pending cut, kept square and inside the picture.
+    mutating func setCut(_ cut: CGRect) {
+        adjustCut { FaceCut.clamped(cut, in: $1) }
+    }
+
+    /// Resize the pending cut about its centre.
+    mutating func resizeCut(toSide side: CGFloat) {
+        adjustCut { FaceCut.resized($0, toSide: side, in: $1) }
+    }
+
+    /// `newCut` with its square replaced by what `change` makes of it and the picture's size.
+    private mutating func adjustCut(_ change: (CGRect, CGSize) -> CGRect) {
+        guard var pending = newCut else { return }
+        pending.cut = change(pending.cut, pending.picture.pixelSize)
+        newCut = pending
+    }
+
+    /// Draw the Pawn in its colour again. The colour was never touched.
+    mutating func removeFace() {
+        face = nil
+        newCut = nil
+    }
+
     /// The Monster OK must stamp, or nil when it must not.
     ///
     /// Only a Monster that *changed*: OK with it untouched leaves the Stat Block untouched,
@@ -106,6 +145,9 @@ struct EditPawnDraft: Equatable {
         // Only a Creature can be a Monster (`CONTEXT.md`). The search box is hidden for the
         // other Kinds, and the memory goes with it rather than lingering unseen.
         edited.monsterName = kind.canBeMonster ? monsterName : nil
+        // A removed Face goes; a pending cut is not a Face until OK has kept it, which is
+        // `AppState.updatePawn`'s to do, so here it leaves the Face the sheet opened with.
+        edited.face = face
         // Sight is one number, and the dim value is the cosmetic feather derived from it —
         // never set independently, because a character's sight is not a light source. Both
         // move together or the halo stays at whatever the Pawn was created with.
@@ -113,6 +155,26 @@ struct EditPawnDraft: Equatable {
         edited.light.dimSquares = Pawn.dimSquares(forSight: sightSquares)
         return edited
     }
+}
+
+/// A Face picked and cut in the Edit Pawn sheet and not yet kept: the picture, and the square
+/// of it the DM has chosen, in its pixels.
+///
+/// The picture itself rather than where it came from, read once when it was chosen: OK then
+/// cuts exactly what the DM was shown, even if the file has been moved or deleted since.
+struct PendingFaceCut: Equatable {
+    let picture: CGImage
+    var cut: CGRect
+
+    /// The same picture, not merely an equal one: two reads of a file are two pictures.
+    static func == (lhs: PendingFaceCut, rhs: PendingFaceCut) -> Bool {
+        lhs.picture === rhs.picture && lhs.cut == rhs.cut
+    }
+}
+
+extension CGImage {
+    /// The picture's size in pixels — the space a Face's cut is measured in.
+    var pixelSize: CGSize { CGSize(width: width, height: height) }
 }
 
 /// The fields the Edit Light sheet offers, buffered until OK.

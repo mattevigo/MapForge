@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Editing a Pawn's fields, as a modal sheet on the Control Window.
@@ -38,8 +39,14 @@ struct EditPawnSheet: View {
     /// The unit every note in the Workspace agrees on, when it is not `unit`.
     let suggestedUnit: DistanceUnit?
     let onSwitchUnit: (DistanceUnit) -> Void
+    /// Where the Pawn's Face is kept, for showing it. Nil with no Workspace open, when there
+    /// is nowhere to keep a cut and so no picture is offered.
+    var faceLibrary: FaceLibrary?
     let onCommit: (EditPawnDraft) -> Void
     let onCancel: () -> Void
+
+    /// Whether the last picture chosen could not be read.
+    @State private var pictureFailed = false
 
     /// Whether the DM is in the middle of a search. While they are, Return belongs to the
     /// search box — it picks a Monster, or does nothing when the query matches none — and
@@ -104,6 +111,13 @@ struct EditPawnSheet: View {
                     Toggle("Big", isOn: $draft.isBig)
                         .help("Occupies 2×2 squares instead of 1×1. Visual only — its light and sight are unchanged.")
                 }
+                GridRow(alignment: .top) {
+                    Text("Face")
+                    faceEditor
+                        // Across the Monster's column, as the Sight row is: the cut is the
+                        // widest thing the sheet shows.
+                        .gridCellColumns(2)
+                }
                 GridRow {
                     Text("Sight")
                     // A Pawn has one radius. The extra square the region fades over is not
@@ -161,6 +175,64 @@ struct EditPawnSheet: View {
         }
     }
 
+    /// Choose a picture, cut a square of it, or take the Face away.
+    ///
+    /// Nothing is kept here: the cut is a draft until OK, and only OK copies the square into
+    /// the Workspace (`AppState.updatePawn`), so Cancel leaves no file behind.
+    @ViewBuilder private var faceEditor: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let pending = draft.newCut {
+                FaceCutter(pending: pending, kind: draft.kind,
+                           onCut: { draft.setCut($0) },
+                           onResize: { draft.resizeCut(toSide: $0) })
+            } else if let face = draft.face, let image = faceLibrary?.image(for: face) {
+                FaceThumbnail(image: Image(nsImage: image), kind: draft.kind)
+                    .accessibilityIdentifier("edit-pawn-face")
+            }
+            HStack {
+                Button(draft.hasFace ? String(localized: "Choose Another Picture…")
+                                     : String(localized: "Choose Picture…"),
+                       action: choosePicture)
+                    .disabled(faceLibrary == nil)
+                    .accessibilityIdentifier("edit-pawn-choose-face")
+                if draft.hasFace {
+                    Button("Remove Face") { draft.removeFace() }
+                    .accessibilityIdentifier("edit-pawn-remove-face")
+                }
+            }
+            if faceLibrary == nil {
+                Text("Open a Workspace to give a Pawn a Face: it is kept there.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if pictureFailed {
+                Text("That picture could not be read.")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            } else if draft.hasFace {
+                Text("Covers the Pawn on both screens, colour and label alike.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// Asks for a picture from anywhere on the Mac. Only the square cut from it is kept, so it
+    /// need not be inside the Workspace and may be deleted afterwards.
+    private func choosePicture() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = FacePicture.types
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.message = String(localized: "Choose the picture to cut this Pawn's Face from.")
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard let picture = FacePicture.load(url) else {
+            pictureFailed = true
+            return
+        }
+        pictureFailed = false
+        draft.choosePicture(picture)
+    }
+
     /// OK. Asks first only when the stamp would overwrite hit points that exist — a dialog
     /// that appears when nothing can be lost is one the DM learns to click through.
     private func commit() {
@@ -169,6 +241,96 @@ struct EditPawnSheet: View {
         } else {
             onCommit(draft)
         }
+    }
+}
+
+/// The picture a Face is being cut from, with the square drawn over it: drag to move the
+/// square, slide to resize it, and see beside it the token it will make.
+///
+/// Works on whole moves rather than step by step — each drag is measured from where the
+/// square was when it began — because the square lands on whole pixels, and a picture shown
+/// larger than its pixels would otherwise round every small step away to nothing.
+struct FaceCutter: View {
+    let pending: PendingFaceCut
+    let kind: PawnKind
+    let onCut: (CGRect) -> Void
+    let onResize: (CGFloat) -> Void
+
+    /// The square when the current drag began.
+    @State private var dragStart: CGRect?
+
+    /// The longest side the picture is shown at, in points.
+    private static let maxShownSide: CGFloat = 220
+
+    private var picture: CGImage { pending.picture }
+    private var pictureSize: CGSize { pending.picture.pixelSize }
+    private var cut: CGRect { pending.cut }
+
+    var body: some View {
+        let scale = min(Self.maxShownSide / pictureSize.width,
+                        Self.maxShownSide / pictureSize.height)
+        let shown = CGSize(width: pictureSize.width * scale, height: pictureSize.height * scale)
+        let square = CGRect(x: cut.minX * scale, y: cut.minY * scale,
+                            width: cut.width * scale, height: cut.height * scale)
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                ZStack(alignment: .topLeading) {
+                    Image(decorative: picture, scale: 1)
+                        .resizable()
+                        .interpolation(.high)
+                        .frame(width: shown.width, height: shown.height)
+                    // Everything outside the square is dimmed, so what is kept stands out.
+                    Path { path in
+                        path.addRect(CGRect(origin: .zero, size: shown))
+                        path.addRect(square)
+                    }
+                    .fill(Color.black.opacity(0.5), style: FillStyle(eoFill: true))
+                    Rectangle()
+                        .stroke(Color.white, lineWidth: 2)
+                        .frame(width: square.width, height: square.height)
+                        .offset(x: square.minX, y: square.minY)
+                }
+                .frame(width: shown.width, height: shown.height)
+                .contentShape(Rectangle())
+                .gesture(DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        let start = dragStart ?? cut
+                        dragStart = start
+                        onCut(FaceCut.moved(start,
+                                            by: CGSize(width: value.translation.width / scale,
+                                                       height: value.translation.height / scale),
+                                            in: pictureSize))
+                    }
+                    .onEnded { _ in dragStart = nil })
+                .accessibilityIdentifier("edit-pawn-face-cutter")
+                Slider(value: Binding(get: { cut.width }, set: { onResize($0) }),
+                       in: FaceCut.minimumSide...max(FaceCut.minimumSide + 1,
+                                                     min(pictureSize.width, pictureSize.height)))
+                    .frame(width: shown.width)
+                    .accessibilityLabel(Text("Face size"))
+            }
+            if let kept = picture.cropping(to: cut.integral) {
+                FaceThumbnail(image: Image(decorative: kept, scale: 1), kind: kind)
+            }
+        }
+    }
+}
+
+/// A Face at the size the Edit Pawn sheet shows it, in its Kind's outline: the token it makes.
+private struct FaceThumbnail: View {
+    let image: Image
+    let kind: PawnKind
+
+    private static let side: CGFloat = 56
+
+    var body: some View {
+        let outline = PawnToken.outline(for: kind, diameter: Self.side)
+        image
+            .resizable()
+            .interpolation(.high)
+            .frame(width: Self.side, height: Self.side)
+            .clipShape(outline)
+            .overlay(outline.stroke(Color.black.opacity(0.6), lineWidth: 1.5))
     }
 }
 

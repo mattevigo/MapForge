@@ -29,6 +29,8 @@ struct Workspace: Equatable, Hashable {
     var manifestURL: URL { supportDirectory.appendingPathComponent("workspace.json") }
     var partiesURL: URL { supportDirectory.appendingPathComponent("parties.json") }
     var preferencesURL: URL { supportDirectory.appendingPathComponent("preferences.json") }
+    /// Where the Faces the DM cut are kept, one PNG each (ADR-0028).
+    var facesDirectory: URL { supportDirectory.appendingPathComponent("faces") }
 
     /// Whether the file at `url` is inside this Workspace, at any depth.
     ///

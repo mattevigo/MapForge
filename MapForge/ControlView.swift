@@ -274,6 +274,8 @@ struct ControlView: View {
             mapColumn
         }
         .padding(Self.windowPadding)
+        // Where every token in this window finds its Face: the Map and the live row.
+        .environment(\.faceLibrary, appState.faceLibrary)
         // The launch gate. There is nothing behind this sheet until a Workspace is open, so
         // it is not dismissible then; when switching, Cancel puts the DM back where they were.
         .sheet(isPresented: Binding(
@@ -298,6 +300,7 @@ struct ControlView: View {
                                   ?? appState.statBlock(for: id),
                               suggestedUnit: appState.suggestedDistanceUnit,
                               onSwitchUnit: { appState.distanceUnit = $0 },
+                              faceLibrary: appState.faceLibrary,
                               onCommit: { appState.updatePawn(id: id, with: $0); editing = nil },
                               onCancel: { editing = nil })
             case .light(let id, let draft):

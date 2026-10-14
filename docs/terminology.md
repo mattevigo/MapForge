@@ -187,6 +187,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Pawn Kind | Categoria | *tipo* (the rulebook's creature type), *natura* (the Skill Nature) |
 | Player (a Pawn Kind) | Giocatore | *personaggio giocante* (too long), *personaggio* (that is Character) |
 | Big | Grosso | *Grande* (the official Large) |
+| Face | Volto *(proposed)* | *ritratto* (the glossary avoids portrait), *immagine* (any picture, the Map's included) |
 | Add | Aggiungi | |
 | Character | Personaggio | |
 | Party | Gruppo | |
@@ -229,6 +230,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Pawn Kind | Art | *Typ* (the official *Kreaturentyp*) |
 | Player (a Pawn Kind) | Spieler | *Spielercharakter* (too long) |
 | Big | Übergroß | *Groß* (the official Large), *Riesig* (the official Huge) |
+| Face | Gesicht | *Porträt*, *Bild* (any picture, the Map's included) |
 | Add | Hinzufügen | |
 | Character | Charakter | |
 | Party | Gruppe | |
@@ -271,6 +273,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Pawn Kind | Genre | *Type* (the official *type de créature*), *Nature* (the Skill), *Catégorie* (the official *catégorie de taille*) |
 | Player (a Pawn Kind) | Joueur | *personnage-joueur* (too long) |
 | Big | Imposant | *Grand* (the official Large, *G*) |
+| Face | Visage | *portrait*, *image* (any picture, the Map's included) |
 | Add | Ajouter | |
 | Character | Personnage | |
 | Party | Groupe | |
@@ -313,6 +316,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Pawn Kind | Categoría | *Tipo* (the official *tipo de criatura*), *Naturaleza* (the Skill), *Clase* (a character class) |
 | Player (a Pawn Kind) | Jugador | *personaje jugador* (too long) |
 | Big | Voluminoso | *Grande* (the official Large) |
+| Face | Rostro | *retrato*, *imagen* (any picture, the Map's included) |
 | Add | Añadir | *agregar* (Latin American) |
 | Character | Personaje | |
 | Party | Grupo | |
@@ -355,6 +359,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Pawn Kind | Categoria | *Tipo* (the creature type), *Natureza* (the Skill), *Espécie* (2024's word for race), *Papel* (role — the glossary's word for what a Combatant is) |
 | Player (a Pawn Kind) | Jogador | *personagem do jogador* (too long) |
 | Big | Volumoso | *Grande* (the official Large) |
+| Face | Rosto | *retrato*, *imagem* (any picture, the Map's included) |
 | Add | Adicionar | |
 | Character | Personagem | |
 | Party | Grupo | |
@@ -405,6 +410,7 @@ ordinary language are Greek: a Greek DM says *τέρας*, not "monster".
 | Player (a Pawn Kind) | Παίκτης | |
 | Creature / Monster / Treasure | Πλάσμα / Τέρας / Θησαυρός | |
 | Big | Ογκώδης | *Μεγάλο* (the community's Large) |
+| Face | Πρόσωπο | *πορτρέτο*, *εικόνα* (any picture, the Map's included) |
 | Add | Προσθήκη | |
 | Character | Χαρακτήρας | |
 | Party | Ομάδα | |

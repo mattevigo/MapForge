@@ -1,11 +1,13 @@
 import AppKit
 import SwiftUI
 
-/// A Pawn as players and the DM both see it: a filled disc in its colour with its label.
+/// A Pawn as players and the DM both see it: a filled disc in its colour with its label — or,
+/// when it has a Face, that Face filling the disc, with neither colour nor label over it.
 ///
 /// One view shared by the Control Window preview and the Player Display, so a token can
 /// never look like two different things on the two screens — the DM points at the red
-/// circle and the players must be looking at the same red circle.
+/// circle and the players must be looking at the same red circle. A Face is read here, from
+/// the environment's `FaceLibrary`, for the same reason: no surface can draw it differently.
 struct PawnToken: View {
     let pawn: Pawn
     /// The side of ONE Grid square in the coordinate space of whichever surface is drawing
@@ -43,25 +45,52 @@ struct PawnToken: View {
     /// Rounded, not sharp: at the live row's 14 pt and at low map zoom a hard-cornered
     /// square reads as a stray pixel block, and the radius scales with the token so it
     /// stays the same shape at every size.
-    private var outline: AnyShape {
-        switch pawn.kind {
+    private var outline: AnyShape { Self.outline(for: pawn.kind, diameter: diameter) }
+
+    /// The outline a token of `kind` is drawn in at `diameter` — the one place the shapes
+    /// live, so the Edit Pawn sheet's preview of a Face is the token it will make.
+    static func outline(for kind: PawnKind, diameter: CGFloat) -> AnyShape {
+        switch kind {
         case .player, .creature: return AnyShape(Circle())
         case .treasure: return AnyShape(RoundedRectangle(cornerRadius: diameter * 0.18))
         }
     }
 
+    /// Where the Pawn's Face is read from. Nil with no Workspace open.
+    @Environment(\.faceLibrary) private var faceLibrary
+
+    /// The kept cut this Pawn is drawn as, or nil to draw its colour — no Face, or one whose
+    /// cut has gone missing, which costs the Pawn its picture and nothing else.
+    private var faceImage: NSImage? {
+        pawn.face.flatMap { faceLibrary?.image(for: $0) }
+    }
+
     var body: some View {
+        let face = faceImage
         ZStack {
-            outline
-                .fill(Color(hex: pawn.colorHex) ?? .red)
-                // A Pawn whose light is out is still on the Map — dimmed, not gone.
-                .opacity(pawn.light.isOn ? 1 : 0.55)
+            Group {
+                if let face {
+                    // The Face covers the whole token: no colour shows round it, and its
+                    // shape is still the Kind's, so a chest's Face is still a square.
+                    Image(nsImage: face)
+                        .resizable()
+                        .interpolation(.high)
+                        .scaledToFill()
+                        .frame(width: diameter, height: diameter)
+                        .clipShape(outline)
+                } else {
+                    outline.fill(Color(hex: pawn.colorHex) ?? .red)
+                }
+            }
+            // A Pawn whose light is out is still on the Map — dimmed, not gone.
+            .opacity(pawn.light.isOn ? 1 : 0.55)
             outline
                 .stroke(isSelected ? Color.accentColor : Color.black.opacity(0.6),
                         lineWidth: isSelected ? 3 : 1.5)
             // Sized from ONE square, so an ogre's "3" is the same size as a goblin's and
-            // the legibility floor means the same thing for both.
-            if Self.showsLabel(atDiameter: squareSide, toPlayers: isForPlayers) {
+            // the legibility floor means the same thing for both. Never over a Face, on
+            // either screen: the Face is what the table identifies the Pawn by.
+            if face == nil, Self.showsLabel(atDiameter: squareSide, toPlayers: isForPlayers) {
                 Text(pawn.label)
                     .font(.system(size: squareSide * 0.5, weight: .semibold))
                     .foregroundStyle(.white)

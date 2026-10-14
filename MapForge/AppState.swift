@@ -140,6 +140,10 @@ final class AppState: ObservableObject {
     /// sheet — so everything that reads the roster must tolerate its absence rather than
     /// assume a Workspace was there at init.
     @Published private(set) var workspace: Workspace?
+    /// The open Workspace's kept Faces, or nil with none open — when every Pawn is drawn in
+    /// its colour and the Edit Pawn sheet offers no picture, there being nowhere to keep one.
+    /// Set alongside `workspace`, whose change is what redraws the tokens.
+    private(set) var faceLibrary: FaceLibrary?
 
     /// The DM's Parties, as they stand in the open Workspace. Empty before one is open.
     /// Written straight through on every edit rather than debounced: a roster changes when
@@ -736,7 +740,16 @@ final class AppState: ObservableObject {
     /// sheet leaves nothing behind.
     func updatePawn(id: Pawn.ID, with draft: EditPawnDraft) {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
-        fog.pawns[index] = draft.applied(to: fog.pawns[index])
+        var edited = draft.applied(to: fog.pawns[index])
+        // A Face cut in the sheet is kept only now, on OK, so Cancel leaves nothing in the
+        // Workspace. A cut that cannot be kept — no Workspace, or a write that failed — leaves
+        // the Face the sheet opened with, rather than a Pawn naming a file never written.
+        if let pending = draft.newCut,
+           let library = faceLibrary,
+           let face = try? library.keep(pending.picture, cut: pending.cut) {
+            edited.face = face
+        }
+        fog.pawns[index] = edited
         // The one thing this sheet does to a Stat Block: a Monster that *changed* is stamped,
         // whole (ADR-0021). Through `editStatBlock`, so mid-fight the stamp is recorded as
         // Changes like any other edit (ADR-0008); the rolled Initiative is not among them,
@@ -975,6 +988,7 @@ final class AppState: ObservableObject {
         stopSession()
         // After the Session's last line, which is written into the outgoing Workspace.
         holdAccess(to: url ?? workspace.url)
+        faceLibrary = FaceLibrary(directory: workspace.facesDirectory)
         self.workspace = workspace
         readBestiary(of: workspace)
 
@@ -1011,6 +1025,7 @@ final class AppState: ObservableObject {
         // it started in, and one that outlived its folder would write into the wrong one.
         stopSession()
         holdAccess(to: nil)
+        faceLibrary = nil
         workspace = nil
         bestiaryLoad?.cancel()
         bestiaryLoad = nil

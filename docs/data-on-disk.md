@@ -28,6 +28,8 @@ MyGame/                              ← the Workspace (any folder the DM adopte
 │   ├── parties.json                 ← every Party and its Characters
 │   ├── preferences.json             ← active Party, chosen Player Display (app-written)
 │   ├── config.json                  ← no longer read (ADR-0023); left alone if present
+│   ├── faces/
+│   │   └── 3F2504E0-….png           ← one kept Face per cut (ADR-0028)
 │   └── sessions/
 │       ├── 2026-09-09T183000Z.jsonl ← one Session Log per evening
 │       └── 2026-09-16T190000Z.jsonl
@@ -75,6 +77,7 @@ that holds the radii must hold the unit.
                  "brightSquares": 6, "dimSquares": 7, "isOn": true } },
     { "id": "…", "label": "GG1", "colorHex": "#5A5A5A", "kind": "creature",
       "isHidden": false, "isBig": false, "monsterName": "Gnoll Guerriero",
+      "face": { "file": "3F2504E0-….png", "from": "hand" },
       "light": { "…": "…" } }
   ]
 }
@@ -90,6 +93,7 @@ that holds the radii must hold the unit.
 | `pawns[].light` | A Pawn *is* a Light: `brightSquares` is its sight. `dimSquares` is on disk but **re-derived on load** as sight + 1 (the fade), so the stored value is cosmetic history. |
 | `pawns[].characterID` | Which Character stamped this Pawn. Advisory only — counts on the Party panel — and omitted when absent (ADR-0007). |
 | `pawns[].monsterName` | Which Monster this Creature was said to be. Advisory only — the reference view and *Add*'s "same as last" — and omitted when absent (ADR-0020). The numbers were **copied** into `stats.json`. |
+| `pawns[].face` | The **Face** this Pawn is drawn as, in place of its colour, on both screens. `file` names a kept cut in `.mapforge/faces/` — a file name, never a path, and never the picture it was cut from. `from` is where the Face came from: `hand` (cut by the DM for this Pawn). Omitted when the Pawn has none; a `file` that is missing draws the colour (ADR-0028). |
 | `isCreature` (legacy) | Read forever, never written: a file written before `kind` existed decodes `true` as `creature`. |
 
 Rules:
@@ -256,6 +260,15 @@ Display Identity (the display's UUID, not its `CGDirectDisplayID`). Both are one
 choices, so this store is *forgiving*: an unreadable file is replaced by defaults on the
 next save rather than latched.
 
+### `faces/` — the Faces the DM cut
+
+One PNG per cut, named by a fresh UUID, written when the DM presses OK on a cut — never on
+Cancel. It is the **square** the DM chose, scaled down to 512 pixels a side when larger, and
+never the picture it came from: that picture may be anywhere on the Mac and may be moved or
+deleted afterwards without any Map noticing (ADR-0028). A cut is never rewritten, so two Pawns
+may share a file. A file no Pawn names any more is litter, not damage, and deleting it loses
+nothing; the app does not yet delete them itself.
+
 ### `config.json` — no longer read
 
 It once held `bestiaryStatBlockPath`, the one folder the Bestiary was read from (ADR-0020).
@@ -393,6 +406,7 @@ What follows from the shape:
 | `sessions/*.jsonl` | every Comment, move, Roll, pointer, start/stop | append + fsync, one line | truncated tail dropped |
 | `parties.json` | every roster edit | atomic replace, pretty | reported, writes refused |
 | `preferences.json` | Party or display chosen | atomic replace, pretty | replaced by defaults |
+| `faces/*.png` | OK on a cut in the Edit Pawn sheet | atomic, once per cut, never rewritten; a failed write leaves the Pawn the Face it had | the Pawn draws its colour |
 | `workspace.json` | adoption only | atomic, once | Workspace refused to open |
 | `UserDefaults` | Workspace opened / forgotten | system | — |
 
