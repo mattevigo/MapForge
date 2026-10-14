@@ -21,7 +21,16 @@ enum Stamp {
              colorHex: character.colorHex,
              brightSquares: character.sightSquares,
              isBig: note?.isBig ?? false,
-             characterID: character.id)
+             characterID: character.id,
+             face: face(of: character))
+    }
+
+    /// The Face a Pawn Stamped from `character` wears: a copy of the Character's, remembered
+    /// as the Character's, so re-cutting it later can offer to re-cut that Character too.
+    /// The same file, never written again — a cut is never rewritten, so the Character
+    /// changing its Face later cannot reach a Pawn already Stamped.
+    private static func face(of character: PartyCharacter) -> PawnFace? {
+        character.face.map { PawnFace(file: $0.file, origin: .character) }
     }
 
     /// The Stat Block a Stamped Pawn starts with, copied from its Character's note — or none,
@@ -80,6 +89,7 @@ enum Stamp {
                     kind: .player,
                     isHidden: false,
                     isBig: note?.isBig ?? false,
-                    characterID: character.id)
+                    characterID: character.id,
+                    face: face(of: character))
     }
 }

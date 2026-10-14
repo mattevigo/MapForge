@@ -86,6 +86,9 @@ struct ControlView: View {
     @State private var editedCharacter: PartyCharacter?
     /// Whether `editedCharacter` is new, so Cancel knows whether to leave anything behind.
     @State private var isAddingCharacter = false
+    /// The Face of `editedCharacter` as its editor leaves it, any new cut not yet kept: Save
+    /// keeps it in the Workspace, Cancel forgets it.
+    @State private var editedCharacterFace = FaceDraft(nil)
     /// The Party being renamed, or created, in the picker's sheet-free inline field.
     @State private var partyNameEdit: PartyNameEdit?
 
@@ -2169,6 +2172,7 @@ struct ControlView: View {
             Text("\(party.characters.count)").font(.caption).foregroundStyle(.secondary)
             Button {
                 editedCharacter = PartyCharacter(name: "")
+                editedCharacterFace = FaceDraft(nil)
                 isAddingCharacter = true
             } label: {
                 Image(systemName: "plus").frame(width: 16)
@@ -2243,10 +2247,13 @@ struct ControlView: View {
             // Big Pawn's two squares are the thing the DM is judging the drop against.
             PawnToken(pawn: Stamp.preview(of: character, note: appState.note(for: character)),
                       squareSide: 20)
+                // Drawn apart from the window, so handed the Face's library itself.
+                .environment(\.faceLibrary, appState.faceLibrary)
         }
         .contextMenu {
             Button("Edit…") {
                 editedCharacter = character
+                editedCharacterFace = FaceDraft(character.face)
                 isAddingCharacter = false
             }
             Button("Delete") { appState.deleteCharacter(id: character.id) }
@@ -2254,7 +2261,7 @@ struct ControlView: View {
     }
 
     /// The inline editor for a Character, new or existing: what the app holds of it — its
-    /// label, colour and sight. Its numbers and size are its note's (ADR-0024).
+    /// label, colour, sight and Face. Its numbers and size are its note's (ADR-0024).
     @ViewBuilder
     private func characterEditor() -> some View {
         if let character = editedCharacter {
@@ -2290,6 +2297,13 @@ struct ControlView: View {
                     ), unit: appState.distanceUnit, width: 44)
                     .font(.caption)
                 }
+                // Always a Player's disc: the roster holds the party and nothing else.
+                FaceEditor(face: $editedCharacterFace, kind: .player,
+                           library: appState.faceLibrary, wearer: .character)
+                    .font(.caption)
+                    // A fresh editor per Character, so one's unreadable picture is not
+                    // reported in the next one's.
+                    .id(character.id)
                 HStack(spacing: 6) {
                     Spacer(minLength: 0)
                     Button("Cancel") { cancelCharacterEdit() }
@@ -2319,15 +2333,16 @@ struct ControlView: View {
         character.name = character.name.trimmingCharacters(in: .whitespaces)
         guard !character.name.isEmpty else { return }
         if isAddingCharacter {
-            appState.addCharacter(character)
+            appState.addCharacter(character, face: editedCharacterFace)
         } else {
-            appState.updateCharacter(character)
+            appState.updateCharacter(character, face: editedCharacterFace)
         }
         cancelCharacterEdit()
     }
 
     private func cancelCharacterEdit() {
         editedCharacter = nil
+        editedCharacterFace = FaceDraft(nil)
         isAddingCharacter = false
     }
 

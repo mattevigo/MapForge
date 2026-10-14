@@ -4313,6 +4313,46 @@
         }
       }
     },
+    "Choose the picture to cut this Character's Face from.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle das Bild, aus dem das Gesicht dieses Charakters geschnitten wird."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Επιλέξτε την εικόνα από την οποία θα κοπεί το πρόσωπο αυτού του χαρακτήρα."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige la imagen de la que recortar el rostro de este personaje."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez l’image dans laquelle découper le visage de ce personnage."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli l’immagine da cui ritagliare il volto di questo personaggio."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha a imagem da qual recortar o rosto deste personagem."
+          }
+        }
+      }
+    },
     "Choose the picture to cut this Pawn's Face from.": {
       "localizations": {
         "de": {
@@ -6243,6 +6283,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Encerrar este encontro?"
+          }
+        }
+      }
+    },
+    "Every Pawn stamped from it afterwards wears a copy.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jede Spielfigur, die danach aus ihm entsteht, trägt eine Kopie davon."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Κάθε πιόνι που τοποθετείται από αυτόν στο εξής φέρει ένα αντίγραφό του."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada ficha que se coloque a partir de ahora lleva una copia."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque pion posé désormais pour ce personnage en porte une copie."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ogni pedina piazzata d’ora in poi ne porta una copia."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada peça colocada a partir de agora usa uma cópia."
           }
         }
       }

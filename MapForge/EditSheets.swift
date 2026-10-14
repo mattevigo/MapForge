@@ -45,9 +45,6 @@ struct EditPawnSheet: View {
     let onCommit: (EditPawnDraft) -> Void
     let onCancel: () -> Void
 
-    /// Whether the last picture chosen could not be read.
-    @State private var pictureFailed = false
-
     /// Whether the DM is in the middle of a search. While they are, Return belongs to the
     /// search box — it picks a Monster, or does nothing when the query matches none — and
     /// must not also press OK on a half-typed name.
@@ -113,7 +110,8 @@ struct EditPawnSheet: View {
                 }
                 GridRow(alignment: .top) {
                     Text("Face")
-                    faceEditor
+                    FaceEditor(face: $draft.face, kind: draft.kind, library: faceLibrary,
+                               wearer: .pawn)
                         // Across the Monster's column, as the Sight row is: the cut is the
                         // widest thing the sheet shows.
                         .gridCellColumns(2)
@@ -175,32 +173,83 @@ struct EditPawnSheet: View {
         }
     }
 
-    /// Choose a picture, cut a square of it, or take the Face away.
-    ///
-    /// Nothing is kept here: the cut is a draft until OK, and only OK copies the square into
-    /// the Workspace (`AppState.updatePawn`), so Cancel leaves no file behind.
-    @ViewBuilder private var faceEditor: some View {
+    /// OK. Asks first only when the stamp would overwrite hit points that exist — a dialog
+    /// that appears when nothing can be lost is one the DM learns to click through.
+    private func commit() {
+        if let healing = draft.healing(over: statBlock, in: bestiary) {
+            confirming = healing
+        } else {
+            onCommit(draft)
+        }
+    }
+}
+
+/// Choose a picture, cut a square of it, or take the Face away — for a Pawn in the Edit Pawn
+/// sheet, or for a Character in the Party panel.
+///
+/// Nothing is kept here: the cut is a draft until the editor's OK or Save, and only that copies
+/// the square into the Workspace (`FaceDraft.resolved`), so Cancel leaves no file behind.
+struct FaceEditor: View {
+    @Binding var face: FaceDraft
+    /// The shape the Face will be worn in.
+    let kind: PawnKind
+    /// Where the Face is kept, for showing it. Nil with no Workspace open, when there is
+    /// nowhere to keep a cut and so no picture is offered.
+    let library: FaceLibrary?
+    let wearer: Wearer
+
+    /// Who will wear the Face, which is all that changes what the editor says.
+    enum Wearer {
+        case pawn, character
+
+        fileprivate var identifier: String {
+            switch self {
+            case .pawn: "edit-pawn"
+            case .character: "character"
+            }
+        }
+
+        fileprivate var pickerMessage: String {
+            switch self {
+            case .pawn: String(localized: "Choose the picture to cut this Pawn's Face from.")
+            case .character: String(localized: "Choose the picture to cut this Character's Face from.")
+            }
+        }
+
+        fileprivate var caption: String {
+            switch self {
+            case .pawn: String(localized: "Covers the Pawn on both screens, colour and label alike.")
+            case .character: String(localized: "Every Pawn stamped from it afterwards wears a copy.")
+            }
+        }
+    }
+
+    /// Whether the last picture chosen could not be read.
+    @State private var pictureFailed = false
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let pending = draft.newCut {
-                FaceCutter(pending: pending, kind: draft.kind,
-                           onCut: { draft.setCut($0) },
-                           onResize: { draft.resizeCut(toSide: $0) })
-            } else if let face = draft.face, let image = faceLibrary?.image(for: face) {
-                FaceThumbnail(image: Image(nsImage: image), kind: draft.kind)
-                    .accessibilityIdentifier("edit-pawn-face")
+            if let pending = face.newCut {
+                FaceCutter(pending: pending, kind: kind,
+                           identifier: "\(wearer.identifier)-face-cutter",
+                           onCut: { face.setCut($0) },
+                           onResize: { face.resizeCut(toSide: $0) })
+            } else if let kept = face.kept, let image = library?.image(for: kept) {
+                FaceThumbnail(image: Image(nsImage: image), kind: kind)
+                    .accessibilityIdentifier("\(wearer.identifier)-face")
             }
             HStack {
-                Button(draft.hasFace ? String(localized: "Choose Another Picture…")
-                                     : String(localized: "Choose Picture…"),
+                Button(face.hasFace ? String(localized: "Choose Another Picture…")
+                                    : String(localized: "Choose Picture…"),
                        action: choosePicture)
-                    .disabled(faceLibrary == nil)
-                    .accessibilityIdentifier("edit-pawn-choose-face")
-                if draft.hasFace {
-                    Button("Remove Face") { draft.removeFace() }
-                    .accessibilityIdentifier("edit-pawn-remove-face")
+                    .disabled(library == nil)
+                    .accessibilityIdentifier("\(wearer.identifier)-choose-face")
+                if face.hasFace {
+                    Button("Remove Face") { face.remove() }
+                    .accessibilityIdentifier("\(wearer.identifier)-remove-face")
                 }
             }
-            if faceLibrary == nil {
+            if library == nil {
                 Text("Open a Workspace to give a Pawn a Face: it is kept there.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -208,10 +257,11 @@ struct EditPawnSheet: View {
                 Text("That picture could not be read.")
                     .font(.caption)
                     .foregroundStyle(.orange)
-            } else if draft.hasFace {
-                Text("Covers the Pawn on both screens, colour and label alike.")
+            } else if face.hasFace {
+                Text(wearer.caption)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -223,24 +273,14 @@ struct EditPawnSheet: View {
         panel.allowedContentTypes = FacePicture.types
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
-        panel.message = String(localized: "Choose the picture to cut this Pawn's Face from.")
+        panel.message = wearer.pickerMessage
         guard panel.runModal() == .OK, let url = panel.url else { return }
         guard let picture = FacePicture.load(url) else {
             pictureFailed = true
             return
         }
         pictureFailed = false
-        draft.choosePicture(picture)
-    }
-
-    /// OK. Asks first only when the stamp would overwrite hit points that exist — a dialog
-    /// that appears when nothing can be lost is one the DM learns to click through.
-    private func commit() {
-        if let healing = draft.healing(over: statBlock, in: bestiary) {
-            confirming = healing
-        } else {
-            onCommit(draft)
-        }
+        face.choosePicture(picture)
     }
 }
 
@@ -253,6 +293,7 @@ struct EditPawnSheet: View {
 struct FaceCutter: View {
     let pending: PendingFaceCut
     let kind: PawnKind
+    let identifier: String
     let onCut: (CGRect) -> Void
     let onResize: (CGFloat) -> Void
 
@@ -302,7 +343,7 @@ struct FaceCutter: View {
                                             in: pictureSize))
                     }
                     .onEnded { _ in dragStart = nil })
-                .accessibilityIdentifier("edit-pawn-face-cutter")
+                .accessibilityIdentifier(identifier)
                 Slider(value: Binding(get: { cut.width }, set: { onResize($0) }),
                        in: FaceCut.minimumSide...max(FaceCut.minimumSide + 1,
                                                      min(pictureSize.width, pictureSize.height)))
@@ -316,7 +357,7 @@ struct FaceCutter: View {
     }
 }
 
-/// A Face at the size the Edit Pawn sheet shows it, in its Kind's outline: the token it makes.
+/// A Face at the size its editor shows it, in its Kind's outline: the token it makes.
 private struct FaceThumbnail: View {
     let image: Image
     let kind: PawnKind

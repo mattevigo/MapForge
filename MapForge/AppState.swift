@@ -742,13 +742,8 @@ final class AppState: ObservableObject {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
         var edited = draft.applied(to: fog.pawns[index])
         // A Face cut in the sheet is kept only now, on OK, so Cancel leaves nothing in the
-        // Workspace. A cut that cannot be kept — no Workspace, or a write that failed — leaves
-        // the Face the sheet opened with, rather than a Pawn naming a file never written.
-        if let pending = draft.newCut,
-           let library = faceLibrary,
-           let face = try? library.keep(pending.picture, cut: pending.cut) {
-            edited.face = face
-        }
+        // Workspace.
+        edited.face = draft.face.resolved(keepingIn: faceLibrary)
         fog.pawns[index] = edited
         // The one thing this sheet does to a Stat Block: a Monster that *changed* is stamped,
         // whole (ADR-0021). Through `editStatBlock`, so mid-fight the stamp is recorded as
@@ -1131,18 +1126,31 @@ final class AppState: ObservableObject {
         writeSettings()
     }
 
-    func addCharacter(_ character: PartyCharacter) {
+    /// Add a Character to the active Party. `face`, when the editor gave one, is what the
+    /// Character wears: a cut made there is kept in the Workspace only now, on Save, so
+    /// Cancel leaves nothing behind.
+    func addCharacter(_ character: PartyCharacter, face: FaceDraft? = nil) {
         guard let partyID = activeParty?.id else { return }
-        partyBook = PartyRoster.addCharacter(character, toPartyWith: partyID, in: partyBook)
+        partyBook = PartyRoster.addCharacter(self.character(character, wearing: face),
+                                             toPartyWith: partyID, in: partyBook)
         writeParties()
     }
 
     /// Edit a Character in place. Pawns already Stamped from it are deliberately untouched:
-    /// a Stamp is a copy taken at the drag, so renaming Thorin today leaves last week's map
-    /// exactly as it was run.
-    func updateCharacter(_ character: PartyCharacter) {
-        partyBook = PartyRoster.updateCharacter(character, in: partyBook)
+    /// a Stamp is a copy taken at the drag, so renaming Thorin today, or giving him another
+    /// Face, leaves last week's map exactly as it was run.
+    func updateCharacter(_ character: PartyCharacter, face: FaceDraft? = nil) {
+        partyBook = PartyRoster.updateCharacter(self.character(character, wearing: face),
+                                                in: partyBook)
         writeParties()
+    }
+
+    /// `character` with the Face its editor left, kept now if it was cut there.
+    private func character(_ character: PartyCharacter, wearing face: FaceDraft?) -> PartyCharacter {
+        guard let face else { return character }
+        var character = character
+        character.face = face.resolved(keepingIn: faceLibrary)
+        return character
     }
 
     /// Delete a Character. Its Pawns stay on their Maps, fully functional; they only stop

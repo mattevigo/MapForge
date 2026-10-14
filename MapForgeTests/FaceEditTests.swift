@@ -54,20 +54,20 @@ final class FaceEditTests: XCTestCase {
     func testChoosingAPictureStartsTheCutAsTheCentredSquare() throws {
         var draft = EditPawnDraft(pawn: makePawn())
 
-        draft.choosePicture(try FaceFixture.halves(width: 400, height: 300))
+        draft.face.choosePicture(try FaceFixture.halves(width: 400, height: 300))
 
-        XCTAssertEqual(draft.newCut?.cut, CGRect(x: 50, y: 0, width: 300, height: 300))
-        XCTAssertTrue(draft.hasFace)
+        XCTAssertEqual(draft.face.newCut?.cut, CGRect(x: 50, y: 0, width: 300, height: 300))
+        XCTAssertTrue(draft.face.hasFace)
     }
 
     func testRemovingTheFaceForgetsBothTheKeptAndThePendingCut() throws {
         var draft = EditPawnDraft(pawn: makePawn(face: PawnFace(file: "a.png", origin: .hand)))
-        draft.choosePicture(try FaceFixture.halves(width: 100, height: 100))
+        draft.face.choosePicture(try FaceFixture.halves(width: 100, height: 100))
 
-        draft.removeFace()
+        draft.face.remove()
 
-        XCTAssertNil(draft.newCut)
-        XCTAssertFalse(draft.hasFace)
+        XCTAssertNil(draft.face.newCut)
+        XCTAssertFalse(draft.face.hasFace)
         XCTAssertNil(draft.applied(to: makePawn(face: PawnFace(file: "a.png", origin: .hand))).face)
     }
 
@@ -85,9 +85,9 @@ final class FaceEditTests: XCTestCase {
         let pawn = makePawn()
         state.fog.pawns = [pawn]
         var draft = EditPawnDraft(pawn: pawn)
-        draft.choosePicture(try XCTUnwrap(FacePicture.load(try makePicture())))
-        draft.resizeCut(toSide: 100)
-        draft.setCut(CGRect(x: 1000, y: 0, width: 100, height: 100))
+        draft.face.choosePicture(try XCTUnwrap(FacePicture.load(try makePicture())))
+        draft.face.resizeCut(toSide: 100)
+        draft.face.setCut(CGRect(x: 1000, y: 0, width: 100, height: 100))
 
         state.updatePawn(id: pawn.id, with: draft)
 
@@ -109,7 +109,7 @@ final class FaceEditTests: XCTestCase {
         state.fog.pawns = [pawn]
         let picture = try makePicture()
         var draft = EditPawnDraft(pawn: pawn)
-        draft.choosePicture(try XCTUnwrap(FacePicture.load(picture)))
+        draft.face.choosePicture(try XCTUnwrap(FacePicture.load(picture)))
 
         try fileManager.removeItem(at: picture)
         state.updatePawn(id: pawn.id, with: draft)
@@ -123,7 +123,7 @@ final class FaceEditTests: XCTestCase {
         let pawn = makePawn(face: PawnFace(file: "a.png", origin: .hand))
         state.fog.pawns = [pawn]
         var draft = EditPawnDraft(pawn: pawn)
-        draft.removeFace()
+        draft.face.remove()
 
         state.updatePawn(id: pawn.id, with: draft)
 
@@ -139,7 +139,7 @@ final class FaceEditTests: XCTestCase {
         let first = makePawn()
         state.fog.pawns = [first]
         var draft = EditPawnDraft(pawn: first)
-        draft.choosePicture(try XCTUnwrap(FacePicture.load(try makePicture())))
+        draft.face.choosePicture(try XCTUnwrap(FacePicture.load(try makePicture())))
         state.updatePawn(id: first.id, with: draft)
         let second = try XCTUnwrap(AddPlacement.pawn(kind: .creature,
                                                      at: MapPoint(x: 200, y: 100),
@@ -152,7 +152,7 @@ final class FaceEditTests: XCTestCase {
     func testRemovingTheInheritedFaceLeavesTheOneItCameFrom() throws {
         let (state, first, second) = try makeSkeletonAndItsSibling()
         var draft = EditPawnDraft(pawn: second)
-        draft.removeFace()
+        draft.face.remove()
 
         state.updatePawn(id: second.id, with: draft)
 
@@ -165,7 +165,7 @@ final class FaceEditTests: XCTestCase {
     func testReCuttingTheInheritedFaceLeavesTheOneItCameFrom() throws {
         let (state, first, second) = try makeSkeletonAndItsSibling()
         var draft = EditPawnDraft(pawn: second)
-        draft.choosePicture(try FaceFixture.halves(width: 100, height: 100))
+        draft.face.choosePicture(try FaceFixture.halves(width: 100, height: 100))
 
         state.updatePawn(id: second.id, with: draft)
 
@@ -181,7 +181,7 @@ final class FaceEditTests: XCTestCase {
         let pawn = makePawn()
         state.fog.pawns = [pawn]
         var draft = EditPawnDraft(pawn: pawn)
-        draft.choosePicture(try FaceFixture.halves(width: 400, height: 300))
+        draft.face.choosePicture(try FaceFixture.halves(width: 400, height: 300))
 
         state.updatePawn(id: pawn.id, with: draft)
 

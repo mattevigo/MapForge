@@ -23,7 +23,10 @@ struct PawnFace: Codable, Equatable {
 
     enum Origin: String, Codable {
         /// Cut by the DM for this Pawn, or for the one it inherited the Face from under Add.
+        /// Also what a Character's own Face is, cut by the DM in the Character's editor.
         case hand
+        /// Copied by the Stamp from the Character this Pawn remembers (`characterID`).
+        case character
     }
 
     /// `from` rather than `origin` in the file, so a DM reading it sees

@@ -56,11 +56,12 @@ enum AddPlacement {
     ///
     /// Asked per origin, so each new one has to say what Add does with it. One the DM cut by
     /// hand passes on as cut by hand: the DM chose it for this Kind, and it is theirs to keep
-    /// when the Pawn becomes a Monster.
+    /// when the Pawn becomes a Monster. So does one a Character gave: the new Pawn remembers
+    /// no Character, so there is no Character for it to be re-cut with.
     static func inherited(_ face: PawnFace?) -> PawnFace? {
         guard let face else { return nil }
         switch face.origin {
-        case .hand: return face
+        case .hand, .character: return PawnFace(file: face.file, origin: .hand)
         }
     }
 

@@ -133,6 +133,16 @@ final class AddPlacementTests: XCTestCase {
         XCTAssertNil(try add(.creature, after: existing).face)
     }
 
+    /// A Player placed with Add after a Stamped one is not that Character: it remembers no
+    /// Character, so the Face it takes is its own, as though cut by hand for it.
+    func testAFaceFromACharacterPassesOnAsTheNewPawnsOwn() throws {
+        var durga = pawn("Durga", kind: .player)
+        durga.face = PawnFace(file: "durga.png", origin: .character)
+
+        XCTAssertEqual(try add(.player, after: [durga]).face,
+                       PawnFace(file: "durga.png", origin: .hand))
+    }
+
     // MARK: Naming
 
     /// The two schemes differ deliberately and this records which is which. `Light.nextName`

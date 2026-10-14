@@ -109,4 +109,39 @@ final class PartyStoreTests: XCTestCase {
             XCTAssertFalse(written.contains(key), "\(key) survived the write")
         }
     }
+
+    // MARK: A Character's Face
+
+    func testACharactersFaceSurvivesARelaunch() throws {
+        let book = PartyBook(parties: [
+            Party(name: "Eroi", characters: [
+                PartyCharacter(name: "Durga", face: PawnFace(file: "durga.png", origin: .hand)),
+            ]),
+        ])
+        try store().save(book)
+
+        XCTAssertEqual(store().load().parties.first?.characters.first?.face,
+                       PawnFace(file: "durga.png", origin: .hand))
+    }
+
+    func testARosterWrittenBeforeFacesOpensWithNone() throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try Data(#"""
+        {"version": 1, "parties": [{"id": "\#(UUID().uuidString)", "name": "Eroi",
+          "characters": [{"id": "\#(UUID().uuidString)", "name": "Durga",
+                          "colorHex": "#FC4DE5", "sightSquares": 6}]}]}
+        """#.utf8).write(to: store().fileURL)
+
+        let durga = try XCTUnwrap(store().load().parties.first?.characters.first)
+        XCTAssertNil(durga.face)
+        XCTAssertEqual(durga.name, "Durga")
+    }
+
+    func testACharacterWithoutAFaceWritesNoFaceKey() throws {
+        try store().save(PartyBook(parties: [Party(name: "Eroi",
+                                                   characters: [PartyCharacter(name: "Durga")])]))
+
+        let written = try String(contentsOf: store().fileURL, encoding: .utf8)
+        XCTAssertFalse(written.contains("face"))
+    }
 }
