@@ -523,6 +523,8 @@ private struct MonsterSearchField: View {
         OtherUnitNotesCaption(flagged: OtherUnitNotes(bestiary.monsters, current: unit),
                               suggestedUnit: suggestedUnit, onSwitchUnit: onSwitchUnit,
                               identifier: "bestiary-other-unit")
+        PictureProblemsCaption(problems: bestiary.pictureProblems,
+                               identifier: "bestiary-picture-problems")
     }
 
     private func move(_ step: Int) -> KeyPress.Result {
@@ -573,6 +575,43 @@ struct SkippedNotesButton: View {
                 .padding(12)
                 .frame(width: 320, alignment: .leading)
             }
+    }
+}
+
+/// "Some pictures give no Face", opening onto which notes and why — a picture missing from
+/// the Workspace, or a bare name two pictures share (ADR-0028). Under the Monster search,
+/// beside the other things the Bestiary says about its notes; silent when there is nothing to
+/// say. Those Monsters are still offered: only their Face is lost.
+struct PictureProblemsCaption: View {
+    let problems: [Bestiary.PictureProblem]
+    let identifier: String
+    @State private var isShowing = false
+
+    var body: some View {
+        if !problems.isEmpty {
+            Button(String(localized: "Some pictures give no Face")) { isShowing = true }
+                .buttonStyle(.link)
+                .font(.caption)
+                .accessibilityIdentifier(identifier)
+                .popover(isPresented: $isShowing, arrowEdge: .bottom) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Notes whose picture gives no Face")
+                            .font(.caption.weight(.semibold))
+                        ForEach(problems) { problem in
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(problem.name).font(.caption)
+                                Text(problem.file).font(.caption.monospaced())
+                                    .foregroundStyle(.secondary)
+                                Text(problem.reason).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        Text("The notes are read when the Workspace opens.")
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
+                    .padding(12)
+                    .frame(width: 320, alignment: .leading)
+                }
+        }
     }
 }
 

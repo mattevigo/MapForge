@@ -144,6 +144,10 @@ final class AppState: ObservableObject {
     /// its colour and the Edit Pawn sheet offers no picture, there being nowhere to keep one.
     /// Set alongside `workspace`, whose change is what redraws the tokens.
     private(set) var faceLibrary: FaceLibrary?
+    /// The cut made from each Monster's picture, as `note-faces.json` holds it. Empty with no
+    /// Workspace open. See `monsterFace(for:)`.
+    private(set) var noteFaces = NoteFaces()
+    private var noteFacesStore: NoteFacesStore?
 
     /// The DM's Parties, as they stand in the open Workspace. Empty before one is open.
     /// Written straight through on every edit rather than debounced: a roster changes when
@@ -744,6 +748,11 @@ final class AppState: ObservableObject {
         // A Face cut in the sheet is kept only now, on OK, so Cancel leaves nothing in the
         // Workspace.
         edited.face = draft.face.resolved(keepingIn: faceLibrary)
+        // Becoming a Monster brings its Face, over any Face the old Monster gave — unless the
+        // DM removed or cut one in this same sheet, which is what they meant.
+        if !draft.face.isChanged, let monster = bestiary.monster(named: draft.monsterToStamp) {
+            edited.face = MonsterStamp.face(over: edited.face, from: monsterFace(for: monster))
+        }
         fog.pawns[index] = edited
         // The one thing this sheet does to a Stat Block: a Monster that *changed* is stamped,
         // whole (ADR-0021). Through `editStatBlock`, so mid-fight the stamp is recorded as
@@ -763,6 +772,25 @@ final class AppState: ObservableObject {
             benchCombatant(id)
         }
         flushPendingFogWrites()
+    }
+
+    /// The Face a Pawn takes from `monster`: its picture's cut, made now if this is the first
+    /// Pawn to take it since the note named that picture — or nil when its note names no
+    /// picture the Workspace holds, or no Workspace is open. A new cut is written to disk at
+    /// once, as a roster edit is: the next Pawn to take the Face must find it. A write that
+    /// fails costs only sharing — the next app launch cuts the picture again, into a new file.
+    func monsterFace(for monster: Monster) -> PawnFace? {
+        guard let workspace, let faceLibrary else { return nil }
+        let before = noteFaces
+        let face = noteFaces.face(for: monster, in: workspace.url, library: faceLibrary)
+        if noteFaces != before {
+            do {
+                try noteFacesStore?.save(noteFaces)
+            } catch {
+                NSLog("MapForge: could not save the Monsters' cuts: \(error)")
+            }
+        }
+        return face
     }
 
     /// Apply the Edit Light sheet's fields.
@@ -984,6 +1012,8 @@ final class AppState: ObservableObject {
         // After the Session's last line, which is written into the outgoing Workspace.
         holdAccess(to: url ?? workspace.url)
         faceLibrary = FaceLibrary(directory: workspace.facesDirectory)
+        noteFacesStore = NoteFacesStore(directory: workspace.supportDirectory)
+        noteFaces = noteFacesStore?.load() ?? NoteFaces()
         self.workspace = workspace
         readBestiary(of: workspace)
 
@@ -1021,6 +1051,8 @@ final class AppState: ObservableObject {
         stopSession()
         holdAccess(to: nil)
         faceLibrary = nil
+        noteFacesStore = nil
+        noteFaces = NoteFaces()
         workspace = nil
         bestiaryLoad?.cancel()
         bestiaryLoad = nil

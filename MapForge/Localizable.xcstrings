@@ -9584,6 +9584,46 @@
         }
       }
     },
+    "Notes whose picture gives no Face": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notizen, deren Bild kein Gesicht ergibt"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Σημειώσεις των οποίων η εικόνα δεν δίνει πρόσωπο"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas cuya imagen no da rostro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes dont l’image ne donne pas de visage"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note la cui immagine non dà un volto"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas cuja imagem não dá rosto"
+          }
+        }
+      }
+    },
     "Notes with a statblock the Bestiary could not take": {
       "localizations": {
         "de": {
@@ -12676,6 +12716,46 @@
         }
       }
     },
+    "Some pictures give no Face": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einige Bilder ergeben kein Gesicht"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ορισμένες εικόνες δεν δίνουν πρόσωπο"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algunas imágenes no dan rostro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Certaines images ne donnent pas de visage"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alcune immagini non danno un volto"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algumas imagens não dão rosto"
+          }
+        }
+      }
+    },
     "Speed": {
       "localizations": {
         "de": {
@@ -15323,6 +15403,126 @@
           "stringUnit": {
             "state": "translated",
             "value": "extends: “%@” nomeia um monstro que nenhuma nota define"
+          }
+        }
+      }
+    },
+    "image: “%@” is not a PNG, JPEG or WebP picture": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: „%@“ ist kein PNG-, JPEG- oder WebP-Bild"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "το image: «%@» δεν είναι εικόνα PNG, JPEG ή WebP"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: «%@» no es una imagen PNG, JPEG o WebP"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image : « %@ » n’est pas une image PNG, JPEG ou WebP"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: “%@” non è un’immagine PNG, JPEG o WebP"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: “%@” não é uma imagem PNG, JPEG ou WebP"
+          }
+        }
+      }
+    },
+    "image: “%@” is not in the Workspace": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: „%@“ ist nicht im Arbeitsbereich"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "το image: «%@» δεν υπάρχει στον χώρο εργασίας"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: «%@» no está en el espacio de trabajo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image : « %@ » n’est pas dans l’espace de travail"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: “%@” non è nell’area di lavoro"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: “%@” não está no espaço de trabalho"
+          }
+        }
+      }
+    },
+    "image: “%@” matches more than one picture; give its folder too": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: „%@“ passt auf mehr als ein Bild; gib auch den Ordner an"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "το image: «%@» ταιριάζει σε περισσότερες από μία εικόνες· δώστε και τον φάκελό της"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: «%@» coincide con más de una imagen; indica también su carpeta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image : « %@ » correspond à plusieurs images ; indiquez aussi son dossier"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: “%@” corrisponde a più di un’immagine; indica anche la sua cartella"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: “%@” corresponde a mais de uma imagem; indique também a pasta"
           }
         }
       }

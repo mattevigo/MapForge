@@ -323,11 +323,16 @@ extension AppState {
     /// the first one's — is stamped here, afresh and at full hit points, and **before** it
     /// joins: joining rolls Initiative from the Stat Block's bonus and snapshots the block
     /// into the Log. Never over numbers that already exist, which is what keeps a Stamped
-    /// Character's block its own.
+    /// Character's block its own. It takes the Monster's Face here too, by the rule becoming
+    /// a Monster follows: a Face the DM cut by hand, inherited from the sibling, is kept.
     func addPawnToMap(_ pawn: Pawn) {
-        if statsDocument.blocks[pawn.id] == nil,
-           let monster = bestiary.monster(named: pawn.monsterName) {
-            setStatBlock(MonsterStamp.statBlock(from: monster, over: StatBlock()), for: pawn.id)
+        var pawn = pawn
+        if let monster = bestiary.monster(named: pawn.monsterName) {
+            if statsDocument.blocks[pawn.id] == nil {
+                setStatBlock(MonsterStamp.statBlock(from: monster, over: StatBlock()), for: pawn.id)
+            }
+            // Fresh from the Monster, as its numbers are, never copied from a sibling.
+            pawn.face = MonsterStamp.face(over: pawn.face, from: monsterFace(for: monster))
         }
         fog.pawns.append(pawn)
         flushPendingFogWrites()

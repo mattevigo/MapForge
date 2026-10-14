@@ -143,6 +143,15 @@ final class AddPlacementTests: XCTestCase {
                        PawnFace(file: "durga.png", origin: .hand))
     }
 
+    /// A Monster's Face is not copied from the sibling: the new Pawn takes it fresh from the
+    /// Monster, as it takes the Monster's numbers.
+    func testAFaceFromAMonsterIsNotInherited() throws {
+        var gnoll = pawn("GG1", kind: .creature)
+        gnoll.face = PawnFace(file: "gnoll.png", origin: .monster)
+
+        XCTAssertNil(try add(.creature, after: [gnoll]).face)
+    }
+
     // MARK: Naming
 
     /// The two schemes differ deliberately and this records which is which. `Light.nextName`

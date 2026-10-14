@@ -119,6 +119,7 @@ struct MonsterReferenceView: View {
                               heading: [monster.size, monster.type, monster.alignment]
                                   .compactMap { $0 }.joined(separator: " · "),
                               warning: monster.warning(current: unit),
+                              pictureProblem: monster.picture?.problem,
                               lines: MonsterReference.lines(of: monster),
                               groups: MonsterReference.groups(of: monster))
                 .accessibilityIdentifier("monster-reference")
@@ -145,6 +146,9 @@ struct ReferencePageView: View {
     /// Under the heading, when the note is in the Distance Unit not in force (ADR-0027) — so
     /// a "9 m" is not read aloud to a table that speaks feet as if it were.
     let warning: String?
+    /// Under the heading too, when the note names a picture that gives no Face — so the DM
+    /// learns why this Monster's Pawns wear their colour, and which link to fix.
+    var pictureProblem: String?
     let lines: [MonsterReference.Line]
     let groups: [MonsterReference.Group]
 
@@ -163,6 +167,12 @@ struct ReferencePageView: View {
                             .font(.subheadline)
                             .foregroundStyle(.orange)
                             .accessibilityIdentifier("reference-other-unit")
+                    }
+                    if let pictureProblem {
+                        Label(pictureProblem, systemImage: "photo")
+                            .font(.subheadline)
+                            .foregroundStyle(.orange)
+                            .accessibilityIdentifier("reference-picture-problem")
                     }
                 }
                 ForEach(lines, id: \.label) { line in

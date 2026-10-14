@@ -51,6 +51,12 @@ struct Monster: Equatable, Identifiable {
     /// The Distance Units its Speed and Senses name — none, one or both — read once with the
     /// rest of the note, never again on a redraw (ADR-0027).
     var distanceUnits: Set<DistanceUnit> = []
+    /// The picture the fence's `image:` links to, as the link names it — "Nothic.webp",
+    /// "Riferimento/Allegati/Goblin.webp" — or nil when it names none (ADR-0028).
+    var imageLink: String?
+    /// That picture found among the Workspace's files, or why it was not. Nil with no
+    /// `image:`. What the Monster's Face is cut from.
+    var picture: NotePicture?
 
     var id: String { name }
 

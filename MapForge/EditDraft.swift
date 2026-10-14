@@ -134,13 +134,20 @@ struct FaceDraft: Equatable {
     private(set) var kept: PawnFace?
     /// A Face picked and cut in this editor, not yet kept.
     private(set) var newCut: PendingFaceCut?
+    /// The Face the editor opened with, so a commit can tell what the DM did to it.
+    private let opened: PawnFace?
 
     init(_ kept: PawnFace?) {
         self.kept = kept
+        opened = kept
     }
 
     /// Whether there will be a Face once the edit is committed.
     var hasFace: Bool { kept != nil || newCut != nil }
+
+    /// Whether the DM removed the Face or cut a new one in this editor — a decision about the
+    /// Face that nothing else committed alongside it should undo.
+    var isChanged: Bool { kept != opened || newCut != nil }
 
     /// Start a cut from `picture`: the largest centred square, for the DM to move and resize.
     mutating func choosePicture(_ picture: CGImage) {

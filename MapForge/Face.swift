@@ -27,6 +27,8 @@ struct PawnFace: Codable, Equatable {
         case hand
         /// Copied by the Stamp from the Character this Pawn remembers (`characterID`).
         case character
+        /// Taken from the Monster this Pawn is (`monsterName`), whose note names the picture.
+        case monster
     }
 
     /// `from` rather than `origin` in the file, so a DM reading it sees

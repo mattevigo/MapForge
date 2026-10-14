@@ -129,4 +129,35 @@ final class MonsterStampTests: XCTestCase {
         XCTAssertEqual(MonsterStamp.label(for: gnoll, replacing: "1",
                                           among: [pawn("GGX3"), pawn("GG")]), "GG1")
     }
+
+    // MARK: The Face
+
+    private let gnollFace = PawnFace(file: "gnoll.png", origin: .monster)
+    private let ogreFace = PawnFace(file: "ogre.png", origin: .monster)
+
+    func testAPawnWithNoFaceTakesTheMonsters() {
+        XCTAssertEqual(MonsterStamp.face(over: nil, from: ogreFace), ogreFace)
+    }
+
+    func testAFaceTakenFromTheOldMonsterIsReplacedByTheNewOnes() {
+        XCTAssertEqual(MonsterStamp.face(over: gnollFace, from: ogreFace), ogreFace)
+    }
+
+    /// The colour shows again, as a label taken from the old Monster's initials is replaced.
+    func testAFaceTakenFromTheOldMonsterGoesWhenTheNewOneHasNone() {
+        XCTAssertNil(MonsterStamp.face(over: gnollFace, from: nil))
+    }
+
+    func testAFaceCutByHandIsNeverTouched() {
+        let hand = PawnFace(file: "mine.png", origin: .hand)
+
+        XCTAssertEqual(MonsterStamp.face(over: hand, from: ogreFace), hand)
+        XCTAssertEqual(MonsterStamp.face(over: hand, from: nil), hand)
+    }
+
+    func testAFaceACharacterGaveIsNeverTouched() {
+        let durga = PawnFace(file: "durga.png", origin: .character)
+
+        XCTAssertEqual(MonsterStamp.face(over: durga, from: ogreFace), durga)
+    }
 }

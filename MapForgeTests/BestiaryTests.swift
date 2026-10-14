@@ -447,4 +447,75 @@ final class BestiaryTests: XCTestCase {
         // wonder whether the notes were read at all.
         XCTAssertEqual(Bestiary(monsters: []).caption, "No Monsters found in this Workspace.")
     }
+
+    // MARK: The picture a note names
+
+    private func picture(_ relativePath: String) throws {
+        let url = root.appendingPathComponent(relativePath)
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        try Data([0]).write(to: url)
+    }
+
+    func testABareNameFindsTheOnePictureOfThatNameWhereverItIs() throws {
+        try picture("Riferimento/Allegati/Nothic.webp")
+        try write(note("Nothic", "image: [[Nothic.webp]]"), to: "Riferimento/Mostri/Nothic.md")
+
+        let nothic = try XCTUnwrap(monster("Nothic", in: BestiaryStore.load(for: workspace)))
+        XCTAssertEqual(nothic.picture, .found("Riferimento/Allegati/Nothic.webp"))
+    }
+
+    func testAMonsterThatExtendsAnotherInheritsItsPicture() throws {
+        try picture("Allegati/Esploratore.webp")
+        try write(note("Esploratore", "image: [[Esploratore.webp]]"), to: "Esploratore.md")
+        try write(note("Narthus", "extends: Esploratore"), to: "PNG/Narthus.md")
+
+        let narthus = try XCTUnwrap(monster("Narthus", in: BestiaryStore.load(for: workspace)))
+        XCTAssertEqual(narthus.picture, .found("Allegati/Esploratore.webp"))
+    }
+
+    /// Obsidian does not read them, and neither does the app — `.mapforge/faces/` included.
+    func testAPictureInAHiddenFolderIsNotFound() throws {
+        try picture(".obsidian/Nothic.webp")
+        try write(note("Nothic", "image: [[Nothic.webp]]"), to: "Nothic.md")
+
+        let nothic = try XCTUnwrap(monster("Nothic", in: BestiaryStore.load(for: workspace)))
+        XCTAssertEqual(nothic.picture, .missing(link: "Nothic.webp"))
+    }
+
+    func testAMonsterWithAnUnusablePictureIsStillAMonster() throws {
+        try write(note("Nothic", "image: [[Nothic.webp]]"), to: "Nothic.md")
+
+        let bestiary = BestiaryStore.load(for: workspace)
+        XCTAssertNotNil(monster("Nothic", in: bestiary))
+        XCTAssertTrue(bestiary.skipped.isEmpty)
+    }
+
+    func testAMissingAndAnAmbiguousPictureAreReportedWithTheirReason() throws {
+        try picture("A/Goblin.webp")
+        try picture("B/Goblin.webp")
+        try picture("Allegati/Nothic.webp")
+        try write(note("Goblin", "image: [[Goblin.webp]]"), to: "Goblin.md")
+        try write(note("Nothic", "image: [[Nothic.webp]]"), to: "Nothic.md")
+        try write(note("Wraith", "image: [[Wraith.webp]]"), to: "Wraith.md")
+        try write(note("Zombie", "image: https://example.com/zombie.webp"), to: "Zombie.md")
+
+        let problems = BestiaryStore.load(for: workspace).pictureProblems
+
+        XCTAssertEqual(problems.map(\.name), ["Goblin", "Wraith"])
+        XCTAssertEqual(problems.map(\.file), ["Goblin.md", "Wraith.md"])
+        XCTAssertEqual(problems.map(\.reason),
+                       [NotePicture.ambiguous(link: "Goblin.webp").problem,
+                        NotePicture.missing(link: "Wraith.webp").problem])
+    }
+
+    func testAPictureIsInheritedFromABaseKeptOutOfTheBestiary() throws {
+        try picture("Allegati/Esploratore.webp")
+        try write(note("Esploratore", "bestiary: false\nimage: [[Esploratore.webp]]"),
+                  to: "Esploratore.md")
+        try write(note("Narthus", "extends: Esploratore"), to: "PNG/Narthus.md")
+
+        let narthus = try XCTUnwrap(monster("Narthus", in: BestiaryStore.load(for: workspace)))
+        XCTAssertEqual(narthus.picture, .found("Allegati/Esploratore.webp"))
+    }
 }

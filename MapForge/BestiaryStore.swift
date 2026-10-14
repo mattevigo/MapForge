@@ -27,11 +27,12 @@ enum BestiaryStore {
                      fileManager: FileManager = .default) -> Reading {
         let root = workspace.url.path
         var bestiary = Bestiary()
+        let walked = files(under: root, fileManager: fileManager)
 
         // Every fence first, because a Monster may `extend` one in a note further down the
         // path order — a campaign's NPC is a reference Monster with changes (ADR-0023).
         var fences: [(file: String, fields: StatblockReader.Fields)] = []
-        for path in notes(under: root, fileManager: fileManager) {
+        for path in walked.notes {
             let url = URL(fileURLWithPath: (root as NSString).appendingPathComponent(path))
             guard let markdown = try? String(contentsOf: url, encoding: .utf8) else {
                 bestiary.skipped.append(.init(file: path, reason: String(localized: "the note could not be read")))
@@ -55,6 +56,9 @@ enum BestiaryStore {
             case .monster(var monster):
                 monster.file = fence.file
                 monster.distanceUnits = DistanceUnit.named(in: [monster.speed, monster.senses])
+                monster.picture = monster.imageLink.map {
+                    NotePicture.resolve($0, among: walked.others)
+                }
                 guard names.insert(monster.name).inserted else {
                     bestiary.skipped.append(.init(
                         file: fence.file, reason: String(localized: "another note already defines “\(monster.name)”")))
@@ -118,26 +122,33 @@ enum BestiaryStore {
         return bases
     }
 
-    /// Every markdown note under `root`, relative to it, in path order — so that which of two
-    /// same-named Monsters wins is a rule the DM can predict rather than whatever the disk
-    /// returned.
+    /// Every file under `root`, relative to it: the markdown notes in path order — so that
+    /// which of two same-named Monsters wins is a rule the DM can predict rather than whatever
+    /// the disk returned — and everything else, which is where the pictures a note's `image:`
+    /// names are looked for.
     ///
     /// Hidden folders are not entered: `.mapforge` is the app's, `.obsidian` and `.git` are
     /// tools', and Obsidian does not read them either, so no statblock the DM sees lives
-    /// there. `.git` alone can hold more files than the vault.
-    static func notes(under root: String, fileManager: FileManager = .default) -> [String] {
-        guard let enumerator = fileManager.enumerator(atPath: root) else { return [] }
-        var paths: [String] = []
+    /// there, and no picture it draws. `.git` alone can hold more files than the vault.
+    static func files(under root: String,
+                      fileManager: FileManager = .default) -> (notes: [String], others: [String]) {
+        guard let enumerator = fileManager.enumerator(atPath: root) else { return ([], []) }
+        var notes: [String] = []
+        var others: [String] = []
         while let path = enumerator.nextObject() as? String {
             let name = (path as NSString).lastPathComponent
             if name.hasPrefix(".") {
                 enumerator.skipDescendants()
                 continue
             }
+            guard enumerator.fileAttributes?[.type] as? FileAttributeType != .typeDirectory
+            else { continue }
             if (name as NSString).pathExtension.lowercased() == "md" {
-                paths.append(path)
+                notes.append(path)
+            } else {
+                others.append(path)
             }
         }
-        return paths.sorted()
+        return (notes.sorted(), others)
     }
 }

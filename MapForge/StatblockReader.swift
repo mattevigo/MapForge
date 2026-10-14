@@ -105,6 +105,7 @@ enum StatblockReader {
         monster.bonusActions = features(tree["bonus_actions"])
         monster.reactions = features(tree["reactions"])
         monster.legendaryActions = features(tree["legendary_actions"])
+        monster.imageLink = imageLink(tree["image"])
         return .monster(monster)
     }
 
@@ -243,6 +244,29 @@ enum StatblockReader {
     }
 
     // MARK: Reading a value
+
+    /// `image:` as a wikilink's target: `"[[Nothic.webp]]"`, or the same unquoted, which YAML
+    /// reads as a list inside a list. An embed's `!` before it, a heading after `#` and a
+    /// display text after `|` are how the link is written, not what it names.
+    ///
+    /// A wikilink only (ADR-0028). A web address is ignored, because opening a game must not
+    /// need the network, and so is plain text, which Obsidian does not draw as a picture.
+    static func imageLink(_ value: Any?) -> String? {
+        let target: String
+        if let outer = value as? [Any], outer.count == 1,
+           let inner = outer.first as? [Any], inner.count == 1, let name = text(inner.first) {
+            target = name
+        } else if let text = text(value) {
+            let link = text.hasPrefix("!") ? String(text.dropFirst()) : text
+            guard link.hasPrefix("[["), link.hasSuffix("]]") else { return nil }
+            target = String(link.dropFirst(2).dropLast(2))
+        } else {
+            return nil
+        }
+        let name = target.prefix { $0 != "|" && $0 != "#" }
+            .trimmingCharacters(in: .whitespaces)
+        return name.isEmpty ? nil : name
+    }
 
     /// A scalar as the text the DM wrote. YAML hands `cr: 5` over as an integer and
     /// `cr: 1/2` as a string; the DM reads both the same way.

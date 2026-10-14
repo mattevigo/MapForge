@@ -39,18 +39,27 @@ final class FaceLibrary {
         return PawnFace(file: file, origin: .hand)
     }
 
+    /// Whether the cut named `file` is kept here.
+    func holds(_ file: String) -> Bool {
+        url(of: file).map { FileManager.default.fileExists(atPath: $0.path) } ?? false
+    }
+
+    /// Where the cut named `file` is kept — or nil for a name that is not one.
+    ///
+    /// A name and only a name: the fog file and the roster are the DM's to edit by hand, and a
+    /// `file` that reaches out of the folder is refused rather than followed.
+    private func url(of file: String) -> URL? {
+        guard !file.isEmpty, !file.hasPrefix("."), !file.contains("/") else { return nil }
+        return directory.appendingPathComponent(file)
+    }
+
     /// The kept cut `face` names, or nil when there is none — the Pawn is then drawn in its
     /// colour and is otherwise in no way diminished.
-    ///
-    /// A name and only a name: the fog file is the DM's to edit by hand, and a `file` that
-    /// reaches out of the folder is refused rather than followed.
     func image(for face: PawnFace) -> NSImage? {
         let name = face.file
-        guard !name.isEmpty, !name.hasPrefix("."), !name.contains("/") else { return nil }
+        guard let url = url(of: name) else { return nil }
         if let cached = cache.object(forKey: name as NSString) { return cached }
-        guard let image = NSImage(contentsOf: directory.appendingPathComponent(name)) else {
-            return nil
-        }
+        guard let image = NSImage(contentsOf: url) else { return nil }
         cache.setObject(image, forKey: name as NSString)
         return image
     }

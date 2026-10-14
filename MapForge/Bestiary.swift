@@ -53,6 +53,26 @@ struct Bestiary: Equatable {
         NameSearch.matches(query, among: monsters, name: \.name)
     }
 
+    /// The Monsters whose note names a picture that gives no Face — missing from the
+    /// Workspace, or a bare name two pictures share — and why, in the Bestiary's order. Still
+    /// Monsters, still offered: only the Face is lost, so they are reported beside the
+    /// search rather than skipped.
+    var pictureProblems: [PictureProblem] {
+        monsters.compactMap { monster in
+            monster.picture?.problem.map {
+                PictureProblem(name: monster.name, file: monster.file, reason: $0)
+            }
+        }
+    }
+
+    struct PictureProblem: Equatable, Identifiable {
+        var name: String
+        /// The note, relative to the Workspace root.
+        var file: String
+        var reason: String
+        var id: String { name }
+    }
+
     /// The one line under the search box, or nil when there is nothing to say.
     ///
     /// Silent when everything was read, because a caption that is always there is one a DM

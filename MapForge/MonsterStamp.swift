@@ -53,6 +53,21 @@ enum MonsterStamp {
         max.map { "\(current)/\($0)" } ?? "\(current)"
     }
 
+    // MARK: The Face
+
+    /// The Face a Pawn wearing `current` has on becoming a Monster whose Face is `monsterFace`.
+    ///
+    /// A Face the Pawn took from a Monster is replaced — by the new Monster's, or by nothing,
+    /// which shows the colour again — exactly as a label taken from the old Monster's
+    /// initials is. One the DM cut by hand, or one a Character gave, is the DM's and is never
+    /// touched. A Pawn with none takes the Monster's.
+    static func face(over current: PawnFace?, from monsterFace: PawnFace?) -> PawnFace? {
+        switch current?.origin {
+        case .hand, .character: return current
+        case .monster, nil: return monsterFace
+        }
+    }
+
     // MARK: The label
 
     /// The label a Pawn takes on becoming `monster`: "GG1", "GG2" for two Gnoll Guerrieri.
