@@ -672,7 +672,8 @@ struct ControlView: View {
                         // Given the fitted rect as both, the two agree.
                         if PreviewBranch.drawsLiveLayers(mode: mode),
                            let map = appState.mapScale {
-                            liveLayers(map: map, frame: CGRect(origin: .zero, size: fitted.size))
+                            liveLayers(map: map, frame: CGRect(origin: .zero, size: fitted.size),
+                                       hoveredPawnID: hoveredPawnID(map: map, frame: fitted))
                                 .frame(width: fitted.width, height: fitted.height)
                                 .position(x: fitted.midX, y: fitted.midY)
                         }
@@ -933,7 +934,7 @@ struct ControlView: View {
     /// pan, the fitted branch's is the aspect fit. `PreviewBranch.liveLayerFrame` is the
     /// same choice stated as arithmetic.
     @ViewBuilder
-    private func liveLayers(map: MapScale, frame: CGRect) -> some View {
+    private func liveLayers(map: MapScale, frame: CGRect, hoveredPawnID: Pawn.ID?) -> some View {
         FogCanvas(regions: appState.litRegions, map: map, frame: frame) {
             FogShading.control($0, isOverlayOn: appState.isFogOverlayOn)
         }
@@ -958,7 +959,8 @@ struct ControlView: View {
                       appState.commitPawnMove(id: id, from: origin)
                   },
                   onMoveLight: { appState.moveLight(id: $0, to: $1) },
-                  onCommitLight: { appState.commitLightMove() })
+                  onCommitLight: { appState.commitLightMove() },
+                  hoveredPawnID: hoveredPawnID)
         // Above the tokens: a Measurement is what the DM is pointing at, and a cone
         // half-hidden behind the party is unreadable.
         if let pixelsPerSquare = appState.pixelsPerSquare {
@@ -1154,6 +1156,14 @@ struct ControlView: View {
                                pawns: appState.fog.pawns,
                                lights: appState.fog.lights,
                                gridPixels: gridPixels)
+    }
+
+    /// The Pawn whose token the cursor rests on, whose label shows over its Face. Asked in
+    /// the preview's own space, the one the cursor and `fitted` are both in — the live
+    /// layers sit at `fitted` and draw the same tokens at the same size.
+    private func hoveredPawnID(map: MapScale, frame: CGRect) -> Pawn.ID? {
+        guard let cursor = mirrorCursor else { return nil }
+        return PawnLayer.pawnID(under: cursor, pawns: appState.fog.pawns, map: map, frame: frame)
     }
 
     private func measurementUnderCursor(map: MapScale,

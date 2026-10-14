@@ -2,7 +2,8 @@ import AppKit
 import SwiftUI
 
 /// A Pawn as players and the DM both see it: a filled disc in its colour with its label — or,
-/// when it has a Face, that Face filling the disc, with neither colour nor label over it.
+/// when it has a Face, that Face filling the disc, with neither colour nor label over it
+/// unless the DM's pointer rests on it.
 ///
 /// One view shared by the Control Window preview and the Player Display, so a token can
 /// never look like two different things on the two screens — the DM points at the red
@@ -27,8 +28,13 @@ struct PawnToken: View {
     var scalesWithFootprint = true
 
     /// Whether this is the Player Display rather than the DM's own screen. Players get the
-    /// bare disc — see `showsLabel(atDiameter:toPlayers:)`.
+    /// bare disc — see `showsLabel(atDiameter:toPlayers:hasFace:isHovered:)`.
     var isForPlayers = false
+
+    /// Whether the DM's pointer rests on this token. Brings a Face's label back on the
+    /// Control Window, where four Goblins wearing one Face are otherwise identical; changes
+    /// nothing for a Pawn without one, whose label is always there.
+    var isHovered = false
 
     /// The disc's width: one square, or two for a Big Pawn on a surface that shows Maps.
     private var diameter: CGFloat {
@@ -88,9 +94,9 @@ struct PawnToken: View {
                 .stroke(isSelected ? Color.accentColor : Color.black.opacity(0.6),
                         lineWidth: isSelected ? 3 : 1.5)
             // Sized from ONE square, so an ogre's "3" is the same size as a goblin's and
-            // the legibility floor means the same thing for both. Never over a Face, on
-            // either screen: the Face is what the table identifies the Pawn by.
-            if face == nil, Self.showsLabel(atDiameter: squareSide, toPlayers: isForPlayers) {
+            // the legibility floor means the same thing for both.
+            if Self.showsLabel(atDiameter: squareSide, toPlayers: isForPlayers,
+                               hasFace: face != nil, isHovered: isHovered) {
                 Text(pawn.label)
                     .font(.system(size: squareSide * 0.5, weight: .semibold))
                     .foregroundStyle(.white)
@@ -105,8 +111,8 @@ struct PawnToken: View {
 
     /// Whether a token this size, on this screen, gets its label drawn.
     ///
-    /// Two separate reasons a label is absent, answered in one place so no call site has
-    /// to remember both.
+    /// Three separate reasons a label is absent, answered in one place so no call site has
+    /// to remember them all.
     ///
     /// **Who is looking.** The table gets the bare disc — `PlayerVisibility` holds that
     /// rule and the reasoning, beside everything else the players do and do not see. The
@@ -123,10 +129,17 @@ struct PawnToken: View {
     /// shrink into the disc instead of vanishing from it. Below 8 pt the glyph is a couple
     /// of grey pixels that only muddy the disc's colour.
     ///
+    /// **Whether a Face covers it.** The Face is what the table identifies the Pawn by, so
+    /// no label is drawn over it — until the DM points at the token, because four Goblins
+    /// wearing one Face cannot be told apart any other way. Only the DM's screen has a
+    /// pointer; the table's rule above already keeps it silent.
+    ///
     /// Defaults to the DM because three of the four call sites are DM chrome. The one
     /// screen that must stay silent is the one that says so.
-    static func showsLabel(atDiameter diameter: CGFloat, toPlayers: Bool = false) -> Bool {
+    static func showsLabel(atDiameter diameter: CGFloat, toPlayers: Bool = false,
+                           hasFace: Bool = false, isHovered: Bool = false) -> Bool {
         if toPlayers, !PlayerVisibility.showsPawnLabelToPlayers { return false }
+        if hasFace, !isHovered { return false }
         return diameter >= 8
     }
 }

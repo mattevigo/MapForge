@@ -92,6 +92,33 @@ final class PawnLabelTests: XCTestCase {
                        PawnToken.showsLabel(atDiameter: 12, toPlayers: false))
     }
 
+    // MARK: Over a Face
+
+    func testAFaceCoversTheLabelWhileNothingPointsAtIt() {
+        // Four Goblins wearing one Face look alike, and that is the point: the Face is
+        // what the table identifies them by. The label stays off it until the DM asks.
+        XCTAssertFalse(PawnToken.showsLabel(atDiameter: 40, hasFace: true))
+    }
+
+    func testTheDMReadsAFacesLabelWhileThePointerRestsOnIt() {
+        XCTAssertTrue(PawnToken.showsLabel(atDiameter: 40, hasFace: true, isHovered: true))
+    }
+
+    func testTheTableNeverReadsAFacesLabelHoverOrNot() {
+        XCTAssertFalse(PawnToken.showsLabel(atDiameter: 40, toPlayers: true,
+                                            hasFace: true, isHovered: true))
+    }
+
+    func testHoveringAFaceKeepsTheLegibilityFloor() {
+        XCTAssertFalse(PawnToken.showsLabel(atDiameter: 6, hasFace: true, isHovered: true))
+    }
+
+    func testAPawnWithoutAFaceIsLabelledHoverOrNot() {
+        for isHovered in [false, true] {
+            XCTAssertTrue(PawnToken.showsLabel(atDiameter: 40, isHovered: isHovered))
+        }
+    }
+
     // MARK: Helpers
 
     private func pawn(_ label: String) -> Pawn {

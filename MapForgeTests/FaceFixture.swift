@@ -3,7 +3,7 @@ import XCTest
 
 /// Pictures made in memory, so no test depends on a file in the repo.
 enum FaceFixture {
-    enum Colour: Equatable { case red, blue, other }
+    enum Colour: Equatable { case red, blue, white, other }
 
     /// Red on the left half, blue on the right.
     static func halves(width: Int, height: Int) throws -> CGImage {
@@ -29,6 +29,8 @@ enum FaceFixture {
         guard let colour = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB) else { return .other }
         if colour.redComponent > 0.9, colour.blueComponent < 0.1 { return .red }
         if colour.blueComponent > 0.9, colour.redComponent < 0.1 { return .blue }
+        if colour.redComponent > 0.9, colour.greenComponent > 0.9,
+           colour.blueComponent > 0.9 { return .white }
         return .other
     }
 }
