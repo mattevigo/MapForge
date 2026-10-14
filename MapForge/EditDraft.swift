@@ -30,6 +30,12 @@ struct EditPawnDraft: Equatable {
     /// The Face the Pawn is drawn as, and any cut made in this sheet and not yet kept. Kept by
     /// OK alone (`AppState.updatePawn`), so Cancel leaves nothing in the Workspace.
     var face: FaceDraft
+    /// The DM's answer to "only this Pawn, or every one?" — true for every Pawn that took the
+    /// Face from `recutSource`. Asked only when `asksWhomToRecut`.
+    var recutsEvery = false
+    /// Where the Face the sheet opened with came from, when a Monster or a Character gave it:
+    /// whose cut "every" would change.
+    let recutSource: FaceSource?
 
     /// The Pawn being edited, so numbering a label does not count the label it is replacing.
     private let pawnID: Pawn.ID
@@ -50,6 +56,7 @@ struct EditPawnDraft: Equatable {
         sightSquares = pawn.light.brightSquares
         monsterName = pawn.monsterName
         face = FaceDraft(pawn.face)
+        recutSource = FaceSource(of: pawn)
         openedWithMonster = pawn.monsterName
         openedWithLabel = pawn.label
     }
@@ -80,6 +87,22 @@ struct EditPawnDraft: Equatable {
         monsterName = nil
         if label == pickedLabel { label = openedWithLabel }
         pickedLabel = nil
+    }
+
+    /// Whether OK must ask "only this Pawn, or every one?" (ADR-0028).
+    ///
+    /// Only over a Face a Monster or a Character gave, and only for a cut that could be that
+    /// definition's: a Monster's Face is the picture its note names, so only that picture cut
+    /// again; a Character's own Face may be any picture. A Face cut by hand, or another
+    /// picture over a Monster's, is this Pawn's alone and is cut without asking. Never while
+    /// the Pawn becomes another Monster, whose Face is the new one's.
+    var asksWhomToRecut: Bool {
+        guard face.newCut != nil, monsterToStamp == nil else { return false }
+        switch recutSource {
+        case .monster: return face.isRecut
+        case .character: return true
+        case nil: return false
+        }
     }
 
     /// The Monster OK must stamp, or nil when it must not.
@@ -136,6 +159,9 @@ struct FaceDraft: Equatable {
     private(set) var newCut: PendingFaceCut?
     /// The Face the editor opened with, so a commit can tell what the DM did to it.
     private let opened: PawnFace?
+    /// Whether `newCut` is the picture the Face was cut from, cut again — rather than another
+    /// picture chosen.
+    private(set) var isRecut = false
 
     init(_ kept: PawnFace?) {
         self.kept = kept
@@ -153,6 +179,14 @@ struct FaceDraft: Equatable {
     mutating func choosePicture(_ picture: CGImage) {
         newCut = PendingFaceCut(picture: picture,
                                 cut: FaceCut.centredSquare(in: picture.pixelSize))
+        isRecut = false
+    }
+
+    /// Cut again the picture the Face was cut from, starting from the square it was cut as.
+    mutating func recut(_ picture: CGImage, from square: CGRect) {
+        newCut = PendingFaceCut(picture: picture,
+                                cut: FaceCut.clamped(square, in: picture.pixelSize))
+        isRecut = true
     }
 
     /// Place the pending cut, kept square and inside the picture.
@@ -176,6 +210,7 @@ struct FaceDraft: Equatable {
     mutating func remove() {
         kept = nil
         newCut = nil
+        isRecut = false
     }
 
     /// The Face the committed edit leaves: a new cut kept in `library`, or else the Face the

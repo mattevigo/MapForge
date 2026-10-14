@@ -37,6 +37,9 @@ is not one: no drawing, no fog, no persistence and no behaviour reads it. It exi
 Party roster can show that three of five Characters have Pawns on this Map — the glance a DM
 takes at the start of a session. A Pawn whose `characterID` names a deleted Character loses
 a badge and nothing else, which is exactly the blast radius an advisory field should have.
+ADR-0028 adds the one reader the DM triggers: re-cutting a Character's Face for *every* one of
+its Pawns reaches those on the open Map by this field. A Pawn whose Character is gone is then
+re-cut for itself alone.
 
 Matching on the label instead would have avoided the field entirely, and was rejected because
 renaming a Pawn live is a thing the sidebar already lets you do; the count would silently go

@@ -42,6 +42,11 @@ struct EditPawnSheet: View {
     /// Where the Pawn's Face is kept, for showing it. Nil with no Workspace open, when there
     /// is nowhere to keep a cut and so no picture is offered.
     var faceLibrary: FaceLibrary?
+    /// The picture the Pawn's Face was cut from, and its square, for cutting it again — nil
+    /// when it keeps none, as a Face cut by hand does. Asked only when the DM wants it.
+    var recutPicture: (() -> PendingFaceCut?)?
+    /// The Monster or Character "every" re-cuts, when the Face came from one still defined.
+    var recutName: String?
     let onCommit: (EditPawnDraft) -> Void
     let onCancel: () -> Void
 
@@ -51,6 +56,8 @@ struct EditPawnSheet: View {
     @State private var isSearching = false
     /// The heal OK is waiting on the DM to confirm.
     @State private var confirming: MonsterStamp.Healing?
+    /// Whether OK is waiting on "only this Pawn, or every one?".
+    @State private var askingWhomToRecut = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -111,7 +118,7 @@ struct EditPawnSheet: View {
                 GridRow(alignment: .top) {
                     Text("Face")
                     FaceEditor(face: $draft.face, kind: draft.kind, library: faceLibrary,
-                               wearer: .pawn)
+                               wearer: .pawn, recutPicture: recutPicture)
                         // Across the Monster's column, as the Sight row is: the cut is the
                         // widest thing the sheet shows.
                         .gridCellColumns(2)
@@ -156,6 +163,26 @@ struct EditPawnSheet: View {
         .padding(20)
         // Wider than the Light's sheet by the Monster's column.
         .frame(width: 540)
+        // Never together with the heal below: a Pawn becoming another Monster takes that
+        // Monster's Face, and so is never asked whom a re-cut is for.
+        .alert("Who takes the new cut?", isPresented: $askingWhomToRecut) {
+            Button("Only This Pawn") {
+                draft.recutsEvery = false
+                onCommit(draft)
+            }
+            if let recutName {
+                Button(String(localized: "Every \(recutName)")) {
+                    draft.recutsEvery = true
+                    onCommit(draft)
+                }
+            }
+            // Back to the open sheet, as the heal's Cancel is.
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(recutName.map {
+                String(localized: "This Face came from \($0). Every Pawn on this Map wearing it, and every Pawn that takes it later, can have the new cut.")
+            } ?? "")
+        }
         .alert("Heal \(draft.label)?",
                isPresented: Binding(get: { confirming != nil },
                                     set: { if !$0 { confirming = nil } }),
@@ -176,7 +203,9 @@ struct EditPawnSheet: View {
     /// OK. Asks first only when the stamp would overwrite hit points that exist — a dialog
     /// that appears when nothing can be lost is one the DM learns to click through.
     private func commit() {
-        if let healing = draft.healing(over: statBlock, in: bestiary) {
+        if draft.asksWhomToRecut, recutName != nil {
+            askingWhomToRecut = true
+        } else if let healing = draft.healing(over: statBlock, in: bestiary) {
             confirming = healing
         } else {
             onCommit(draft)
@@ -197,6 +226,9 @@ struct FaceEditor: View {
     /// nowhere to keep a cut and so no picture is offered.
     let library: FaceLibrary?
     let wearer: Wearer
+    /// The picture the Face was cut from and its square, when it keeps one — a Face cut from
+    /// a note's picture. Offers "Re-cut…" when there is one.
+    var recutPicture: (() -> PendingFaceCut?)? = nil
 
     /// Who will wear the Face, which is all that changes what the editor says.
     enum Wearer {
@@ -244,6 +276,17 @@ struct FaceEditor: View {
                        action: choosePicture)
                     .disabled(library == nil)
                     .accessibilityIdentifier("\(wearer.identifier)-choose-face")
+                if face.newCut == nil, face.kept != nil, let recutPicture {
+                    Button("Re-cut…") {
+                        guard let source = recutPicture() else {
+                            pictureFailed = true
+                            return
+                        }
+                        pictureFailed = false
+                        face.recut(source.picture, from: source.cut)
+                    }
+                    .accessibilityIdentifier("\(wearer.identifier)-recut-face")
+                }
                 if face.hasFace {
                     Button("Remove Face") { face.remove() }
                     .accessibilityIdentifier("\(wearer.identifier)-remove-face")

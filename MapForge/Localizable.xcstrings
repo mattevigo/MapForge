@@ -6287,6 +6287,46 @@
         }
       }
     },
+    "Every %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle: %@"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Κάθε %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ogni %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada %@"
+          }
+        }
+      }
+    },
     "Every Pawn stamped from it afterwards wears a copy.": {
       "localizations": {
         "de": {
@@ -9744,6 +9784,46 @@
         }
       }
     },
+    "Only This Pawn": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur diese Spielfigur"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Μόνο αυτό το πιόνι"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo esta ficha"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce pion seulement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo questa pedina"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Só esta peça"
+          }
+        }
+      }
+    },
     "Open Map…": {
       "localizations": {
         "de": {
@@ -10624,6 +10704,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Caído"
+          }
+        }
+      }
+    },
+    "Re-cut…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neu schneiden…"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Νέα κοπή…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver a recortar…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redécouper…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ritaglia di nuovo…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recortar de novo…"
           }
         }
       }
@@ -13925,6 +14045,46 @@
         }
       }
     },
+    "This Face came from %@. Every Pawn on this Map wearing it, and every Pawn that takes it later, can have the new cut.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Gesicht stammt von %@. Jede Spielfigur auf dieser Karte, die es trägt, und jede, die es später bekommt, kann den neuen Schnitt erhalten."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Αυτό το πρόσωπο προέρχεται από: %@. Κάθε πιόνι σε αυτόν τον χάρτη που το φέρει, και κάθε πιόνι που θα το πάρει αργότερα, μπορεί να πάρει τη νέα κοπή."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este rostro viene de %@. Cada ficha de este mapa que lo lleva, y cada ficha que lo tome después, puede recibir el nuevo recorte."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce visage vient de %@. Chaque pion de cette carte qui le porte, et chaque pion qui le prendra ensuite, peut recevoir la nouvelle découpe."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo volto viene da %@. Ogni pedina su questa mappa che lo porta, e ogni pedina che lo prenderà in seguito, può avere il nuovo ritaglio."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este rosto vem de %@. Cada peça deste mapa que o usa, e cada peça que o receber depois, pode ficar com o novo recorte."
+          }
+        }
+      }
+    },
     "This Map isn't in your Workspace": {
       "localizations": {
         "de": {
@@ -14883,6 +15043,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Qual atributo o teste de resistência usa."
+          }
+        }
+      }
+    },
+    "Who takes the new cut?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wer erhält den neuen Schnitt?"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ποιος παίρνει τη νέα κοπή;"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Quién se queda el nuevo recorte?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qui reçoit la nouvelle découpe ?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chi prende il nuovo ritaglio?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quem fica com o novo recorte?"
           }
         }
       }
