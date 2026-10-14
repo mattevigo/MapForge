@@ -15,22 +15,26 @@ enum Stamp {
     /// The Character is shown as the Pawn it would Stamp rather than as a coloured dot, so
     /// what the DM drags looks like what they will get, Big footprint included. Never added
     /// to a document: its position is meaningless and its id changes on every redraw.
-    static func preview(of character: PartyCharacter, note: CharacterNote?) -> Pawn {
+    static func preview(of character: PartyCharacter, note: CharacterNote?,
+                        noteFace: PawnFace? = nil) -> Pawn {
         Pawn(at: MapPoint(x: 0, y: 0),
              label: character.name,
              colorHex: character.colorHex,
              brightSquares: character.sightSquares,
              isBig: note?.isBig ?? false,
              characterID: character.id,
-             face: face(of: character))
+             face: face(of: character, noteFace: noteFace))
     }
 
-    /// The Face a Pawn Stamped from `character` wears: a copy of the Character's, remembered
-    /// as the Character's, so re-cutting it later can offer to re-cut that Character too.
-    /// The same file, never written again — a cut is never rewritten, so the Character
-    /// changing its Face later cannot reach a Pawn already Stamped.
-    private static func face(of character: PartyCharacter) -> PawnFace? {
-        character.face.map { PawnFace(file: $0.file, origin: .character) }
+    /// The Face a Pawn Stamped from `character` wears: the one the DM cut for the Character,
+    /// or else `noteFace`, the cut of the picture its note names — the DM's own winning over
+    /// the note's, as a label typed wins over one given (ADR-0028).
+    ///
+    /// A copy, remembered as the Character's, so re-cutting it later can offer to re-cut that
+    /// Character too. The same file, never written again — a cut is never rewritten, so the
+    /// Character changing its Face later cannot reach a Pawn already Stamped.
+    private static func face(of character: PartyCharacter, noteFace: PawnFace?) -> PawnFace? {
+        (character.face ?? noteFace).map { PawnFace(file: $0.file, origin: .character) }
     }
 
     /// The Stat Block a Stamped Pawn starts with, copied from its Character's note — or none,
@@ -62,6 +66,7 @@ enum Stamp {
     /// cannot check, and the bug `PlayerPlacement.mapPoint` documents at length.
     static func pawn(from character: PartyCharacter,
                      note: CharacterNote?,
+                     noteFace: PawnFace? = nil,
                      droppedAt droppedPoint: CGPoint,
                      map: MapScale,
                      frame: CGRect) -> Pawn? {
@@ -90,6 +95,6 @@ enum Stamp {
                     isHidden: false,
                     isBig: note?.isBig ?? false,
                     characterID: character.id,
-                    face: face(of: character))
+                    face: face(of: character, noteFace: noteFace))
     }
 }

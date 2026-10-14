@@ -579,11 +579,11 @@ struct SkippedNotesButton: View {
 }
 
 /// "Some pictures give no Face", opening onto which notes and why — a picture missing from
-/// the Workspace, or a bare name two pictures share (ADR-0028). Under the Monster search,
-/// beside the other things the Bestiary says about its notes; silent when there is nothing to
-/// say. Those Monsters are still offered: only their Face is lost.
+/// the Workspace, or a bare name two pictures share (ADR-0028). Under the Monster search and
+/// the Character note box alike, beside the other things they say about their notes; silent
+/// when there is nothing to say. Those notes are still offered: only their Face is lost.
 struct PictureProblemsCaption: View {
-    let problems: [Bestiary.PictureProblem]
+    let problems: [PictureProblem]
     let identifier: String
     @State private var isShowing = false
 

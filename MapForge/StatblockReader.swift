@@ -140,6 +140,7 @@ enum StatblockReader {
         note.traits = features(fields["traits"])
         note.actions = features(fields["actions"])
         note.spells = textList(fields["spells"])
+        note.imageLink = imageLink(fields["image"])
         return .character(note)
     }
 

@@ -518,4 +518,19 @@ final class BestiaryTests: XCTestCase {
         let narthus = try XCTUnwrap(monster("Narthus", in: BestiaryStore.load(for: workspace)))
         XCTAssertEqual(narthus.picture, .found("Allegati/Esploratore.webp"))
     }
+
+    func testACharactersNoteFindsItsPictureAndReportsOneItCannot() throws {
+        try picture("Personaggi/Durga/Durga.webp")
+        try write(note("Durga Pietraferma", "class: Chierico\nimage: [[Durga.webp]]"),
+                  to: "Personaggi/Durga/Durga.md")
+        try write(note("Ilyana", "class: Ranger\nimage: [[Ilyana.webp]]"),
+                  to: "Personaggi/Ilyana/Ilyana.md")
+
+        let characters = BestiaryStore.read(workspace).characters
+        XCTAssertEqual(characters.note(named: "Durga Pietraferma")?.picture,
+                       .found("Personaggi/Durga/Durga.webp"))
+        XCTAssertEqual(characters.pictureProblems.map(\.name), ["Ilyana"])
+        XCTAssertEqual(characters.pictureProblems.first?.reason,
+                       NotePicture.missing(link: "Ilyana.webp").problem)
+    }
 }

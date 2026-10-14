@@ -28,7 +28,7 @@ MyGame/                              ← the Workspace (any folder the DM adopte
 │   ├── parties.json                 ← every Party and its Characters
 │   ├── preferences.json             ← active Party, chosen Player Display (app-written)
 │   ├── config.json                  ← no longer read (ADR-0023); left alone if present
-│   ├── note-faces.json              ← which cut each Monster's picture was given
+│   ├── note-faces.json              ← the cut each Monster's or Character's note picture was given
 │   ├── faces/
 │   │   └── 3F2504E0-….png           ← one kept Face per cut (ADR-0028)
 │   └── sessions/
@@ -251,8 +251,9 @@ roster written before notes still opens with every Character unlinked: its `isBi
 `initiativeBonus`, `armorClass` and `maxHP` are ignored and dropped at the next write.
 `face` is the Face the DM cut for the Character in its editor, in the shape a Pawn's is written
 (`file` in `faces/`, always `from: hand`), kept on Save and never on Cancel. Omitted when it has
-none, so a roster written before Faces opens unchanged. A Stamped Pawn names the same `file`,
-`from: character`: a copy, so a Character given another Face, or none, leaves every Pawn
+none, so a roster written before Faces opens unchanged. A Character without one takes the
+picture its note names, if any, cut once for it (`note-faces.json`); its own wins. A Stamped
+Pawn names the same `file`, `from: character`: a copy, so a Character given another Face, or none, leaves every Pawn
 already Stamped as it was (ADR-0007, ADR-0028).
 Absent when there are no Parties; unreadable file latched.
 
@@ -270,15 +271,15 @@ next save rather than latched.
 ### `faces/` — the Faces the DM cut
 
 One PNG per cut, named by a fresh UUID, written when the DM presses OK on a cut in the Edit
-Pawn sheet, or Save on one in a Character's editor — never on Cancel — or when a Pawn takes a
-Monster's Face and there is no cut of the picture its note names (`note-faces.json`). It is the **square** the
+Pawn sheet, or Save on one in a Character's editor — never on Cancel — or when a note's
+picture is first cut for a Monster or a Character (`note-faces.json`). It is the **square** the
 DM chose, scaled down to 512 pixels a side when larger, and never the picture it came from:
 that picture may be anywhere on the Mac and may be moved or deleted afterwards without any Map
 noticing (ADR-0028). A cut is never rewritten, so two Pawns, or a Character and the Pawns it
 Stamped, may share a file. A file nothing names any more is litter, not damage, and deleting it
 loses nothing; the app does not yet delete them itself.
 
-### `note-faces.json` — each Monster's cut
+### `note-faces.json` — the cuts of the notes' pictures
 
 ```json
 {
@@ -286,16 +287,23 @@ loses nothing; the app does not yet delete them itself.
   "monsters": {
     "Nothic": { "picture": "Riferimento/Allegati/Nothic.webp", "x": 128, "y": 0,
                 "side": 512, "file": "3F2504E0-….png" }
+  },
+  "characters": {
+    "6B1D…": { "picture": "Personaggi/Durga/Durga.webp", "x": 0, "y": 40,
+               "side": 600, "file": "9C41….png" }
   }
 }
 ```
 
 The cut the app made from the picture each Monster's note names (`image:`), keyed by the
-Monster's name as a Pawn's `monsterName` is: `picture` relative to the Workspace root, the
+Monster's name as a Pawn's `monsterName` is — and, under `characters`, from the picture each
+Character's note names, keyed by the Character's `id`, so it is cut once for that Character and
+used only while the DM has cut no Face for it. In each: `picture` relative to the Workspace root, the
 square at `x`, `y` with sides of `side`, in the picture's pixels from its top left, and the
-kept `file` in `faces/` that every Pawn taking the Monster's Face names. Made the first time a
-Pawn takes the Face, as the centred square, and made again only when the note names another
-picture or `file` has gone. A Monster renamed in the notes is another key, and starts again.
+kept `file` in `faces/` that every Pawn taking the Face names. A Monster's is made the first
+time a Pawn takes its Face, a Character's when the notes are read or the Character is saved,
+each as the centred square, and made again only when the note names another picture or `file`
+has gone. A Monster renamed in the notes is another key, and starts again.
 Pawns copy `file` into their own `face`, so a new cut never reaches a Pawn already on a Map
 (ADR-0028). Absent until the first cut. **Forgiving**: every entry can be made again from the
 notes, so an unreadable file is read as no cuts and replaced at the next one.
@@ -323,7 +331,8 @@ missing picture, a link two files match, or a file that is no PNG, JPEG or WebP 
 is reported under the Monster search and on the Monster's page, and leaves the Monster
 otherwise whole. The same walk reads every
 Character's note (a fence with a Character-only key and no `bestiary: false`) for its `name`,
-`ac`, `hp`, `initiative` and `size` (ADR-0024); those are never saved either. What a Monster stamps onto a Pawn
+`ac`, `hp`, `initiative`, `size` and `image:`, read and looked up as a Monster's (ADR-0024);
+those are never saved either. What a Monster stamps onto a Pawn
 (`armorClass`, `hitPoints` → `maxHP`/`currentHP`, `initiativeBonus`, size → `isBig`) is
 copied into `stats.json` and `.fog.json`; only the name is remembered in `monsterName`.
 
@@ -445,8 +454,8 @@ What follows from the shape:
 | `sessions/*.jsonl` | every Comment, move, Roll, pointer, start/stop | append + fsync, one line | truncated tail dropped |
 | `parties.json` | every roster edit | atomic replace, pretty | reported, writes refused |
 | `preferences.json` | Party or display chosen | atomic replace, pretty | replaced by defaults |
-| `faces/*.png` | OK on a cut in the Edit Pawn sheet, Save on one in a Character's editor, a Monster's first cut | atomic, once per cut, never rewritten; a failed write leaves the Pawn or Character the Face it had | the Pawn, or the Character in the roster, draws its colour |
-| `note-faces.json` | a Pawn first taking a Monster's Face, or the note naming another picture | atomic replace, pretty; a failed write is logged, and the picture is cut again next launch | read as no cuts, replaced at the next |
+| `faces/*.png` | OK on a cut in the Edit Pawn sheet, Save on one in a Character's editor, a Monster's or a Character's note picture first cut | atomic, once per cut, never rewritten; a failed write leaves the Pawn or Character the Face it had | the Pawn, or the Character in the roster, draws its colour |
+| `note-faces.json` | a Pawn first taking a Monster's Face; a linked Character's note picture first cut, when the notes are read or the Character is saved; a note naming another picture | atomic replace, pretty; a failed write is logged, and the picture is cut again next launch | read as no cuts, replaced at the next |
 | `workspace.json` | adoption only | atomic, once | Workspace refused to open |
 | `UserDefaults` | Workspace opened / forgotten | system | — |
 

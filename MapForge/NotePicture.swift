@@ -58,3 +58,33 @@ enum NotePicture: Equatable {
         }
     }
 }
+
+/// A note that may name its picture with `image:` — a Monster's or a Character's.
+protocol PicturedNote {
+    var name: String { get }
+    /// The note, relative to the Workspace root.
+    var file: String { get }
+    var picture: NotePicture? { get }
+}
+
+extension Monster: PicturedNote {}
+extension CharacterNote: PicturedNote {}
+
+/// A note whose picture gives no Face, and why, in words for the DM.
+struct PictureProblem: Equatable, Identifiable {
+    var name: String
+    /// The note, relative to the Workspace root.
+    var file: String
+    var reason: String
+    var id: String { name }
+}
+
+extension Array where Element: PicturedNote {
+    /// The notes whose picture gives no Face, in this order. Still read, still offered: only
+    /// the Face is lost, so they are reported beside the search rather than skipped.
+    var pictureProblems: [PictureProblem] {
+        compactMap { note in
+            note.picture?.problem.map { PictureProblem(name: note.name, file: note.file, reason: $0) }
+        }
+    }
+}

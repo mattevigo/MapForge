@@ -288,4 +288,13 @@ final class StatblockReaderTests: XCTestCase {
         XCTAssertEqual(imageLink(#"image: "![[Nothic.webp]]""#), "Nothic.webp")
         XCTAssertEqual(imageLink(#"image: "[[Nothic.webp#Ritratto]]""#), "Nothic.webp")
     }
+
+    func testACharactersFenceNamesItsPictureTheSameWay() {
+        let fields: StatblockReader.Fields = ["name": "Durga Pietraferma", "class": "Chierico",
+                                              "image": [["Personaggi/Durga.webp"]]]
+        guard case .character(let note) = StatblockReader.character(from: fields) else {
+            return XCTFail("not read as a Character's note")
+        }
+        XCTAssertEqual(note.imageLink, "Personaggi/Durga.webp")
+    }
 }

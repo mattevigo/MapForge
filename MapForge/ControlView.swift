@@ -2219,7 +2219,7 @@ struct ControlView: View {
     private func characterRow(_ character: PartyCharacter) -> some View {
         let placed = appState.placedCount(of: character)
         return HStack(spacing: 6) {
-            PawnToken(pawn: Stamp.preview(of: character, note: appState.note(for: character)),
+            PawnToken(pawn: appState.stampPreview(of: character),
                       squareSide: 14, scalesWithFootprint: false)
             Text(character.name).lineLimit(1)
             Spacer(minLength: 0)
@@ -2245,7 +2245,7 @@ struct ControlView: View {
             // The drag preview, which macOS renders under the cursor. This one DOES scale
             // with the footprint, unlike the row's token: it is headed for the Map, where a
             // Big Pawn's two squares are the thing the DM is judging the drop against.
-            PawnToken(pawn: Stamp.preview(of: character, note: appState.note(for: character)),
+            PawnToken(pawn: appState.stampPreview(of: character),
                       squareSide: 20)
                 // Drawn apart from the window, so handed the Face's library itself.
                 .environment(\.faceLibrary, appState.faceLibrary)

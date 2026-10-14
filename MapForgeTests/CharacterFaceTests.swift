@@ -165,4 +165,101 @@ final class CharacterFaceTests: XCTestCase {
 
         XCTAssertEqual(try character(in: state).face, face)
     }
+
+    // MARK: The note's picture
+
+    /// The Workspace's notes as read, with Durga's naming `Personaggi/Durga.png` — once the
+    /// reading the Workspace began on opening has landed, so it cannot overwrite them.
+    private func giveDurgaANote(picture: String?, in state: AppState,
+                                workspace: Workspace) async throws {
+        await state.bestiaryLoad?.value
+        if let picture {
+            let url = workspace.url.appendingPathComponent(picture)
+            try fileManager.createDirectory(at: url.deletingLastPathComponent(),
+                                            withIntermediateDirectories: true)
+            try FaceFixture.writePNG(try FaceFixture.halves(width: 300, height: 100), to: url)
+        }
+        var note = CharacterNote(name: "Durga Pietraferma")
+        note.picture = picture.map { .found($0) }
+        state.characterNotes = CharacterNotes(notes: [note])
+    }
+
+    private func stampDurga(_ durga: PartyCharacter, in state: AppState,
+                            frame: CGRect) throws -> Pawn {
+        state.addCharacter(durga)
+        XCTAssertTrue(state.stamp(try character(in: state), at: CGPoint(x: 100, y: 80),
+                                  frame: frame))
+        return try XCTUnwrap(state.fog.pawns.last)
+    }
+
+    func testALinkedCharacterStampsItsNotesFaceCutToTheCentredSquare() async throws {
+        let (state, workspace, frame) = try makeAppStateWithAMap()
+        try await giveDurgaANote(picture: "Personaggi/Durga.png", in: state, workspace: workspace)
+
+        let pawn = try stampDurga(PartyCharacter(name: "Durga", noteName: "Durga Pietraferma"),
+                                  in: state, frame: frame)
+
+        let face = try XCTUnwrap(pawn.face)
+        XCTAssertEqual(face.origin, .character)
+        let kept = try XCTUnwrap(FacePicture.load(workspace.facesDirectory
+            .appendingPathComponent(face.file)))
+        // The centred 100-pixel square of a red-and-blue picture: half of each.
+        XCTAssertEqual(kept.width, 100)
+        XCTAssertEqual(FaceFixture.colour(of: kept, x: 10, y: 50), .red)
+        XCTAssertEqual(FaceFixture.colour(of: kept, x: 90, y: 50), .blue)
+    }
+
+    func testACharactersOwnFaceIsStampedWhateverItsNoteSays() async throws {
+        let (state, workspace, frame) = try makeAppStateWithAMap()
+        try await giveDurgaANote(picture: "Personaggi/Durga.png", in: state, workspace: workspace)
+        state.addCharacter(PartyCharacter(name: "Durga", noteName: "Durga Pietraferma"),
+                           face: try cut())
+        let own = try XCTUnwrap(try character(in: state).face)
+
+        XCTAssertTrue(state.stamp(try character(in: state), at: CGPoint(x: 100, y: 80),
+                                  frame: frame))
+
+        XCTAssertEqual(state.fog.pawns.last?.face?.file, own.file)
+    }
+
+    func testAnUnlinkedCharacterStampsItsColour() async throws {
+        let (state, workspace, frame) = try makeAppStateWithAMap()
+        try await giveDurgaANote(picture: "Personaggi/Durga.png", in: state, workspace: workspace)
+
+        let pawn = try stampDurga(PartyCharacter(name: "Durga"), in: state, frame: frame)
+
+        XCTAssertNil(pawn.face)
+    }
+
+    func testACharacterWhoseNoteNamesNoPictureStampsItsColour() async throws {
+        let (state, workspace, frame) = try makeAppStateWithAMap()
+        try await giveDurgaANote(picture: nil, in: state, workspace: workspace)
+
+        let pawn = try stampDurga(PartyCharacter(name: "Durga", noteName: "Durga Pietraferma"),
+                                  in: state, frame: frame)
+
+        XCTAssertNil(pawn.face)
+    }
+
+    /// Saved, the Character is cut at once, so the Party panel draws it with its note's Face
+    /// before any Pawn is Stamped.
+    func testSavingALinkedCharacterCutsItsNotesPicture() async throws {
+        let (state, workspace, _) = try makeAppStateWithAMap()
+        try await giveDurgaANote(picture: "Personaggi/Durga.png", in: state, workspace: workspace)
+
+        state.addCharacter(PartyCharacter(name: "Durga", noteName: "Durga Pietraferma"))
+
+        XCTAssertEqual(state.stampPreview(of: try character(in: state)).face?.origin, .character)
+    }
+
+    /// Drawing the Party panel only reads the cut: a picture is never cut, nor a file
+    /// written, while SwiftUI draws.
+    func testDrawingACharacterCutsNothing() async throws {
+        let (state, workspace, _) = try makeAppStateWithAMap()
+        try await giveDurgaANote(picture: "Personaggi/Durga.png", in: state, workspace: workspace)
+        let durga = PartyCharacter(name: "Durga", noteName: "Durga Pietraferma")
+
+        XCTAssertNil(state.stampPreview(of: durga).face)
+        XCTAssertFalse(fileManager.fileExists(atPath: workspace.facesDirectory.path))
+    }
 }

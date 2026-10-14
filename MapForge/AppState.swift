@@ -780,14 +780,24 @@ final class AppState: ObservableObject {
     /// once, as a roster edit is: the next Pawn to take the Face must find it. A write that
     /// fails costs only sharing — the next app launch cuts the picture again, into a new file.
     func monsterFace(for monster: Monster) -> PawnFace? {
+        keepingNoteFaces { faces, root, library in
+            faces.face(for: monster, in: root, library: library)
+        }
+    }
+
+    /// `body`'s Face from `noteFaces`, written to disk if it made a cut — or nil with no
+    /// Workspace open, when there is nowhere to keep one.
+    private func keepingNoteFaces(
+        _ body: (inout NoteFaces, URL, FaceLibrary) -> PawnFace?
+    ) -> PawnFace? {
         guard let workspace, let faceLibrary else { return nil }
         let before = noteFaces
-        let face = noteFaces.face(for: monster, in: workspace.url, library: faceLibrary)
+        let face = body(&noteFaces, workspace.url, faceLibrary)
         if noteFaces != before {
             do {
                 try noteFacesStore?.save(noteFaces)
             } catch {
-                NSLog("MapForge: could not save the Monsters' cuts: \(error)")
+                NSLog("MapForge: could not save the notes' cuts: \(error)")
             }
         }
         return face
@@ -833,7 +843,9 @@ final class AppState: ObservableObject {
     func stamp(_ character: PartyCharacter, at droppedPoint: CGPoint, frame: CGRect) -> Bool {
         let note = note(for: character)
         guard let map = mapScale,
-              let pawn = Stamp.pawn(from: character, note: note, droppedAt: droppedPoint,
+              let pawn = Stamp.pawn(from: character, note: note,
+                                    noteFace: noteFace(for: character),
+                                    droppedAt: droppedPoint,
                                     map: map, frame: frame) else { return false }
         // The combat numbers its note gives, copied at drag time like every other field —
         // ADR-0007's rule reaching more of them (ADR-0024). Before `addPawnToMap`, because
@@ -854,6 +866,37 @@ final class AppState: ObservableObject {
     /// Workspace's notes still hold one of that name.
     func note(for character: PartyCharacter) -> CharacterNote? {
         characterNotes.note(named: character.noteName)
+    }
+
+    /// The Pawn `character` would Stamp, for drawing it in the Party panel and under the
+    /// cursor. Drawn with its note's Face only once that is cut — when the notes are read, or
+    /// the Character is saved — because this is asked while SwiftUI draws, and drawing must
+    /// not read a picture or write a file.
+    func stampPreview(of character: PartyCharacter) -> Pawn {
+        let kept = character.face == nil
+            ? note(for: character).flatMap { note in
+                faceLibrary.flatMap { noteFaces.keptFace(for: character, note: note, library: $0) }
+            }
+            : nil
+        return Stamp.preview(of: character, note: note(for: character), noteFace: kept)
+    }
+
+    /// The cut of the picture `character`'s note names, made now if there is none — or nil
+    /// when the Character has a Face of its own, which `Stamp` prefers and so needs no cut,
+    /// or its note names no picture the Workspace holds.
+    func noteFace(for character: PartyCharacter) -> PawnFace? {
+        guard character.face == nil, let note = note(for: character) else { return nil }
+        return keepingNoteFaces { faces, root, library in
+            faces.face(for: character, note: note, in: root, library: library)
+        }
+    }
+
+    /// Cuts every Character's note's picture not cut yet, so the Party panel can draw each
+    /// with its Face. After the notes are read, and after a Character is saved.
+    private func cutNoteFaces() {
+        for character in partyBook.parties.flatMap(\.characters) {
+            _ = noteFace(for: character)
+        }
     }
 
     /// The page the Combat tab shows for a Pawn Stamped from a Character.
@@ -1086,6 +1129,7 @@ final class AppState: ObservableObject {
             guard let self, !Task.isCancelled, self.workspace == workspace else { return }
             self.bestiary = read.bestiary
             self.characterNotes = read.characters
+            self.cutNoteFaces()
         }
     }
 
@@ -1166,6 +1210,7 @@ final class AppState: ObservableObject {
         partyBook = PartyRoster.addCharacter(self.character(character, wearing: face),
                                              toPartyWith: partyID, in: partyBook)
         writeParties()
+        cutNoteFaces()
     }
 
     /// Edit a Character in place. Pawns already Stamped from it are deliberately untouched:
@@ -1175,6 +1220,7 @@ final class AppState: ObservableObject {
         partyBook = PartyRoster.updateCharacter(self.character(character, wearing: face),
                                                 in: partyBook)
         writeParties()
+        cutNoteFaces()
     }
 
     /// `character` with the Face its editor left, kept now if it was cut there.

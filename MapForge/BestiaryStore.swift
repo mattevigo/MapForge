@@ -72,13 +72,14 @@ enum BestiaryStore {
         }
         // Read in two passes, reported in one order: the vault's.
         bestiary.skipped.sort { $0.file < $1.file }
-        return Reading(bestiary: bestiary, characters: characters(among: fences))
+        return Reading(bestiary: bestiary,
+                       characters: characters(among: fences, files: walked.others))
     }
 
     /// The Characters' notes among the fences, the first by path winning a name as a
     /// Monster's does.
     private static func characters(
-        among fences: [(file: String, fields: StatblockReader.Fields)]
+        among fences: [(file: String, fields: StatblockReader.Fields)], files: [String]
     ) -> CharacterNotes {
         var characters = CharacterNotes()
         var names: Set<String> = []
@@ -91,6 +92,7 @@ enum BestiaryStore {
             case .character(var note):
                 note.file = fence.file
                 note.distanceUnits = DistanceUnit.named(in: [note.speed, note.senses])
+                note.picture = note.imageLink.map { NotePicture.resolve($0, among: files) }
                 guard names.insert(note.name).inserted else {
                     characters.skipped.append(.init(
                         file: fence.file, reason: String(localized: "another note already defines “\(note.name)”")))

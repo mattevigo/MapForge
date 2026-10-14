@@ -147,7 +147,8 @@ struct CharacterNoteField: View {
     }
 
     /// The one place a Character note the app could not take is mentioned — then the notes
-    /// in the other unit. Silent when every note was read and speaks the unit in force.
+    /// in the other unit, and those whose picture gives no Face. Silent when every note was
+    /// read, speaks the unit in force and names a picture that can be found.
     @ViewBuilder private var caption: some View {
         if !notes.skipped.isEmpty {
             SkippedNotesButton(caption: String(localized: "\(notes.skipped.count) files skipped"),
@@ -158,6 +159,8 @@ struct CharacterNoteField: View {
         OtherUnitNotesCaption(flagged: OtherUnitNotes(notes.notes, current: unit),
                               suggestedUnit: suggestedUnit, onSwitchUnit: onSwitchUnit,
                               identifier: "character-note-other-unit")
+        PictureProblemsCaption(problems: notes.pictureProblems,
+                               identifier: "character-note-picture-problems")
     }
 
     private func move(_ step: Int) -> KeyPress.Result {

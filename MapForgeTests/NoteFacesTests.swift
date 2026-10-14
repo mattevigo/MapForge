@@ -160,4 +160,38 @@ final class NoteFacesTests: XCTestCase {
 
         XCTAssertEqual(NoteFacesStore(directory: directory).load(), NoteFaces())
     }
+
+    // MARK: A Character's note
+
+    private func durgasNote(picture: NotePicture?) -> CharacterNote {
+        var note = CharacterNote(name: "Durga Pietraferma")
+        note.picture = picture
+        return note
+    }
+
+    /// Cut once for that Character: kept under the Character, not under its note, so two
+    /// Characters reading one note are two cuts.
+    func testACharactersNotePictureIsCutOnceForThatCharacter() throws {
+        let path = try picture("Personaggi/Durga.png")
+        let durga = PartyCharacter(name: "Durga")
+        var faces = NoteFaces()
+
+        let first = try XCTUnwrap(faces.face(for: durga, note: durgasNote(picture: .found(path)),
+                                             in: root, library: library))
+        let second = faces.face(for: durga, note: durgasNote(picture: .found(path)),
+                                in: root, library: library)
+
+        XCTAssertEqual(second, first)
+        XCTAssertEqual(first.origin, .character)
+        XCTAssertEqual(faces.characters[durga.id.uuidString]?.square,
+                       CGRect(x: 100, y: 0, width: 100, height: 100))
+        XCTAssertTrue(faces.monsters.isEmpty)
+    }
+
+    func testACharacterWhoseNoteNamesNoPictureHasNoNoteFace() {
+        var faces = NoteFaces()
+
+        XCTAssertNil(faces.face(for: PartyCharacter(name: "Durga"), note: durgasNote(picture: nil),
+                                in: root, library: library))
+    }
 }
