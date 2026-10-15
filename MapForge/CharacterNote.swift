@@ -40,6 +40,11 @@ struct CharacterNote: Equatable, Identifiable {
     var file = ""
     /// The Distance Units its Speed and Senses name, as `Monster.distanceUnits` are.
     var distanceUnits: Set<DistanceUnit> = []
+    /// The picture the fence's `image:` links to, and that picture found among the
+    /// Workspace's files, as a Monster's are. What the Character's Face is cut from when the
+    /// DM has cut none for it.
+    var imageLink: String?
+    var picture: NotePicture?
 
     var id: String { name }
 }
@@ -52,6 +57,9 @@ struct CharacterNotes: Equatable {
 
     /// Character notes the app could not take — a second note of a name, a fence with none.
     var skipped: [Bestiary.Skipped] = []
+
+    /// The notes whose picture gives no Face, and why.
+    var pictureProblems: [PictureProblem] { notes.pictureProblems }
 
     /// The note a Character remembers. Exact, as `Bestiary.monster(named:)` is: a near miss
     /// must not quietly become another hero's numbers.

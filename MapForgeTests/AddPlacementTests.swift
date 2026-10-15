@@ -10,10 +10,11 @@ import XCTest
 final class AddPlacementTests: XCTestCase {
     private let imageSize = CGSize(width: 400, height: 300)
 
-    private func pawn(_ label: String, kind: PawnKind, colorHex: String,
-                      sight: CGFloat = 6, isBig: Bool = false) -> Pawn {
+    private func pawn(_ label: String, kind: PawnKind, colorHex: String = "#2E7D32",
+                      sight: CGFloat = 6, isBig: Bool = false, face: String? = nil) -> Pawn {
         Pawn(at: MapPoint(x: 10, y: 10), label: label, colorHex: colorHex,
-             brightSquares: sight, kind: kind, isBig: isBig)
+             brightSquares: sight, kind: kind, isBig: isBig,
+             face: face.map { PawnFace(file: $0, origin: .hand) })
     }
 
     // MARK: Defaults with nothing to inherit from
@@ -92,6 +93,63 @@ final class AddPlacementTests: XCTestCase {
         doused.isOn = false
         XCTAssertEqual(AddPlacement.light(at: MapPoint(x: 50, y: 50), existing: [doused])?.isOn,
                        true)
+    }
+
+    // MARK: The Face
+
+    private func add(_ kind: PawnKind, after existing: [Pawn]) throws -> Pawn {
+        try XCTUnwrap(AddPlacement.pawn(kind: kind, at: MapPoint(x: 100, y: 100),
+                                        existing: existing))
+    }
+
+    /// The second hand-cut skeleton arrives wearing the first one's Face, with no second
+    /// cut: the very same kept file, so nothing is copied twice.
+    func testANewCreatureWearsTheLastCreaturesFace() throws {
+        let skeleton = pawn("1", kind: .creature, face: "skeleton.png")
+
+        XCTAssertEqual(try add(.creature, after: [skeleton]).face, skeleton.face)
+    }
+
+    func testANewPlayerAndTreasureEachWearTheirOwnKindsFace() throws {
+        let existing = [pawn("Vex", kind: .player, face: "vex.png"),
+                        pawn("Chest", kind: .treasure, face: "chest.png"),
+                        pawn("Goblin", kind: .creature, face: "goblin.png")]
+
+        XCTAssertEqual(try add(.player, after: existing).face?.file, "vex.png")
+        XCTAssertEqual(try add(.treasure, after: existing).face?.file, "chest.png")
+    }
+
+    func testAFaceDoesNotFollowAnotherKindOntoTheMap() throws {
+        let existing = [pawn("Goblin", kind: .creature, face: "goblin.png")]
+
+        XCTAssertNil(try add(.player, after: existing).face)
+    }
+
+    /// The last skeleton, not any skeleton: the DM removed its Face for a reason.
+    func testTheLastOfItsKindWithoutAFaceGivesNone() throws {
+        let existing = [pawn("1", kind: .creature, face: "skeleton.png"),
+                        pawn("2", kind: .creature)]
+
+        XCTAssertNil(try add(.creature, after: existing).face)
+    }
+
+    /// A Player placed with Add after a Stamped one is not that Character: it remembers no
+    /// Character, so the Face it takes is its own, as though cut by hand for it.
+    func testAFaceFromACharacterPassesOnAsTheNewPawnsOwn() throws {
+        var durga = pawn("Durga", kind: .player)
+        durga.face = PawnFace(file: "durga.png", origin: .character)
+
+        XCTAssertEqual(try add(.player, after: [durga]).face,
+                       PawnFace(file: "durga.png", origin: .hand))
+    }
+
+    /// A Monster's Face is not copied from the sibling: the new Pawn takes it fresh from the
+    /// Monster, as it takes the Monster's numbers.
+    func testAFaceFromAMonsterIsNotInherited() throws {
+        var gnoll = pawn("GG1", kind: .creature)
+        gnoll.face = PawnFace(file: "gnoll.png", origin: .monster)
+
+        XCTAssertNil(try add(.creature, after: [gnoll]).face)
     }
 
     // MARK: Naming

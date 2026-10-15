@@ -110,4 +110,58 @@ final class StampTests: XCTestCase {
         XCTAssertEqual(Stamp.preview(of: thorin, note: nil).isBig, false)
         XCTAssertEqual(Stamp.preview(of: thorin, note: note).isBig, true)
     }
+
+    // MARK: The Face
+
+    func testTheStampCopiesTheCharactersFaceAndRemembersWhereItCameFrom() {
+        var durga = thorin
+        durga.face = PawnFace(file: "durga.png", origin: .hand)
+
+        let pawn = Stamp.pawn(from: durga, note: note, droppedAt: CGPoint(x: 10, y: 10),
+                              map: map, frame: frame)
+
+        XCTAssertEqual(pawn?.face, PawnFace(file: "durga.png", origin: .character))
+        XCTAssertEqual(pawn?.characterID, durga.id)
+    }
+
+    func testACharacterWithoutAFaceStampsItsColour() {
+        let pawn = Stamp.pawn(from: thorin, note: note, droppedAt: CGPoint(x: 10, y: 10),
+                              map: map, frame: frame)
+
+        XCTAssertNil(pawn?.face)
+    }
+
+    /// The roster draws a Character as the Pawn it would Stamp, so its Face is in the row.
+    func testTheRostersSwatchWearsTheCharactersFace() {
+        var durga = thorin
+        durga.face = PawnFace(file: "durga.png", origin: .hand)
+
+        XCTAssertEqual(Stamp.preview(of: durga, note: nil).face?.file, "durga.png")
+    }
+
+    // MARK: Which Face the Stamp takes
+
+    private let noteFace = PawnFace(file: "note.png", origin: .character)
+
+    func testWithNoFaceOfItsOwnTheCharacterStampsItsNotesFace() {
+        let pawn = Stamp.pawn(from: thorin, note: note, noteFace: noteFace,
+                              droppedAt: CGPoint(x: 10, y: 10), map: map, frame: frame)
+
+        XCTAssertEqual(pawn?.face, PawnFace(file: "note.png", origin: .character))
+    }
+
+    func testTheCharactersOwnFaceWinsOverItsNotes() {
+        var durga = thorin
+        durga.face = PawnFace(file: "mine.png", origin: .hand)
+
+        let pawn = Stamp.pawn(from: durga, note: note, noteFace: noteFace,
+                              droppedAt: CGPoint(x: 10, y: 10), map: map, frame: frame)
+
+        XCTAssertEqual(pawn?.face, PawnFace(file: "mine.png", origin: .character))
+    }
+
+    func testTheCharactersSwatchWearsItsNotesFaceToo() {
+        XCTAssertEqual(Stamp.preview(of: thorin, note: note, noteFace: noteFace).face?.file,
+                       "note.png")
+    }
 }

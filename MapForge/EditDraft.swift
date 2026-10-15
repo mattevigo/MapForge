@@ -8,8 +8,9 @@ import Foundation
 /// un-apply. Editing a copy and committing it in one write is what makes that true — a
 /// sheet that wrote through per keystroke would leave half the edit behind on Escape.
 ///
-/// Exactly the six fields the fog editor's inspector had, less position: a Pawn is moved by
-/// dragging it, which is a live action of its own.
+/// The six fields the fog editor's inspector had, less position — a Pawn is moved by dragging
+/// it, which is a live action of its own — and its Face. A Face cut here is a draft like the
+/// rest: only OK keeps the cut in the Workspace, so Cancel leaves no file behind.
 ///
 /// **No Stat Block field is here, and none may be added.** The numbers live in their own file
 /// and have their own editor (ADR-0009); a hit point total half-typed into this sheet and
@@ -26,6 +27,27 @@ struct EditPawnDraft: Equatable {
     /// The Monster this Creature is, by name. Set through `pick` and `clearMonster`, which
     /// keep the label and the size in step with it.
     private(set) var monsterName: String?
+    /// The Face the Pawn is drawn as, and any cut made in this sheet and not yet kept. Kept by
+    /// OK alone (`AppState.updatePawn`), so Cancel leaves no cut of the Pawn's own in the
+    /// Workspace — only, if the DM asked for it, the Monster's shared cut, which the next Pawn
+    /// to take its Face would have made the same.
+    var face: FaceDraft
+    /// The DM's answer to "only this Pawn, or every one?" — true for every Pawn that took the
+    /// Face from `recutSource`. Asked only when `asksWhomToRecut`.
+    var recutsEvery = false
+    /// Where the Face in the sheet came from, when a Monster or a Character gave it: whose
+    /// picture "Re-cut…" opens, and whose cut "every" would change. Asked of the sheet as it
+    /// stands — the Face taken or kept, and the Monster it is now — never of the Pawn as it
+    /// opened, so a Face taken here can be re-cut at once.
+    var recutSource: FaceSource? {
+        switch (face.kept ?? openedWithFace)?.origin {
+        case .monster: monsterName.map { .monster($0) }
+        case .character: characterID.map { .character($0) }
+        case .hand, nil: nil
+        }
+    }
+    /// The Character that Stamped the Pawn, whose Face a `character` one is.
+    private let characterID: UUID?
 
     /// The Pawn being edited, so numbering a label does not count the label it is replacing.
     private let pawnID: Pawn.ID
@@ -36,6 +58,12 @@ struct EditPawnDraft: Equatable {
     /// The label the last `pick` wrote, so a second pick can tell the app's label from one
     /// the DM typed over it.
     private var pickedLabel: String?
+    /// The Face the Pawn had when the sheet opened, to give back if a Monster's Face taken
+    /// here stops being this Pawn's Monster's.
+    private let openedWithFace: PawnFace?
+    /// The Monster whose Face `takeMonsterFace` gave in this sheet, while the Pawn still wears
+    /// it — so picking another Monster does not carry it onto that one.
+    private var tookFaceOf: String?
 
     init(pawn: Pawn) {
         pawnID = pawn.id
@@ -45,6 +73,9 @@ struct EditPawnDraft: Equatable {
         isBig = pawn.isBig
         sightSquares = pawn.light.brightSquares
         monsterName = pawn.monsterName
+        face = FaceDraft(pawn.face)
+        openedWithFace = pawn.face
+        characterID = pawn.characterID
         openedWithMonster = pawn.monsterName
         openedWithLabel = pawn.label
     }
@@ -57,6 +88,7 @@ struct EditPawnDraft: Equatable {
     /// `pawns` is the Map as it stands, for the label's number.
     mutating func pick(_ monster: Monster, among pawns: [Pawn]) {
         monsterName = monster.name
+        giveBackTakenFace(unlessOf: monster.name)
         isBig = monster.isBig
         // A label this sheet wrote is not one the DM typed: changing one's mind from an
         // Ogre to a Gnoll should not leave the gnoll called "Og1".
@@ -73,8 +105,58 @@ struct EditPawnDraft: Equatable {
     /// label this sheet wrote goes back to what it replaced.
     mutating func clearMonster() {
         monsterName = nil
+        giveBackTakenFace(unlessOf: nil)
         if label == pickedLabel { label = openedWithLabel }
         pickedLabel = nil
+    }
+
+    /// Whether OK must ask "only this Pawn, or every one?" (ADR-0028).
+    ///
+    /// Only over a Face a Monster or a Character gave, and only for a cut that could be that
+    /// definition's: a Monster's Face is the picture its note names, so only that picture cut
+    /// again; a Character's own Face may be any picture. A Face cut by hand, or another
+    /// picture over a Monster's, is this Pawn's alone and is cut without asking. Never while
+    /// the Pawn becomes another Monster, whose Face is the new one's.
+    var asksWhomToRecut: Bool {
+        guard face.newCut != nil, monsterToStamp == nil else { return false }
+        switch recutSource {
+        case .monster: return face.isRecut
+        case .character: return true
+        case nil: return false
+        }
+    }
+
+    /// Whether the sheet offers to give the Pawn `monster`'s Face — the Monster it is now.
+    ///
+    /// A Creature takes its Monster's Face on *becoming* it, so one that already was before
+    /// Faces existed, or whose Face the DM removed, would otherwise have no way to get it but
+    /// to become another Monster and back, healed on the way. Never offered silently: Pawns
+    /// already on a Map keep the Face they have until the DM says otherwise (ADR-0028). Not
+    /// offered when the Pawn already wears that Monster's Face, or the note names no picture
+    /// the Workspace holds.
+    func offersMonsterFace(of monster: Monster?) -> Bool {
+        guard kind.canBeMonster, let monster, monster.name == monsterName,
+              monster.picture?.path != nil else { return false }
+        let wearsIt = face.newCut == nil && face.kept?.origin == .monster
+            && (tookFaceOf ?? openedWithMonster) == monster.name
+        return !wearsIt
+    }
+
+    /// Give the Pawn `face`, the Face of the Monster named `name` that it is.
+    mutating func takeMonsterFace(_ face: PawnFace, of name: String) {
+        self.face.take(face)
+        tookFaceOf = name
+    }
+
+    /// The Face the sheet opened with back, when a Monster's Face taken here would otherwise
+    /// follow the Pawn onto Monster `name` — whose Face OK then gives by the usual rule. Left
+    /// alone once the DM has cut or removed a Face since: that is theirs.
+    private mutating func giveBackTakenFace(unlessOf name: String?) {
+        guard let taken = tookFaceOf, taken != name else { return }
+        if face.newCut == nil, face.kept?.origin == .monster {
+            face = FaceDraft(openedWithFace)
+        }
+        tookFaceOf = nil
     }
 
     /// The Monster OK must stamp, or nil when it must not.
@@ -106,6 +188,9 @@ struct EditPawnDraft: Equatable {
         // Only a Creature can be a Monster (`CONTEXT.md`). The search box is hidden for the
         // other Kinds, and the memory goes with it rather than lingering unseen.
         edited.monsterName = kind.canBeMonster ? monsterName : nil
+        // A removed Face goes; a pending cut is not a Face until OK has kept it, which is
+        // `AppState.updatePawn`'s to do, so here it leaves the Face the sheet opened with.
+        edited.face = face.kept
         // Sight is one number, and the dim value is the cosmetic feather derived from it —
         // never set independently, because a character's sight is not a light source. Both
         // move together or the halo stays at whatever the Pawn was created with.
@@ -113,6 +198,113 @@ struct EditPawnDraft: Equatable {
         edited.light.dimSquares = Pawn.dimSquares(forSight: sightSquares)
         return edited
     }
+}
+
+/// A Face being given, cut or taken away in an editor — the Edit Pawn sheet, or a Character's
+/// editor in the Party panel — buffered until that editor's OK or Save.
+///
+/// One type for both, because cutting a Face is the same act whoever will wear it: a new cut
+/// starts as the centred square, stays square and inside the picture however it is moved or
+/// resized, and is kept in the Workspace only when the edit is committed (`resolved`).
+struct FaceDraft: Equatable {
+    /// The Face as the editor opened with it — or nil once removed.
+    private(set) var kept: PawnFace?
+    /// A Face picked and cut in this editor, not yet kept.
+    private(set) var newCut: PendingFaceCut?
+    /// The Face the editor opened with, so a commit can tell what the DM did to it.
+    private let opened: PawnFace?
+    /// Whether `newCut` is the picture the Face was cut from, cut again — rather than another
+    /// picture chosen.
+    private(set) var isRecut = false
+
+    init(_ kept: PawnFace?) {
+        self.kept = kept
+        opened = kept
+    }
+
+    /// Whether there will be a Face once the edit is committed.
+    var hasFace: Bool { kept != nil || newCut != nil }
+
+    /// Whether the DM removed the Face or cut a new one in this editor — a decision about the
+    /// Face that nothing else committed alongside it should undo.
+    var isChanged: Bool { kept != opened || newCut != nil }
+
+    /// Start a cut from `picture`: the largest centred square, for the DM to move and resize.
+    mutating func choosePicture(_ picture: CGImage) {
+        newCut = PendingFaceCut(picture: picture,
+                                cut: FaceCut.centredSquare(in: picture.pixelSize))
+        isRecut = false
+    }
+
+    /// Cut again the picture the Face was cut from, starting from the square it was cut as.
+    mutating func recut(_ picture: CGImage, from square: CGRect) {
+        newCut = PendingFaceCut(picture: picture,
+                                cut: FaceCut.clamped(square, in: picture.pixelSize))
+        isRecut = true
+    }
+
+    /// Place the pending cut, kept square and inside the picture.
+    mutating func setCut(_ cut: CGRect) {
+        adjustCut { FaceCut.clamped(cut, in: $1) }
+    }
+
+    /// Resize the pending cut about its centre.
+    mutating func resizeCut(toSide side: CGFloat) {
+        adjustCut { FaceCut.resized($0, toSide: side, in: $1) }
+    }
+
+    /// `newCut` with its square replaced by what `change` makes of it and the picture's size.
+    private mutating func adjustCut(_ change: (CGRect, CGSize) -> CGRect) {
+        guard var pending = newCut else { return }
+        pending.cut = change(pending.cut, pending.picture.pixelSize)
+        newCut = pending
+    }
+
+    /// Wear `face`, a cut already kept — the Face of the Monster the Pawn is — in place of
+    /// whatever the editor holds.
+    mutating func take(_ face: PawnFace) {
+        kept = face
+        newCut = nil
+        isRecut = false
+    }
+
+    /// Take the Face away: its wearer is drawn in its colour again, which was never touched.
+    mutating func remove() {
+        kept = nil
+        newCut = nil
+        isRecut = false
+    }
+
+    /// The Face the committed edit leaves: a new cut kept in `library`, or else the Face the
+    /// editor opened with, if it was not removed.
+    ///
+    /// A cut that cannot be kept — no Workspace, or a write that failed — leaves the Face the
+    /// editor opened with, rather than naming a file never written.
+    func resolved(keepingIn library: FaceLibrary?) -> PawnFace? {
+        guard let pending = newCut, let library,
+              let face = try? library.keep(pending.picture, cut: pending.cut) else { return kept }
+        return face
+    }
+}
+
+/// A Face picked and cut in an editor and not yet kept: the picture, and the square
+/// of it the DM has chosen, in its pixels.
+///
+/// The picture itself rather than where it came from, read once when it was chosen: OK then
+/// cuts exactly what the DM was shown, even if the file has been moved or deleted since.
+struct PendingFaceCut: Equatable {
+    let picture: CGImage
+    var cut: CGRect
+
+    /// The same picture, not merely an equal one: two reads of a file are two pictures.
+    static func == (lhs: PendingFaceCut, rhs: PendingFaceCut) -> Bool {
+        lhs.picture === rhs.picture && lhs.cut == rhs.cut
+    }
+}
+
+extension CGImage {
+    /// The picture's size in pixels — the space a Face's cut is measured in.
+    var pixelSize: CGSize { CGSize(width: width, height: height) }
 }
 
 /// The fields the Edit Light sheet offers, buffered until OK.

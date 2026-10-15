@@ -33,14 +33,24 @@ struct PawnLayer: View {
     /// records where a torch used to be.
     var onMoveLight: (Light.ID, MapPoint) -> Void = { _, _ in }
     var onCommitLight: () -> Void = {}
+    /// The Pawn the DM's pointer rests on, whose label shows over its Face. The caller works
+    /// it out with `pawnID(under:)` from the cursor it already tracks, rather than this view
+    /// tracking hover on each token: reading the cursor adds no gesture, so dragging a Pawn,
+    /// Add, a Measurement and the Viewport see exactly the clicks they saw before.
+    var hoveredPawnID: Pawn.ID?
 
     @State private var dragStart: MapPoint?
+    /// The Pawn being dragged, which keeps its label for the whole drag. The pointer is on
+    /// it throughout, but the cursor the caller tracks need not follow a held button, and a
+    /// stale one would hand the label to whichever Pawn stands where the drag began.
+    @State private var draggedPawnID: Pawn.ID?
 
     static let coordinateSpace = "pawnLayer"
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             let side = PlayerPlacement.squareSidePoints(map: map, frame: frame)
+            let pointedAt = draggedPawnID ?? hoveredPawnID
             // Under the tokens: a Pawn standing on a brazier must not be hidden by it.
             ForEach(lights) { light in
                 let p = PlayerPlacement.viewPoint(light.at, map: map, frame: frame)
@@ -59,7 +69,8 @@ struct PawnLayer: View {
             }
             ForEach(pawns) { pawn in
                 let p = PlayerPlacement.viewPoint(pawn.at, map: map, frame: frame)
-                PawnToken(pawn: pawn, squareSide: max(side, 12))
+                PawnToken(pawn: pawn, squareSide: Self.tokenSide(map: map, frame: frame),
+                          isHovered: pawn.id == pointedAt)
                     .opacity(isDimmed(pawn) ? 0.4 : 1)
                     .position(x: p.x, y: p.y)
                     .gesture(drag(pawn))
@@ -72,6 +83,33 @@ struct PawnLayer: View {
             }
         }
         .coordinateSpace(name: Self.coordinateSpace)
+    }
+
+    /// One Grid square in this layer's points, as a token is drawn: never under 12, so a
+    /// Map with no Grid declared, or zoomed far out, still shows a token to grab.
+    static func tokenSide(map: MapScale, frame: CGRect) -> CGFloat {
+        max(PlayerPlacement.squareSidePoints(map: map, frame: frame), 12)
+    }
+
+    /// The Pawn whose token, as drawn, is under `point` — in the space `frame` is given in.
+    ///
+    /// Asked of the token on screen rather than of `LiveHitTest`, which measures in image
+    /// pixels and, with no Grid declared, answers for a 12-pixel speck at the centre of a
+    /// token that may be a hundred pixels across. A disc answers inside the disc and a
+    /// Treasure across its square, a Big Pawn across both squares, and the last Pawn drawn,
+    /// the one on top, before any under it.
+    static func pawnID(under point: CGPoint, pawns: [Pawn], map: MapScale,
+                       frame: CGRect) -> Pawn.ID? {
+        let side = tokenSide(map: map, frame: frame)
+        return pawns.last { pawn in
+            let centre = PlayerPlacement.viewPoint(pawn.at, map: map, frame: frame)
+            let radius = side * pawn.squaresAcross / 2
+            let dx = point.x - centre.x, dy = point.y - centre.y
+            switch pawn.kind {
+            case .player, .creature: return dx * dx + dy * dy <= radius * radius
+            case .treasure: return abs(dx) <= radius && abs(dy) <= radius
+            }
+        }?.id
     }
 
     /// The same gesture for a Light Marker. One `dragStart` serves both: only one thing is
@@ -98,6 +136,7 @@ struct PawnLayer: View {
         DragGesture(minimumDistance: 1, coordinateSpace: .named(Self.coordinateSpace))
             .onChanged { value in
                 if dragStart == nil { dragStart = pawn.at }
+                draggedPawnID = pawn.id
                 guard let start = dragStart, frame.width > 0, frame.height > 0 else { return }
                 // Container points back into image pixels: the inverse of PlayerPlacement.
                 let dx = value.translation.width / frame.width * map.imagePixelSize.width
@@ -109,6 +148,7 @@ struct PawnLayer: View {
                 // which is the only place that value still exists.
                 let origin = dragStart ?? pawn.at
                 dragStart = nil
+                draggedPawnID = nil
                 onCommit(pawn.id, origin)
             }
     }

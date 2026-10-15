@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Editing a Pawn's fields, as a modal sheet on the Control Window.
@@ -38,6 +39,11 @@ struct EditPawnSheet: View {
     /// The unit every note in the Workspace agrees on, when it is not `unit`.
     let suggestedUnit: DistanceUnit?
     let onSwitchUnit: (DistanceUnit) -> Void
+    /// Where the Pawn's Face is kept, for showing it. Nil with no Workspace open, when there
+    /// is nowhere to keep a cut and so no picture is offered.
+    var faceLibrary: FaceLibrary?
+    /// What the sheet asks of the Monsters' and Characters' Faces. Nil with no Workspace open.
+    var definitionFaces: DefinitionFaces?
     let onCommit: (EditPawnDraft) -> Void
     let onCancel: () -> Void
 
@@ -47,6 +53,8 @@ struct EditPawnSheet: View {
     @State private var isSearching = false
     /// The heal OK is waiting on the DM to confirm.
     @State private var confirming: MonsterStamp.Healing?
+    /// Whether OK is waiting on "only this Pawn, or every one?".
+    @State private var askingWhomToRecut = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -104,6 +112,15 @@ struct EditPawnSheet: View {
                     Toggle("Big", isOn: $draft.isBig)
                         .help("Occupies 2×2 squares instead of 1×1. Visual only — its light and sight are unchanged.")
                 }
+                GridRow(alignment: .top) {
+                    Text("Face")
+                    FaceEditor(face: $draft.face, kind: draft.kind, library: faceLibrary,
+                               wearer: .pawn, recutPicture: recutPicture,
+                               useMonsterFace: useMonsterFace)
+                        // Across the Monster's column, as the Sight row is: the cut is the
+                        // widest thing the sheet shows.
+                        .gridCellColumns(2)
+                }
                 GridRow {
                     Text("Sight")
                     // A Pawn has one radius. The extra square the region fades over is not
@@ -144,6 +161,26 @@ struct EditPawnSheet: View {
         .padding(20)
         // Wider than the Light's sheet by the Monster's column.
         .frame(width: 540)
+        // Never together with the heal below: a Pawn becoming another Monster takes that
+        // Monster's Face, and so is never asked whom a re-cut is for.
+        .alert("Who takes the new cut?", isPresented: $askingWhomToRecut) {
+            Button("Only This Pawn") {
+                draft.recutsEvery = false
+                onCommit(draft)
+            }
+            if let recutName {
+                Button(String(localized: "Every \(recutName)")) {
+                    draft.recutsEvery = true
+                    onCommit(draft)
+                }
+            }
+            // Back to the open sheet, as the heal's Cancel is.
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(recutName.map {
+                String(localized: "This Face came from \($0). Every Pawn on this Map wearing it, and every Pawn that takes it later, can have the new cut.")
+            } ?? "")
+        }
         .alert("Heal \(draft.label)?",
                isPresented: Binding(get: { confirming != nil },
                                     set: { if !$0 { confirming = nil } }),
@@ -161,14 +198,271 @@ struct EditPawnSheet: View {
         }
     }
 
+    /// Gives the Pawn its Monster's Face, when the sheet offers it — false when the Face
+    /// could not be had after all.
+    private var useMonsterFace: (() -> Bool)? {
+        let monster = bestiary.monster(named: draft.monsterName)
+        guard let monster, let faces = definitionFaces, draft.offersMonsterFace(of: monster)
+        else { return nil }
+        return {
+            guard let face = faces.monsterFace(monster) else { return false }
+            draft.takeMonsterFace(face, of: monster.name)
+            return true
+        }
+    }
+
+    /// The picture the Face in the sheet was cut from, as its note names it now, for cutting
+    /// it again — nil when it keeps none, as a Face cut by hand does.
+    private var recutPicture: (() -> PendingFaceCut?)? {
+        guard let source = draft.recutSource, let faces = definitionFaces,
+              faces.canRecut(source) else { return nil }
+        return { faces.recutPicture(source) }
+    }
+
+    /// The Monster or Character "every" re-cuts, when the Face came from one still defined.
+    private var recutName: String? {
+        draft.recutSource.flatMap { definitionFaces?.name($0) }
+    }
+
     /// OK. Asks first only when the stamp would overwrite hit points that exist — a dialog
     /// that appears when nothing can be lost is one the DM learns to click through.
     private func commit() {
-        if let healing = draft.healing(over: statBlock, in: bestiary) {
+        if draft.asksWhomToRecut, recutName != nil {
+            askingWhomToRecut = true
+        } else if let healing = draft.healing(over: statBlock, in: bestiary) {
             confirming = healing
         } else {
             onCommit(draft)
         }
+    }
+}
+
+/// What the Edit Pawn sheet asks of the Faces Monsters and Characters give, answered by
+/// `AppState`, which holds the notes and the cuts.
+struct DefinitionFaces {
+    /// The Face of a Monster, its picture cut now if no Pawn has taken it yet. That cut is
+    /// the Monster's, shared by every Pawn that takes its Face, so it is no litter if the
+    /// sheet is cancelled.
+    var monsterFace: (Monster) -> PawnFace?
+    /// Whether the source's note names a picture to cut again, without reading it.
+    var canRecut: (FaceSource) -> Bool
+    /// That picture, read, with the square to start from.
+    var recutPicture: (FaceSource) -> PendingFaceCut?
+    /// The name "every" is offered under, or nil when the definition has gone.
+    var name: (FaceSource) -> String?
+}
+
+/// Choose a picture, cut a square of it, or take the Face away — for a Pawn in the Edit Pawn
+/// sheet, or for a Character in the Party panel.
+///
+/// Nothing of the wearer's own is kept here: the cut is a draft until the editor's OK or Save,
+/// and only that copies the square into the Workspace (`FaceDraft.resolved`), so Cancel leaves
+/// no file behind. The one exception is "Use the Monster's Face", which may make the Monster's
+/// shared cut — the cut the next Pawn to take that Face would make the same.
+struct FaceEditor: View {
+    @Binding var face: FaceDraft
+    /// The shape the Face will be worn in.
+    let kind: PawnKind
+    /// Where the Face is kept, for showing it. Nil with no Workspace open, when there is
+    /// nowhere to keep a cut and so no picture is offered.
+    let library: FaceLibrary?
+    let wearer: Wearer
+    /// The picture the Face was cut from and its square, when it keeps one — a Face cut from
+    /// a note's picture. Offers "Re-cut…" when there is one.
+    var recutPicture: (() -> PendingFaceCut?)? = nil
+    /// Gives the wearer the Face of the Monster it is, when it may take it, reporting whether
+    /// it could. Offers "Use the Monster's Face" when there is one.
+    var useMonsterFace: (() -> Bool)? = nil
+
+    /// Who will wear the Face, which is all that changes what the editor says.
+    enum Wearer {
+        case pawn, character
+
+        fileprivate var identifier: String {
+            switch self {
+            case .pawn: "edit-pawn"
+            case .character: "character"
+            }
+        }
+
+        fileprivate var pickerMessage: String {
+            switch self {
+            case .pawn: String(localized: "Choose the picture to cut this Pawn's Face from.")
+            case .character: String(localized: "Choose the picture to cut this Character's Face from.")
+            }
+        }
+
+        fileprivate var caption: String {
+            switch self {
+            case .pawn: String(localized: "Covers the Pawn on both screens, colour and label alike.")
+            case .character: String(localized: "Every Pawn stamped from it afterwards wears a copy.")
+            }
+        }
+    }
+
+    /// Whether the last picture chosen could not be read.
+    @State private var pictureFailed = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let pending = face.newCut {
+                FaceCutter(pending: pending, kind: kind,
+                           identifier: "\(wearer.identifier)-face-cutter",
+                           onCut: { face.setCut($0) },
+                           onResize: { face.resizeCut(toSide: $0) })
+            } else if let kept = face.kept, let image = library?.image(for: kept) {
+                FaceThumbnail(image: Image(nsImage: image), kind: kind)
+                    .accessibilityIdentifier("\(wearer.identifier)-face")
+            }
+            HStack {
+                Button(face.hasFace ? String(localized: "Choose Another Picture…")
+                                    : String(localized: "Choose Picture…"),
+                       action: choosePicture)
+                    .disabled(library == nil)
+                    .accessibilityIdentifier("\(wearer.identifier)-choose-face")
+                if face.newCut == nil, face.kept != nil, let recutPicture {
+                    Button("Re-cut…") {
+                        guard let source = recutPicture() else {
+                            pictureFailed = true
+                            return
+                        }
+                        pictureFailed = false
+                        face.recut(source.picture, from: source.cut)
+                    }
+                    .accessibilityIdentifier("\(wearer.identifier)-recut-face")
+                }
+                if let useMonsterFace {
+                    Button("Use the Monster's Face") { pictureFailed = !useMonsterFace() }
+                    .accessibilityIdentifier("\(wearer.identifier)-monster-face")
+                }
+                if face.hasFace {
+                    Button("Remove Face") { face.remove() }
+                    .accessibilityIdentifier("\(wearer.identifier)-remove-face")
+                }
+            }
+            if library == nil {
+                Text("Open a Workspace to give a Pawn a Face: it is kept there.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if pictureFailed {
+                Text("That picture could not be read.")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            } else if face.hasFace {
+                Text(wearer.caption)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    /// Asks for a picture from anywhere on the Mac. Only the square cut from it is kept, so it
+    /// need not be inside the Workspace and may be deleted afterwards.
+    private func choosePicture() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = FacePicture.types
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.message = wearer.pickerMessage
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard let picture = FacePicture.load(url) else {
+            pictureFailed = true
+            return
+        }
+        pictureFailed = false
+        face.choosePicture(picture)
+    }
+}
+
+/// The picture a Face is being cut from, with the square drawn over it: drag to move the
+/// square, slide to resize it, and see beside it the token it will make.
+///
+/// Works on whole moves rather than step by step — each drag is measured from where the
+/// square was when it began — because the square lands on whole pixels, and a picture shown
+/// larger than its pixels would otherwise round every small step away to nothing.
+struct FaceCutter: View {
+    let pending: PendingFaceCut
+    let kind: PawnKind
+    let identifier: String
+    let onCut: (CGRect) -> Void
+    let onResize: (CGFloat) -> Void
+
+    /// The square when the current drag began.
+    @State private var dragStart: CGRect?
+
+    /// The longest side the picture is shown at, in points.
+    private static let maxShownSide: CGFloat = 220
+
+    private var picture: CGImage { pending.picture }
+    private var pictureSize: CGSize { pending.picture.pixelSize }
+    private var cut: CGRect { pending.cut }
+
+    var body: some View {
+        let scale = min(Self.maxShownSide / pictureSize.width,
+                        Self.maxShownSide / pictureSize.height)
+        let shown = CGSize(width: pictureSize.width * scale, height: pictureSize.height * scale)
+        let square = CGRect(x: cut.minX * scale, y: cut.minY * scale,
+                            width: cut.width * scale, height: cut.height * scale)
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                ZStack(alignment: .topLeading) {
+                    Image(decorative: picture, scale: 1)
+                        .resizable()
+                        .interpolation(.high)
+                        .frame(width: shown.width, height: shown.height)
+                    // Everything outside the square is dimmed, so what is kept stands out.
+                    Path { path in
+                        path.addRect(CGRect(origin: .zero, size: shown))
+                        path.addRect(square)
+                    }
+                    .fill(Color.black.opacity(0.5), style: FillStyle(eoFill: true))
+                    Rectangle()
+                        .stroke(Color.white, lineWidth: 2)
+                        .frame(width: square.width, height: square.height)
+                        .offset(x: square.minX, y: square.minY)
+                }
+                .frame(width: shown.width, height: shown.height)
+                .contentShape(Rectangle())
+                .gesture(DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        let start = dragStart ?? cut
+                        dragStart = start
+                        onCut(FaceCut.moved(start,
+                                            by: CGSize(width: value.translation.width / scale,
+                                                       height: value.translation.height / scale),
+                                            in: pictureSize))
+                    }
+                    .onEnded { _ in dragStart = nil })
+                .accessibilityIdentifier(identifier)
+                Slider(value: Binding(get: { cut.width }, set: { onResize($0) }),
+                       in: FaceCut.minimumSide...max(FaceCut.minimumSide + 1,
+                                                     min(pictureSize.width, pictureSize.height)))
+                    .frame(width: shown.width)
+                    .accessibilityLabel(Text("Face size"))
+            }
+            if let kept = picture.cropping(to: cut.integral) {
+                FaceThumbnail(image: Image(decorative: kept, scale: 1), kind: kind)
+            }
+        }
+    }
+}
+
+/// A Face at the size its editor shows it, in its Kind's outline: the token it makes.
+private struct FaceThumbnail: View {
+    let image: Image
+    let kind: PawnKind
+
+    private static let side: CGFloat = 56
+
+    var body: some View {
+        let outline = PawnToken.outline(for: kind, diameter: Self.side)
+        image
+            .resizable()
+            .interpolation(.high)
+            .frame(width: Self.side, height: Self.side)
+            .clipShape(outline)
+            .overlay(outline.stroke(Color.black.opacity(0.6), lineWidth: 1.5))
     }
 }
 
@@ -320,6 +614,8 @@ private struct MonsterSearchField: View {
         OtherUnitNotesCaption(flagged: OtherUnitNotes(bestiary.monsters, current: unit),
                               suggestedUnit: suggestedUnit, onSwitchUnit: onSwitchUnit,
                               identifier: "bestiary-other-unit")
+        PictureProblemsCaption(problems: bestiary.pictureProblems,
+                               identifier: "bestiary-picture-problems")
     }
 
     private func move(_ step: Int) -> KeyPress.Result {
@@ -370,6 +666,43 @@ struct SkippedNotesButton: View {
                 .padding(12)
                 .frame(width: 320, alignment: .leading)
             }
+    }
+}
+
+/// "Some pictures give no Face", opening onto which notes and why — a picture missing from
+/// the Workspace, or a bare name two pictures share (ADR-0028). Under the Monster search and
+/// the Character note box alike, beside the other things they say about their notes; silent
+/// when there is nothing to say. Those notes are still offered: only their Face is lost.
+struct PictureProblemsCaption: View {
+    let problems: [PictureProblem]
+    let identifier: String
+    @State private var isShowing = false
+
+    var body: some View {
+        if !problems.isEmpty {
+            Button(String(localized: "Some pictures give no Face")) { isShowing = true }
+                .buttonStyle(.link)
+                .font(.caption)
+                .accessibilityIdentifier(identifier)
+                .popover(isPresented: $isShowing, arrowEdge: .bottom) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Notes whose picture gives no Face")
+                            .font(.caption.weight(.semibold))
+                        ForEach(problems) { problem in
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(problem.name).font(.caption)
+                                Text(problem.file).font(.caption.monospaced())
+                                    .foregroundStyle(.secondary)
+                                Text(problem.reason).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        Text("The notes are read when the Workspace opens.")
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
+                    .padding(12)
+                    .frame(width: 320, alignment: .leading)
+                }
+        }
     }
 }
 

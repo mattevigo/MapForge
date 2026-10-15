@@ -238,4 +238,63 @@ final class StatblockReaderTests: XCTestCase {
     func testWindowsLineEndingsAreRead() {
         XCTAssertEqual(monster("```statblock\r\nname: Test\r\nac: 13\r\n```\r\n")?.armorClass, 13)
     }
+
+    // MARK: The picture a note names
+
+    private func imageLink(_ line: String) -> String? {
+        guard case .monster(let monster) = StatblockReader.read(
+            "```statblock\nname: Nothic\n\(line)\n```\n") else { return nil }
+        return monster.imageLink
+    }
+
+    func testAQuotedWikilinkNamesThePicture() {
+        XCTAssertEqual(imageLink(#"image: "[[Nothic.webp]]""#), "Nothic.webp")
+    }
+
+    /// Unquoted, YAML reads the brackets as a list inside a list. The plugin's users write it
+    /// both ways, and Obsidian draws both.
+    func testAnUnquotedWikilinkNamesThePictureToo() {
+        XCTAssertEqual(imageLink("image: [[Nothic.webp]]"), "Nothic.webp")
+    }
+
+    func testAPathQualifiedWikilinkKeepsItsPath() {
+        XCTAssertEqual(imageLink("image: [[Riferimento/Allegati/Goblin.webp]]"),
+                       "Riferimento/Allegati/Goblin.webp")
+    }
+
+    func testAWikilinksDisplayTextIsNotPartOfTheName() {
+        XCTAssertEqual(imageLink(#"image: "[[Nothic.webp|Il Nothic]]""#), "Nothic.webp")
+    }
+
+    /// Opening a game must not need the network (ADR-0028).
+    func testAWebAddressIsIgnored() {
+        XCTAssertNil(imageLink("image: https://example.com/nothic.webp"))
+    }
+
+    func testAPlainFileNameIsNotALink() {
+        XCTAssertNil(imageLink("image: Nothic.webp"))
+    }
+
+    func testAPictureInTheNotesBodyIsNeverRead() {
+        let markdown = "![[Nothic.webp]]\n\n```statblock\nname: Nothic\nac: 15\n```\n"
+        guard case .monster(let monster) = StatblockReader.read(markdown) else {
+            return XCTFail("not read as a Monster")
+        }
+        XCTAssertNil(monster.imageLink)
+    }
+
+    /// An embed's `!` and a heading's `#` are how the link is written, not what it names.
+    func testAnEmbedMarkAndAHeadingAreNotPartOfTheName() {
+        XCTAssertEqual(imageLink(#"image: "![[Nothic.webp]]""#), "Nothic.webp")
+        XCTAssertEqual(imageLink(#"image: "[[Nothic.webp#Ritratto]]""#), "Nothic.webp")
+    }
+
+    func testACharactersFenceNamesItsPictureTheSameWay() {
+        let fields: StatblockReader.Fields = ["name": "Durga Pietraferma", "class": "Chierico",
+                                              "image": [["Personaggi/Durga.webp"]]]
+        guard case .character(let note) = StatblockReader.character(from: fields) else {
+            return XCTFail("not read as a Character's note")
+        }
+        XCTAssertEqual(note.imageLink, "Personaggi/Durga.webp")
+    }
 }

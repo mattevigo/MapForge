@@ -140,6 +140,14 @@ final class AppState: ObservableObject {
     /// sheet — so everything that reads the roster must tolerate its absence rather than
     /// assume a Workspace was there at init.
     @Published private(set) var workspace: Workspace?
+    /// The open Workspace's kept Faces, or nil with none open — when every Pawn is drawn in
+    /// its colour and the Edit Pawn sheet offers no picture, there being nowhere to keep one.
+    /// Set alongside `workspace`, whose change is what redraws the tokens.
+    private(set) var faceLibrary: FaceLibrary?
+    /// The cut made from each Monster's picture, as `note-faces.json` holds it. Empty with no
+    /// Workspace open. See `monsterFace(for:)`.
+    private(set) var noteFaces = NoteFaces()
+    private var noteFacesStore: NoteFacesStore?
 
     /// The DM's Parties, as they stand in the open Workspace. Empty before one is open.
     /// Written straight through on every edit rather than debounced: a roster changes when
@@ -736,7 +744,26 @@ final class AppState: ObservableObject {
     /// sheet leaves nothing behind.
     func updatePawn(id: Pawn.ID, with draft: EditPawnDraft) {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
-        fog.pawns[index] = draft.applied(to: fog.pawns[index])
+        var edited = draft.applied(to: fog.pawns[index])
+        // A Face cut in the sheet is kept only now, on OK, so Cancel leaves nothing in the
+        // Workspace.
+        edited.face = draft.face.resolved(keepingIn: faceLibrary)
+        // "Every one": the definition's cut changes, and so does every Pawn on this Map that
+        // took its Face from it — this one included, which keeps its source.
+        if draft.recutsEvery, draft.asksWhomToRecut, let source = draft.recutSource,
+           let square = draft.face.newCut?.cut, let file = edited.face?.file,
+           file != draft.face.kept?.file {
+            recutDefinition(source, square: square, file: file)
+            fog.pawns[index] = edited
+            fog.pawns = FaceRecut.recut(fog.pawns, from: source, to: file, reCutting: id)
+            edited = fog.pawns[index]
+        }
+        // Becoming a Monster brings its Face, over any Face the old Monster gave — unless the
+        // DM removed or cut one in this same sheet, which is what they meant.
+        if !draft.face.isChanged, let monster = bestiary.monster(named: draft.monsterToStamp) {
+            edited.face = MonsterStamp.face(over: edited.face, from: monsterFace(for: monster))
+        }
+        fog.pawns[index] = edited
         // The one thing this sheet does to a Stat Block: a Monster that *changed* is stamped,
         // whole (ADR-0021). Through `editStatBlock`, so mid-fight the stamp is recorded as
         // Changes like any other edit (ADR-0008); the rolled Initiative is not among them,
@@ -755,6 +782,99 @@ final class AppState: ObservableObject {
             benchCombatant(id)
         }
         flushPendingFogWrites()
+    }
+
+    /// The picture `source`'s Face is cut from, and the square to start from — for cutting it
+    /// again. Only for a Face cut from a note's picture, a Monster's or a Character's: a Face
+    /// cut by hand keeps no picture, so the DM chooses one again.
+    ///
+    /// The picture the note names **now** — never the one an older cut was made from, which
+    /// the note may since have replaced. It starts from the square last cut when that square
+    /// was cut from this very picture, and from the centred square otherwise.
+    func recutPicture(for source: FaceSource) -> PendingFaceCut? {
+        guard let workspace, let note = notePicture(of: source),
+              let picture = FacePicture.load(workspace.url.appendingPathComponent(note.path))
+        else { return nil }
+        let square = note.cut?.picture == note.path
+            ? note.cut!.square : FaceCut.centredSquare(in: picture.pixelSize)
+        return PendingFaceCut(picture: picture, cut: square)
+    }
+
+    /// Whether `source`'s note names a picture the Workspace holds, so the Edit Pawn sheet can
+    /// offer to cut it again — without reading the picture.
+    func canRecut(_ source: FaceSource) -> Bool { notePicture(of: source) != nil }
+
+    /// The picture `source`'s note names, and the cut last made for it — or nil when it names
+    /// none, or for a Character with a Face of its own, which keeps no picture.
+    private func notePicture(of source: FaceSource) -> (path: String, cut: NoteFaces.Cut?)? {
+        switch source {
+        case .monster(let name):
+            guard let path = bestiary.monster(named: name)?.picture?.path else { return nil }
+            return (path, noteFaces.monsters[name])
+        case .character(let id):
+            guard let character = character(id: id), character.face == nil,
+                  let path = note(for: character)?.picture?.path else { return nil }
+            return (path, noteFaces.characters[id.uuidString])
+        }
+    }
+
+    /// The name "every" is offered under — "Every Goblin" — or nil when the Monster or the
+    /// Character has gone, and there is no definition left to re-cut.
+    func recutName(for source: FaceSource?) -> String? {
+        switch source {
+        case .monster(let name): bestiary.monster(named: name)?.name
+        case .character(let id): character(id: id)?.name
+        case nil: nil
+        }
+    }
+
+    /// Makes `file`, cut as `square`, the Face of `source` itself: the Monster's cut of its
+    /// picture, or the Character's own Face, which wins over its note's from then on. Pawns
+    /// that take the Face afterwards take this one.
+    private func recutDefinition(_ source: FaceSource, square: CGRect, file: String) {
+        switch source {
+        case .monster(let name):
+            // The picture the note names now, which is the one just re-cut: a cut recorded
+            // against an older picture would be cut afresh from the centre for the next Pawn.
+            guard let path = bestiary.monster(named: name)?.picture?.path else { return }
+            noteFaces.monsters[name] = NoteFaces.Cut(picture: path, square: square, file: file)
+            saveNoteFaces()
+        case .character(let id):
+            guard var character = character(id: id) else { return }
+            character.face = PawnFace(file: file, origin: .hand)
+            updateCharacter(character)
+        }
+    }
+
+    /// The Face a Pawn takes from `monster`: its picture's cut, made now if this is the first
+    /// Pawn to take it since the note named that picture — or nil when its note names no
+    /// picture the Workspace holds, or no Workspace is open. A new cut is written to disk at
+    /// once, as a roster edit is: the next Pawn to take the Face must find it. A write that
+    /// fails costs only sharing — the next app launch cuts the picture again, into a new file.
+    func monsterFace(for monster: Monster) -> PawnFace? {
+        keepingNoteFaces { faces, root, library in
+            faces.face(for: monster, in: root, library: library)
+        }
+    }
+
+    /// `body`'s Face from `noteFaces`, written to disk if it made a cut — or nil with no
+    /// Workspace open, when there is nowhere to keep one.
+    private func keepingNoteFaces(
+        _ body: (inout NoteFaces, URL, FaceLibrary) -> PawnFace?
+    ) -> PawnFace? {
+        guard let workspace, let faceLibrary else { return nil }
+        let before = noteFaces
+        let face = body(&noteFaces, workspace.url, faceLibrary)
+        if noteFaces != before { saveNoteFaces() }
+        return face
+    }
+
+    private func saveNoteFaces() {
+        do {
+            try noteFacesStore?.save(noteFaces)
+        } catch {
+            NSLog("MapForge: could not save the notes' cuts: \(error)")
+        }
     }
 
     /// Apply the Edit Light sheet's fields.
@@ -797,7 +917,9 @@ final class AppState: ObservableObject {
     func stamp(_ character: PartyCharacter, at droppedPoint: CGPoint, frame: CGRect) -> Bool {
         let note = note(for: character)
         guard let map = mapScale,
-              let pawn = Stamp.pawn(from: character, note: note, droppedAt: droppedPoint,
+              let pawn = Stamp.pawn(from: character, note: note,
+                                    noteFace: noteFace(for: character),
+                                    droppedAt: droppedPoint,
                                     map: map, frame: frame) else { return false }
         // The combat numbers its note gives, copied at drag time like every other field —
         // ADR-0007's rule reaching more of them (ADR-0024). Before `addPawnToMap`, because
@@ -818,6 +940,37 @@ final class AppState: ObservableObject {
     /// Workspace's notes still hold one of that name.
     func note(for character: PartyCharacter) -> CharacterNote? {
         characterNotes.note(named: character.noteName)
+    }
+
+    /// The Pawn `character` would Stamp, for drawing it in the Party panel and under the
+    /// cursor. Drawn with its note's Face only once that is cut — when the notes are read, or
+    /// the Character is saved — because this is asked while SwiftUI draws, and drawing must
+    /// not read a picture or write a file.
+    func stampPreview(of character: PartyCharacter) -> Pawn {
+        let kept = character.face == nil
+            ? note(for: character).flatMap { note in
+                faceLibrary.flatMap { noteFaces.keptFace(for: character, note: note, library: $0) }
+            }
+            : nil
+        return Stamp.preview(of: character, note: note(for: character), noteFace: kept)
+    }
+
+    /// The cut of the picture `character`'s note names, made now if there is none — or nil
+    /// when the Character has a Face of its own, which `Stamp` prefers and so needs no cut,
+    /// or its note names no picture the Workspace holds.
+    func noteFace(for character: PartyCharacter) -> PawnFace? {
+        guard character.face == nil, let note = note(for: character) else { return nil }
+        return keepingNoteFaces { faces, root, library in
+            faces.face(for: character, note: note, in: root, library: library)
+        }
+    }
+
+    /// Cuts every Character's note's picture not cut yet, so the Party panel can draw each
+    /// with its Face. After the notes are read, and after a Character is saved.
+    private func cutNoteFaces() {
+        for character in partyBook.parties.flatMap(\.characters) {
+            _ = noteFace(for: character)
+        }
     }
 
     /// The page the Combat tab shows for a Pawn Stamped from a Character.
@@ -975,6 +1128,9 @@ final class AppState: ObservableObject {
         stopSession()
         // After the Session's last line, which is written into the outgoing Workspace.
         holdAccess(to: url ?? workspace.url)
+        faceLibrary = FaceLibrary(directory: workspace.facesDirectory)
+        noteFacesStore = NoteFacesStore(directory: workspace.supportDirectory)
+        noteFaces = noteFacesStore?.load() ?? NoteFaces()
         self.workspace = workspace
         readBestiary(of: workspace)
 
@@ -1011,6 +1167,9 @@ final class AppState: ObservableObject {
         // it started in, and one that outlived its folder would write into the wrong one.
         stopSession()
         holdAccess(to: nil)
+        faceLibrary = nil
+        noteFacesStore = nil
+        noteFaces = NoteFaces()
         workspace = nil
         bestiaryLoad?.cancel()
         bestiaryLoad = nil
@@ -1044,6 +1203,7 @@ final class AppState: ObservableObject {
             guard let self, !Task.isCancelled, self.workspace == workspace else { return }
             self.bestiary = read.bestiary
             self.characterNotes = read.characters
+            self.cutNoteFaces()
         }
     }
 
@@ -1116,18 +1276,33 @@ final class AppState: ObservableObject {
         writeSettings()
     }
 
-    func addCharacter(_ character: PartyCharacter) {
+    /// Add a Character to the active Party. `face`, when the editor gave one, is what the
+    /// Character wears: a cut made there is kept in the Workspace only now, on Save, so
+    /// Cancel leaves nothing behind.
+    func addCharacter(_ character: PartyCharacter, face: FaceDraft? = nil) {
         guard let partyID = activeParty?.id else { return }
-        partyBook = PartyRoster.addCharacter(character, toPartyWith: partyID, in: partyBook)
+        partyBook = PartyRoster.addCharacter(self.character(character, wearing: face),
+                                             toPartyWith: partyID, in: partyBook)
         writeParties()
+        cutNoteFaces()
     }
 
     /// Edit a Character in place. Pawns already Stamped from it are deliberately untouched:
-    /// a Stamp is a copy taken at the drag, so renaming Thorin today leaves last week's map
-    /// exactly as it was run.
-    func updateCharacter(_ character: PartyCharacter) {
-        partyBook = PartyRoster.updateCharacter(character, in: partyBook)
+    /// a Stamp is a copy taken at the drag, so renaming Thorin today, or giving him another
+    /// Face, leaves last week's map exactly as it was run.
+    func updateCharacter(_ character: PartyCharacter, face: FaceDraft? = nil) {
+        partyBook = PartyRoster.updateCharacter(self.character(character, wearing: face),
+                                                in: partyBook)
         writeParties()
+        cutNoteFaces()
+    }
+
+    /// `character` with the Face its editor left, kept now if it was cut there.
+    private func character(_ character: PartyCharacter, wearing face: FaceDraft?) -> PartyCharacter {
+        guard let face else { return character }
+        var character = character
+        character.face = face.resolved(keepingIn: faceLibrary)
+        return character
     }
 
     /// Delete a Character. Its Pawns stay on their Maps, fully functional; they only stop

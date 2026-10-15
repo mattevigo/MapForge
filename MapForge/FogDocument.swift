@@ -259,9 +259,10 @@ struct Pawn: Codable, Equatable, Identifiable {
 
     /// Which `Monster` this Creature was said to be, by the `name:` its note gives it.
     ///
-    /// **Advisory**, in `characterID`'s sense, and read by exactly two things: the Combat
-    /// tab's reference view, which looks the Monster's actions up by it, and `AddPlacement`,
-    /// which gives the next Creature the same Monster. The Pawn's numbers were *copied* into
+    /// **Advisory**, in `characterID`'s sense, and read by exactly three things: the Combat
+    /// tab's reference view, which looks the Monster's actions up by it, `AddPlacement`,
+    /// which gives the next Creature the same Monster, and `FaceSource`, which tells which
+    /// Pawns re-cutting the Monster's Face for every one reaches (ADR-0028). The Pawn's numbers were *copied* into
     /// its Stat Block when the Monster was chosen (`MonsterStamp`), so a Creature whose note
     /// has been renamed or deleted loses a page of reference and nothing else.
     ///
@@ -269,6 +270,15 @@ struct Pawn: Codable, Equatable, Identifiable {
     /// vault layout into a file meant to be portable, and a name is something a DM opening
     /// this file can read. See `docs/adr/0020-monsters-are-read-from-the-dms-notes.md`.
     var monsterName: String?
+
+    /// The **Face** this Pawn is drawn as, in place of its colour, or nil for the coloured
+    /// token. The colour is kept underneath, so removing the Face shows it again.
+    ///
+    /// Names a cut kept in the Workspace (`FaceLibrary`), never the picture it was cut from,
+    /// so a picture moved or deleted afterwards changes nothing here. A Face whose cut has gone
+    /// missing draws the colour, and the Pawn is otherwise in no way diminished. See
+    /// `docs/adr/0028-a-face-is-a-cut-kept-in-the-workspace.md`.
+    var face: PawnFace?
 
     /// How many Grid squares a token spans. The one place the 2 lives, so every surface
     /// that sizes a token agrees.
@@ -304,7 +314,7 @@ struct Pawn: Codable, Equatable, Identifiable {
     init(id: UUID = UUID(), at: MapPoint, label: String, colorHex: String,
          brightSquares: CGFloat,
          kind: PawnKind = .player, isHidden: Bool = false, isBig: Bool = false,
-         characterID: UUID? = nil, monsterName: String? = nil) {
+         characterID: UUID? = nil, monsterName: String? = nil, face: PawnFace? = nil) {
         self.id = id
         self.label = label
         self.colorHex = colorHex
@@ -315,6 +325,7 @@ struct Pawn: Codable, Equatable, Identifiable {
         self.isBig = isBig
         self.characterID = characterID
         self.monsterName = monsterName
+        self.face = face
     }
 
     /// Written by hand for the three flags, which decode as false when absent.
@@ -341,6 +352,7 @@ struct Pawn: Codable, Equatable, Identifiable {
         isBig = try container.decodeIfPresent(Bool.self, forKey: .isBig) ?? false
         characterID = try container.decodeIfPresent(UUID.self, forKey: .characterID)
         monsterName = try container.decodeIfPresent(String.self, forKey: .monsterName)
+        face = try container.decodeIfPresent(PawnFace.self, forKey: .face)
     }
 
     /// Written by hand because `CodingKeys` carries the legacy `isCreature` key that has
@@ -365,6 +377,8 @@ struct Pawn: Codable, Equatable, Identifiable {
         try container.encodeIfPresent(characterID, forKey: .characterID)
         // Omitted when absent for the same reason.
         try container.encodeIfPresent(monsterName, forKey: .monsterName)
+        // Omitted when absent for the same reason.
+        try container.encodeIfPresent(face, forKey: .face)
     }
 
     /// Reads `kind`, falling back to the `isCreature` boolean it replaces.
@@ -387,7 +401,7 @@ struct Pawn: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, label, colorHex, light, kind, isCreature, isHidden, isBig, characterID,
-             monsterName
+             monsterName, face
     }
 }
 

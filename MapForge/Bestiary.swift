@@ -53,6 +53,9 @@ struct Bestiary: Equatable {
         NameSearch.matches(query, among: monsters, name: \.name)
     }
 
+    /// The Monsters whose note names a picture that gives no Face, and why.
+    var pictureProblems: [PictureProblem] { monsters.pictureProblems }
+
     /// The one line under the search box, or nil when there is nothing to say.
     ///
     /// Silent when everything was read, because a caption that is always there is one a DM

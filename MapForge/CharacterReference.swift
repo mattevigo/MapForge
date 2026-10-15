@@ -68,6 +68,7 @@ struct CharacterReferenceView: View {
             ReferencePageView(name: note.name,
                               heading: CharacterReference.heading(of: note),
                               warning: note.warning(current: unit),
+                              pictureProblem: note.picture?.problem,
                               lines: CharacterReference.lines(of: note),
                               groups: CharacterReference.groups(of: note))
                 .accessibilityIdentifier("character-reference")

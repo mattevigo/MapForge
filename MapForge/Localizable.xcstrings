@@ -4113,6 +4113,86 @@
         }
       }
     },
+    "Choose Another Picture…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anderes Bild wählen…"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Επιλογή άλλης εικόνας…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir otra imagen…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir une autre image…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli un’altra immagine…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher outra imagem…"
+          }
+        }
+      }
+    },
+    "Choose Picture…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bild wählen…"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Επιλογή εικόνας…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir imagen…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir une image…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli immagine…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher imagem…"
+          }
+        }
+      }
+    },
     "Choose Workspace…": {
       "localizations": {
         "de": {
@@ -4229,6 +4309,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "Escolha o atributo"
+          }
+        }
+      }
+    },
+    "Choose the picture to cut this Character's Face from.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle das Bild, aus dem das Gesicht dieses Charakters geschnitten wird."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Επιλέξτε την εικόνα από την οποία θα κοπεί το πρόσωπο αυτού του χαρακτήρα."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige la imagen de la que recortar el rostro de este personaje."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez l’image dans laquelle découper le visage de ce personnage."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli l’immagine da cui ritagliare il volto di questo personaggio."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha a imagem da qual recortar o rosto deste personagem."
+          }
+        }
+      }
+    },
+    "Choose the picture to cut this Pawn's Face from.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle das Bild, aus dem das Gesicht dieser Spielfigur geschnitten wird."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Επιλέξτε την εικόνα από την οποία θα κοπεί το πρόσωπο αυτού του πιονιού."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige la imagen de la que recortar el rostro de esta ficha."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez l’image dans laquelle découper le visage de ce pion."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli l’immagine da cui ritagliare il volto di questa pedina."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha a imagem da qual recortar o rosto desta peça."
           }
         }
       }
@@ -4801,6 +4961,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não foi possível mover seus grupos"
+          }
+        }
+      }
+    },
+    "Covers the Pawn on both screens, colour and label alike.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bedeckt die Spielfigur auf beiden Bildschirmen, Farbe und Bezeichnung eingeschlossen."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Καλύπτει το πιόνι και στις δύο οθόνες, μαζί με το χρώμα και την ετικέτα."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cubre la ficha en ambas pantallas, color y etiqueta incluidos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couvre le pion sur les deux écrans, couleur et étiquette comprises."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copre la pedina su entrambi gli schermi, colore ed etichetta compresi."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cobre a peça nas duas telas, cor e rótulo incluídos."
           }
         }
       }
@@ -6087,6 +6287,86 @@
         }
       }
     },
+    "Every %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle: %@"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Κάθε %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ogni %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada %@"
+          }
+        }
+      }
+    },
+    "Every Pawn stamped from it afterwards wears a copy.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jede Spielfigur, die danach aus ihm entsteht, trägt eine Kopie davon."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Κάθε πιόνι που τοποθετείται από αυτόν στο εξής φέρει ένα αντίγραφό του."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada ficha que se coloque a partir de ahora lleva una copia."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque pion posé désormais pour ce personnage en porte une copie."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ogni pedina piazzata d’ora in poi ne porta una copia."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada peça colocada a partir de agora usa uma cópia."
+          }
+        }
+      }
+    },
     "Exh": {
       "comment": "Exhaustion level, as narrow as the field",
       "localizations": {
@@ -6164,6 +6444,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "Exaustão %lld"
+          }
+        }
+      }
+    },
+    "Face": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gesicht"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Πρόσωπο"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rostro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visage"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volto"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rosto"
+          }
+        }
+      }
+    },
+    "Face size": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gesichtsgröße"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Μέγεθος προσώπου"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamaño del rostro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taille du visage"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dimensione del volto"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamanho do rosto"
           }
         }
       }
@@ -9264,6 +9624,46 @@
         }
       }
     },
+    "Notes whose picture gives no Face": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notizen, deren Bild kein Gesicht ergibt"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Σημειώσεις των οποίων η εικόνα δεν δίνει πρόσωπο"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas cuya imagen no da rostro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes dont l’image ne donne pas de visage"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note la cui immagine non dà un volto"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas cuja imagem não dá rosto"
+          }
+        }
+      }
+    },
     "Notes with a statblock the Bestiary could not take": {
       "localizations": {
         "de": {
@@ -9384,6 +9784,46 @@
         }
       }
     },
+    "Only This Pawn": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur diese Spielfigur"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Μόνο αυτό το πιόνι"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo esta ficha"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce pion seulement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo questa pedina"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Só esta peça"
+          }
+        }
+      }
+    },
     "Open Map…": {
       "localizations": {
         "de": {
@@ -9460,6 +9900,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Abra um mapa para medir."
+          }
+        }
+      }
+    },
+    "Open a Workspace to give a Pawn a Face: it is kept there.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffne einen Arbeitsbereich, um einer Spielfigur ein Gesicht zu geben: Es wird dort aufbewahrt."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ανοίξτε έναν χώρο εργασίας για να δώσετε πρόσωπο σε ένα πιόνι: φυλάσσεται εκεί."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre un espacio de trabajo para dar un rostro a una ficha: se guarda allí."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrez un espace de travail pour donner un visage à un pion : il y est conservé."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri un’area di lavoro per dare un volto a una pedina: viene conservato lì."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abra um espaço de trabalho para dar um rosto a uma peça: ele é guardado lá."
           }
         }
       }
@@ -10228,6 +10708,46 @@
         }
       }
     },
+    "Re-cut…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neu schneiden…"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Νέα κοπή…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver a recortar…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redécouper…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ritaglia di nuovo…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recortar de novo…"
+          }
+        }
+      }
+    },
     "Re-roll": {
       "localizations": {
         "de": {
@@ -10904,6 +11424,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Religião"
+          }
+        }
+      }
+    },
+    "Remove Face": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gesicht entfernen"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Αφαίρεση προσώπου"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar rostro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer le visage"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rimuovi volto"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover rosto"
           }
         }
       }
@@ -12276,6 +12836,46 @@
         }
       }
     },
+    "Some pictures give no Face": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einige Bilder ergeben kein Gesicht"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ορισμένες εικόνες δεν δίνουν πρόσωπο"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algunas imágenes no dan rostro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Certaines images ne donnent pas de visage"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alcune immagini non danno un volto"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algumas imagens não dão rosto"
+          }
+        }
+      }
+    },
     "Speed": {
       "localizations": {
         "de": {
@@ -13119,6 +13719,46 @@
         }
       }
     },
+    "That picture could not be read.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Bild konnte nicht gelesen werden."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Δεν ήταν δυνατή η ανάγνωση της εικόνας."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo leer la imagen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de lire cette image."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile leggere l’immagine."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível ler a imagem."
+          }
+        }
+      }
+    },
     "That workspace couldn't be opened.": {
       "localizations": {
         "de": {
@@ -13401,6 +14041,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não foi possível ler o registro de combate deste encontro — %1$@, %2$@"
+          }
+        }
+      }
+    },
+    "This Face came from %@. Every Pawn on this Map wearing it, and every Pawn that takes it later, can have the new cut.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Gesicht stammt von %@. Jede Spielfigur auf dieser Karte, die es trägt, und jede, die es später bekommt, kann den neuen Schnitt erhalten."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Αυτό το πρόσωπο προέρχεται από: %@. Κάθε πιόνι σε αυτόν τον χάρτη που το φέρει, και κάθε πιόνι που θα το πάρει αργότερα, μπορεί να πάρει τη νέα κοπή."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este rostro viene de %@. Cada ficha de este mapa que lo lleva, y cada ficha que lo tome después, puede recibir el nuevo recorte."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce visage vient de %@. Chaque pion de cette carte qui le porte, et chaque pion qui le prendra ensuite, peut recevoir la nouvelle découpe."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo volto viene da %@. Ogni pedina su questa mappa che lo porta, e ogni pedina che lo prenderà in seguito, può avere il nuovo ritaglio."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este rosto vem de %@. Cada peça deste mapa que o usa, e cada peça que o receber depois, pode ficar com o novo recorte."
           }
         }
       }
@@ -14126,6 +14806,46 @@
         }
       }
     },
+    "Use the Monster's Face": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gesicht des Monsters verwenden"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Χρήση του προσώπου του τέρατος"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar el rostro del monstruo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser le visage du monstre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa il volto del mostro"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar o rosto do monstro"
+          }
+        }
+      }
+    },
     "Viewport": {
       "localizations": {
         "de": {
@@ -14363,6 +15083,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Qual atributo o teste de resistência usa."
+          }
+        }
+      }
+    },
+    "Who takes the new cut?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wer erhält den neuen Schnitt?"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ποιος παίρνει τη νέα κοπή;"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Quién se queda el nuevo recorte?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qui reçoit la nouvelle découpe ?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chi prende il nuovo ritaglio?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quem fica com o novo recorte?"
           }
         }
       }
@@ -14883,6 +15643,126 @@
           "stringUnit": {
             "state": "translated",
             "value": "extends: “%@” nomeia um monstro que nenhuma nota define"
+          }
+        }
+      }
+    },
+    "image: “%@” is not a PNG, JPEG or WebP picture": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: „%@“ ist kein PNG-, JPEG- oder WebP-Bild"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "το image: «%@» δεν είναι εικόνα PNG, JPEG ή WebP"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: «%@» no es una imagen PNG, JPEG o WebP"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image : « %@ » n’est pas une image PNG, JPEG ou WebP"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: “%@” non è un’immagine PNG, JPEG o WebP"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: “%@” não é uma imagem PNG, JPEG ou WebP"
+          }
+        }
+      }
+    },
+    "image: “%@” is not in the Workspace": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: „%@“ ist nicht im Arbeitsbereich"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "το image: «%@» δεν υπάρχει στον χώρο εργασίας"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: «%@» no está en el espacio de trabajo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image : « %@ » n’est pas dans l’espace de travail"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: “%@” non è nell’area di lavoro"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: “%@” não está no espaço de trabalho"
+          }
+        }
+      }
+    },
+    "image: “%@” matches more than one picture; give its folder too": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: „%@“ passt auf mehr als ein Bild; gib auch den Ordner an"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "το image: «%@» ταιριάζει σε περισσότερες από μία εικόνες· δώστε και τον φάκελό της"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: «%@» coincide con más de una imagen; indica también su carpeta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image : « %@ » correspond à plusieurs images ; indiquez aussi son dossier"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: “%@” corrisponde a più di un’immagine; indica anche la sua cartella"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "image: “%@” corresponde a mais de uma imagem; indique também a pasta"
           }
         }
       }

@@ -95,5 +95,8 @@ struct PlayerView: View {
             }
         }
         .ignoresSafeArea()
+        // Where every token on this screen finds its Face — the same library the Control
+        // Window reads, so the two screens cannot disagree about what a Pawn looks like.
+        .environment(\.faceLibrary, appState.faceLibrary)
     }
 }

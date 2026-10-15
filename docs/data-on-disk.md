@@ -28,6 +28,9 @@ MyGame/                              ← the Workspace (any folder the DM adopte
 │   ├── parties.json                 ← every Party and its Characters
 │   ├── preferences.json             ← active Party, chosen Player Display (app-written)
 │   ├── config.json                  ← no longer read (ADR-0023); left alone if present
+│   ├── note-faces.json              ← the cut each Monster's or Character's note picture was given
+│   ├── faces/
+│   │   └── 3F2504E0-….png           ← one kept Face per cut (ADR-0028)
 │   └── sessions/
 │       ├── 2026-09-09T183000Z.jsonl ← one Session Log per evening
 │       └── 2026-09-16T190000Z.jsonl
@@ -75,6 +78,7 @@ that holds the radii must hold the unit.
                  "brightSquares": 6, "dimSquares": 7, "isOn": true } },
     { "id": "…", "label": "GG1", "colorHex": "#5A5A5A", "kind": "creature",
       "isHidden": false, "isBig": false, "monsterName": "Gnoll Guerriero",
+      "face": { "file": "3F2504E0-….png", "from": "hand" },
       "light": { "…": "…" } }
   ]
 }
@@ -88,8 +92,9 @@ that holds the radii must hold the unit.
 | `lights[]` | `brightSquares` / `dimSquares` are in **Grid squares**; `isOn` is the switch; `name` is the DM's own and is omitted when unnamed. |
 | `pawns[]` | `label` is the DM's bookkeeping (never shown to players); `colorHex` is what the table sees. `kind` is `player`, `creature` or `treasure`. |
 | `pawns[].light` | A Pawn *is* a Light: `brightSquares` is its sight. `dimSquares` is on disk but **re-derived on load** as sight + 1 (the fade), so the stored value is cosmetic history. |
-| `pawns[].characterID` | Which Character stamped this Pawn. Advisory only — counts on the Party panel — and omitted when absent (ADR-0007). |
-| `pawns[].monsterName` | Which Monster this Creature was said to be. Advisory only — the reference view and *Add*'s "same as last" — and omitted when absent (ADR-0020). The numbers were **copied** into `stats.json`. |
+| `pawns[].characterID` | Which Character stamped this Pawn. Advisory only — counts on the Party panel, and, with `face.from: character`, which Pawns re-cutting that Character's Face for *every* one reaches (ADR-0028) — and omitted when absent (ADR-0007). |
+| `pawns[].monsterName` | Which Monster this Creature was said to be. Advisory only — the reference view, *Add*'s "same as last", and, with `face.from: monster`, which Pawns re-cutting that Monster's Face for *every* one reaches (ADR-0028) — and omitted when absent (ADR-0020). The numbers were **copied** into `stats.json`. |
+| `pawns[].face` | The **Face** this Pawn is drawn as, in place of its colour, on both screens. `file` names a kept cut in `.mapforge/faces/` — a file name, never a path, and never the picture it was cut from. `from` is where the Face came from: `hand` (cut by the DM for this Pawn, or for the one it inherited the Face from under *Add*, which then share the `file`), `character` (copied by the Stamp from the Character in `characterID`; under *Add* it passes on as `hand`) or `monster` (taken from a Monster whose note names the picture — the one in `monsterName`, until the DM clears or changes it; under *Add* it is taken fresh from the Monster, never copied). Becoming another Monster replaces a `monster` Face with the new Monster's, or removes it; `hand` and `character` are never touched. A `monster` or `character` Face re-cut for *only this Pawn* becomes `hand`; re-cut for *every* one, it keeps its `from` and names the new `file`. Omitted when the Pawn has none; a `file` that is missing draws the colour (ADR-0028). |
 | `isCreature` (legacy) | Read forever, never written: a file written before `kind` existed decodes `true` as `creature`. |
 
 Rules:
@@ -229,20 +234,28 @@ version, for diagnosis only.
     { "id": "…", "name": "Eroi delle Terre di Confine",
       "characters": [
         { "id": "…", "name": "Durga", "colorHex": "#D0342C", "sightSquares": 6,
-          "noteName": "Durga Pietraferma" }
+          "noteName": "Durga Pietraferma",
+          "face": { "file": "3F2A….png", "from": "hand" } }
       ] }
   ]
 }
 ```
 
 A Character is a **definition**, never on a Map. It holds what the app owns of it — its
-label, colour and sight — and `noteName`, the `name` of the note its numbers are read from,
+label, colour, sight and Face — and `noteName`, the `name` of the note its numbers are read from,
 absent while the DM has not linked one (ADR-0024). Stamping copies `name`, `colorHex`,
-`sightSquares` and the note's size into a Pawn, and the note's `initiative`, `ac` and `hp`
-into its Stat Block; a Character with no readable note stamps no Stat Block at all. The Pawn
+`sightSquares`, `face` and the note's size into a Pawn, and the note's `initiative`, `ac` and
+`hp` into its Stat Block; a Character with no readable note stamps no Stat Block at all. The Pawn
 then leads its own life (ADR-0007). `characters` is an array so the DM's order is kept. A
 roster written before notes still opens with every Character unlinked: its `isBig`,
 `initiativeBonus`, `armorClass` and `maxHP` are ignored and dropped at the next write.
+`face` is the Face the DM cut for the Character in its editor, or by re-cutting the Face of one
+of its Pawns for *every* one of them, in the shape a Pawn's is written
+(`file` in `faces/`, always `from: hand`), kept on Save and never on Cancel. Omitted when it has
+none, so a roster written before Faces opens unchanged. A Character without one takes the
+picture its note names, if any, cut once for it (`note-faces.json`); its own wins. A Stamped
+Pawn names the same `file`, `from: character`: a copy, so a Character given another Face, or none, leaves every Pawn
+already Stamped as it was (ADR-0007, ADR-0028).
 Absent when there are no Parties; unreadable file latched.
 
 ### `preferences.json` — what the app chooses for this Workspace
@@ -255,6 +268,48 @@ Which Party the Control Window offers, and which screen is the Player Display, k
 Display Identity (the display's UUID, not its `CGDirectDisplayID`). Both are one-click
 choices, so this store is *forgiving*: an unreadable file is replaced by defaults on the
 next save rather than latched.
+
+### `faces/` — the Faces the DM cut
+
+One PNG per cut, named by a fresh UUID, written when the DM presses OK on a cut in the Edit
+Pawn sheet, or Save on one in a Character's editor — never on Cancel — or when a note's
+picture is first cut for a Monster or a Character (`note-faces.json`). It is the **square** the
+DM chose, scaled down to 512 pixels a side when larger, and never the picture it came from:
+that picture may be anywhere on the Mac and may be moved or deleted afterwards without any Map
+noticing (ADR-0028). A cut is never rewritten, so two Pawns, or a Character and the Pawns it
+Stamped, may share a file. A file nothing names any more is litter, not damage, and deleting it
+loses nothing; the app does not yet delete them itself.
+
+### `note-faces.json` — the cuts of the notes' pictures
+
+```json
+{
+  "version": 1,
+  "monsters": {
+    "Nothic": { "picture": "Riferimento/Allegati/Nothic.webp", "x": 128, "y": 0,
+                "side": 512, "file": "3F2504E0-….png" }
+  },
+  "characters": {
+    "6B1D…": { "picture": "Personaggi/Durga/Durga.webp", "x": 0, "y": 40,
+               "side": 600, "file": "9C41….png" }
+  }
+}
+```
+
+The cut the app made from the picture each Monster's note names (`image:`), keyed by the
+Monster's name as a Pawn's `monsterName` is — and, under `characters`, from the picture each
+Character's note names, keyed by the Character's `id`, so it is cut once for that Character and
+used only while the DM has cut no Face for it. In each: `picture` relative to the Workspace root, the
+square at `x`, `y` with sides of `side`, in the picture's pixels from its top left, and the
+kept `file` in `faces/` that every Pawn taking the Face names. A Monster's is made the first
+time a Pawn takes its Face, a Character's when the notes are read or the Character is saved,
+each as the centred square, and made again only when the note names another picture or `file`
+has gone. Re-cutting a Monster's Face in the Edit Pawn sheet and answering *every* replaces its
+`x`, `y`, `side` and `file`, and re-cuts every Pawn on the open Map wearing that Monster's
+Face; Maps not open keep theirs. A Monster renamed in the notes is another key, and starts again.
+Pawns copy `file` into their own `face`, so a new cut never reaches a Pawn already on a Map
+(ADR-0028). Absent until the first cut. **Forgiving**: every entry can be made again from the
+notes, so an unreadable file is read as no cuts and replaced at the next one.
 
 ### `config.json` — no longer read
 
@@ -269,9 +324,18 @@ hidden folders (`.git`, `.obsidian`, `.mapforge`) aside, taken when the Workspac
 no other time. A note is a Monster when it contains a ```` ```statblock ```` YAML fence with
 at least a `name`, unless the fence says `bestiary: false` or has a key only a
 Character's has (`player`, `species`, `class`, `level`). A fence with `extends: <name>` is
-that Monster with the fence's own keys laid over it, each replacing the base's value whole. The same walk reads every
+that Monster with the fence's own keys laid over it, each replacing the base's value whole.
+`image:` names the Monster's picture as a wikilink only — `[[Nothic.webp]]`, quoted or not, or
+`[[Riferimento/Allegati/Goblin.webp]]`; a web address or plain text is ignored, as is any
+picture in the note's body. Every file in the Workspace outside hidden folders is looked
+through, ignoring case: a link with a folder names the one file whose path ends with it, a
+bare name the one file that has it, and either counts only when exactly one file matches. A
+missing picture, a link two files match, or a file that is no PNG, JPEG or WebP gives no Face,
+is reported under the Monster search and on the Monster's page, and leaves the Monster
+otherwise whole. The same walk reads every
 Character's note (a fence with a Character-only key and no `bestiary: false`) for its `name`,
-`ac`, `hp`, `initiative` and `size` (ADR-0024); those are never saved either. What a Monster stamps onto a Pawn
+`ac`, `hp`, `initiative`, `size` and `image:`, read and looked up as a Monster's (ADR-0024);
+those are never saved either. What a Monster stamps onto a Pawn
 (`armorClass`, `hitPoints` → `maxHP`/`currentHP`, `initiativeBonus`, size → `isBig`) is
 copied into `stats.json` and `.fog.json`; only the name is remembered in `monsterName`.
 
@@ -393,6 +457,8 @@ What follows from the shape:
 | `sessions/*.jsonl` | every Comment, move, Roll, pointer, start/stop | append + fsync, one line | truncated tail dropped |
 | `parties.json` | every roster edit | atomic replace, pretty | reported, writes refused |
 | `preferences.json` | Party or display chosen | atomic replace, pretty | replaced by defaults |
+| `faces/*.png` | OK on a cut in the Edit Pawn sheet, Save on one in a Character's editor, a Monster's or a Character's note picture first cut | atomic, once per cut, never rewritten; a failed write leaves the Pawn or Character the Face it had | the Pawn, or the Character in the roster, draws its colour |
+| `note-faces.json` | a Pawn first taking a Monster's Face; a linked Character's note picture first cut, when the notes are read or the Character is saved; a note naming another picture | atomic replace, pretty; a failed write is logged, and the picture is cut again next launch | read as no cuts, replaced at the next |
 | `workspace.json` | adoption only | atomic, once | Workspace refused to open |
 | `UserDefaults` | Workspace opened / forgotten | system | — |
 

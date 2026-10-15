@@ -86,6 +86,9 @@ struct ControlView: View {
     @State private var editedCharacter: PartyCharacter?
     /// Whether `editedCharacter` is new, so Cancel knows whether to leave anything behind.
     @State private var isAddingCharacter = false
+    /// The Face of `editedCharacter` as its editor leaves it, any new cut not yet kept: Save
+    /// keeps it in the Workspace, Cancel forgets it.
+    @State private var editedCharacterFace = FaceDraft(nil)
     /// The Party being renamed, or created, in the picker's sheet-free inline field.
     @State private var partyNameEdit: PartyNameEdit?
 
@@ -274,6 +277,8 @@ struct ControlView: View {
             mapColumn
         }
         .padding(Self.windowPadding)
+        // Where every token in this window finds its Face: the Map and the live row.
+        .environment(\.faceLibrary, appState.faceLibrary)
         // The launch gate. There is nothing behind this sheet until a Workspace is open, so
         // it is not dismissible then; when switching, Cancel puts the DM back where they were.
         .sheet(isPresented: Binding(
@@ -298,6 +303,12 @@ struct ControlView: View {
                                   ?? appState.statBlock(for: id),
                               suggestedUnit: appState.suggestedDistanceUnit,
                               onSwitchUnit: { appState.distanceUnit = $0 },
+                              faceLibrary: appState.faceLibrary,
+                              definitionFaces: appState.faceLibrary == nil ? nil : DefinitionFaces(
+                                  monsterFace: { appState.monsterFace(for: $0) },
+                                  canRecut: { appState.canRecut($0) },
+                                  recutPicture: { appState.recutPicture(for: $0) },
+                                  name: { appState.recutName(for: $0) }),
                               onCommit: { appState.updatePawn(id: id, with: $0); editing = nil },
                               onCancel: { editing = nil })
             case .light(let id, let draft):
@@ -669,7 +680,8 @@ struct ControlView: View {
                         // Given the fitted rect as both, the two agree.
                         if PreviewBranch.drawsLiveLayers(mode: mode),
                            let map = appState.mapScale {
-                            liveLayers(map: map, frame: CGRect(origin: .zero, size: fitted.size))
+                            liveLayers(map: map, frame: CGRect(origin: .zero, size: fitted.size),
+                                       hoveredPawnID: hoveredPawnID(map: map, frame: fitted))
                                 .frame(width: fitted.width, height: fitted.height)
                                 .position(x: fitted.midX, y: fitted.midY)
                         }
@@ -930,7 +942,7 @@ struct ControlView: View {
     /// pan, the fitted branch's is the aspect fit. `PreviewBranch.liveLayerFrame` is the
     /// same choice stated as arithmetic.
     @ViewBuilder
-    private func liveLayers(map: MapScale, frame: CGRect) -> some View {
+    private func liveLayers(map: MapScale, frame: CGRect, hoveredPawnID: Pawn.ID?) -> some View {
         FogCanvas(regions: appState.litRegions, map: map, frame: frame) {
             FogShading.control($0, isOverlayOn: appState.isFogOverlayOn)
         }
@@ -955,7 +967,8 @@ struct ControlView: View {
                       appState.commitPawnMove(id: id, from: origin)
                   },
                   onMoveLight: { appState.moveLight(id: $0, to: $1) },
-                  onCommitLight: { appState.commitLightMove() })
+                  onCommitLight: { appState.commitLightMove() },
+                  hoveredPawnID: hoveredPawnID)
         // Above the tokens: a Measurement is what the DM is pointing at, and a cone
         // half-hidden behind the party is unreadable.
         if let pixelsPerSquare = appState.pixelsPerSquare {
@@ -1151,6 +1164,14 @@ struct ControlView: View {
                                pawns: appState.fog.pawns,
                                lights: appState.fog.lights,
                                gridPixels: gridPixels)
+    }
+
+    /// The Pawn whose token the cursor rests on, whose label shows over its Face. Asked in
+    /// the preview's own space, the one the cursor and `fitted` are both in — the live
+    /// layers sit at `fitted` and draw the same tokens at the same size.
+    private func hoveredPawnID(map: MapScale, frame: CGRect) -> Pawn.ID? {
+        guard let cursor = mirrorCursor else { return nil }
+        return PawnLayer.pawnID(under: cursor, pawns: appState.fog.pawns, map: map, frame: frame)
     }
 
     private func measurementUnderCursor(map: MapScale,
@@ -2156,6 +2177,7 @@ struct ControlView: View {
             Text("\(party.characters.count)").font(.caption).foregroundStyle(.secondary)
             Button {
                 editedCharacter = PartyCharacter(name: "")
+                editedCharacterFace = FaceDraft(nil)
                 isAddingCharacter = true
             } label: {
                 Image(systemName: "plus").frame(width: 16)
@@ -2202,7 +2224,7 @@ struct ControlView: View {
     private func characterRow(_ character: PartyCharacter) -> some View {
         let placed = appState.placedCount(of: character)
         return HStack(spacing: 6) {
-            PawnToken(pawn: Stamp.preview(of: character, note: appState.note(for: character)),
+            PawnToken(pawn: appState.stampPreview(of: character),
                       squareSide: 14, scalesWithFootprint: false)
             Text(character.name).lineLimit(1)
             Spacer(minLength: 0)
@@ -2228,12 +2250,15 @@ struct ControlView: View {
             // The drag preview, which macOS renders under the cursor. This one DOES scale
             // with the footprint, unlike the row's token: it is headed for the Map, where a
             // Big Pawn's two squares are the thing the DM is judging the drop against.
-            PawnToken(pawn: Stamp.preview(of: character, note: appState.note(for: character)),
+            PawnToken(pawn: appState.stampPreview(of: character),
                       squareSide: 20)
+                // Drawn apart from the window, so handed the Face's library itself.
+                .environment(\.faceLibrary, appState.faceLibrary)
         }
         .contextMenu {
             Button("Edit…") {
                 editedCharacter = character
+                editedCharacterFace = FaceDraft(character.face)
                 isAddingCharacter = false
             }
             Button("Delete") { appState.deleteCharacter(id: character.id) }
@@ -2241,7 +2266,7 @@ struct ControlView: View {
     }
 
     /// The inline editor for a Character, new or existing: what the app holds of it — its
-    /// label, colour and sight. Its numbers and size are its note's (ADR-0024).
+    /// label, colour, sight and Face. Its numbers and size are its note's (ADR-0024).
     @ViewBuilder
     private func characterEditor() -> some View {
         if let character = editedCharacter {
@@ -2277,6 +2302,13 @@ struct ControlView: View {
                     ), unit: appState.distanceUnit, width: 44)
                     .font(.caption)
                 }
+                // Always a Player's disc: the roster holds the party and nothing else.
+                FaceEditor(face: $editedCharacterFace, kind: .player,
+                           library: appState.faceLibrary, wearer: .character)
+                    .font(.caption)
+                    // A fresh editor per Character, so one's unreadable picture is not
+                    // reported in the next one's.
+                    .id(character.id)
                 HStack(spacing: 6) {
                     Spacer(minLength: 0)
                     Button("Cancel") { cancelCharacterEdit() }
@@ -2306,15 +2338,16 @@ struct ControlView: View {
         character.name = character.name.trimmingCharacters(in: .whitespaces)
         guard !character.name.isEmpty else { return }
         if isAddingCharacter {
-            appState.addCharacter(character)
+            appState.addCharacter(character, face: editedCharacterFace)
         } else {
-            appState.updateCharacter(character)
+            appState.updateCharacter(character, face: editedCharacterFace)
         }
         cancelCharacterEdit()
     }
 
     private func cancelCharacterEdit() {
         editedCharacter = nil
+        editedCharacterFace = FaceDraft(nil)
         isAddingCharacter = false
     }
 

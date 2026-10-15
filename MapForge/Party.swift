@@ -28,6 +28,10 @@ struct PartyCharacter: Codable, Equatable, Identifiable {
     /// The numbers themselves are not here. They were, typed in the app, and drifted from the
     /// notes within weeks; now the notes are the only place they are written (ADR-0024).
     var noteName: String?
+    /// The Face the DM cut for this Character, which every Pawn it Stamps is given a copy of —
+    /// or nil, when its Pawns are drawn in its colour. Kept in `.mapforge/faces/` with every
+    /// other cut, and always cut by hand (ADR-0028).
+    var face: PawnFace?
 
     /// What click-to-place already gives a Pawn, so a Stamped Pawn and a hand-placed one
     /// start from the same defaults rather than drifting apart.
@@ -37,12 +41,14 @@ struct PartyCharacter: Codable, Equatable, Identifiable {
          name: String,
          colorHex: String = Pawn.defaultColorHex,
          sightSquares: CGFloat = PartyCharacter.defaultSightSquares,
-         noteName: String? = nil) {
+         noteName: String? = nil,
+         face: PawnFace? = nil) {
         self.id = id
         self.name = name
         self.colorHex = colorHex
         self.sightSquares = sightSquares
         self.noteName = noteName
+        self.face = face
     }
 
     /// Says which note is this Character's own. A Character still nameless — one being
@@ -60,13 +66,14 @@ struct PartyCharacter: Codable, Equatable, Identifiable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, colorHex, sightSquares, noteName
+        case id, name, colorHex, sightSquares, noteName, face
     }
 
     /// Hand-written so a `parties.json` written before notes still opens — with every
     /// Character unlinked, and its typed `isBig`, `initiativeBonus`, `armorClass` and `maxHP`
     /// ignored, to vanish at the next write. They are not used to link it: which note is a
-    /// Character's own is the DM's to say, never the app's to guess (ADR-0024).
+    /// Character's own is the DM's to say, never the app's to guess (ADR-0024). One written
+    /// before Faces opens with every Character drawn in its colour.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
@@ -74,6 +81,7 @@ struct PartyCharacter: Codable, Equatable, Identifiable {
         colorHex = try container.decode(String.self, forKey: .colorHex)
         sightSquares = try container.decode(CGFloat.self, forKey: .sightSquares)
         noteName = try container.decodeIfPresent(String.self, forKey: .noteName)
+        face = try container.decodeIfPresent(PawnFace.self, forKey: .face)
     }
 }
 
