@@ -304,9 +304,11 @@ struct ControlView: View {
                               suggestedUnit: appState.suggestedDistanceUnit,
                               onSwitchUnit: { appState.distanceUnit = $0 },
                               faceLibrary: appState.faceLibrary,
-                              recutPicture: appState.recutPicture(forPawn: id),
-                              recutName: appState.recutName(for: draft.recutSource),
-                              monsterFace: { appState.monsterFace(for: $0) },
+                              definitionFaces: appState.faceLibrary == nil ? nil : DefinitionFaces(
+                                  monsterFace: { appState.monsterFace(for: $0) },
+                                  canRecut: { appState.canRecut($0) },
+                                  recutPicture: { appState.recutPicture(for: $0) },
+                                  name: { appState.recutName(for: $0) }),
                               onCommit: { appState.updatePawn(id: id, with: $0); editing = nil },
                               onCancel: { editing = nil })
             case .light(let id, let draft):

@@ -784,39 +784,37 @@ final class AppState: ObservableObject {
         flushPendingFogWrites()
     }
 
-    /// The picture `pawn`'s Face was cut from, and the square it was cut as — for cutting it
+    /// The picture `source`'s Face is cut from, and the square to start from — for cutting it
     /// again. Only for a Face cut from a note's picture, a Monster's or a Character's: a Face
     /// cut by hand keeps no picture, so the DM chooses one again.
-    func recutPicture(for pawn: Pawn) -> PendingFaceCut? {
-        guard let workspace, let cut = noteCut(of: pawn),
-              let picture = FacePicture.load(workspace.url.appendingPathComponent(cut.picture))
+    ///
+    /// The picture the note names **now** — never the one an older cut was made from, which
+    /// the note may since have replaced. It starts from the square last cut when that square
+    /// was cut from this very picture, and from the centred square otherwise.
+    func recutPicture(for source: FaceSource) -> PendingFaceCut? {
+        guard let workspace, let note = notePicture(of: source),
+              let picture = FacePicture.load(workspace.url.appendingPathComponent(note.path))
         else { return nil }
-        return PendingFaceCut(picture: picture, cut: cut.square)
+        let square = note.cut?.picture == note.path
+            ? note.cut!.square : FaceCut.centredSquare(in: picture.pixelSize)
+        return PendingFaceCut(picture: picture, cut: square)
     }
 
-    /// Whether `pawn`'s Face was cut from a note's picture the app still records, so the
-    /// Edit Pawn sheet can offer to cut it again — without reading the picture.
-    func canRecut(_ pawn: Pawn) -> Bool { noteCut(of: pawn) != nil }
+    /// Whether `source`'s note names a picture the Workspace holds, so the Edit Pawn sheet can
+    /// offer to cut it again — without reading the picture.
+    func canRecut(_ source: FaceSource) -> Bool { notePicture(of: source) != nil }
 
-    /// The cut for cutting the Pawn `id`'s Face again, read when the DM asks — or nil when its
-    /// Face keeps no picture, and the Edit Pawn sheet offers no "Re-cut…".
-    func recutPicture(forPawn id: Pawn.ID) -> (() -> PendingFaceCut?)? {
-        guard let pawn = fog.pawns.first(where: { $0.id == id }), canRecut(pawn) else { return nil }
-        return { [weak self] in self?.recutPicture(for: pawn) }
-    }
-
-    /// The note's cut `pawn`'s Face came from, if it came from one.
-    private func noteCut(of pawn: Pawn) -> NoteFaces.Cut? {
-        switch FaceSource(of: pawn) {
+    /// The picture `source`'s note names, and the cut last made for it — or nil when it names
+    /// none, or for a Character with a Face of its own, which keeps no picture.
+    private func notePicture(of source: FaceSource) -> (path: String, cut: NoteFaces.Cut?)? {
+        switch source {
         case .monster(let name):
-            return noteFaces.monsters[name]
+            guard let path = bestiary.monster(named: name)?.picture?.path else { return nil }
+            return (path, noteFaces.monsters[name])
         case .character(let id):
-            // Only when it is the note's cut: the Character's own Face keeps no picture.
-            return noteFaces.characters[id.uuidString].flatMap {
-                $0.file == pawn.face?.file ? $0 : nil
-            }
-        case nil:
-            return nil
+            guard let character = character(id: id), character.face == nil,
+                  let path = note(for: character)?.picture?.path else { return nil }
+            return (path, noteFaces.characters[id.uuidString])
         }
     }
 
@@ -836,9 +834,10 @@ final class AppState: ObservableObject {
     private func recutDefinition(_ source: FaceSource, square: CGRect, file: String) {
         switch source {
         case .monster(let name):
-            guard noteFaces.monsters[name] != nil else { return }
-            noteFaces.monsters[name]?.square = square
-            noteFaces.monsters[name]?.file = file
+            // The picture the note names now, which is the one just re-cut: a cut recorded
+            // against an older picture would be cut afresh from the centre for the next Pawn.
+            guard let path = bestiary.monster(named: name)?.picture?.path else { return }
+            noteFaces.monsters[name] = NoteFaces.Cut(picture: path, square: square, file: file)
             saveNoteFaces()
         case .character(let id):
             guard var character = character(id: id) else { return }

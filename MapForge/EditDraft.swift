@@ -35,9 +35,19 @@ struct EditPawnDraft: Equatable {
     /// The DM's answer to "only this Pawn, or every one?" — true for every Pawn that took the
     /// Face from `recutSource`. Asked only when `asksWhomToRecut`.
     var recutsEvery = false
-    /// Where the Face the sheet opened with came from, when a Monster or a Character gave it:
-    /// whose cut "every" would change.
-    let recutSource: FaceSource?
+    /// Where the Face in the sheet came from, when a Monster or a Character gave it: whose
+    /// picture "Re-cut…" opens, and whose cut "every" would change. Asked of the sheet as it
+    /// stands — the Face taken or kept, and the Monster it is now — never of the Pawn as it
+    /// opened, so a Face taken here can be re-cut at once.
+    var recutSource: FaceSource? {
+        switch (face.kept ?? openedWithFace)?.origin {
+        case .monster: monsterName.map { .monster($0) }
+        case .character: characterID.map { .character($0) }
+        case .hand, nil: nil
+        }
+    }
+    /// The Character that Stamped the Pawn, whose Face a `character` one is.
+    private let characterID: UUID?
 
     /// The Pawn being edited, so numbering a label does not count the label it is replacing.
     private let pawnID: Pawn.ID
@@ -65,7 +75,7 @@ struct EditPawnDraft: Equatable {
         monsterName = pawn.monsterName
         face = FaceDraft(pawn.face)
         openedWithFace = pawn.face
-        recutSource = FaceSource(of: pawn)
+        characterID = pawn.characterID
         openedWithMonster = pawn.monsterName
         openedWithLabel = pawn.label
     }

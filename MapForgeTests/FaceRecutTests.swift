@@ -178,7 +178,7 @@ final class FaceRecutTests: XCTestCase {
 
     private func recutDraft(of pawn: Pawn, in state: AppState) throws -> EditPawnDraft {
         var draft = EditPawnDraft(pawn: pawn)
-        let source = try XCTUnwrap(state.recutPicture(for: pawn))
+        let source = try XCTUnwrap(state.recutPicture(for: try XCTUnwrap(FaceSource(of: pawn))))
         draft.face.recut(source.picture, from: source.cut)
         draft.face.setCut(CGRect(x: 0, y: 0, width: 60, height: 60))
         return draft
@@ -187,11 +187,11 @@ final class FaceRecutTests: XCTestCase {
     func testReCuttingStartsFromTheMonstersPictureAndSquare() async throws {
         let (state, _, pawns) = try await makeGoblins()
 
-        let source = try XCTUnwrap(state.recutPicture(for: pawns[0]))
+        let source = try XCTUnwrap(state.recutPicture(for: .monster("Goblin")))
 
         XCTAssertEqual(source.picture.width, 300)
         XCTAssertEqual(source.cut, CGRect(x: 100, y: 0, width: 100, height: 100))
-        XCTAssertNil(state.recutPicture(for: pawns[2]), "a hand cut keeps no picture")
+        XCTAssertNil(FaceSource(of: pawns[2]), "a hand cut keeps no picture")
     }
 
     func testEveryChangesTheMonstersCutAndEveryPawnOnTheMapThatTookIt() async throws {
@@ -273,8 +273,8 @@ final class FaceRecutTests: XCTestCase {
     func testOnlyAFaceCutFromANotesPictureCanBeReCut() async throws {
         let (state, _, pawns) = try await makeGoblins()
 
-        XCTAssertTrue(state.canRecut(pawns[0]))
-        XCTAssertFalse(state.canRecut(pawns[2]))
+        XCTAssertTrue(state.canRecut(.monster("Goblin")))
+        XCTAssertFalse(state.canRecut(.monster("Ogre")), "its note names no picture")
     }
 
     func testEveryIsOfferedUnderTheNameOfADefinitionStillThere() async throws {
@@ -283,5 +283,56 @@ final class FaceRecutTests: XCTestCase {
         XCTAssertEqual(state.recutName(for: .monster("Goblin")), "Goblin")
         XCTAssertNil(state.recutName(for: .monster("Wraith")))
         XCTAssertNil(state.recutName(for: .character(UUID())))
+    }
+
+    // MARK: Re-cutting what the sheet shows now
+
+    /// A Pawn with no Face that takes its Monster's in the sheet can cut that square at once.
+    func testAFaceTakenInTheSheetCanBeReCutAtOnce() async throws {
+        let (state, workspace, _) = try await makeGoblins()
+        let pawn = creature("GG4", face: nil)
+        state.fog.pawns = [pawn]
+        let goblin = try XCTUnwrap(state.bestiary.monster(named: "Goblin"))
+        var draft = EditPawnDraft(pawn: pawn)
+        XCTAssertNil(draft.recutSource)
+
+        draft.takeMonsterFace(try XCTUnwrap(state.monsterFace(for: goblin)), of: goblin.name)
+        let source = try XCTUnwrap(draft.recutSource)
+        let picture = try XCTUnwrap(state.recutPicture(for: source))
+        draft.face.recut(picture.picture, from: picture.cut)
+        draft.face.setCut(CGRect(x: 0, y: 0, width: 60, height: 60))
+        draft.recutsEvery = true
+        state.updatePawn(id: pawn.id, with: draft)
+
+        XCTAssertTrue(draft.asksWhomToRecut)
+        let cut = try XCTUnwrap(NoteFacesStore(directory: workspace.supportDirectory).load()
+            .monsters["Goblin"])
+        XCTAssertEqual(cut.square, CGRect(x: 0, y: 0, width: 60, height: 60))
+        XCTAssertEqual(state.fog.pawns[0].face, PawnFace(file: cut.file, origin: .monster))
+    }
+
+    /// The note now names another picture: re-cutting opens that one, from its centre, never
+    /// the picture the old cut was made from.
+    func testReCuttingOpensThePictureTheNoteNamesNow() async throws {
+        let (state, workspace, _) = try await makeGoblins()
+        try FaceFixture.writePNG(try FaceFixture.halves(width: 200, height: 100),
+                                 to: workspace.url.appendingPathComponent("Allegati/Goblin-nuovo.png"))
+        var goblin = try XCTUnwrap(state.bestiary.monster(named: "Goblin"))
+        goblin.picture = .found("Allegati/Goblin-nuovo.png")
+        state.bestiary = Bestiary(monsters: [goblin])
+
+        let picture = try XCTUnwrap(state.recutPicture(for: .monster("Goblin")))
+
+        XCTAssertEqual(picture.picture.width, 200)
+        XCTAssertEqual(picture.cut, CGRect(x: 50, y: 0, width: 100, height: 100))
+    }
+
+    func testACharactersOwnFaceKeepsNoPictureToReCut() async throws {
+        let (state, _, _) = try await makeGoblins()
+        state.addParty(named: "Eroi")
+        state.addCharacter(PartyCharacter(id: durgaID, name: "Durga",
+                                          face: PawnFace(file: "d.png", origin: .hand)))
+
+        XCTAssertFalse(state.canRecut(.character(durgaID)))
     }
 }

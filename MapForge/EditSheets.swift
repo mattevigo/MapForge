@@ -42,15 +42,8 @@ struct EditPawnSheet: View {
     /// Where the Pawn's Face is kept, for showing it. Nil with no Workspace open, when there
     /// is nowhere to keep a cut and so no picture is offered.
     var faceLibrary: FaceLibrary?
-    /// The picture the Pawn's Face was cut from, and its square, for cutting it again — nil
-    /// when it keeps none, as a Face cut by hand does. Asked only when the DM wants it.
-    var recutPicture: (() -> PendingFaceCut?)?
-    /// The Monster or Character "every" re-cuts, when the Face came from one still defined.
-    var recutName: String?
-    /// The Face of a Monster, its picture cut now if no Pawn has taken it yet — for a
-    /// Creature that is that Monster already. That cut is the Monster's, shared by every Pawn
-    /// that takes its Face, so it is no litter if the sheet is cancelled.
-    var monsterFace: ((Monster) -> PawnFace?)?
+    /// What the sheet asks of the Monsters' and Characters' Faces. Nil with no Workspace open.
+    var definitionFaces: DefinitionFaces?
     let onCommit: (EditPawnDraft) -> Void
     let onCancel: () -> Void
 
@@ -209,12 +202,26 @@ struct EditPawnSheet: View {
     /// could not be had after all.
     private var useMonsterFace: (() -> Bool)? {
         let monster = bestiary.monster(named: draft.monsterName)
-        guard let monster, let monsterFace, draft.offersMonsterFace(of: monster) else { return nil }
+        guard let monster, let faces = definitionFaces, draft.offersMonsterFace(of: monster)
+        else { return nil }
         return {
-            guard let face = monsterFace(monster) else { return false }
+            guard let face = faces.monsterFace(monster) else { return false }
             draft.takeMonsterFace(face, of: monster.name)
             return true
         }
+    }
+
+    /// The picture the Face in the sheet was cut from, as its note names it now, for cutting
+    /// it again — nil when it keeps none, as a Face cut by hand does.
+    private var recutPicture: (() -> PendingFaceCut?)? {
+        guard let source = draft.recutSource, let faces = definitionFaces,
+              faces.canRecut(source) else { return nil }
+        return { faces.recutPicture(source) }
+    }
+
+    /// The Monster or Character "every" re-cuts, when the Face came from one still defined.
+    private var recutName: String? {
+        draft.recutSource.flatMap { definitionFaces?.name($0) }
     }
 
     /// OK. Asks first only when the stamp would overwrite hit points that exist — a dialog
@@ -228,6 +235,21 @@ struct EditPawnSheet: View {
             onCommit(draft)
         }
     }
+}
+
+/// What the Edit Pawn sheet asks of the Faces Monsters and Characters give, answered by
+/// `AppState`, which holds the notes and the cuts.
+struct DefinitionFaces {
+    /// The Face of a Monster, its picture cut now if no Pawn has taken it yet. That cut is
+    /// the Monster's, shared by every Pawn that takes its Face, so it is no litter if the
+    /// sheet is cancelled.
+    var monsterFace: (Monster) -> PawnFace?
+    /// Whether the source's note names a picture to cut again, without reading it.
+    var canRecut: (FaceSource) -> Bool
+    /// That picture, read, with the square to start from.
+    var recutPicture: (FaceSource) -> PendingFaceCut?
+    /// The name "every" is offered under, or nil when the definition has gone.
+    var name: (FaceSource) -> String?
 }
 
 /// Choose a picture, cut a square of it, or take the Face away — for a Pawn in the Edit Pawn
