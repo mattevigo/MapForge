@@ -118,6 +118,8 @@ DM applies it with the Hit field that already exists. One control, one action.
   makes every existing Creature incomplete, and computes from fields a DM has no reason to
   fill. Revisit if the typed Modifier proves tiresome at the table; remembering the last
   Modifier per Pawn is the cheaper next step.
+  *Revisited in ADR-0029: once the notes held the scores (ADR-0020, ADR-0024), the Modifier
+  became offered from the note, never stored, and still overtyped.*
 - **The app rolls the d20** — rejected: the table has dice, and Initiative already treats the
   spoken number as authoritative.
 - **Store the success/failure verdict** — rejected: derivable, and a stored derivable fact is
