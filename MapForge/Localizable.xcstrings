@@ -6809,6 +6809,47 @@
         }
       }
     },
+    "From %@'s note": {
+      "comment": "Under the Roll sheet's Modifier: the note the number was offered from",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus der Notiz zu %@"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Από τη σημείωση: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De la nota de %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "D’après la note de %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dalla nota di %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da nota de %@"
+          }
+        }
+      }
+    },
     "General": {
       "localizations": {
         "de": {

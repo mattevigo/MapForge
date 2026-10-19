@@ -80,7 +80,7 @@ final class RollDraftTests: XCTestCase {
         var draft = RollDraft(pawn: pawn, kind: .savingThrow)
         draft.d20 = 16
         draft.ability = .dexterity
-        draft.modifier = 5
+        draft.typeModifier(5)
         draft.difficultyClass = 15
         XCTAssertEqual(draft.roll, Roll(d20: 16, modifier: 5, difficultyClass: 15))
         XCTAssertEqual(draft.roll?.total, 21)
@@ -91,7 +91,7 @@ final class RollDraftTests: XCTestCase {
         var draft = RollDraft(pawn: pawn, kind: .savingThrow)
         draft.d20 = 9
         draft.ability = .charisma
-        draft.modifier = -1
+        draft.typeModifier(-1)
         XCTAssertEqual(draft.roll?.total, 8)
     }
 }

@@ -155,10 +155,14 @@ struct RollSheet: View {
             Text("Modifier:")
             NumberField(value: draft.modifier,
                         identifier: "roll-modifier",
-                        width: 60) { draft.modifier = $0 ?? 0 }
-            Text("ability bonus, proficiency, active effects")
+                        width: 60,
+                        edited: { draft.typeModifier($0 ?? 0) }) { draft.typeModifier($0 ?? 0) }
+            // Where an offered number came from, so it is not mistaken for one the DM typed —
+            // and so a note's honest +0 does not look like a field nobody filled.
+            Text(draft.offerCaption ?? String(localized: "ability bonus, proficiency, active effects"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .accessibilityIdentifier("roll-modifier-caption")
         }
     }
 

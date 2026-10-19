@@ -320,7 +320,8 @@ struct ControlView: View {
             }
         }
         .sheet(item: $rolling) { target in
-            RollSheet(draft: RollDraft(pawn: target.pawn, kind: target.kind),
+            RollSheet(draft: RollDraft(pawn: target.pawn, kind: target.kind,
+                                       source: appState.modifierSource(for: target.pawn)),
                       onCommit: { draft in
                           record(draft)
                           rolling = nil

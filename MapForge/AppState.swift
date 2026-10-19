@@ -988,6 +988,16 @@ final class AppState: ObservableObject {
         return .missing(noteName: noteName)
     }
 
+    /// The note the Roll sheet offers `pawn`'s Modifier from (ADR-0029): its Character's,
+    /// reached the way `characterPage(for:)` reaches it — live, so a note edited since the
+    /// Stamp is the one offered. Nil for any Pawn with no Character or whose note is not read,
+    /// and for any Pawn that is no longer a Player: a Stamped Pawn the DM made a Creature keeps
+    /// its `characterID`, and its hero's saves are not its own.
+    func modifierSource(for pawn: Pawn) -> ModifierSource? {
+        guard pawn.kind == .player, case .note(let note) = characterPage(for: pawn) else { return nil }
+        return ModifierSource(note: note)
+    }
+
     /// Whether the roster should say a Character has no note. Not while the notes are still
     /// being read — every Character would flash "no note" each time the Workspace opens —
     /// and the Bestiary is the read's progress, the two coming from one walk.
