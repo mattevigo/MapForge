@@ -101,16 +101,17 @@ struct RollDraft: Equatable {
 
     /// Where the offered Modifier came from, while the field still holds it: the note's own
     /// bonus, or the Ability's modifier worked out from the note's score — said apart, because
-    /// the second is the number a proficient save would beat.
+    /// the second is the number a proficient save would beat. Which Ability is not said: the
+    /// DM has just picked it, and the sheet's subtitle names it.
     var offerCaption: String? {
         guard let offer, let source else { return nil }
         switch offer.basis {
         case .listed:
             return String(localized: "From \(source.noteName)'s note",
                           comment: "Under the Roll sheet's Modifier: the note the number was offered from")
-        case .score(let ability):
-            return String(localized: "From \(source.noteName)'s note (\(ability.title) modifier)",
-                          comment: "Under the Roll sheet's Modifier: the note whose Ability score the number was worked out from, and the Ability")
+        case .score:
+            return String(localized: "From \(source.noteName)'s note (Ability modifier)",
+                          comment: "Under the Roll sheet's Modifier: the note whose score for the chosen Ability the number was worked out from")
         }
     }
 
@@ -178,7 +179,7 @@ struct ModifierSource: Equatable {
     func savingThrow(_ ability: Ability) -> ModifierOffer? {
         if let listed = saves[ability] { return ModifierOffer(value: listed, basis: .listed) }
         guard let scores else { return nil }
-        return ModifierOffer(value: scores.modifier(ability), basis: .score(ability))
+        return ModifierOffer(value: scores.modifier(ability), basis: .score)
     }
 }
 
@@ -187,8 +188,8 @@ struct ModifierOffer: Equatable {
     enum Basis: Equatable {
         /// The bonus the note writes for this very save or skill.
         case listed
-        /// Worked out from the score of this Ability, the note listing nothing for it.
-        case score(Ability)
+        /// Worked out from the chosen Ability's score, the note listing nothing for it.
+        case score
     }
 
     let value: Int

@@ -208,7 +208,7 @@ final class BestiaryAppStateTests: XCTestCase {
         XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note")
         draft.ability = .charisma
         XCTAssertEqual(draft.modifier, -2)
-        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Charisma modifier)")
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Ability modifier)")
     }
 
     func testACreatureThatIsNoMonsterIsOfferedNothing() {

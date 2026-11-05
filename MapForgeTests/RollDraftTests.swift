@@ -119,7 +119,7 @@ final class RollDraftTests: XCTestCase {
     func testAnUnlistedSaveIsOfferedTheAbilitysModifier() {
         let draft = save(.wisdom, from: gnoll(stats: [11, 12, 10, 10, 13, 10]))
         XCTAssertEqual(draft.modifier, 1)
-        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Wisdom modifier)")
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Ability modifier)")
     }
 
     func testTheListedSaveWinsOverTheScore() {
@@ -134,7 +134,7 @@ final class RollDraftTests: XCTestCase {
         let draft = save(.wisdom, from: gnoll(saves: [.init(name: "Sag", bonus: 2)],
                                               stats: [11, 12, 10, 10, 8, 10]))
         XCTAssertEqual(draft.modifier, -1)
-        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Wisdom modifier)")
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Ability modifier)")
     }
 
     /// No matching save and no `stats:` that could be read: nothing to offer, as today.
@@ -150,7 +150,7 @@ final class RollDraftTests: XCTestCase {
         XCTAssertEqual(draft.modifier, 3)
         draft.ability = .charisma
         XCTAssertEqual(draft.modifier, -2)
-        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Charisma modifier)")
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Ability modifier)")
     }
 
     func testATypedNumberIsNotOverwrittenByTheScore() {
@@ -168,7 +168,7 @@ final class RollDraftTests: XCTestCase {
         var draft = RollDraft(pawn: pawn, kind: .savingThrow, source: ModifierSource(note: durga))
         draft.ability = .strength
         XCTAssertEqual(draft.modifier, 2)
-        XCTAssertEqual(draft.offerCaption, "From Durga Pietraferma's note (Strength modifier)")
+        XCTAssertEqual(draft.offerCaption, "From Durga Pietraferma's note (Ability modifier)")
         draft.ability = .wisdom
         XCTAssertEqual(draft.modifier, 6)
         XCTAssertEqual(draft.offerCaption, "From Durga Pietraferma's note")

@@ -6850,49 +6850,43 @@
         }
       }
     },
-    "From %@'s note (%@ modifier)": {
-      "comment": "Under the Roll sheet's Modifier: the note whose Ability score the number was worked out from, and the Ability",
+    "From %@'s note (Ability modifier)": {
+      "comment": "Under the Roll sheet's Modifier: the note whose score for the chosen Ability the number was worked out from",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aus der Notiz zu %1$@ (Modifikator für %2$@)"
+            "value": "Aus der Notiz zu %@ (Attributsmodifikator)"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Από τη σημείωση: %1$@ (%2$@ Modifier)"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "From %1$@'s note (%2$@ modifier)"
+            "value": "Από τη σημείωση: %@ (Ability Modifier)"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "De la nota de %1$@ (modificador de %2$@)"
+            "value": "De la nota de %@ (modificador de característica)"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "D’après la note de %1$@ (modificateur : %2$@)"
+            "value": "D’après la note de %@ (modificateur de caractéristique)"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dalla nota di %1$@ (modificatore di %2$@)"
+            "value": "Dalla nota di %@ (modificatore di caratteristica)"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Da nota de %1$@ (modificador de %2$@)"
+            "value": "Da nota de %@ (modificador de atributo)"
           }
         }
       }
