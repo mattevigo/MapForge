@@ -211,6 +211,25 @@ final class BestiaryAppStateTests: XCTestCase {
         XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Ability modifier)")
     }
 
+    /// The Ability Check reaches the same note: the skill it lists, and the Skill's Ability's
+    /// modifier for the one it does not.
+    func testACreaturesAbilityCheckIsOfferedFromItsMonstersNote() {
+        let state = makeAppState()
+        var listed = gnoll
+        listed.skills = [.init(name: "Percezione", bonus: 4)]
+        listed.abilityScores = AbilityScores([14, 12, 11, 6, 10, 7])
+        state.bestiary = Bestiary(monsters: [listed])
+        let pawn = creature("1", monsterName: "Gnoll Guerriero")
+
+        var draft = RollDraft(pawn: pawn, kind: .abilityCheck, source: state.modifierSource(for: pawn))
+        draft.skill = .perception
+        XCTAssertEqual(draft.modifier, 4)
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note")
+        draft.skill = .acrobatics
+        XCTAssertEqual(draft.modifier, 1)
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Ability modifier)")
+    }
+
     func testACreatureThatIsNoMonsterIsOfferedNothing() {
         XCTAssertNil(makeAppState().modifierSource(for: creature("1")))
     }

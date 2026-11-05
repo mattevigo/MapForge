@@ -174,3 +174,93 @@ final class RollDraftTests: XCTestCase {
         XCTAssertEqual(draft.offerCaption, "From Durga Pietraferma's note")
     }
 }
+
+// MARK: - The Ability Check's offer (ADR-0029)
+
+/// A Skill is offered the bonus the note lists for it, else its Ability's modifier from the
+/// note's `stats:`. The same note, caption and follow-until-typed as a Saving Throw.
+final class AbilityCheckOfferTests: XCTestCase {
+
+    private let pawn = Pawn(at: MapPoint(x: 20, y: 15), label: "Govinda",
+                            colorHex: "#FF8800", brightSquares: 6)
+
+    private var govinda: CharacterNote {
+        var note = CharacterNote(name: "Govinda")
+        note.skills = [.init(name: "Furtività", bonus: 6)]
+        note.abilityScores = AbilityScores([10, 17, 15, 10, 14, 10])
+        return note
+    }
+
+    private func check(_ skill: Skill, from source: ModifierSource) -> RollDraft {
+        var draft = RollDraft(pawn: pawn, kind: .abilityCheck, source: source)
+        draft.skill = skill
+        return draft
+    }
+
+    func testAListedSkillIsOfferedTheNotesBonus() {
+        let draft = check(.stealth, from: ModifierSource(note: govinda))
+        XCTAssertEqual(draft.modifier, 6)
+        XCTAssertEqual(draft.offerCaption, "From Govinda's note")
+    }
+
+    /// Medicine is Wisdom's, and Govinda's 14 gives +2. The caption says it is the Ability's
+    /// modifier; the sheet's subtitle, "Medicine · Wisdom", says which Ability.
+    func testAnUnlistedSkillIsOfferedItsAbilitysModifier() {
+        let draft = check(.medicine, from: ModifierSource(note: govinda))
+        XCTAssertEqual(draft.modifier, 2)
+        XCTAssertEqual(draft.offerCaption, "From Govinda's note (Ability modifier)")
+    }
+
+    func testTheOfferFollowsTheSkillUntilTheDMTypes() {
+        var draft = check(.stealth, from: ModifierSource(note: govinda))
+        draft.skill = .medicine
+        XCTAssertEqual(draft.modifier, 2, "switching before typing re-offers")
+        draft.typeModifier(4)
+        draft.skill = .stealth
+        XCTAssertEqual(draft.modifier, 4, "after typing, the DM's number stays")
+        XCTAssertNil(draft.offerCaption)
+    }
+
+    /// A multi-word name, written the way the vault writes it.
+    func testAListedMultiWordSkillIsOffered() {
+        var note = govinda
+        note.skills = [.init(name: "Rapidità di Mano", bonus: 7)]
+        XCTAssertEqual(check(.sleightOfHand, from: ModifierSource(note: note)).modifier, 7)
+    }
+
+    /// A name that is no Skill's — an abbreviation, a typo — is ignored, and the score speaks.
+    func testAnUnmatchedSkillNameIsIgnored() {
+        var note = govinda
+        note.skills = [.init(name: "Furtiv", bonus: 9)]
+        let draft = check(.stealth, from: ModifierSource(note: note))
+        XCTAssertEqual(draft.modifier, 3)
+        XCTAssertEqual(draft.offerCaption, "From Govinda's note (Ability modifier)")
+    }
+
+    func testANoteWithNeitherSkillNorScoresOffersNothing() {
+        var note = govinda
+        note.abilityScores = nil
+        let draft = check(.medicine, from: ModifierSource(note: note))
+        XCTAssertEqual(draft.modifier, 0)
+        XCTAssertNil(draft.offerCaption)
+    }
+
+    /// A Monster's `Percezione: 4` is offered on Perception; Acrobatics, unlisted, is Dexterity's.
+    func testAMonstersSkillsAreOfferedToo() {
+        var goblin = Monster(name: "Goblin Guerriero")
+        goblin.skills = [.init(name: "Percezione", bonus: 4)]
+        goblin.abilityScores = AbilityScores([8, 15, 10, 10, 8, 8])
+        let source = ModifierSource(monster: goblin)
+        XCTAssertEqual(check(.perception, from: source).modifier, 4)
+        let acrobatics = check(.acrobatics, from: source)
+        XCTAssertEqual(acrobatics.modifier, 2)
+        XCTAssertEqual(acrobatics.offerCaption, "From Goblin Guerriero's note (Ability modifier)")
+    }
+
+    /// A save's name is not a skill's: the note's Wisdom save is not offered for Insight.
+    func testASaveIsNotOfferedAsASkill() {
+        var note = govinda
+        note.saves = [.init(name: "Saggezza", bonus: 5)]
+        XCTAssertEqual(check(.insight, from: ModifierSource(note: note)).modifier, 2)
+    }
+}

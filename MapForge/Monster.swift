@@ -75,7 +75,7 @@ struct Monster: Equatable, Identifiable {
     /// A save or a skill the Monster is good at, as the note names it — "Saggezza ●",
     /// "Furtività", "constitution". Kept as written for the reference page; the Roll sheet
     /// matches it onto an `Ability` or `Skill` by its rulebook name when it offers a Modifier,
-    /// and a name that matches nothing offers nothing (ADR-0029).
+    /// and a name that matches nothing is ignored, leaving the score to offer (ADR-0029).
     struct Proficiency: Equatable {
         var name: String
         var bonus: Int
