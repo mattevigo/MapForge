@@ -192,10 +192,23 @@ final class BestiaryAppStateTests: XCTestCase {
 
     // MARK: The Roll sheet's offer (ADR-0029)
 
+    /// From the Pawn on the Map to the number in the field: the save the note lists, and the
+    /// score's modifier for the one it does not.
     func testACreatureIsOfferedFromItsMonstersNote() {
         let state = makeAppState()
-        XCTAssertEqual(state.modifierSource(for: creature("1", monsterName: "Gnoll Guerriero"))?.noteName,
-                       "Gnoll Guerriero")
+        var listed = gnoll
+        listed.saves = [.init(name: "Saggezza", bonus: 2)]
+        listed.abilityScores = AbilityScores([14, 12, 11, 6, 10, 7])
+        state.bestiary = Bestiary(monsters: [listed])
+        let pawn = creature("1", monsterName: "Gnoll Guerriero")
+
+        var draft = RollDraft(pawn: pawn, kind: .savingThrow, source: state.modifierSource(for: pawn))
+        draft.ability = .wisdom
+        XCTAssertEqual(draft.modifier, 2)
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note")
+        draft.ability = .charisma
+        XCTAssertEqual(draft.modifier, -2)
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Charisma modifier)")
     }
 
     func testACreatureThatIsNoMonsterIsOfferedNothing() {
