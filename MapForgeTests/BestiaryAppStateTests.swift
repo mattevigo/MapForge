@@ -190,6 +190,62 @@ final class BestiaryAppStateTests: XCTestCase {
         XCTAssertNil(state.statsDocument.blocks[placed.id])
     }
 
+    // MARK: The Roll sheet's offer (ADR-0029)
+
+    /// From the Pawn on the Map to the number in the field: the save the note lists, and the
+    /// score's modifier for the one it does not.
+    func testACreatureIsOfferedFromItsMonstersNote() {
+        let state = makeAppState()
+        var listed = gnoll
+        listed.saves = [.init(name: "Saggezza", bonus: 2)]
+        listed.abilityScores = AbilityScores([14, 12, 11, 6, 10, 7])
+        state.bestiary = Bestiary(monsters: [listed])
+        let pawn = creature("1", monsterName: "Gnoll Guerriero")
+
+        var draft = RollDraft(pawn: pawn, kind: .savingThrow, source: state.modifierSource(for: pawn))
+        draft.ability = .wisdom
+        XCTAssertEqual(draft.modifier, 2)
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note")
+        draft.ability = .charisma
+        XCTAssertEqual(draft.modifier, -2)
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Ability modifier)")
+    }
+
+    /// The Ability Check reaches the same note: the skill it lists, and the Skill's Ability's
+    /// modifier for the one it does not.
+    func testACreaturesAbilityCheckIsOfferedFromItsMonstersNote() {
+        let state = makeAppState()
+        var listed = gnoll
+        listed.skills = [.init(name: "Percezione", bonus: 4)]
+        listed.abilityScores = AbilityScores([14, 12, 11, 6, 10, 7])
+        state.bestiary = Bestiary(monsters: [listed])
+        let pawn = creature("1", monsterName: "Gnoll Guerriero")
+
+        var draft = RollDraft(pawn: pawn, kind: .abilityCheck, source: state.modifierSource(for: pawn))
+        draft.skill = .perception
+        XCTAssertEqual(draft.modifier, 4)
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note")
+        draft.skill = .acrobatics
+        XCTAssertEqual(draft.modifier, 1)
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Ability modifier)")
+    }
+
+    func testACreatureThatIsNoMonsterIsOfferedNothing() {
+        XCTAssertNil(makeAppState().modifierSource(for: creature("1")))
+    }
+
+    /// Its numbers are its own and unaffected; it loses a suggestion and nothing else.
+    func testACreatureWhoseMonsterLeftTheNotesIsOfferedNothing() {
+        XCTAssertNil(makeAppState().modifierSource(for: creature("1", monsterName: "Wraith")))
+    }
+
+    /// A Treasure has no numbers to offer, whatever name a Creature it once was left on it.
+    func testATreasureIsOfferedNothing() {
+        let chest = Pawn(at: MapPoint(x: 100, y: 100), label: "Chest", colorHex: "#C81E1E",
+                         brightSquares: 6, kind: .treasure, monsterName: "Gnoll Guerriero")
+        XCTAssertNil(makeAppState().modifierSource(for: chest))
+    }
+
     // MARK: The Workspace
 
     func testOpeningAWorkspaceReadsItsNotesAndClosingForgetsThem() async throws {

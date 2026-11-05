@@ -2,22 +2,23 @@ import Foundation
 
 /// One of the six Abilities of DnD 5.5e.
 ///
-/// The app holds no ability *scores* — a Pawn has no Strength number. What a DM needs mid
-/// fight is the total bonus that applied to this Roll, which they already know, not a
-/// character sheet they must first fill in. See
-/// `docs/adr/0017-a-roll-is-recorded-not-resolved.md`.
-enum Ability: String, Codable, CaseIterable {
+/// A Pawn has no ability *scores* — no Strength number — and the app never asks for one. What
+/// a DM needs mid fight is the total bonus that applied to this Roll, not a character sheet
+/// they must first fill in. See `docs/adr/0017-a-roll-is-recorded-not-resolved.md`, and
+/// `docs/adr/0029-the-modifier-is-offered-from-the-note.md` for the one place a note's
+/// numbers reach a Roll.
+enum Ability: String, Codable, CaseIterable, LocalizedTitle {
     case strength, dexterity, constitution, intelligence, wisdom, charisma
 
     /// Named in full in the domain; the abbreviation is for controls too narrow for the word.
-    var title: String {
+    var titleResource: LocalizedStringResource {
         switch self {
-        case .strength: String(localized: "Strength")
-        case .dexterity: String(localized: "Dexterity")
-        case .constitution: String(localized: "Constitution")
-        case .intelligence: String(localized: "Intelligence")
-        case .wisdom: String(localized: "Wisdom")
-        case .charisma: String(localized: "Charisma")
+        case .strength: LocalizedStringResource("Strength")
+        case .dexterity: LocalizedStringResource("Dexterity")
+        case .constitution: LocalizedStringResource("Constitution")
+        case .intelligence: LocalizedStringResource("Intelligence")
+        case .wisdom: LocalizedStringResource("Wisdom")
+        case .charisma: LocalizedStringResource("Charisma")
         }
     }
 
@@ -30,6 +31,35 @@ enum Ability: String, Codable, CaseIterable {
         case .wisdom: String(localized: "WIS", comment: "An Ability abbreviated, as the stat block prints it")
         case .charisma: String(localized: "CHA", comment: "An Ability abbreviated, as the stat block prints it")
         }
+    }
+}
+
+/// The six scores a note's `stats:` writes, read only to offer a Modifier (ADR-0029).
+///
+/// A Pawn never has these. They live on the `Monster` or `CharacterNote` they were read from,
+/// are rebuilt with it each time the notes are read, and never reach a `StatBlock`, a Roll or
+/// any file the app saves: the Roll stores the number the DM let stand, not where it came from.
+struct AbilityScores: Equatable {
+    private let scores: [Int]
+
+    /// `stats:` as the rulebook orders it — STR, DEX, CON, INT, WIS, CHA — or nil when it is
+    /// not exactly six. Half a list cannot say which score is whose.
+    init?(_ scores: [Int]) {
+        guard scores.count == Ability.allCases.count else { return nil }
+        self.scores = scores
+    }
+
+    subscript(ability: Ability) -> Int {
+        scores[Ability.allCases.firstIndex(of: ability)!]
+    }
+
+    /// The modifier `ability`'s score gives.
+    func modifier(_ ability: Ability) -> Int { Self.modifier(of: self[ability]) }
+
+    /// `floor((score − 10) / 2)`, rounding toward negative infinity: a 9 is −1, not 0, which is
+    /// what Swift's `/` would make of it.
+    static func modifier(of score: Int) -> Int {
+        Int((Double(score - 10) / 2).rounded(.down))
     }
 }
 

@@ -240,6 +240,11 @@ struct NumberField: View {
     /// typing down the column would move the row out from under the next Tab. Declared
     /// before `commit` so a bare trailing closure still lands on `commit`.
     var submitted: (() -> Void)? = nil
+    /// Called on every keystroke, before any commit. For a field whose model must learn that
+    /// the DM is typing at once: the Roll sheet's Modifier stops following the Ability the
+    /// moment the DM types into it, and a click on Record with the mouse — which leaves focus
+    /// here, so nothing commits — must still record the number on screen.
+    var edited: ((Int?) -> Void)? = nil
     let commit: (Int?) -> Void
 
     @State private var text: String = ""
@@ -267,6 +272,12 @@ struct NumberField: View {
                 // Focus loss is a commit: a DM who types a number and clicks the next
                 // field has decided, and requiring Return as well would lose it.
                 if wasFocused && !nowFocused { commitText() }
+            }
+            .onChange(of: text) { _, new in
+                // Only the DM's own typing: `adopt` sets `committed` along with the text.
+                guard isFocused, new != committed, let edited else { return }
+                let trimmed = new.trimmingCharacters(in: .whitespaces)
+                edited(trimmed.isEmpty ? nil : Int(trimmed))
             }
             .onSubmit {
                 commitText()

@@ -246,11 +246,13 @@ struct Pawn: Codable, Equatable, Identifiable {
 
     /// Which `PartyCharacter` Stamped this Pawn, when one did.
     ///
-    /// **Advisory, and read by exactly two things**: the Party panel's count of how many of a
-    /// Character's Pawns stand on this Map, and the Combat tab's Character page, looked up
-    /// through it (`AppState.characterPage(for:)`, ADR-0007 amended). Nothing about drawing,
-    /// lighting, discovery or persistence may branch on it, and a Pawn whose Character has
-    /// been deleted is in no way diminished — it stops being counted and loses a page.
+    /// **Advisory, and read by exactly three things**: the Party panel's count of how many of a
+    /// Character's Pawns stand on this Map, the Combat tab's Character page, looked up
+    /// through it (`AppState.characterPage(for:)`, ADR-0007 amended), and the Roll sheet's
+    /// offered Modifier, read from the same note (`AppState.modifierSource(for:)`, ADR-0029).
+    /// Nothing about drawing, lighting, discovery or persistence may branch on it, and a Pawn
+    /// whose Character has been deleted is in no way diminished — it stops being counted and
+    /// loses a page and a suggestion.
     ///
     /// This is not a link. The Pawn holds its own label, colour and sight, copied at the
     /// moment of the drag, so `<map>.fog.json` stays readable with no roster present. See
@@ -259,12 +261,14 @@ struct Pawn: Codable, Equatable, Identifiable {
 
     /// Which `Monster` this Creature was said to be, by the `name:` its note gives it.
     ///
-    /// **Advisory**, in `characterID`'s sense, and read by exactly three things: the Combat
+    /// **Advisory**, in `characterID`'s sense, and read by exactly four things: the Combat
     /// tab's reference view, which looks the Monster's actions up by it, `AddPlacement`,
-    /// which gives the next Creature the same Monster, and `FaceSource`, which tells which
-    /// Pawns re-cutting the Monster's Face for every one reaches (ADR-0028). The Pawn's numbers were *copied* into
-    /// its Stat Block when the Monster was chosen (`MonsterStamp`), so a Creature whose note
-    /// has been renamed or deleted loses a page of reference and nothing else.
+    /// which gives the next Creature the same Monster, `FaceSource`, which tells which
+    /// Pawns re-cutting the Monster's Face for every one reaches (ADR-0028), and the Roll
+    /// sheet's offered Modifier, read from the same note (`AppState.modifierSource(for:)`,
+    /// ADR-0029). The Pawn's numbers were *copied* into its Stat Block when the Monster was
+    /// chosen (`MonsterStamp`), so a Creature whose note has been renamed or deleted loses a
+    /// page of reference and a suggestion, and nothing else.
     ///
     /// A name, not a path and not an ID: the notes carry no IDs, a path would write the DM's
     /// vault layout into a file meant to be portable, and a name is something a DM opening

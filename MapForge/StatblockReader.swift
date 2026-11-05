@@ -96,6 +96,7 @@ enum StatblockReader {
         monster.source = text(tree["source"])
         monster.saves = proficiencies(tree["saves"])
         monster.skills = proficiencies(tree["skillsaves"])
+        monster.abilityScores = abilityScores(tree["stats"])
         monster.damageVulnerabilities = text(tree["damage_vulnerabilities"])
         monster.damageResistances = text(tree["damage_resistances"])
         monster.damageImmunities = text(tree["damage_immunities"])
@@ -137,6 +138,7 @@ enum StatblockReader {
         note.languages = text(fields["languages"])
         note.saves = proficiencies(fields["saves"])
         note.skills = proficiencies(fields["skillsaves"])
+        note.abilityScores = abilityScores(fields["stats"])
         note.traits = features(fields["traits"])
         note.actions = features(fields["actions"])
         note.spells = textList(fields["spells"])
@@ -327,6 +329,16 @@ enum StatblockReader {
             }
             return (item as? String).flatMap(text)
         }
+    }
+
+    /// `stats: [14, 12, 11, 6, 10, 7]` — six numbers, each by `number(_:)`'s rule, or nothing
+    /// at all. One score that is not a number spoils the list: an offer built on five good
+    /// scores and a guess would be wrong with confidence (ADR-0029).
+    private static func abilityScores(_ value: Any?) -> AbilityScores? {
+        guard let items = value as? [Any] else { return nil }
+        let scores = items.compactMap(number)
+        guard scores.count == items.count else { return nil }
+        return AbilityScores(scores)
     }
 
     /// `saves:` and `skillsaves:` — a list of single-key maps in the vault's files, and

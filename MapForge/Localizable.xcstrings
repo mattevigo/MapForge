@@ -6849,6 +6849,88 @@
         }
       }
     },
+    "From %@'s note": {
+      "comment": "Under the Roll sheet's Modifier: the note the number was offered from",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus der Notiz zu %@"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Από τη σημείωση: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De la nota de %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "D’après la note de %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dalla nota di %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da nota de %@"
+          }
+        }
+      }
+    },
+    "From %@'s note (Ability modifier)": {
+      "comment": "Under the Roll sheet's Modifier: the note whose score for the chosen Ability the number was worked out from",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus der Notiz zu %@ (Attributsmodifikator)"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Από τη σημείωση: %@ (Ability Modifier)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De la nota de %@ (modificador de característica)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "D’après la note de %@ (modificateur de caractéristique)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dalla nota di %@ (modificatore di caratteristica)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da nota de %@ (modificador de atributo)"
+          }
+        }
+      }
+    },
     "General": {
       "localizations": {
         "de": {

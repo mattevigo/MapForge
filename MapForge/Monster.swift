@@ -34,6 +34,9 @@ struct Monster: Equatable, Identifiable {
     var source: String?
     var saves: [Proficiency] = []
     var skills: [Proficiency] = []
+    /// The note's `stats:`, or nil when it writes none that is six numbers. Never shown and
+    /// never stamped: read only so the Roll sheet can offer an unlisted save (ADR-0029).
+    var abilityScores: AbilityScores?
     var damageVulnerabilities: String?
     var damageResistances: String?
     var damageImmunities: String?
@@ -69,9 +72,10 @@ struct Monster: Equatable, Identifiable {
         var desc: String
     }
 
-    /// A save or a skill the Monster is good at, as the note names it — "Des", "Furtività",
-    /// "constitution". The name is never mapped onto `Ability` or `Skill`: the notes spell
-    /// them three ways, and nothing here computes a Roll (ADR-0017).
+    /// A save or a skill the Monster is good at, as the note names it — "Saggezza ●",
+    /// "Furtività", "constitution". Kept as written for the reference page; the Roll sheet
+    /// matches it onto an `Ability` or `Skill` by its rulebook name when it offers a Modifier,
+    /// and a name that matches nothing is ignored, leaving the score to offer (ADR-0029).
     struct Proficiency: Equatable {
         var name: String
         var bonus: Int
