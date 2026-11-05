@@ -91,6 +91,20 @@ final class BestiaryTests: XCTestCase {
         XCTAssertEqual(BestiaryStore.load(for: workspace).monsters.map(\.name), ["Lich"])
     }
 
+    func testAHiddenFileHidesNothingBesideIt() throws {
+        // Finder leaves a `.DS_Store` in every folder it opens. Skipping the descendants of a
+        // file skips the rest of its folder, which emptied the Bestiary of a real Workspace.
+        let names = ["Aboleth", "Basilisco", "Chuul", "Nothic", "Ogre", "Wraith", "Zombi"]
+        for name in names {
+            try write(note(name), to: "Riferimento/Mostri/\(name).md")
+        }
+        for folder in ["", "Riferimento/", "Riferimento/Mostri/"] {
+            try write("", to: folder + ".DS_Store")
+        }
+
+        XCTAssertEqual(BestiaryStore.load(for: workspace).monsters.map(\.name), names)
+    }
+
     func testABrokenStatblockIsSkippedAndNamedFromTheWorkspaceRoot() throws {
         try write(note("Lich"), to: "Bestiario/Lich.md")
         try write("```statblock\nac: 12\n```\n", to: "Bestiario/Senza_Nome.md")

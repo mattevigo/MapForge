@@ -139,12 +139,14 @@ enum BestiaryStore {
         var others: [String] = []
         while let path = enumerator.nextObject() as? String {
             let name = (path as NSString).lastPathComponent
+            let isDirectory = enumerator.fileAttributes?[.type] as? FileAttributeType == .typeDirectory
             if name.hasPrefix(".") {
-                enumerator.skipDescendants()
+                // A folder's only: on a file — Finder's `.DS_Store` — it skips the rest of
+                // the folder the file is in.
+                if isDirectory { enumerator.skipDescendants() }
                 continue
             }
-            guard enumerator.fileAttributes?[.type] as? FileAttributeType != .typeDirectory
-            else { continue }
+            guard !isDirectory else { continue }
             if (name as NSString).pathExtension.lowercased() == "md" {
                 notes.append(path)
             } else {
