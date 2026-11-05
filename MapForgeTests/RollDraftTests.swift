@@ -94,4 +94,83 @@ final class RollDraftTests: XCTestCase {
         draft.typeModifier(-1)
         XCTAssertEqual(draft.roll?.total, 8)
     }
+
+    // MARK: The offer (ADR-0029)
+
+    private func gnoll(saves: [Monster.Proficiency] = [], stats: [Int]? = nil) -> Monster {
+        var gnoll = Monster(name: "Gnoll Guerriero")
+        gnoll.saves = saves
+        gnoll.abilityScores = stats.flatMap(AbilityScores.init)
+        return gnoll
+    }
+
+    private func save(_ ability: Ability, from monster: Monster) -> RollDraft {
+        var draft = RollDraft(pawn: pawn, kind: .savingThrow, source: ModifierSource(monster: monster))
+        draft.ability = ability
+        return draft
+    }
+
+    func testAMonstersListedSaveIsOffered() {
+        let draft = save(.wisdom, from: gnoll(saves: [.init(name: "Saggezza", bonus: 2)]))
+        XCTAssertEqual(draft.modifier, 2)
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note")
+    }
+
+    func testAnUnlistedSaveIsOfferedTheAbilitysModifier() {
+        let draft = save(.wisdom, from: gnoll(stats: [11, 12, 10, 10, 13, 10]))
+        XCTAssertEqual(draft.modifier, 1)
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Wisdom modifier)")
+    }
+
+    func testTheListedSaveWinsOverTheScore() {
+        let draft = save(.wisdom, from: gnoll(saves: [.init(name: "Saggezza ●", bonus: 4)],
+                                              stats: [11, 12, 10, 10, 13, 10]))
+        XCTAssertEqual(draft.modifier, 4)
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note")
+    }
+
+    /// An abbreviation is not the rulebook's name, so it is not the Wisdom save: the score is.
+    func testAnAbbreviatedSaveIsNotMatchedAndTheScoreIsOffered() {
+        let draft = save(.wisdom, from: gnoll(saves: [.init(name: "Sag", bonus: 2)],
+                                              stats: [11, 12, 10, 10, 8, 10]))
+        XCTAssertEqual(draft.modifier, -1)
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Wisdom modifier)")
+    }
+
+    /// No matching save and no `stats:` that could be read: nothing to offer, as today.
+    func testANoteWithNeitherOffersNothing() {
+        let draft = save(.wisdom, from: gnoll(saves: [.init(name: "Destrezza", bonus: 3)]))
+        XCTAssertEqual(draft.modifier, 0)
+        XCTAssertNil(draft.offerCaption)
+    }
+
+    func testTheOfferFollowsTheAbilityFromListedToScore() {
+        var draft = save(.dexterity, from: gnoll(saves: [.init(name: "Destrezza", bonus: 3)],
+                                                 stats: [14, 12, 11, 6, 10, 7]))
+        XCTAssertEqual(draft.modifier, 3)
+        draft.ability = .charisma
+        XCTAssertEqual(draft.modifier, -2)
+        XCTAssertEqual(draft.offerCaption, "From Gnoll Guerriero's note (Charisma modifier)")
+    }
+
+    func testATypedNumberIsNotOverwrittenByTheScore() {
+        var draft = save(.dexterity, from: gnoll(stats: [14, 12, 11, 6, 10, 7]))
+        draft.typeModifier(6)
+        draft.ability = .wisdom
+        XCTAssertEqual(draft.modifier, 6)
+        XCTAssertNil(draft.offerCaption)
+    }
+
+    func testACharacterNoteMissingASaveFallsBackToItsScores() {
+        var durga = CharacterNote(name: "Durga Pietraferma")
+        durga.saves = [.init(name: "Saggezza ●", bonus: 6)]
+        durga.abilityScores = AbilityScores([14, 10, 14, 10, 16, 12])
+        var draft = RollDraft(pawn: pawn, kind: .savingThrow, source: ModifierSource(note: durga))
+        draft.ability = .strength
+        XCTAssertEqual(draft.modifier, 2)
+        XCTAssertEqual(draft.offerCaption, "From Durga Pietraferma's note (Strength modifier)")
+        draft.ability = .wisdom
+        XCTAssertEqual(draft.modifier, 6)
+        XCTAssertEqual(draft.offerCaption, "From Durga Pietraferma's note")
+    }
 }

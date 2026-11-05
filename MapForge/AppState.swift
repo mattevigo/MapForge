@@ -988,14 +988,24 @@ final class AppState: ObservableObject {
         return .missing(noteName: noteName)
     }
 
-    /// The note the Roll sheet offers `pawn`'s Modifier from (ADR-0029): its Character's,
-    /// reached the way `characterPage(for:)` reaches it — live, so a note edited since the
-    /// Stamp is the one offered. Nil for any Pawn with no Character or whose note is not read,
-    /// and for any Pawn that is no longer a Player: a Stamped Pawn the DM made a Creature keeps
-    /// its `characterID`, and its hero's saves are not its own.
+    /// The note the Roll sheet offers `pawn`'s Modifier from (ADR-0029): a Player's Character's,
+    /// reached the way `characterPage(for:)` reaches it, or a Creature's Monster's, reached the
+    /// way the Combat tab's Monster page reaches it — both live, so a note edited since the
+    /// Stamp is the one offered.
+    ///
+    /// By the Pawn's kind first, because each link outlives the kind it was made for: a Stamped
+    /// Pawn the DM made a Creature keeps its `characterID`, and its hero's saves are not its
+    /// own. Nil for a Treasure, which has no numbers, and for any Pawn whose note is not read.
     func modifierSource(for pawn: Pawn) -> ModifierSource? {
-        guard pawn.kind == .player, case .note(let note) = characterPage(for: pawn) else { return nil }
-        return ModifierSource(note: note)
+        switch pawn.kind {
+        case .player:
+            guard case .note(let note) = characterPage(for: pawn) else { return nil }
+            return ModifierSource(note: note)
+        case .creature:
+            return bestiary.monster(named: pawn.monsterName).map(ModifierSource.init(monster:))
+        case .treasure:
+            return nil
+        }
     }
 
     /// Whether the roster should say a Character has no note. Not while the notes are still

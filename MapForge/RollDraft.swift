@@ -56,7 +56,7 @@ struct RollDraft: Equatable {
     /// The subject, one of which is relevant per `kind`. Two fields rather than one
     /// enum-of-either, because the sheet shows one grid or the other and switching kinds
     /// mid-sheet is not a thing it offers.
-    var ability: Ability? { didSet { offer() } }
+    var ability: Ability? { didSet { offerForSubject() } }
     var skill: Skill?
 
     /// Optional by design — see `Roll.difficultyClass`.
@@ -65,9 +65,9 @@ struct RollDraft: Equatable {
     /// What the field holds: the note's offer until the DM types, and theirs from then on.
     private(set) var modifier: Int = 0
 
-    /// Whether `modifier` is the note's offer rather than a number the DM typed or a 0 nobody
-    /// offered. What the sheet's caption is shown on.
-    private(set) var isOffered = false
+    /// The note's offer `modifier` holds, or nil when it holds a number the DM typed or a 0
+    /// nobody offered. What the sheet's caption is shown on.
+    private(set) var offer: ModifierOffer?
 
     /// Set by the DM's first edit of the field and never cleared: a blessed +6 typed for the
     /// wrong save survives the DM clicking the right one.
@@ -85,26 +85,33 @@ struct RollDraft: Equatable {
     mutating func typeModifier(_ value: Int) {
         modifier = value
         isTyped = true
-        isOffered = false
+        offer = nil
     }
 
-    /// The note's bonus for the subject just chosen, or 0 when it gives none — the offer for
+    /// The note's number for the subject just chosen, or 0 when it gives none — the offer for
     /// the previous subject must not stand in for this one's. Nothing once the DM has typed.
-    private mutating func offer() {
+    private mutating func offerForSubject() {
         guard !isTyped else { return }
-        let offered: Int? = switch kind {
-        case .savingThrow: ability.flatMap { source?.bonus(for: $0) }
+        offer = switch kind {
+        case .savingThrow: ability.flatMap { source?.savingThrow($0) }
         case .abilityCheck: nil
         }
-        modifier = offered ?? 0
-        isOffered = offered != nil
+        modifier = offer?.value ?? 0
     }
 
-    /// Where the offered Modifier came from, while the field still holds it.
+    /// Where the offered Modifier came from, while the field still holds it: the note's own
+    /// bonus, or the Ability's modifier worked out from the note's score — said apart, because
+    /// the second is the number a proficient save would beat.
     var offerCaption: String? {
-        guard isOffered, let source else { return nil }
-        return String(localized: "From \(source.noteName)'s note",
-                      comment: "Under the Roll sheet's Modifier: the note the number was offered from")
+        guard let offer, let source else { return nil }
+        switch offer.basis {
+        case .listed:
+            return String(localized: "From \(source.noteName)'s note",
+                          comment: "Under the Roll sheet's Modifier: the note the number was offered from")
+        case .score(let ability):
+            return String(localized: "From \(source.noteName)'s note (\(ability.title) modifier)",
+                          comment: "Under the Roll sheet's Modifier: the note whose Ability score the number was worked out from, and the Ability")
+        }
     }
 
     /// The Roll this draft would record, or nil while it is not yet recordable.
@@ -136,24 +143,54 @@ struct RollDraft: Equatable {
     }
 }
 
-/// The note a rolling Pawn's Modifier is offered from: its Character's (ADR-0029).
+/// The note a rolling Pawn's Modifier is offered from: its Character's, or its Monster's
+/// (ADR-0029).
 ///
 /// The note's saves already matched onto the Abilities they name, so the sheet asks by
 /// `Ability` and never by a string. A save whose name matches nothing is dropped, silently —
-/// the cost is a suggestion the DM types instead, and the Combat tab still shows the note's
-/// own list.
+/// the cost is a suggestion the score gives instead, or the DM types, and the Combat tab still
+/// shows the note's own list.
 struct ModifierSource: Equatable {
-    /// The fence's `name`, for the caption: "Durga Pietraferma".
+    /// The fence's `name`, for the caption: "Durga Pietraferma", "Gnoll Guerriero".
     let noteName: String
     private let saves: [Ability: Int]
+    private let scores: AbilityScores?
 
     init(note: CharacterNote) {
-        noteName = note.name
-        saves = Dictionary(note.saves.compactMap { save in
-            Ability.named(save.name).map { ($0, save.bonus) }
-        }, uniquingKeysWith: { first, _ in first })
+        self.init(noteName: note.name, saves: note.saves, scores: note.abilityScores)
     }
 
-    /// The bonus the note gives a Saving Throw with `ability`, or nil when it lists none.
-    func bonus(for ability: Ability) -> Int? { saves[ability] }
+    init(monster: Monster) {
+        self.init(noteName: monster.name, saves: monster.saves, scores: monster.abilityScores)
+    }
+
+    private init(noteName: String, saves: [Monster.Proficiency], scores: AbilityScores?) {
+        self.noteName = noteName
+        self.saves = Dictionary(saves.compactMap { save in
+            Ability.named(save.name).map { ($0, save.bonus) }
+        }, uniquingKeysWith: { first, _ in first })
+        self.scores = scores
+    }
+
+    /// What the note offers a Saving Throw with `ability`: the save it lists, else the
+    /// Ability's modifier from its score — a Monster lists only the saves it is proficient in —
+    /// else nothing.
+    func savingThrow(_ ability: Ability) -> ModifierOffer? {
+        if let listed = saves[ability] { return ModifierOffer(value: listed, basis: .listed) }
+        guard let scores else { return nil }
+        return ModifierOffer(value: scores.modifier(ability), basis: .score(ability))
+    }
+}
+
+/// A number the note offers for the Modifier, and which of the note's numbers it is.
+struct ModifierOffer: Equatable {
+    enum Basis: Equatable {
+        /// The bonus the note writes for this very save or skill.
+        case listed
+        /// Worked out from the score of this Ability, the note listing nothing for it.
+        case score(Ability)
+    }
+
+    let value: Int
+    let basis: Basis
 }

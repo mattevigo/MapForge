@@ -34,6 +34,35 @@ enum Ability: String, Codable, CaseIterable, LocalizedTitle {
     }
 }
 
+/// The six scores a note's `stats:` writes, read only to offer a Modifier (ADR-0029).
+///
+/// A Pawn never has these. They live on the `Monster` or `CharacterNote` they were read from,
+/// are rebuilt with it each time the notes are read, and never reach a `StatBlock`, a Roll or
+/// any file the app saves: the Roll stores the number the DM let stand, not where it came from.
+struct AbilityScores: Equatable {
+    private let scores: [Int]
+
+    /// `stats:` as the rulebook orders it — STR, DEX, CON, INT, WIS, CHA — or nil when it is
+    /// not exactly six. Half a list cannot say which score is whose.
+    init?(_ scores: [Int]) {
+        guard scores.count == Ability.allCases.count else { return nil }
+        self.scores = scores
+    }
+
+    subscript(ability: Ability) -> Int {
+        scores[Ability.allCases.firstIndex(of: ability)!]
+    }
+
+    /// The modifier `ability`'s score gives.
+    func modifier(_ ability: Ability) -> Int { Self.modifier(of: self[ability]) }
+
+    /// `floor((score − 10) / 2)`, rounding toward negative infinity: a 9 is −1, not 0, which is
+    /// what Swift's `/` would make of it.
+    static func modifier(of score: Int) -> Int {
+        Int((Double(score - 10) / 2).rounded(.down))
+    }
+}
+
 /// One of the eighteen Skills of DnD 5.5e, each permanently tied to one Ability.
 ///
 /// The tie is **derived, never stored**: a Skill that changed its Ability would change it for

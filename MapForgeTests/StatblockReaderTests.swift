@@ -297,4 +297,72 @@ final class StatblockReaderTests: XCTestCase {
         }
         XCTAssertEqual(note.imageLink, "Personaggi/Durga.webp")
     }
+
+    // MARK: Ability scores — read only to offer a Modifier (ADR-0029)
+
+    /// `stats:` is the six scores in the rulebook's order: STR, DEX, CON, INT, WIS, CHA.
+    func testTheSixScoresAreReadInTheRulebooksOrder() {
+        let scores = monster(gnoll)?.abilityScores
+        XCTAssertEqual(scores?[.strength], 14)
+        XCTAssertEqual(scores?[.dexterity], 12)
+        XCTAssertEqual(scores?[.constitution], 11)
+        XCTAssertEqual(scores?[.intelligence], 6)
+        XCTAssertEqual(scores?[.wisdom], 10)
+        XCTAssertEqual(scores?[.charisma], 7)
+    }
+
+    func testAStatsListThatIsNotSixNumbersGivesNoScoresAndTheMonsterStaysAMonster() {
+        for stats in ["[11, 12, 10, 10, 13]",
+                      "[11, 12, 10, 10, 13, 10, 9]",
+                      "[11, 12, dieci, 10, 13, 10]",
+                      "forte e saggio",
+                      "[11, 12, \"10 + il livello\", 10, 13, 10]"] {
+            let read = monster(fence("ac: 13\nstats: \(stats)"))
+            XCTAssertEqual(read?.armorClass, 13, stats)
+            XCTAssertNil(read?.abilityScores, stats)
+        }
+    }
+
+    func testANoteWithNoStatsHasNoScores() {
+        XCTAssertNil(monster(fence("ac: 13"))?.abilityScores)
+    }
+
+    func testAMonsterInheritsItsScoresThroughExtends() {
+        let base: StatblockReader.Fields = ["name": "Esploratore",
+                                            "stats": [11, 14, 12, 11, 13, 11]]
+        let fields: StatblockReader.Fields = ["name": "Vinx", "extends": "Esploratore"]
+        guard case .monster(let vinx) = StatblockReader.monster(from: fields,
+                                                                bases: ["Esploratore": base])
+        else { return XCTFail("not read as a Monster") }
+        XCTAssertEqual(vinx.abilityScores?[.wisdom], 13)
+    }
+
+    func testAMonsterThatWritesItsOwnStatsKeepsThem() {
+        let base: StatblockReader.Fields = ["name": "Esploratore",
+                                            "stats": [11, 14, 12, 11, 13, 11]]
+        let fields: StatblockReader.Fields = ["name": "Ugof", "extends": "Esploratore",
+                                              "stats": [18, 10, 16, 8, 9, 8]]
+        guard case .monster(let ugof) = StatblockReader.monster(from: fields,
+                                                                bases: ["Esploratore": base])
+        else { return XCTFail("not read as a Monster") }
+        XCTAssertEqual(ugof.abilityScores?[.wisdom], 9)
+    }
+
+    func testACharactersFenceGivesItsScoresToo() {
+        let fields: StatblockReader.Fields = ["name": "Durga Pietraferma", "class": "Chierico",
+                                              "stats": [14, 10, 14, 10, 16, 12]]
+        guard case .character(let note) = StatblockReader.character(from: fields) else {
+            return XCTFail("not read as a Character's note")
+        }
+        XCTAssertEqual(note.abilityScores?[.wisdom], 16)
+    }
+
+    // MARK: An Ability's modifier
+
+    func testAnAbilitysModifierRoundsDown() {
+        let cases = [(1, -5), (9, -1), (10, 0), (11, 0), (30, 10)]
+        for (score, expected) in cases {
+            XCTAssertEqual(AbilityScores.modifier(of: score), expected, "score \(score)")
+        }
+    }
 }

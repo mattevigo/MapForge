@@ -190,6 +190,30 @@ final class BestiaryAppStateTests: XCTestCase {
         XCTAssertNil(state.statsDocument.blocks[placed.id])
     }
 
+    // MARK: The Roll sheet's offer (ADR-0029)
+
+    func testACreatureIsOfferedFromItsMonstersNote() {
+        let state = makeAppState()
+        XCTAssertEqual(state.modifierSource(for: creature("1", monsterName: "Gnoll Guerriero"))?.noteName,
+                       "Gnoll Guerriero")
+    }
+
+    func testACreatureThatIsNoMonsterIsOfferedNothing() {
+        XCTAssertNil(makeAppState().modifierSource(for: creature("1")))
+    }
+
+    /// Its numbers are its own and unaffected; it loses a suggestion and nothing else.
+    func testACreatureWhoseMonsterLeftTheNotesIsOfferedNothing() {
+        XCTAssertNil(makeAppState().modifierSource(for: creature("1", monsterName: "Wraith")))
+    }
+
+    /// A Treasure has no numbers to offer, whatever name a Creature it once was left on it.
+    func testATreasureIsOfferedNothing() {
+        let chest = Pawn(at: MapPoint(x: 100, y: 100), label: "Chest", colorHex: "#C81E1E",
+                         brightSquares: 6, kind: .treasure, monsterName: "Gnoll Guerriero")
+        XCTAssertNil(makeAppState().modifierSource(for: chest))
+    }
+
     // MARK: The Workspace
 
     func testOpeningAWorkspaceReadsItsNotesAndClosingForgetsThem() async throws {

@@ -6850,6 +6850,53 @@
         }
       }
     },
+    "From %@'s note (%@ modifier)": {
+      "comment": "Under the Roll sheet's Modifier: the note whose Ability score the number was worked out from, and the Ability",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus der Notiz zu %1$@ (Modifikator für %2$@)"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Από τη σημείωση: %1$@ (τροποποιητής: %2$@)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "From %1$@'s note (%2$@ modifier)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De la nota de %1$@ (modificador de %2$@)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "D’après la note de %1$@ (modificateur : %2$@)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dalla nota di %1$@ (modificatore di %2$@)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da nota de %1$@ (modificador de %2$@)"
+          }
+        }
+      }
+    },
     "General": {
       "localizations": {
         "de": {

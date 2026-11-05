@@ -34,6 +34,9 @@ struct Monster: Equatable, Identifiable {
     var source: String?
     var saves: [Proficiency] = []
     var skills: [Proficiency] = []
+    /// The note's `stats:`, or nil when it writes none that is six numbers. Never shown and
+    /// never stamped: read only so the Roll sheet can offer an unlisted save (ADR-0029).
+    var abilityScores: AbilityScores?
     var damageVulnerabilities: String?
     var damageResistances: String?
     var damageImmunities: String?
