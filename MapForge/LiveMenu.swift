@@ -30,6 +30,9 @@ enum LiveMenu {
     struct Items: Equatable {
         /// Whether `Edit…` and `Delete` are offered, and for what.
         var editsTarget: Bool
+        /// The Pawn `Saving Throw…` and `Ability Check…` are offered for, if any. The same
+        /// two Rolls the Pawn's row offers, reached from the token the DM is pointing at.
+        var rollsFor: Pawn.ID?
         /// Pin, unpin, or neither.
         var pin: Pin?
         /// Whether the four Measurement Shapes are listed.
@@ -40,11 +43,17 @@ enum LiveMenu {
         var refusal: MeasurementControl.UnavailableReason?
     }
 
+    /// `pawnKind` is the kind of the Pawn `target` names, and nil when it names none.
     static func items(target: LiveHitTest?,
+                      pawnKind: PawnKind?,
                       measurement: MeasurementUnderCursor?,
                       availability: MeasurementControl.Availability) -> Items {
-        var items = Items(editsTarget: target != nil, pin: nil,
+        var items = Items(editsTarget: target != nil, rollsFor: nil, pin: nil,
                           shapesOffered: false, refusal: nil)
+
+        if case .pawn(let id) = target, pawnKind?.makesRolls == true {
+            items.rollsFor = id
+        }
 
         // Independent of `target`: this is the fix. A Pawn standing inside a pinned circle
         // is both a Pawn and a place where that circle can be unpinned.

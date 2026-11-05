@@ -425,6 +425,17 @@ enum PawnKind: String, Codable, CaseIterable, Equatable {
     /// in being listed apart, because a DM reasons about loot and monsters separately.
     case treasure
 
+    /// Whether this Pawn makes Saving Throws and Ability Checks. A chest makes no
+    /// Dexterity saves. Read by the Pawn's row and by the Live View's right-click menu, so
+    /// the two offer the Rolls to the same Pawns. A `switch` with no `default`, like
+    /// `isDiscovered`, so a fourth kind has to decide.
+    var makesRolls: Bool {
+        switch self {
+        case .player, .creature: true
+        case .treasure: false
+        }
+    }
+
     /// Whether the players have to discover this, rather than carrying it.
     ///
     /// The single rule behind both branches that exist: a discovered Pawn emits no Light

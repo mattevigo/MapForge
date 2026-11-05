@@ -1084,7 +1084,8 @@ struct ControlView: View {
     /// then what to measure.
     ///
     /// One menu with a divider rather than two menus. `Edit…` and `Delete` act on the Pawn
-    /// or Light under the cursor and are absent when there is none; the Measurement section
+    /// or Light under the cursor and are absent when there is none, and a Pawn that makes
+    /// Rolls adds `Saving Throw…` and `Ability Check…`; the Measurement section
     /// is always offered, because a DM right-clicking a Pawn may well have meant to measure
     /// from it, and hiding the shapes there would make the menu's contents depend on
     /// aim in a way they cannot see.
@@ -1097,6 +1098,7 @@ struct ControlView: View {
     private func measurementMenu(map: MapScale, frame: CGRect) -> some View {
         let target = liveHit(map: map, frame: frame)
         let items = LiveMenu.items(target: target,
+                                   pawnKind: pawnKind(of: target),
                                    measurement: measurementUnderCursor(map: map, frame: frame),
                                    availability: appState.measurementAvailability)
 
@@ -1104,6 +1106,15 @@ struct ControlView: View {
             Section {
                 Button("Edit…") { beginEditing(target) }
                 Button("Delete") { delete(target) }
+            }
+        }
+
+        // The same two Rolls as the Pawn's row, for the token the DM is pointing at.
+        if let id = items.rollsFor,
+           let pawn = appState.fog.pawns.first(where: { $0.id == id }) {
+            Section {
+                Button("Saving Throw…") { rolling = RollTarget(pawn: pawn, kind: .savingThrow) }
+                Button("Ability Check…") { rolling = RollTarget(pawn: pawn, kind: .abilityCheck) }
             }
         }
 
@@ -1129,6 +1140,12 @@ struct ControlView: View {
         if let refusal = items.refusal {
             Text(refusal.explanation)
         }
+    }
+
+    /// The kind of the Pawn the menu was opened over, or nil over a Light or bare Map.
+    private func pawnKind(of target: LiveHitTest?) -> PawnKind? {
+        guard case .pawn(let id) = target else { return nil }
+        return appState.fog.pawns.first(where: { $0.id == id })?.kind
     }
 
     /// Open the Edit sheet on whatever the menu was opened over.
@@ -1648,7 +1665,7 @@ struct ControlView: View {
     /// that Pawn lives. Which Log it lands in is `recordRoll`'s business, not this row's.
     @ViewBuilder
     private func rollButtons(_ pawn: Pawn) -> some View {
-        if pawn.kind != .treasure {
+        if pawn.kind.makesRolls {
             Button {
                 rolling = RollTarget(pawn: pawn, kind: .savingThrow)
             } label: {
