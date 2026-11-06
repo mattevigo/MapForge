@@ -54,6 +54,8 @@ final class PlayerPlacementTests: XCTestCase {
         XCTAssertEqual(PlayerPlacement.viewPoint(MapPoint(x: 1, y: 1), map: empty, frame: frame),
                        CGPoint(x: frame.minX, y: frame.minY))
         XCTAssertEqual(PlayerPlacement.squareSidePoints(map: empty, frame: frame), 0)
+        XCTAssertEqual(CGPoint(x: 1, y: 1).applying(PlayerPlacement.mapToView(map: empty, frame: frame)),
+                       CGPoint(x: frame.minX, y: frame.minY))
     }
 
     // MARK: Map Fit's stretch

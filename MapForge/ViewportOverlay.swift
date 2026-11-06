@@ -1,9 +1,10 @@
 import SwiftUI
 import AppKit
 
-/// Viewport mode overlay on the Control Window preview: a rectangle sized to
-/// exactly what the Player Display shows at True Scale, draggable to pan it.
-/// Never resizable — resizing would zoom and break True Scale.
+/// The Viewport rectangle on the Control Window preview, sized to exactly what the
+/// Player Display shows: the True Scale region, or under Map Fit the whole Map
+/// (`ScaleMath.playerViewport`). Draggable to pan it when armed, which Map Fit never
+/// allows. Never resizable — resizing would zoom and break True Scale.
 /// Unlike GridFitOverlay's binding, this reports desired origins via a callback:
 /// clamping is policy that lives with the owner, so the overlay never holds a
 /// value the Map bounds would reject.

@@ -54,7 +54,8 @@ final class AppState: ObservableObject {
     ///
     /// A live switch, not a setting: never persisted, so every launch starts at True Scale.
     /// It leaves `viewportOrigin` alone, so turning it off returns the table to where the
-    /// Viewport was before.
+    /// Viewport was before. It switches itself off when the Player Display goes — see
+    /// `playerScreen`.
     @Published var isMapFitOn = false {
         didSet { presentIfPossible() }
     }
@@ -188,7 +189,16 @@ final class AppState: ObservableObject {
 
     /// The Party the panel should show: the remembered one, or the first, or none.
     var activeParty: Party? { PartyRoster.activeParty(in: partyBook, id: activePartyID) }
-    @Published private(set) var playerScreen: NSScreen?
+    @Published private(set) var playerScreen: NSScreen? {
+        // Map Fit without a Player Display would sit on behind a toggle the DM cannot press.
+        // Here rather than in the view, so every way the screen goes — unplugged, a Workspace
+        // closed, a Map that cannot be presented — puts it away. See `MapFitToggle`.
+        didSet {
+            if isMapFitOn, !MapFitToggle.staysOn(hasDisplay: playerScreen != nil) {
+                isMapFitOn = false
+            }
+        }
+    }
     /// The DM's explicit pick. Nil = let the policy choose (remembered, else sole external).
     @Published private(set) var chosenDisplay: DisplayIdentity?
 

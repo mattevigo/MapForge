@@ -47,8 +47,7 @@ struct FogCanvas: View {
                           from context: inout GraphicsContext,
                           to target: CGFloat, of unlit: CGFloat) {
         let removal = FogShading.removalAlpha(from: unlit, to: target)
-        // A Map with no pixels has no Map space to draw the Lights in.
-        guard removal > 0, map.imagePixelSize.width > 0, map.imagePixelSize.height > 0 else { return }
+        guard removal > 0 else { return }
         // `.destinationOut` must be the mode the LAYER composites back with, so it is set
         // on the parent context before `drawLayer`. Setting it *inside* the layer applies
         // it to the layer's own empty contents — erasing nothing from transparency — and

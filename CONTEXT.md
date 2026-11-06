@@ -17,7 +17,7 @@ Rendering a Map so its physical dimensions on the Player Display match its decla
 _Avoid_: 1:1, actual size, life size
 
 **Map Fit**:
-Stretching the whole Map over the whole Player Display, edge to edge: no letterbox, no crop. The counterpart of True Scale, switched on and off from the Live Toolbar, and never saved — not per Map, not per display, not across launches. The Map's declared size and its Grid stand as they are, and Map Fit ignores them, so a Map whose shape differs from the screen's is distorted; that is the price of the whole Map on the whole screen, and the DM pays it knowingly. Everything placed on the Map — Pawns, Lights, Fog, Measurements — stays in Map space and stretches with the artwork, and a Measurement still reads its true distance in squares. Distinct from Grid Fit, which declares the Grid and changes nothing on the Player Display.
+Stretching the whole Map over the whole Player Display, edge to edge: no letterbox, no crop. The counterpart of True Scale, switched on and off from the Live Toolbar, and never saved — not per Map, not per display, not across launches. It switches itself off when the Player Display goes, since there is nothing left to fit the Map to. The Map's declared size and its Grid stand as they are, and Map Fit ignores them, so a Map whose shape differs from the screen's is distorted; that is the price of the whole Map on the whole screen, and the DM pays it knowingly. Everything placed on the Map — Pawns, Lights, Fog, Measurements — stays in Map space and stretches with the artwork, and a Measurement still reads its true distance in squares. Distinct from Grid Fit, which declares the Grid and changes nothing on the Player Display.
 _Avoid_: fit to screen, stretch, zoom to fit, scaling
 
 **Player Display**:

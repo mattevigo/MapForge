@@ -72,4 +72,29 @@ enum ViewportToggle {
     static func staysShowing(mapOverflows: Bool, hasDisplay: Bool, isMapFitOn: Bool) -> Bool {
         isAvailable(mapOverflows: mapOverflows, hasDisplay: hasDisplay, isMapFitOn: isMapFitOn)
     }
+
+    /// What the toggle's help says.
+    enum Explanation: Equatable {
+        /// What the toggle does: show the rectangle, drag it to pan.
+        case dragToMoveTheirView
+        /// Why it is unavailable: Map Fit shows the whole Map, so there is nothing to pan.
+        case nothingToMoveUnderMapFit
+
+        var text: String {
+            switch self {
+            case .dragToMoveTheirView:
+                String(localized: "Show the rectangle the players see, and drag it to move their view.")
+            case .nothingToMoveUnderMapFit:
+                String(localized: "Map Fit shows the players the whole Map, so there is nothing to move. Turn it off first.")
+            }
+        }
+    }
+
+    /// The help for the toggle: what it does, or — while Map Fit makes it unavailable — why,
+    /// rather than leaving the DM to guess at a greyed-out button. Only Map Fit gets its own
+    /// sentence: a Map that fits the screen, or no Player Display, are visible from the
+    /// Live View itself, and Map Fit is a switch the DM may have forgotten is on.
+    static func explanation(isMapFitOn: Bool) -> Explanation {
+        isMapFitOn ? .nothingToMoveUnderMapFit : .dragToMoveTheirView
+    }
 }

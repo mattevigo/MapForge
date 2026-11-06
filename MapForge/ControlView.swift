@@ -518,23 +518,10 @@ struct ControlView: View {
             CommentBar(state: commentBarState, text: $comment, onSubmit: sendComment)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .onChange(of: appState.playerScreen) { _, screen in
-            // Losing the Player Display mid-pan would strand the mode with no overlay.
-            if !ViewportToggle.staysShowing(mapOverflows: mapOverflowsViewport,
-                                            hasDisplay: screen != nil,
-                                            isMapFitOn: appState.isMapFitOn) {
-                isShowingViewport = false
-            }
-        }
-        .onChange(of: appState.isMapFitOn) { _, isMapFitOn in
-            // Fitting the Map leaves the armed rectangle over the whole Map with nowhere to
-            // go; it puts itself away rather than staying armed and immovable.
-            if !ViewportToggle.staysShowing(mapOverflows: mapOverflowsViewport,
-                                            hasDisplay: appState.playerScreen != nil,
-                                            isMapFitOn: isMapFitOn) {
-                isShowingViewport = false
-            }
-        }
+        // Losing the Player Display mid-pan would strand the mode with no overlay; fitting
+        // the Map leaves the armed rectangle over the whole Map with nowhere to go.
+        .onChange(of: appState.playerScreen) { putViewportAwayIfItCannotStay() }
+        .onChange(of: appState.isMapFitOn) { putViewportAwayIfItCannotStay() }
         .onChange(of: appState.distanceUnit) { _, unit in
             // Digits still being typed are read in the unit now in force, as Return would
             // read them — otherwise the shape keeps the old unit's squares while its readout
@@ -603,12 +590,12 @@ struct ControlView: View {
 
     /// The Viewport the players are shown on the connected Player Display, or nil without
     /// one: the whole Map under Map Fit, the True Scale region otherwise. This is what the
-    /// green rectangle outlines — see `ScaleMath.playerViewport`.
-    private var resolvedViewport: Viewport? {
-        guard let metrics = appState.playerMetrics,
-              let screen = appState.playerScreen,
+    /// green rectangle outlines — see `ScaleMath.playerViewport`. Not
+    /// `ScaleMath.resolvedViewport`, which is the True Scale region alone.
+    private var playerViewport: Viewport? {
+        guard let screen = appState.playerScreen,
               let map = appState.mapScale else { return nil }
-        return ScaleMath.playerViewport(map: map, display: metrics,
+        return ScaleMath.playerViewport(map: map, display: appState.playerMetrics,
                                         screenSizePoints: screen.frame.size,
                                         desiredOrigin: appState.viewportOrigin,
                                         isMapFitOn: appState.isMapFitOn)
@@ -627,6 +614,16 @@ struct ControlView: View {
                                                   desiredOrigin: appState.viewportOrigin)
         return map.physicalSizeInches.width > viewport.sizeInches.width
             || map.physicalSizeInches.height > viewport.sizeInches.height
+    }
+
+    /// Disarms the Viewport rectangle once it can no longer be dragged, rather than leaving
+    /// it armed and immovable — see `ViewportToggle.staysShowing`.
+    private func putViewportAwayIfItCannotStay() {
+        if !ViewportToggle.staysShowing(mapOverflows: mapOverflowsViewport,
+                                        hasDisplay: appState.playerScreen != nil,
+                                        isMapFitOn: appState.isMapFitOn) {
+            isShowingViewport = false
+        }
     }
 
     @ViewBuilder
@@ -679,8 +676,8 @@ struct ControlView: View {
                         // be *dragged* — idle it is a readout with hit-testing off, so the
                         // clicks that drag a Pawn or open the menu pass straight through.
                         if ViewportToggle.drawsRectangle(mode: mode,
-                                                         hasViewport: resolvedViewport != nil),
-                           let map = appState.mapScale, let viewport = resolvedViewport {
+                                                         hasViewport: playerViewport != nil),
+                           let map = appState.mapScale, let viewport = playerViewport {
                             ViewportOverlay(fittedRect: fitted,
                                             map: map,
                                             viewportSizeInches: viewport.sizeInches,
@@ -1791,7 +1788,8 @@ struct ControlView: View {
     /// is no Cancel, deliberately — see `ViewportToggle`.
     ///
     /// Unavailable under Map Fit, where the rectangle covers the whole Map and there is
-    /// nothing to drag it to; its help says so rather than leaving the DM to guess why.
+    /// nothing to drag it to; its help says so (`ViewportToggle.explanation`) rather than
+    /// leaving the DM to guess why.
     ///
     /// Drawn only in the Live View, as it was inside `modeControls`' `.normal` case: the
     /// rectangle is not drawn in Grid Fit or the Wall Editor, so a control for dragging it
@@ -1811,23 +1809,22 @@ struct ControlView: View {
                 .disabled(!ViewportToggle.isAvailable(mapOverflows: mapOverflowsViewport,
                                                       hasDisplay: appState.playerScreen != nil,
                                                       isMapFitOn: appState.isMapFitOn))
-                .help(appState.isMapFitOn
-                      ? String(localized: "Map Fit shows the players the whole Map, so there is nothing to move. Turn it off first.")
-                      : String(localized: "Show the rectangle the players see, and drag it to move their view."))
+                .help(ViewportToggle.explanation(isMapFitOn: appState.isMapFitOn).text)
         }
     }
 
     /// **Map Fit**, beside the Viewport toggle and shown on the same terms: in the Live View
     /// only, so it costs this row width and never height, as `viewportToggle` explains.
     ///
-    /// Disabled without a Player Display: there is no screen to fit the Map to. Not
-    /// persisted — see `AppState.isMapFitOn`.
+    /// Disabled without a Player Display: there is no screen to fit the Map to, and losing
+    /// the screen while fitted switches Map Fit off (`MapFitToggle`). Not persisted — see
+    /// `AppState.isMapFitOn`.
     @ViewBuilder
     private var mapFitToggle: some View {
         if mode == .normal {
             Toggle("Map Fit", isOn: $appState.isMapFitOn)
                 .toggleStyle(.button)
-                .disabled(appState.playerScreen == nil)
+                .disabled(!MapFitToggle.isAvailable(hasDisplay: appState.playerScreen != nil))
                 .help("Stretch the whole Map over the Player Display, ignoring the Grid.")
         }
     }
