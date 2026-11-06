@@ -5,8 +5,9 @@ import Yams
 ///
 /// An item note has no `statblock` fence — it has no numbers — so it says what it is where
 /// every Obsidian note can say something about itself: the YAML between the `---` lines at
-/// its top. Two English keys are read, and nothing else: `item: true`, and `image:`, its
-/// Portrait. The body is the DM's prose and is never read beyond its first heading.
+/// its top. Two English keys are read, and nothing else: `item: true`, and `image:`, the
+/// picture its Face is cut from. The body is the DM's prose and is never read beyond its
+/// first heading.
 ///
 /// Yams reads the YAML, as it reads a fence (ADR-0019); what an Item *is* is decided here.
 enum ItemReader {

@@ -83,7 +83,7 @@ final class TreasuryTests: XCTestCase {
         XCTAssertEqual(treasury.skipped, [])
     }
 
-    // MARK: Its Portrait
+    // MARK: Its picture
 
     func testTheImageIsKeptAsALinkAndFoundAmongTheWorkspacesPictures() throws {
         try write("png", to: "Riferimento/Allegati/Borsa.webp")
