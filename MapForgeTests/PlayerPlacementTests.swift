@@ -58,10 +58,10 @@ final class PlayerPlacementTests: XCTestCase {
                        CGPoint(x: frame.minX, y: frame.minY))
     }
 
-    // MARK: Map Fit's stretch
+    // MARK: An uneven scale
 
-    func testTheMapToViewTransformStretchesEachAxisAsTheArtworkIs() {
-        // Under Map Fit the frame need not keep the Map's shape: 3000×2000 px into
+    func testTheMapToViewTransformScalesEachAxisAsTheArtworkIs() {
+        // A frame need not keep the Map's shape exactly: 3000×2000 px into
         // 1000×600 pt is a third across but three tenths down. A Light drawn through this
         // transform must reach as far as its polygon on both axes, so the transform has to
         // land a Light's rim exactly where `viewPoint` does — not where a single,

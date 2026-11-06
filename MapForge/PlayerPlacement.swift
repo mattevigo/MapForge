@@ -21,9 +21,9 @@ enum PlayerPlacement {
     }
 
     /// `viewPoint` as a transform: image pixels to that surface's points, each axis scaled
-    /// on its own. For drawing that has to stretch exactly as the artwork does — a Light's
-    /// round falloff becomes an ellipse under Map Fit, matching its stretched polygon,
-    /// where a radius scaled by one axis would not.
+    /// on its own. For drawing that has to scale exactly as the artwork does — a Light's
+    /// falloff on a frame scaled unevenly (non-square pixels at True Scale) must stay on its
+    /// polygon, where a radius scaled by one axis would not.
     ///
     /// A Map with no pixels has no Map space: everything collapses onto the frame's origin,
     /// as `viewPoint` does, so a caller draws nothing rather than dividing by zero. This is

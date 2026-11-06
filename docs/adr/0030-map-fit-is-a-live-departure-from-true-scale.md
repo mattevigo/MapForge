@@ -2,10 +2,11 @@
 
 ADR-0001 calls True Scale MapForge's "defining requirement": a Map rendered at its exact
 physical dimensions on the Player Display, one inch of map to one inch of glass. Map Fit draws
-the same Map with no regard for inches at all. It stretches the whole image over the whole
-Player Display, edge to edge, with no letterbox and no crop. The Map's declared size and its
-Grid are ignored, and a Map whose shape differs from the screen's comes out distorted. That
-reads like a contradiction of 0001, so this records why it is not one.
+the same Map with no regard for inches at all. It shows the whole image as large as the
+Player Display allows, in the image's own proportions, centred, with black letterbox along the
+two sides it does not reach and never a crop. The Map's declared size and its Grid are
+ignored, so a Map smaller than the screen is enlarged and a larger one shrunk. That reads like
+a contradiction of 0001, so this records why it is not one.
 
 The DM asked for it (the Map Fit spec, 2026-11-06). Sometimes the table needs the whole Map
 more than it needs true inches: the overview before the party goes in, a world map, a room
@@ -23,8 +24,8 @@ way to show all of one is to pan across it.
   stays declared, and the Viewport's origin is untouched. Turning Map Fit off returns the
   table to True Scale exactly where it was.
 - **Everything placed on the Map stays in Map space.** Pawns, Lights, Fog and Measurements
-  follow the stretched frame, and a Measurement still reads its true distance in squares. The
-  distortion is the artwork's, never the game's.
+  follow the fitted frame, and a Measurement still reads its true distance in squares. Only
+  the artwork's size on the glass changes, never the game.
 
 ## Why 0001 stands
 
@@ -41,21 +42,19 @@ can trade it away for the whole Map, knowingly, for as long as they hold the swi
 ## Consequences
 
 - `ScaleMath.playerFrame` and `playerViewport` answer for both: the True Scale frame and
-  Viewport, or the whole screen and the whole Map. The Live View's green rectangle covers the
-  whole Map while fitted, and the Viewport toggle is unavailable, since there is nothing to pan.
-- Everything drawn in Map space has to scale x and y separately (`PlayerPlacement`). Anything
-  that took a single scale from the frame's width, such as a Light's falloff radius or a
-  perpendicular offset, is wrong under Map Fit's stretch even though it is right at True Scale.
-- Pawn tokens stay sized in Grid squares measured across the frame's width. Under a
-  non-uniform stretch they are not stretched to match the artwork. Ticket 01 of the Map Fit
-  spec accepted this.
+  Viewport, or the fitted frame (`ScaleMath.mapFitFrame`) and the whole Map. The Live View's
+  green rectangle covers the whole Map while fitted, and the Viewport toggle is unavailable,
+  since there is nothing to pan.
+- The fitted frame keeps the image's proportions, so Pawn tokens, sized in Grid squares across
+  the frame's width, stay square on the artwork under Map Fit as they do at True Scale.
 
 ## Considered Options
 
-- **Fit without distortion (letterbox to the Map's aspect ratio)**: rejected by the DM. The
-  request was the whole Map on the whole screen, and bars waste the screen it is meant to fill.
+- **Fit by stretching (fill the screen edge to edge, distorting the artwork)**: built first and
+  then rejected by the DM. A distorted Map misdraws every room on it, and the letterbox is a
+  smaller price than artwork the table cannot trust.
 - **Fit by cropping (fill and cut the overflow)**: rejected. It hides part of the Map, which is
   the problem Map Fit exists to solve.
-- **A per-Map or remembered setting**: rejected. A remembered fit would bring a Map back
-  distorted in a later session without anyone choosing it, and True Scale would stop being
-  what the table can rely on seeing.
+- **A per-Map or remembered setting**: rejected. A remembered fit would bring a Map back in a
+  later session without anyone choosing it, and True Scale would stop being what the table can
+  rely on seeing.

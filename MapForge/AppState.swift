@@ -49,7 +49,8 @@ final class AppState: ObservableObject {
     @Published var viewportOrigin: CGPoint? {
         didSet { presentIfPossible() }
     }
-    /// **Map Fit**: the whole Map stretched over the whole Player Display, the Grid ignored.
+    /// **Map Fit**: the whole Map, as large as the Player Display allows in its own
+    /// proportions (letterboxed, never cropped), the Grid ignored.
     /// Off is True Scale at the Viewport.
     ///
     /// A live switch, not a setting: never persisted, so every launch starts at True Scale.

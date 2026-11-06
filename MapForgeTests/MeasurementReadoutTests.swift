@@ -4,9 +4,10 @@ import XCTest
 /// Where a Measurement's distance capsule sits beside an aimed shape.
 ///
 /// It is pushed sideways off the far end, perpendicular to the line *as drawn*. At True
-/// Scale the Map is scaled the same on both axes, so drawn and Map-space directions agree;
-/// under Map Fit's stretch they do not, and a capsule offset perpendicular to the Map-space
-/// direction would slide along the drawn line instead of standing beside it.
+/// Scale on square pixels the Map is scaled the same on both axes, so drawn and Map-space
+/// directions agree; on a display whose pixels are not square they do not, and a capsule
+/// offset perpendicular to the Map-space direction would slide along the drawn line instead
+/// of standing beside it.
 final class MeasurementReadoutTests: XCTestCase {
     private let gap: CGFloat = 22
     private let image = CGSize(width: 1000, height: 1000)
@@ -44,10 +45,10 @@ final class MeasurementReadoutTests: XCTestCase {
         XCTAssertEqual(n.dy, -gap / 2.squareRoot(), accuracy: 1e-9)
     }
 
-    // MARK: Map Fit's stretch
+    // MARK: An uneven scale
 
-    func testUnderAStretchTheNumberStandsBesideTheLineAsDrawn() {
-        // A square Map stretched 4:1 — 2000×500 pt — draws a 45° line far flatter.
+    func testUnderAnUnevenScaleTheNumberStandsBesideTheLineAsDrawn() {
+        // A square Map scaled 4:1 — 2000×500 pt — draws a 45° line far flatter.
         let frame = CGRect(x: 0, y: 0, width: 2000, height: 500)
         let n = nudge(direction: .pi / 4, frame: frame)
         let drawn = drawnDirection(.pi / 4, frame: frame)
@@ -58,7 +59,7 @@ final class MeasurementReadoutTests: XCTestCase {
         XCTAssertLessThan(n.dy, 0, "the capsule left the upper side")
     }
 
-    func testARadiusShapeStillGoesStraightUpUnderAStretch() {
+    func testARadiusShapeStillGoesStraightUpUnderAnUnevenScale() {
         let n = nudge(direction: .pi / 4, frame: CGRect(x: 0, y: 0, width: 2000, height: 500),
                       shape: .circle)
         XCTAssertEqual(n.dx, 0, accuracy: 1e-9)

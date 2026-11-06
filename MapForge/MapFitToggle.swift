@@ -2,7 +2,7 @@ import Foundation
 
 /// When the **Map Fit** toggle can be pressed, and when Map Fit has to put itself away.
 ///
-/// Map Fit stretches the Map over the Player Display, so it means nothing without one. The
+/// Map Fit fits the Map to the Player Display, so it means nothing without one. The
 /// toggle is unavailable then — and a DM who unplugs the screen while fitted must not be left
 /// with Map Fit on behind a toggle they cannot press. It switches itself off instead, the way
 /// an armed Viewport rectangle puts itself away (`ViewportToggle.staysShowing`) and Solo

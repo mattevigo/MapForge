@@ -12678,6 +12678,46 @@
         }
       }
     },
+    "Show the whole Map on the Player Display, as large as it fits, ignoring the Grid.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die ganze Karte so groß wie möglich auf dem Spielerbildschirm zeigen, ohne Rücksicht auf das Raster."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εμφάνιση ολόκληρου του χάρτη όσο το δυνατόν μεγαλύτερου στην οθόνη παικτών, αγνοώντας το πλέγμα."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar el mapa entero lo más grande posible en la pantalla de jugadores, sin tener en cuenta la cuadrícula."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher toute la carte aussi grande que possible sur l’écran des joueurs, sans tenir compte de la grille."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra l’intera mappa il più grande possibile sullo schermo dei giocatori, ignorando la griglia."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra o mapa inteiro o maior possível na tela dos jogadores, ignorando a grade."
+          }
+        }
+      }
+    },
     "Sight": {
       "localizations": {
         "de": {
@@ -13595,46 +13635,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Força"
-          }
-        }
-      }
-    },
-    "Stretch the whole Map over the Player Display, ignoring the Grid.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die ganze Karte über den Spielerbildschirm strecken, ohne Rücksicht auf das Raster."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Τέντωμα ολόκληρου του χάρτη σε όλη την οθόνη παικτών, αγνοώντας το πλέγμα."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Estirar el mapa entero sobre la pantalla de jugadores, sin tener en cuenta la cuadrícula."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Étirer toute la carte sur l’écran des joueurs, sans tenir compte de la grille."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stendi l’intera mappa sullo schermo dei giocatori, ignorando la griglia."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Estica o mapa inteiro sobre a tela dos jogadores, ignorando a grade."
           }
         }
       }

@@ -1825,7 +1825,7 @@ struct ControlView: View {
             Toggle("Map Fit", isOn: $appState.isMapFitOn)
                 .toggleStyle(.button)
                 .disabled(!MapFitToggle.isAvailable(hasDisplay: appState.playerScreen != nil))
-                .help("Stretch the whole Map over the Player Display, ignoring the Grid.")
+                .help("Show the whole Map on the Player Display, as large as it fits, ignoring the Grid.")
         }
     }
 

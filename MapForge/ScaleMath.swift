@@ -101,32 +101,45 @@ enum ScaleMath {
                height: map.physicalHeightInches * display.pointsPerInch.height)
     }
 
-    /// The frame (in points) the Map occupies under **Map Fit**: the whole screen, edge to
-    /// edge, with no letterbox and no crop.
+    /// The frame (in points) the Map occupies under **Map Fit**: the whole Map, as large as
+    /// the screen allows, in its own proportions and centred — black letterbox on the two
+    /// sides the Map does not reach, and never a crop.
     ///
-    /// It takes no Map and no display on purpose. Map Fit ignores the declared size and the
-    /// Grid, and stretches the image to the screen's exact size, so a Map whose aspect ratio
-    /// differs from the screen's comes out distorted — what the DM asked for: the whole Map
-    /// on the whole screen. Everything placed in Map space follows, because `PlayerPlacement`
-    /// scales x and y separately against this frame.
-    static func mapFitFrame(screenSizePoints: CGSize) -> CGRect {
-        CGRect(origin: .zero, size: screenSizePoints)
+    /// Sized from the image's pixels and nothing else. Map Fit ignores the declared size and
+    /// the Grid, so it reads neither the Map's inches nor the display's; the image's own
+    /// aspect ratio is what it keeps. A Map smaller than the screen is enlarged until it
+    /// touches, which is the difference from True Scale. A Map with no pixels has nothing to
+    /// fit and gets the whole screen rather than a division by zero.
+    static func mapFitFrame(imagePixelSize: CGSize, screenSizePoints: CGSize) -> CGRect {
+        guard imagePixelSize.width > 0, imagePixelSize.height > 0 else {
+            return CGRect(origin: .zero, size: screenSizePoints)
+        }
+        let scale = min(screenSizePoints.width / imagePixelSize.width,
+                        screenSizePoints.height / imagePixelSize.height)
+        let size = CGSize(width: imagePixelSize.width * scale,
+                          height: imagePixelSize.height * scale)
+        return CGRect(x: (screenSizePoints.width - size.width) / 2,
+                      y: (screenSizePoints.height - size.height) / 2,
+                      width: size.width, height: size.height)
     }
 
-    /// The frame the Player Display draws the Map into: the whole screen under Map Fit,
+    /// The frame the Player Display draws the Map into: fitted to the screen under Map Fit,
     /// otherwise True Scale with the Viewport at `desiredViewportOrigin` (clamped, or
     /// centered when nil). Nil when there is nothing to draw: True Scale on a display that
     /// reports no physical size.
     ///
     /// `display` is optional because only True Scale needs it. Map Fit reads the screen's
-    /// points and nothing else — not the display's inches, not the Map's — so a screen whose
-    /// EDID gives no size still shows the players the whole Map rather than black.
+    /// points and the image's pixels and nothing else — not the display's inches, not the
+    /// Map's — so a screen whose EDID gives no size still shows the players the whole Map
+    /// rather than black.
     ///
     /// The Viewport origin is read only when Map Fit is off, and never cleared by it, so
     /// turning Map Fit off returns to True Scale wherever the Viewport was before.
     static func playerFrame(map: MapScale, display: DisplayMetrics?, screenSizePoints: CGSize,
                             desiredViewportOrigin: CGPoint?, isMapFitOn: Bool) -> CGRect? {
-        if isMapFitOn { return mapFitFrame(screenSizePoints: screenSizePoints) }
+        if isMapFitOn {
+            return mapFitFrame(imagePixelSize: map.imagePixelSize, screenSizePoints: screenSizePoints)
+        }
         guard let display else { return nil }
         let viewport = resolvedViewport(map: map, display: display,
                                         screenSizePoints: screenSizePoints,

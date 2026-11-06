@@ -45,19 +45,36 @@ final class ScaleMathTests: XCTestCase {
         assertEqual(frame, CGRect(x: 250, y: 175, width: 500, height: 250))
     }
 
-    func testMapFitFrameIsTheWholeScreen() {
-        let frame = ScaleMath.mapFitFrame(screenSizePoints: CGSize(width: 1000, height: 600))
+    func testMapFitFrameFillsAScreenOfTheSameShape() {
+        // A 2000×1200 px Map on a 1000×600 pt screen: same shape, so no letterbox at all.
+        let frame = ScaleMath.mapFitFrame(imagePixelSize: CGSize(width: 2000, height: 1200),
+                                          screenSizePoints: CGSize(width: 1000, height: 600))
         assertEqual(frame, CGRect(x: 0, y: 0, width: 1000, height: 600))
     }
 
-    func testUnderMapFitAMapOfAnotherShapeStillGetsTheScreensExactSize() {
-        // A tall 10×40 in Map on a wide 1000×600 pt screen: no letterbox and no crop. It is
-        // stretched to the screen's exact size — distorted, as the DM accepted.
+    func testUnderMapFitATallMapKeepsItsShapeBetweenSideBars() {
+        // A tall 10×40 in Map (500×2000 px) on a wide 1000×600 pt screen: the height fills,
+        // the width follows the Map's own proportions (150 pt), and the rest is letterbox,
+        // split evenly either side. Never stretched, never cropped.
         let map = MapScale.grid(squaresWide: 10, imagePixelSize: CGSize(width: 500, height: 2000))
         let frame = ScaleMath.playerFrame(map: map, display: display,
                                           screenSizePoints: CGSize(width: 1000, height: 600),
                                           desiredViewportOrigin: CGPoint(x: 0, y: 7), isMapFitOn: true)
-        assertEqual(frame, CGRect(x: 0, y: 0, width: 1000, height: 600))
+        assertEqual(frame, CGRect(x: 425, y: 0, width: 150, height: 600))
+    }
+
+    func testUnderMapFitAWideMapKeepsItsShapeBetweenTopAndBottomBars() {
+        // A 4000×1000 px Map on a 1000×600 pt screen: the width fills, 250 pt tall, centred.
+        let frame = ScaleMath.mapFitFrame(imagePixelSize: CGSize(width: 4000, height: 1000),
+                                          screenSizePoints: CGSize(width: 1000, height: 600))
+        assertEqual(frame, CGRect(x: 0, y: 175, width: 1000, height: 250))
+    }
+
+    func testUnderMapFitASmallMapIsEnlargedToTheScreen() {
+        // Fitting is not True Scale: a Map smaller than the screen grows until it touches.
+        let frame = ScaleMath.mapFitFrame(imagePixelSize: CGSize(width: 100, height: 50),
+                                          screenSizePoints: CGSize(width: 1000, height: 600))
+        assertEqual(frame, CGRect(x: 0, y: 50, width: 1000, height: 500))
     }
 
     func testWithMapFitOffThePlayerFrameIsTrueScaleAtTheViewport() {
@@ -101,7 +118,7 @@ final class ScaleMathTests: XCTestCase {
         let frame = ScaleMath.playerFrame(map: map, display: nil,
                                           screenSizePoints: CGSize(width: 1000, height: 600),
                                           desiredViewportOrigin: nil, isMapFitOn: true)
-        assertEqual(frame, CGRect(x: 0, y: 0, width: 1000, height: 600))
+        assertEqual(frame, CGRect(x: 50, y: 0, width: 900, height: 600))
     }
 
     /// Nor a declared size for the Map: an undeclared Grid is a zero-inch Map at True Scale,
@@ -111,7 +128,7 @@ final class ScaleMathTests: XCTestCase {
         let frame = ScaleMath.playerFrame(map: map, display: nil,
                                           screenSizePoints: CGSize(width: 1000, height: 600),
                                           desiredViewportOrigin: nil, isMapFitOn: true)
-        assertEqual(frame, CGRect(x: 0, y: 0, width: 1000, height: 600))
+        assertEqual(frame, CGRect(x: 50, y: 0, width: 900, height: 600))
     }
 
     /// True Scale is inches on glass, and a display without a physical size has none: there

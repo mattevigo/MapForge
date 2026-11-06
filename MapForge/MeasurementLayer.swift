@@ -4,7 +4,7 @@ import SwiftUI
 /// and the distance beside it.
 ///
 /// One view for both screens, differing only in the frame handed to it — the Player
-/// Display's frame (True Scale, or stretched under Map Fit) or the Control mirror's
+/// Display's frame (True Scale, or fitted under Map Fit) or the Control mirror's
 /// rebased one. Two drawing paths is how
 /// the screens drift, which is the divergence `PawnToken` and
 /// `PlayerVisibility.showsToPlayers` both exist to prevent.
@@ -165,10 +165,11 @@ struct MeasurementLayer: View {
 
     /// `nudge` for a shape aimed at `direction` (radians, Map space), drawn on `frame`.
     ///
-    /// Perpendicular to the line **as drawn**, not to `direction`. At True Scale the two
-    /// are the same, because the Map is scaled alike on both axes. Under Map Fit they are
-    /// not: the stretch turns the line, and a Map-space perpendicular would slide the
-    /// capsule along the drawn line rather than stand it beside it.
+    /// Perpendicular to the line **as drawn**, not to `direction`. When the frame scales the
+    /// Map alike on both axes the two are the same. They part on a display whose pixels are
+    /// not square — True Scale reads `pointsPerInch` per axis — where the uneven scale turns
+    /// the line, and a Map-space perpendicular would slide the capsule along the drawn line
+    /// rather than stand it beside it.
     static func readoutNudge(shape: MeasurementShape, direction: CGFloat,
                              map: MapScale, frame: CGRect) -> CGVector {
         // 22, not less: at 14 the capsule's own half-height overlapped the end cap and
