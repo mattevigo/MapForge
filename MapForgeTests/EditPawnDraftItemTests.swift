@@ -87,7 +87,7 @@ final class EditPawnDraftItemTests: XCTestCase {
         XCTAssertFalse(PawnKind.player.canBeItem)
     }
 
-    // MARK: What OK says
+    // MARK: What OK becomes
 
     func testOKBecomesTheItemOnlyWhenTheItemChanged() {
         var draft = EditPawnDraft(pawn: treasure(itemName: "Borsa"))

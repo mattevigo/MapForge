@@ -143,8 +143,8 @@ struct EditPawnDraft: Equatable {
         pickedLabel = nil
     }
 
-    /// The Item OK makes the Treasure, or nil when the Item is untouched — what OK's title
-    /// says, "Become Borsa". Only an Item that *changed*, as `monsterToStamp` is.
+    /// The Item OK makes the Treasure, or nil when the Item is untouched — whose Face OK
+    /// gives (`AppState.updatePawn`). Only an Item that *changed*, as `monsterToStamp` is.
     var itemToBecome: String? {
         guard kind.canBeItem, itemName != openedWithItem else { return nil }
         return itemName

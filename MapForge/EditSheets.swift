@@ -25,7 +25,7 @@ import SwiftUI
 /// when that would overwrite hit points that exist. See ADR-0021.
 ///
 /// **A Treasure can be said to be an Item** in the same place, from the Treasury (ADR-0031).
-/// There are no numbers to stamp, so OK simply says what the Treasure becomes.
+/// There are no numbers to stamp, so there is no heal to ask about, and OK is simply OK.
 struct EditPawnSheet: View {
     @State var draft: EditPawnDraft
     /// Whether a Grid has been declared. Sight is measured in Grid squares, so without one
@@ -167,10 +167,7 @@ struct EditPawnSheet: View {
                 Spacer()
                 Button("Cancel", action: onCancel)
                     .keyboardShortcut(.cancelAction)
-                // "Become Borsa" once an Item is chosen: a Treasure has no numbers to stamp
-                // and so no heal to confirm, and this is where the DM sees what OK will do.
-                Button(draft.itemToBecome.map { String(localized: "Become \($0)") }
-                       ?? String(localized: "OK"), action: commit)
+                Button("OK", action: commit)
                     // Return belongs to the search results while they are open.
                     .keyboardShortcut(isSearching ? nil : .defaultAction)
                     .accessibilityIdentifier("edit-pawn-ok")
