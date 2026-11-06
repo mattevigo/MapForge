@@ -783,14 +783,11 @@ final class AppState: ObservableObject {
             fog.pawns = FaceRecut.recut(fog.pawns, from: source, to: file, reCutting: id)
             edited = fog.pawns[index]
         }
-        // Becoming a Monster brings its Face, over any Face the old Monster gave — unless the
-        // DM removed or cut one in this same sheet, which is what they meant.
-        if !draft.face.isChanged, let monster = bestiary.monster(named: draft.monsterToStamp) {
-            edited.face = DefinitionStamp.face(over: edited.face, from: monsterFace(for: monster))
-        }
-        // And becoming an Item brings the Item's, by the same rule (ADR-0031).
-        if !draft.face.isChanged, let item = treasury.item(named: draft.itemToBecome) {
-            edited.face = DefinitionStamp.face(over: edited.face, from: itemFace(for: item))
+        // Becoming a Monster or an Item brings its Face, over any Face the old one gave —
+        // unless the DM removed or cut one in this same sheet, which is what they meant.
+        if !draft.face.isChanged {
+            edited.face = definitionFace(over: edited.face, becoming: draft.monsterToStamp,
+                                         or: draft.itemToBecome)
         }
         fog.pawns[index] = edited
         // The one thing this sheet does to a Stat Block: a Monster that *changed* is stamped,
@@ -902,6 +899,21 @@ final class AppState: ObservableObject {
         keepingNoteFaces { faces, root, library in
             faces.face(for: item, in: root, library: library)
         }
+    }
+
+    /// The Face a Pawn wearing `current` has on becoming the Monster named `monster` or the
+    /// Item named `item`: the definition's Face, by `DefinitionStamp`'s rule (ADR-0028,
+    /// ADR-0031). `current` itself when neither names one the notes still define.
+    func definitionFace(over current: PawnFace?, becoming monster: String?,
+                        or item: String?) -> PawnFace? {
+        var face = current
+        if let monster = bestiary.monster(named: monster) {
+            face = DefinitionStamp.face(over: face, from: monsterFace(for: monster))
+        }
+        if let item = treasury.item(named: item) {
+            face = DefinitionStamp.face(over: face, from: itemFace(for: item))
+        }
+        return face
     }
 
     /// `body`'s Face from `noteFaces`, written to disk if it made a cut — or nil with no

@@ -330,16 +330,12 @@ extension AppState {
     /// It has no numbers to stamp.
     func addPawnToMap(_ pawn: Pawn) {
         var pawn = pawn
-        if let monster = bestiary.monster(named: pawn.monsterName) {
-            if statsDocument.blocks[pawn.id] == nil {
-                setStatBlock(MonsterStamp.statBlock(from: monster, over: StatBlock()), for: pawn.id)
-            }
-            // Fresh from the Monster, as its numbers are, never copied from a sibling.
-            pawn.face = DefinitionStamp.face(over: pawn.face, from: monsterFace(for: monster))
+        if let monster = bestiary.monster(named: pawn.monsterName),
+           statsDocument.blocks[pawn.id] == nil {
+            setStatBlock(MonsterStamp.statBlock(from: monster, over: StatBlock()), for: pawn.id)
         }
-        if let item = treasury.item(named: pawn.itemName) {
-            pawn.face = DefinitionStamp.face(over: pawn.face, from: itemFace(for: item))
-        }
+        // Fresh from the Monster or the Item, as its numbers are, never copied from a sibling.
+        pawn.face = definitionFace(over: pawn.face, becoming: pawn.monsterName, or: pawn.itemName)
         fog.pawns.append(pawn)
         flushPendingFogWrites()
         joinEncounter(pawn)
