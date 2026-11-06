@@ -16377,6 +16377,86 @@
         }
       }
     },
+    "the frontmatter is not a list of fields": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "das Frontmatter ist keine Liste von Feldern"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "το frontmatter δεν είναι λίστα πεδίων"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "el frontmatter no es una lista de campos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "le frontmatter n’est pas une liste de champs"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "il frontmatter non è un elenco di campi"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "o frontmatter não é uma lista de campos"
+          }
+        }
+      }
+    },
+    "the frontmatter is not valid YAML": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "das Frontmatter ist kein gültiges YAML"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "το frontmatter δεν είναι έγκυρο YAML"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "el frontmatter no es YAML válido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "le frontmatter n’est pas du YAML valide"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "il frontmatter non è YAML valido"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "o frontmatter não é YAML válido"
+          }
+        }
+      }
+    },
     "the note could not be read": {
       "localizations": {
         "de": {

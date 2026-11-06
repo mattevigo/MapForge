@@ -1,6 +1,7 @@
 import Foundation
 
-/// Builds the `Bestiary` by reading every note in the Workspace (ADR-0023).
+/// Builds the `Bestiary` by reading every note in the Workspace (ADR-0023) — and, in the same
+/// walk, the `Treasury` (ADR-0031).
 ///
 /// The whole Workspace rather than a folder, because the DM keeps Monsters wherever their
 /// notes put them — a reference shelf, a campaign's own creatures, its named NPCs — in
@@ -12,10 +13,12 @@ import Foundation
 /// temporary folder.
 enum BestiaryStore {
     /// What one walk over the Workspace's notes finds: its Monsters, and its Characters'
-    /// notes (ADR-0024), read together because they are told apart only by their fences.
+    /// notes (ADR-0024), read together because they are told apart only by their fences —
+    /// and its Items, which say what they are in their frontmatter instead (ADR-0031).
     struct Reading: Equatable {
         var bestiary: Bestiary
         var characters: CharacterNotes
+        var treasury: Treasury
     }
 
     static func load(for workspace: Workspace,
@@ -32,12 +35,14 @@ enum BestiaryStore {
         // Every fence first, because a Monster may `extend` one in a note further down the
         // path order — a campaign's NPC is a reference Monster with changes (ADR-0023).
         var fences: [(file: String, fields: StatblockReader.Fields)] = []
+        var items: [(file: String, reading: ItemReader.Reading)] = []
         for path in walked.notes {
             let url = URL(fileURLWithPath: (root as NSString).appendingPathComponent(path))
             guard let markdown = try? String(contentsOf: url, encoding: .utf8) else {
                 bestiary.skipped.append(.init(file: path, reason: String(localized: "the note could not be read")))
                 continue
             }
+            items.append((path, ItemReader.read(markdown, file: path)))
             switch StatblockReader.fields(in: markdown) {
             case .none: continue
             case .unreadable(let reason): bestiary.skipped.append(.init(file: path, reason: reason))
@@ -73,7 +78,36 @@ enum BestiaryStore {
         // Read in two passes, reported in one order: the vault's.
         bestiary.skipped.sort { $0.file < $1.file }
         return Reading(bestiary: bestiary,
-                       characters: characters(among: fences, files: walked.others))
+                       characters: characters(among: fences, files: walked.others),
+                       treasury: treasury(of: items, files: walked.others))
+    }
+
+    /// The Items among the notes' readings, which are in path order, the first by path
+    /// winning a name as a Monster's does.
+    private static func treasury(of readings: [(file: String, reading: ItemReader.Reading)],
+                                 files: [String]) -> Treasury {
+        var treasury = Treasury()
+        var names: Set<String> = []
+        for (file, reading) in readings {
+            switch reading {
+            case .notAnItem:
+                continue
+            case .skipped(let reason):
+                treasury.skipped.append(.init(file: file, reason: reason))
+            case .item(var item):
+                item.picture = item.imageLink.map { NotePicture.resolve($0, among: files) }
+                guard names.insert(item.name).inserted else {
+                    treasury.skipped.append(.init(
+                        file: file, reason: String(localized: "another note already defines “\(item.name)”")))
+                    continue
+                }
+                treasury.items.append(item)
+            }
+        }
+        treasury.items.sort {
+            $0.name.localizedStandardCompare($1.name) == .orderedAscending
+        }
+        return treasury
     }
 
     /// The Characters' notes among the fences, the first by path winning a name as a
