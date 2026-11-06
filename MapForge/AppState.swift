@@ -175,6 +175,11 @@ final class AppState: ObservableObject {
     /// Settable so a test can hand some over without a folder of notes.
     @Published var characterNotes = CharacterNotes()
 
+    /// Every Item read from the open Workspace's notes, in the same walk as the Bestiary and on
+    /// the same terms: read when the Workspace opens and never written anywhere (ADR-0031).
+    /// Settable so a test can hand one over without a folder of notes.
+    @Published var treasury = Treasury.closed
+
     /// The read in flight, kept so a test can wait for it and a switch can abandon it.
     private(set) var bestiaryLoad: Task<Void, Never>?
     /// Which Party the panel offers. Remembered in the Workspace, per ADR-0012.
@@ -1215,6 +1220,7 @@ final class AppState: ObservableObject {
         bestiaryLoad = nil
         bestiary = .closed
         characterNotes = CharacterNotes()
+        treasury = .closed
         partyStore = nil
         workspacePreferences = nil
         partyBook = PartyBook()
@@ -1226,7 +1232,7 @@ final class AppState: ObservableObject {
         playerScreen = nil
     }
 
-    /// Reads the Workspace's Monsters and Characters' notes, off the main thread.
+    /// Reads the Workspace's Monsters, Characters' notes and Items, off the main thread.
     ///
     /// The one moment the DM's notes are read (ADR-0020): no rescan, no watching. Off the
     /// main thread because it is a walk over a folder of the DM's choosing, and a vault is
@@ -1236,6 +1242,7 @@ final class AppState: ObservableObject {
         bestiaryLoad?.cancel()
         bestiary = .reading
         characterNotes = CharacterNotes()
+        treasury = .reading
         bestiaryLoad = Task { [weak self] in
             let read = await Task.detached(priority: .userInitiated) {
                 BestiaryStore.read(workspace)
@@ -1243,6 +1250,7 @@ final class AppState: ObservableObject {
             guard let self, !Task.isCancelled, self.workspace == workspace else { return }
             self.bestiary = read.bestiary
             self.characterNotes = read.characters
+            self.treasury = read.treasury
             self.cutNoteFaces()
         }
     }
