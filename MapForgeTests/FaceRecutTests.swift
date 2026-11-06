@@ -2,7 +2,7 @@ import AppKit
 import XCTest
 @testable import MapForge
 
-/// Re-cutting a Face that came from a Monster or a Character: whether the Edit Pawn sheet asks
+/// Re-cutting a Face that came from a Monster, a Character or an Item: whether the Edit Pawn sheet asks
 /// "only this Pawn, or every one?", and which Pawns "every" reaches — the one exception to a
 /// Face being a copy, and only ever the DM's doing (ADR-0028).
 @MainActor
@@ -338,6 +338,106 @@ final class FaceRecutTests: XCTestCase {
 
         XCTAssertEqual(picture.picture.width, 200)
         XCTAssertEqual(picture.cut, CGRect(x: 50, y: 0, width: 100, height: 100))
+    }
+
+    // MARK: An Item's Face
+
+    private func treasure(_ label: String, item: String? = "Borsa", face: PawnFace?) -> Pawn {
+        Pawn(at: MapPoint(x: 100, y: 100), label: label, colorHex: "#D4A017",
+             brightSquares: 0, kind: .treasure, itemName: item, face: face)
+    }
+
+    /// An open Workspace whose Borsa's note names a picture, cut once, with four Treasures on
+    /// the Map — two wearing the Borsa's Face, one cut by hand, one a Corda's — and a Goblin
+    /// wearing its Monster's.
+    private func makeBorse() async throws -> (AppState, Workspace, [Pawn]) {
+        let (state, workspace, goblins) = try await makeGoblins()
+        try FaceFixture.writePNG(try picture(),
+                                 to: workspace.url.appendingPathComponent("Allegati/Borsa.png"))
+        var borsa = Item(name: "Borsa")
+        borsa.picture = .found("Allegati/Borsa.png")
+        state.treasury = Treasury(items: [borsa, Item(name: "Corda")])
+        let face = try XCTUnwrap(state.itemFace(for: borsa))
+        let pawns = [treasure("Bo1", face: face), treasure("Bo2", face: face),
+                     treasure("Bo3", face: PawnFace(file: "mine.png", origin: .hand)),
+                     treasure("Co1", item: "Corda", face: PawnFace(file: "corda.png", origin: .item)),
+                     goblins[0]]
+        state.fog.pawns = pawns
+        return (state, workspace, pawns)
+    }
+
+    func testEveryChangesTheItemsCutAndEveryTreasureOnTheMapThatTookIt() async throws {
+        let (state, workspace, pawns) = try await makeBorse()
+        var draft = try recutDraft(of: pawns[0], in: state)
+        draft.recutsEvery = true
+
+        state.updatePawn(id: pawns[0].id, with: draft)
+
+        let cut = try XCTUnwrap(NoteFacesStore(directory: workspace.supportDirectory).load()
+            .items["Borsa"])
+        XCTAssertEqual(cut.square, CGRect(x: 0, y: 0, width: 60, height: 60))
+        XCTAssertEqual(state.fog.pawns.map(\.face?.file),
+                       [cut.file, cut.file, "mine.png", "corda.png", pawns[4].face?.file])
+        XCTAssertEqual(state.fog.pawns[0].face?.origin, .item)
+    }
+
+    func testATreasureThatBecomesTheItemAfterwardsTakesTheNewCut() async throws {
+        let (state, workspace, pawns) = try await makeBorse()
+        var draft = try recutDraft(of: pawns[0], in: state)
+        draft.recutsEvery = true
+        state.updatePawn(id: pawns[0].id, with: draft)
+        let chest = treasure("1", item: nil, face: nil)
+        state.fog.pawns.append(chest)
+
+        var becoming = EditPawnDraft(pawn: chest)
+        becoming.pick(try XCTUnwrap(state.treasury.item(named: "Borsa")), among: state.fog.pawns)
+        state.updatePawn(id: chest.id, with: becoming)
+
+        let cut = try XCTUnwrap(NoteFacesStore(directory: workspace.supportDirectory).load()
+            .items["Borsa"])
+        XCTAssertEqual(state.fog.pawns.last?.face, PawnFace(file: cut.file, origin: .item))
+    }
+
+    func testOnlyThisTreasureChangesThatTreasureAloneAndLeavesTheItemsCut() async throws {
+        let (state, workspace, pawns) = try await makeBorse()
+        let before = NoteFacesStore(directory: workspace.supportDirectory).load()
+
+        state.updatePawn(id: pawns[0].id, with: try recutDraft(of: pawns[0], in: state))
+
+        XCTAssertEqual(state.fog.pawns[0].face?.origin, .hand)
+        XCTAssertNotEqual(state.fog.pawns[0].face?.file, pawns[0].face?.file)
+        XCTAssertEqual(Array(state.fog.pawns.dropFirst()), Array(pawns.dropFirst()))
+        XCTAssertEqual(NoteFacesStore(directory: workspace.supportDirectory).load(), before)
+    }
+
+    func testReCuttingAnItemsFaceAsksAndStartsFromItsPictureAndSquare() async throws {
+        let (state, _, pawns) = try await makeBorse()
+
+        let draft = try recutDraft(of: pawns[0], in: state)
+        let source = try XCTUnwrap(state.recutPicture(for: .item("Borsa")))
+
+        XCTAssertEqual(draft.recutSource, .item("Borsa"))
+        XCTAssertTrue(draft.asksWhomToRecut)
+        XCTAssertEqual(source.picture.width, 300)
+        XCTAssertEqual(source.cut, CGRect(x: 100, y: 0, width: 100, height: 100))
+    }
+
+    /// Another picture over an Item's Face is this Treasure's alone, as over a Monster's.
+    func testAnotherPictureForAnItemsFaceDoesNotAsk() async throws {
+        let (_, _, pawns) = try await makeBorse()
+        var draft = EditPawnDraft(pawn: pawns[0])
+        draft.face.choosePicture(try picture())
+
+        XCTAssertFalse(draft.asksWhomToRecut)
+    }
+
+    func testOnlyAnItemWhoseNoteNamesAPictureCanBeReCutForEveryOne() async throws {
+        let (state, _, _) = try await makeBorse()
+
+        XCTAssertTrue(state.canRecut(.item("Borsa")))
+        XCTAssertFalse(state.canRecut(.item("Corda")), "its note names no picture")
+        XCTAssertEqual(state.recutName(for: .item("Borsa")), "Borsa")
+        XCTAssertNil(state.recutName(for: .item("Gemma di Fuoco")), "gone from the notes")
     }
 
     func testACharactersOwnFaceKeepsNoPictureToReCut() async throws {

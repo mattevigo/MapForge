@@ -250,7 +250,8 @@ struct EditPawnSheet: View {
         return { faces.recutPicture(source) }
     }
 
-    /// The Monster or Character "every" re-cuts, when the Face came from one still defined.
+    /// The Monster, Character or Item "every" re-cuts, when the Face came from one still
+    /// defined.
     private var recutName: String? {
         draft.recutSource.flatMap { definitionFaces?.name($0) }
     }

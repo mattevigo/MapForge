@@ -814,8 +814,8 @@ final class AppState: ObservableObject {
     }
 
     /// The picture `source`'s Face is cut from, and the square to start from — for cutting it
-    /// again. Only for a Face cut from a note's picture, a Monster's or a Character's: a Face
-    /// cut by hand keeps no picture, so the DM chooses one again.
+    /// again. Only for a Face cut from a note's picture, a Monster's, a Character's or an
+    /// Item's: a Face cut by hand keeps no picture, so the DM chooses one again.
     ///
     /// The picture the note names **now** — never the one an older cut was made from, which
     /// the note may since have replaced. It starts from the square last cut when that square
@@ -844,27 +844,26 @@ final class AppState: ObservableObject {
             guard let character = character(id: id), character.face == nil,
                   let path = note(for: character)?.picture?.path else { return nil }
             return (path, noteFaces.characters[id.uuidString])
-        case .item:
-            // An Item's Face is not re-cut from its picture yet: the sheet offers no
-            // "Re-cut…" for it, and a new picture over it is this Pawn's alone.
-            return nil
+        case .item(let name):
+            guard let path = treasury.item(named: name)?.picture?.path else { return nil }
+            return (path, noteFaces.items[name])
         }
     }
 
-    /// The name "every" is offered under — "Every Goblin" — or nil when the Monster or the
-    /// Character has gone, and there is no definition left to re-cut.
+    /// The name "every" is offered under — "Every Goblin", "Every Borsa" — or nil when the
+    /// Monster, the Character or the Item has gone, and there is no definition left to re-cut.
     func recutName(for source: FaceSource?) -> String? {
         switch source {
         case .monster(let name): bestiary.monster(named: name)?.name
         case .character(let id): character(id: id)?.name
-        // No Item is re-cut for "every" yet, so none is offered.
-        case .item, nil: nil
+        case .item(let name): treasury.item(named: name)?.name
+        case nil: nil
         }
     }
 
-    /// Makes `file`, cut as `square`, the Face of `source` itself: the Monster's cut of its
-    /// picture, or the Character's own Face, which wins over its note's from then on. Pawns
-    /// that take the Face afterwards take this one.
+    /// Makes `file`, cut as `square`, the Face of `source` itself: the Monster's or the
+    /// Item's cut of its picture, or the Character's own Face, which wins over its note's from
+    /// then on. Pawns that take the Face afterwards take this one.
     private func recutDefinition(_ source: FaceSource, square: CGRect, file: String) {
         switch source {
         case .monster(let name):
@@ -877,9 +876,11 @@ final class AppState: ObservableObject {
             guard var character = character(id: id) else { return }
             character.face = PawnFace(file: file, origin: .hand)
             updateCharacter(character)
-        case .item:
-            // Never reached: "every" is not offered for an Item (`recutName`).
-            return
+        case .item(let name):
+            // As a Monster's, against the picture the note names now.
+            guard let path = treasury.item(named: name)?.picture?.path else { return }
+            noteFaces.items[name] = NoteFaces.Cut(picture: path, square: square, file: file)
+            saveNoteFaces()
         }
     }
 

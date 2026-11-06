@@ -38,10 +38,10 @@ struct EditPawnDraft: Equatable {
     /// The DM's answer to "only this Pawn, or every one?" — true for every Pawn that took the
     /// Face from `recutSource`. Asked only when `asksWhomToRecut`.
     var recutsEvery = false
-    /// Where the Face in the sheet came from, when a Monster or a Character gave it: whose
-    /// picture "Re-cut…" opens, and whose cut "every" would change. Asked of the sheet as it
-    /// stands — the Face taken or kept, and the Monster it is now — never of the Pawn as it
-    /// opened, so a Face taken here can be re-cut at once.
+    /// Where the Face in the sheet came from, when a Monster, a Character or an Item gave
+    /// it: whose picture "Re-cut…" opens, and whose cut "every" would change. Asked of the
+    /// sheet as it stands — the Face taken or kept, and the Monster or Item it is now — never
+    /// of the Pawn as it opened, so a Face taken here can be re-cut at once.
     var recutSource: FaceSource? {
         switch (face.kept ?? openedWithFace)?.origin {
         case .monster: monsterName.map { .monster($0) }
@@ -152,11 +152,12 @@ struct EditPawnDraft: Equatable {
 
     /// Whether OK must ask "only this Pawn, or every one?" (ADR-0028).
     ///
-    /// Only over a Face a Monster or a Character gave, and only for a cut that could be that
-    /// definition's: a Monster's Face is the picture its note names, so only that picture cut
-    /// again; a Character's own Face may be any picture. A Face cut by hand, or another
-    /// picture over a Monster's, is this Pawn's alone and is cut without asking. Never while
-    /// the Pawn becomes another Monster, whose Face is the new one's.
+    /// Only over a Face a Monster, a Character or an Item gave, and only for a cut that could
+    /// be that definition's: a Monster's or an Item's Face is the picture its note names, so
+    /// only that picture cut again; a Character's own Face may be any picture. A Face cut by
+    /// hand, or another picture over a Monster's or an Item's, is this Pawn's alone and is cut
+    /// without asking. Never while the Pawn becomes another Monster, whose Face is the new
+    /// one's.
     var asksWhomToRecut: Bool {
         guard face.newCut != nil, monsterToStamp == nil else { return false }
         switch recutSource {

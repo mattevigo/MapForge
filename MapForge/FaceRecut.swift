@@ -43,8 +43,9 @@ enum FaceSource: Equatable {
 /// Face being a copy, and only ever the DM's doing (ADR-0028).
 ///
 /// Pure, out of `AppState`, so which Pawns "every" reaches is proved without a Workspace: on
-/// the open Map, those that took their Face from that very Monster or Character, and no
-/// other. A Face the DM cut by hand stays theirs; a Pawn of another Monster is not this one's.
+/// the open Map, those that took their Face from that very Monster, Character or
+/// Item, and no other. A Face the DM cut by hand stays theirs; a Pawn of another Monster or
+/// another Item is not this one's.
 enum FaceRecut {
     /// `pawns` with every Pawn that took its Face from `source` wearing `file` instead —
     /// and `reCutting`, the Pawn the DM re-cut, whatever its Face was by the time OK was
