@@ -47,7 +47,8 @@ struct EditPawnSheet: View {
     /// Where the Pawn's Face is kept, for showing it. Nil with no Workspace open, when there
     /// is nowhere to keep a cut and so no picture is offered.
     var faceLibrary: FaceLibrary?
-    /// What the sheet asks of the Monsters' and Characters' Faces. Nil with no Workspace open.
+    /// What the sheet asks of the Monsters', Items' and Characters' Faces. Nil with no
+    /// Workspace open.
     var definitionFaces: DefinitionFaces?
     let onCommit: (EditPawnDraft) -> Void
     let onCancel: () -> Void
@@ -130,7 +131,7 @@ struct EditPawnSheet: View {
                     Text("Face")
                     FaceEditor(face: $draft.face, kind: draft.kind, library: faceLibrary,
                                wearer: .pawn, recutPicture: recutPicture,
-                               useMonsterFace: useMonsterFace)
+                               useMonsterFace: useMonsterFace, useItemFace: useItemFace)
                         // Across the Monster's column, as the Sight row is: the cut is the
                         // widest thing the sheet shows.
                         .gridCellColumns(2)
@@ -228,6 +229,19 @@ struct EditPawnSheet: View {
         }
     }
 
+    /// Gives the Treasure its Item's Face, when the sheet offers it — false when the Face
+    /// could not be had after all.
+    private var useItemFace: (() -> Bool)? {
+        let item = treasury.item(named: draft.itemName)
+        guard let item, let faces = definitionFaces, draft.offersItemFace(of: item)
+        else { return nil }
+        return {
+            guard let face = faces.itemFace(item) else { return false }
+            draft.takeItemFace(face, of: item.name)
+            return true
+        }
+    }
+
     /// The picture the Face in the sheet was cut from, as its note names it now, for cutting
     /// it again — nil when it keeps none, as a Face cut by hand does.
     private var recutPicture: (() -> PendingFaceCut?)? {
@@ -254,13 +268,16 @@ struct EditPawnSheet: View {
     }
 }
 
-/// What the Edit Pawn sheet asks of the Faces Monsters and Characters give, answered by
+/// What the Edit Pawn sheet asks of the Faces Monsters, Items and Characters give, answered by
 /// `AppState`, which holds the notes and the cuts.
 struct DefinitionFaces {
     /// The Face of a Monster, its picture cut now if no Pawn has taken it yet. That cut is
     /// the Monster's, shared by every Pawn that takes its Face, so it is no litter if the
     /// sheet is cancelled.
     var monsterFace: (Monster) -> PawnFace?
+    /// The Face of an Item, its picture cut now if no Treasure has taken it yet — shared as a
+    /// Monster's is.
+    var itemFace: (Item) -> PawnFace?
     /// Whether the source's note names a picture to cut again, without reading it.
     var canRecut: (FaceSource) -> Bool
     /// That picture, read, with the square to start from.
@@ -275,7 +292,8 @@ struct DefinitionFaces {
 /// Nothing of the wearer's own is kept here: the cut is a draft until the editor's OK or Save,
 /// and only that copies the square into the Workspace (`FaceDraft.resolved`), so Cancel leaves
 /// no file behind. The one exception is "Use the Monster's Face", which may make the Monster's
-/// shared cut — the cut the next Pawn to take that Face would make the same.
+/// shared cut — the cut the next Pawn to take that Face would make the same — and "Use the
+/// Item's Face", which may make the Item's.
 struct FaceEditor: View {
     @Binding var face: FaceDraft
     /// The shape the Face will be worn in.
@@ -290,6 +308,8 @@ struct FaceEditor: View {
     /// Gives the wearer the Face of the Monster it is, when it may take it, reporting whether
     /// it could. Offers "Use the Monster's Face" when there is one.
     var useMonsterFace: (() -> Bool)? = nil
+    /// The same for a Treasure and the Item it is. Offers "Use the Item's Face".
+    var useItemFace: (() -> Bool)? = nil
 
     /// Who will wear the Face, which is all that changes what the editor says.
     enum Wearer {
@@ -351,6 +371,10 @@ struct FaceEditor: View {
                 if let useMonsterFace {
                     Button("Use the Monster's Face") { pictureFailed = !useMonsterFace() }
                     .accessibilityIdentifier("\(wearer.identifier)-monster-face")
+                }
+                if let useItemFace {
+                    Button("Use the Item's Face") { pictureFailed = !useItemFace() }
+                    .accessibilityIdentifier("\(wearer.identifier)-item-face")
                 }
                 if face.hasFace {
                     Button("Remove Face") { face.remove() }

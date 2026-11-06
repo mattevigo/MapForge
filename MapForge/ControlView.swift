@@ -307,6 +307,7 @@ struct ControlView: View {
                               faceLibrary: appState.faceLibrary,
                               definitionFaces: appState.faceLibrary == nil ? nil : DefinitionFaces(
                                   monsterFace: { appState.monsterFace(for: $0) },
+                                  itemFace: { appState.itemFace(for: $0) },
                                   canRecut: { appState.canRecut($0) },
                                   recutPicture: { appState.recutPicture(for: $0) },
                                   name: { appState.recutName(for: $0) }),

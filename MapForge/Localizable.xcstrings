@@ -15418,6 +15418,46 @@
         }
       }
     },
+    "Use the Item's Face": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gesicht des Gegenstands verwenden"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Χρήση του προσώπου του αντικειμένου"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar el rostro del objeto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser le visage de l'objet"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa il volto dell'oggetto"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar o rosto do item"
+          }
+        }
+      }
+    },
     "Use the Monster's Face": {
       "localizations": {
         "de": {

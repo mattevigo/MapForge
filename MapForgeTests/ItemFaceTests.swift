@@ -178,6 +178,79 @@ final class ItemFaceTests: XCTestCase {
         XCTAssertNil(face(of: pawn.id, in: state))
     }
 
+    // MARK: Taking the Face of the Item it already is
+
+    private func borsaAlready(face: PawnFace? = nil) -> Pawn {
+        var pawn = treasure("Bo1", face: face)
+        pawn.itemName = "Borsa"
+        return pawn
+    }
+
+    func testATreasureAlreadyAnItemIsOfferedItsFace() {
+        let borsa = borsa(picture: .found("Allegati/Borsa.png"))
+
+        XCTAssertTrue(EditPawnDraft(pawn: borsaAlready()).offersItemFace(of: borsa))
+        XCTAssertTrue(EditPawnDraft(pawn: borsaAlready(face: PawnFace(file: "mine.png", origin: .hand)))
+            .offersItemFace(of: borsa))
+    }
+
+    func testTheItemsFaceIsNotOfferedWhereItCannotBeOrAlreadyIs() {
+        let pictured = borsa(picture: .found("Allegati/Borsa.png"))
+
+        XCTAssertFalse(EditPawnDraft(pawn: borsaAlready(face: PawnFace(file: "b.png", origin: .item)))
+            .offersItemFace(of: pictured), "already wearing it")
+        XCTAssertFalse(EditPawnDraft(pawn: borsaAlready()).offersItemFace(of: borsa(picture: nil)),
+                       "no picture")
+        XCTAssertFalse(EditPawnDraft(pawn: borsaAlready())
+            .offersItemFace(of: borsa(picture: .missing(link: "Borsa.png"))), "picture not found")
+        XCTAssertFalse(EditPawnDraft(pawn: treasure("1")).offersItemFace(of: nil))
+        var creature = borsaAlready()
+        creature.kind = .creature
+        XCTAssertFalse(EditPawnDraft(pawn: creature).offersItemFace(of: pictured),
+                       "only a Treasure can be an Item")
+    }
+
+    func testOKGivesTheTreasureItsItemsFace() async throws {
+        let (state, _) = try await makeAppState()
+        let pawn = borsaAlready(face: PawnFace(file: "mine.png", origin: .hand))
+        state.fog.pawns = [pawn]
+        var draft = EditPawnDraft(pawn: pawn)
+        let borsa = try XCTUnwrap(state.treasury.item(named: "Borsa"))
+
+        draft.takeItemFace(try XCTUnwrap(state.itemFace(for: borsa)), of: borsa.name)
+        XCTAssertEqual(state.fog.pawns, [pawn], "nothing reaches the Pawn before OK")
+        state.updatePawn(id: pawn.id, with: draft)
+
+        let face = try XCTUnwrap(face(of: pawn.id, in: state))
+        XCTAssertEqual(face.origin, .item)
+        XCTAssertNotNil(try XCTUnwrap(state.faceLibrary).image(for: face))
+    }
+
+    /// A Face taken from one Item is not carried onto another picked in the same sheet.
+    func testPickingAnotherItemAfterTakingAFaceGivesTheNewItemsFace() async throws {
+        let (state, _) = try await makeAppState()
+        let pawn = borsaAlready()
+        state.fog.pawns = [pawn]
+        var draft = EditPawnDraft(pawn: pawn)
+        let borsa = try XCTUnwrap(state.treasury.item(named: "Borsa"))
+        draft.takeItemFace(try XCTUnwrap(state.itemFace(for: borsa)), of: borsa.name)
+
+        draft.pick(corda(picture: nil), among: state.fog.pawns)
+        state.updatePawn(id: pawn.id, with: draft)
+
+        XCTAssertNil(face(of: pawn.id, in: state), "the Corda has no picture")
+    }
+
+    func testTheItemsFaceIsNotOfferedAgainOnceTaken() {
+        var draft = EditPawnDraft(pawn: borsaAlready())
+        let pictured = corda(picture: .found("Allegati/Corda.png"))
+        draft.pick(pictured, among: [])
+
+        draft.takeItemFace(PawnFace(file: "corda.png", origin: .item), of: pictured.name)
+
+        XCTAssertFalse(draft.offersItemFace(of: pictured))
+    }
+
     // MARK: A picture that gives no Face
 
     func testAMissingOrSharedPictureGivesNoFaceAndIsReported() async throws {

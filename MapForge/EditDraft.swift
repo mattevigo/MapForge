@@ -64,12 +64,12 @@ struct EditPawnDraft: Equatable {
     /// The label the last `pick` wrote, so a second pick can tell the app's label from one
     /// the DM typed over it.
     private var pickedLabel: String?
-    /// The Face the Pawn had when the sheet opened, to give back if a Monster's Face taken
-    /// here stops being this Pawn's Monster's.
+    /// The Face the Pawn had when the sheet opened, to give back if a Monster's or an Item's
+    /// Face taken here stops being this Pawn's Monster's or Item's.
     private let openedWithFace: PawnFace?
-    /// The Monster whose Face `takeMonsterFace` gave in this sheet, while the Pawn still wears
-    /// it — so picking another Monster does not carry it onto that one.
-    private var tookFaceOf: String?
+    /// The Monster or Item whose Face `takeMonsterFace` or `takeItemFace` gave in this sheet,
+    /// while the Pawn still wears it — so picking another does not carry it onto that one.
+    private var tookFaceFrom: FaceSource?
 
     init(pawn: Pawn) {
         pawnID = pawn.id
@@ -96,7 +96,7 @@ struct EditPawnDraft: Equatable {
     /// `pawns` is the Map as it stands, for the label's number.
     mutating func pick(_ monster: Monster, among pawns: [Pawn]) {
         monsterName = monster.name
-        giveBackTakenFace(unlessOf: monster.name)
+        giveBackTakenFace(unlessFrom: .monster(monster.name))
         isBig = monster.isBig
         // A label this sheet wrote is not one the DM typed: changing one's mind from an
         // Ogre to a Gnoll should not leave the gnoll called "Og1".
@@ -113,7 +113,7 @@ struct EditPawnDraft: Equatable {
     /// label this sheet wrote goes back to what it replaced.
     mutating func clearMonster() {
         monsterName = nil
-        giveBackTakenFace(unlessOf: nil)
+        giveBackTakenFace(unlessFrom: nil)
         if label == pickedLabel { label = openedWithLabel }
         pickedLabel = nil
     }
@@ -121,10 +121,12 @@ struct EditPawnDraft: Equatable {
     /// Say which Item this Treasure is, and show the DM what follows from it: a label the app
     /// gave — the bare number, or the initials of the Item it was — becomes "Bo1", by the
     /// rule a Monster's label follows. There is nothing else to show: an Item has no numbers.
+    /// Its Face is given on OK (`AppState.updatePawn`), as a Monster's is.
     ///
     /// `pawns` is the Map as it stands, for the label's number.
     mutating func pick(_ item: Item, among pawns: [Pawn]) {
         itemName = item.name
+        giveBackTakenFace(unlessFrom: .item(item.name))
         let replaceable = label == pickedLabel ? openedWithLabel : label
         let relabelled = ItemStamp.label(for: item, replacing: replaceable, from: openedWithItem,
                                          among: pawns.filter { $0.id != pawnID })
@@ -136,6 +138,7 @@ struct EditPawnDraft: Equatable {
     /// Forget the Item. A label this sheet wrote goes back to what it replaced.
     mutating func clearItem() {
         itemName = nil
+        giveBackTakenFace(unlessFrom: nil)
         if label == pickedLabel { label = openedWithLabel }
         pickedLabel = nil
     }
@@ -174,26 +177,49 @@ struct EditPawnDraft: Equatable {
     func offersMonsterFace(of monster: Monster?) -> Bool {
         guard kind.canBeMonster, let monster, monster.name == monsterName,
               monster.picture?.path != nil else { return false }
-        let wearsIt = face.newCut == nil && face.kept?.origin == .monster
-            && (tookFaceOf ?? openedWithMonster) == monster.name
-        return !wearsIt
+        return !wears(.monster(monster.name), openedWith: openedWithMonster.map { .monster($0) })
     }
 
     /// Give the Pawn `face`, the Face of the Monster named `name` that it is.
     mutating func takeMonsterFace(_ face: PawnFace, of name: String) {
         self.face.take(face)
-        tookFaceOf = name
+        tookFaceFrom = .monster(name)
     }
 
-    /// The Face the sheet opened with back, when a Monster's Face taken here would otherwise
-    /// follow the Pawn onto Monster `name` — whose Face OK then gives by the usual rule. Left
-    /// alone once the DM has cut or removed a Face since: that is theirs.
-    private mutating func giveBackTakenFace(unlessOf name: String?) {
-        guard let taken = tookFaceOf, taken != name else { return }
-        if face.newCut == nil, face.kept?.origin == .monster {
+    /// Whether the sheet offers to give the Treasure `item`'s Face — the Item it is now.
+    ///
+    /// `offersMonsterFace(of:)` for a Treasure, and for the same reason: one that was already
+    /// the Item before its note named a picture, or whose Face the DM removed, has no other
+    /// way to get it. Not offered when the Treasure already wears that Item's Face, or the
+    /// note names no picture the Workspace holds.
+    func offersItemFace(of item: Item?) -> Bool {
+        guard kind.canBeItem, let item, item.name == itemName,
+              item.picture?.path != nil else { return false }
+        return !wears(.item(item.name), openedWith: openedWithItem.map { .item($0) })
+    }
+
+    /// Give the Treasure `face`, the Face of the Item named `name` that it is.
+    mutating func takeItemFace(_ face: PawnFace, of name: String) {
+        self.face.take(face)
+        tookFaceFrom = .item(name)
+    }
+
+    /// Whether the sheet's Face is `source`'s: taken from it here, or — with nothing taken —
+    /// worn since the sheet opened, when the Pawn already was `opened`.
+    private func wears(_ source: FaceSource, openedWith opened: FaceSource?) -> Bool {
+        face.newCut == nil && face.kept?.origin == source.origin
+            && (tookFaceFrom ?? opened) == source
+    }
+
+    /// The Face the sheet opened with back, when a Monster's or an Item's Face taken here
+    /// would otherwise follow the Pawn onto `source` — whose Face OK then gives by the usual
+    /// rule. Left alone once the DM has cut or removed a Face since: that is theirs.
+    private mutating func giveBackTakenFace(unlessFrom source: FaceSource?) {
+        guard let taken = tookFaceFrom, taken != source else { return }
+        if face.newCut == nil, face.kept?.origin == taken.origin {
             face = FaceDraft(openedWithFace)
         }
-        tookFaceOf = nil
+        tookFaceFrom = nil
     }
 
     /// The Monster OK must stamp, or nil when it must not.
