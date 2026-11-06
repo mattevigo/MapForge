@@ -70,6 +70,29 @@ final class ScaleMathTests: XCTestCase {
         assertEqual(frame, CGRect(x: -200, y: -100, width: 1500, height: 1000))
     }
 
+    func testUnderMapFitTheViewportIsTheWholeMap() {
+        // The players see the whole 30×20 in Map, so the Viewport is all of it — wherever the
+        // True Scale Viewport had been moved to.
+        let map = MapScale.grid(squaresWide: 30, imagePixelSize: CGSize(width: 3000, height: 2000))
+        let viewport = ScaleMath.playerViewport(map: map, display: display,
+                                                screenSizePoints: CGSize(width: 1000, height: 600),
+                                                desiredOrigin: CGPoint(x: 4, y: 2), isMapFitOn: true)
+        XCTAssertEqual(viewport, Viewport(originInches: .zero, sizeInches: CGSize(width: 30, height: 20)))
+    }
+
+    func testWithMapFitOffTheViewportIsTheTrueScaleOne() {
+        // 1000×600 pt at 50 pt/in shows 20×12 in of the Map, at the origin the DM set.
+        let map = MapScale.grid(squaresWide: 30, imagePixelSize: CGSize(width: 3000, height: 2000))
+        let viewport = ScaleMath.playerViewport(map: map, display: display,
+                                                screenSizePoints: CGSize(width: 1000, height: 600),
+                                                desiredOrigin: CGPoint(x: 4, y: 2), isMapFitOn: false)
+        assertEqual(CGRect(origin: viewport.originInches, size: viewport.sizeInches),
+                    CGRect(x: 4, y: 2, width: 20, height: 12))
+        XCTAssertEqual(viewport, ScaleMath.resolvedViewport(map: map, display: display,
+                                                            screenSizePoints: CGSize(width: 1000, height: 600),
+                                                            desiredOrigin: CGPoint(x: 4, y: 2)))
+    }
+
     func testCalibrationCorrectionScalesPointsPerInch() {
         // The display claims 508 mm but a ruler measured the 200 mm calibration bar as 190 mm on glass:
         // the display is smaller than claimed → more pixels per real inch.

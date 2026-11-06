@@ -54,8 +54,13 @@ enum ViewportToggle {
     /// A Map that fits inside the Viewport has no hidden part: the rectangle would cover the
     /// whole thing and have nowhere to go. Without a Player Display there is no Viewport to
     /// move in the first place.
-    static func isAvailable(mapOverflows: Bool, hasDisplay: Bool) -> Bool {
-        mapOverflows && hasDisplay
+    ///
+    /// Nor under **Map Fit**, however far the Map overflows at True Scale: the players see
+    /// the whole Map, so the rectangle covers all of it and there is nothing to pan. The
+    /// Viewport's origin is kept, not cleared, so turning Map Fit off offers the toggle again
+    /// over the same region the table had.
+    static func isAvailable(mapOverflows: Bool, hasDisplay: Bool, isMapFitOn: Bool) -> Bool {
+        mapOverflows && hasDisplay && !isMapFitOn
     }
 
     /// Whether a rectangle already showing should stay showing.
@@ -64,7 +69,7 @@ enum ViewportToggle {
     /// declaring a Grid that shrinks the Map below the Viewport, leaves the rectangle over a
     /// preview it no longer describes. It puts itself away instead, the way Solo Sight
     /// clears itself rather than waiting to be noticed.
-    static func staysShowing(mapOverflows: Bool, hasDisplay: Bool) -> Bool {
-        isAvailable(mapOverflows: mapOverflows, hasDisplay: hasDisplay)
+    static func staysShowing(mapOverflows: Bool, hasDisplay: Bool, isMapFitOn: Bool) -> Bool {
+        isAvailable(mapOverflows: mapOverflows, hasDisplay: hasDisplay, isMapFitOn: isMapFitOn)
     }
 }

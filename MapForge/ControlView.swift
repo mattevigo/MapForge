@@ -521,7 +521,17 @@ struct ControlView: View {
         .onChange(of: appState.playerScreen) { _, screen in
             // Losing the Player Display mid-pan would strand the mode with no overlay.
             if !ViewportToggle.staysShowing(mapOverflows: mapOverflowsViewport,
-                                            hasDisplay: screen != nil) {
+                                            hasDisplay: screen != nil,
+                                            isMapFitOn: appState.isMapFitOn) {
+                isShowingViewport = false
+            }
+        }
+        .onChange(of: appState.isMapFitOn) { _, isMapFitOn in
+            // Fitting the Map leaves the armed rectangle over the whole Map with nowhere to
+            // go; it puts itself away rather than staying armed and immovable.
+            if !ViewportToggle.staysShowing(mapOverflows: mapOverflowsViewport,
+                                            hasDisplay: appState.playerScreen != nil,
+                                            isMapFitOn: isMapFitOn) {
                 isShowingViewport = false
             }
         }
@@ -591,18 +601,30 @@ struct ControlView: View {
 
     // MARK: Preview
 
-    /// The Viewport resolved against the connected Player Display, or nil without one.
+    /// The Viewport the players are shown on the connected Player Display, or nil without
+    /// one: the whole Map under Map Fit, the True Scale region otherwise. This is what the
+    /// green rectangle outlines — see `ScaleMath.playerViewport`.
     private var resolvedViewport: Viewport? {
         guard let metrics = appState.playerMetrics,
               let screen = appState.playerScreen,
               let map = appState.mapScale else { return nil }
-        return ScaleMath.resolvedViewport(map: map, display: metrics,
-                                          screenSizePoints: screen.frame.size,
-                                          desiredOrigin: appState.viewportOrigin)
+        return ScaleMath.playerViewport(map: map, display: metrics,
+                                        screenSizePoints: screen.frame.size,
+                                        desiredOrigin: appState.viewportOrigin,
+                                        isMapFitOn: appState.isMapFitOn)
     }
 
+    /// Whether the Map is larger than the screen at **True Scale** — asked of the True Scale
+    /// Viewport even under Map Fit, where the rectangle covers the whole Map. Map Fit makes
+    /// the toggle unavailable on its own terms (`ViewportToggle.isAvailable`), not by
+    /// pretending the Map has stopped overflowing.
     private var mapOverflowsViewport: Bool {
-        guard let viewport = resolvedViewport, let map = appState.mapScale else { return false }
+        guard let metrics = appState.playerMetrics,
+              let screen = appState.playerScreen,
+              let map = appState.mapScale else { return false }
+        let viewport = ScaleMath.resolvedViewport(map: map, display: metrics,
+                                                  screenSizePoints: screen.frame.size,
+                                                  desiredOrigin: appState.viewportOrigin)
         return map.physicalSizeInches.width > viewport.sizeInches.width
             || map.physicalSizeInches.height > viewport.sizeInches.height
     }
@@ -1768,6 +1790,9 @@ struct ControlView: View {
     /// A toggle, not a mode: press to show the rectangle, press again to put it away. There
     /// is no Cancel, deliberately — see `ViewportToggle`.
     ///
+    /// Unavailable under Map Fit, where the rectangle covers the whole Map and there is
+    /// nothing to drag it to; its help says so rather than leaving the DM to guess why.
+    ///
     /// Drawn only in the Live View, as it was inside `modeControls`' `.normal` case: the
     /// rectangle is not drawn in Grid Fit or the Wall Editor, so a control for dragging it
     /// would act on something invisible.
@@ -1784,8 +1809,11 @@ struct ControlView: View {
             Toggle("Viewport", isOn: $isShowingViewport)
                 .toggleStyle(.button)
                 .disabled(!ViewportToggle.isAvailable(mapOverflows: mapOverflowsViewport,
-                                                      hasDisplay: appState.playerScreen != nil))
-                .help("Show the rectangle the players see, and drag it to move their view.")
+                                                      hasDisplay: appState.playerScreen != nil,
+                                                      isMapFitOn: appState.isMapFitOn))
+                .help(appState.isMapFitOn
+                      ? String(localized: "Map Fit shows the players the whole Map, so there is nothing to move. Turn it off first.")
+                      : String(localized: "Show the rectangle the players see, and drag it to move their view."))
         }
     }
 
