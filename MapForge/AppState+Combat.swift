@@ -335,10 +335,10 @@ extension AppState {
                 setStatBlock(MonsterStamp.statBlock(from: monster, over: StatBlock()), for: pawn.id)
             }
             // Fresh from the Monster, as its numbers are, never copied from a sibling.
-            pawn.face = MonsterStamp.face(over: pawn.face, from: monsterFace(for: monster))
+            pawn.face = DefinitionStamp.face(over: pawn.face, from: monsterFace(for: monster))
         }
         if let item = treasury.item(named: pawn.itemName) {
-            pawn.face = ItemStamp.face(over: pawn.face, from: itemFace(for: item))
+            pawn.face = DefinitionStamp.face(over: pawn.face, from: itemFace(for: item))
         }
         fog.pawns.append(pawn)
         flushPendingFogWrites()

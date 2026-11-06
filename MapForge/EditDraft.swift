@@ -101,9 +101,9 @@ struct EditPawnDraft: Equatable {
         // A label this sheet wrote is not one the DM typed: changing one's mind from an
         // Ogre to a Gnoll should not leave the gnoll called "Og1".
         let replaceable = label == pickedLabel ? openedWithLabel : label
-        let relabelled = MonsterStamp.label(for: monster, replacing: replaceable,
-                                            from: openedWithMonster,
-                                            among: pawns.filter { $0.id != pawnID })
+        let relabelled = DefinitionStamp.label(named: monster.name, replacing: replaceable,
+                                               from: openedWithMonster,
+                                               among: pawns.filter { $0.id != pawnID })
         guard relabelled != replaceable else { return }
         label = relabelled
         pickedLabel = relabelled
@@ -128,8 +128,9 @@ struct EditPawnDraft: Equatable {
         itemName = item.name
         giveBackTakenFace(unlessFrom: .item(item.name))
         let replaceable = label == pickedLabel ? openedWithLabel : label
-        let relabelled = ItemStamp.label(for: item, replacing: replaceable, from: openedWithItem,
-                                         among: pawns.filter { $0.id != pawnID })
+        let relabelled = DefinitionStamp.label(named: item.name, replacing: replaceable,
+                                               from: openedWithItem,
+                                               among: pawns.filter { $0.id != pawnID })
         guard relabelled != replaceable else { return }
         label = relabelled
         pickedLabel = relabelled

@@ -43,9 +43,8 @@ enum AddPlacement {
         let monster = kind.canBeMonster ? bestiary.monster(named: previous?.monsterName) : nil
         let item = kind.canBeItem ? treasury.item(named: previous?.itemName) : nil
         let born = Pawn.nextLabel(after: existing)
-        let label = monster.map { MonsterStamp.label(for: $0, replacing: born, among: existing) }
-            ?? item.map { ItemStamp.label(for: $0, replacing: born, among: existing) }
-            ?? born
+        let label = (monster?.name ?? item?.name)
+            .map { DefinitionStamp.label(named: $0, replacing: born, among: existing) } ?? born
         return Pawn(at: point,
                     label: label,
                     colorHex: previous?.colorHex ?? Pawn.defaultColorHex,

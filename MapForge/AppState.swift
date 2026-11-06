@@ -786,11 +786,11 @@ final class AppState: ObservableObject {
         // Becoming a Monster brings its Face, over any Face the old Monster gave — unless the
         // DM removed or cut one in this same sheet, which is what they meant.
         if !draft.face.isChanged, let monster = bestiary.monster(named: draft.monsterToStamp) {
-            edited.face = MonsterStamp.face(over: edited.face, from: monsterFace(for: monster))
+            edited.face = DefinitionStamp.face(over: edited.face, from: monsterFace(for: monster))
         }
         // And becoming an Item brings the Item's, by the same rule (ADR-0031).
         if !draft.face.isChanged, let item = treasury.item(named: draft.itemToBecome) {
-            edited.face = ItemStamp.face(over: edited.face, from: itemFace(for: item))
+            edited.face = DefinitionStamp.face(over: edited.face, from: itemFace(for: item))
         }
         fog.pawns[index] = edited
         // The one thing this sheet does to a Stat Block: a Monster that *changed* is stamped,

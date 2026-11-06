@@ -6,6 +6,9 @@ import Foundation
 /// A sibling of `Stamp`, which does the same for a Character, and a **copy** for the same
 /// reason (ADR-0007, ADR-0020): the numbers are taken now, and the Pawn then leads its own
 /// life. Nothing here reads the Bestiary again afterwards.
+///
+/// The numbers only: the label and the Face a Monster gives follow the rule an Item's do, and
+/// are `DefinitionStamp`'s.
 enum MonsterStamp {
     /// `existing` as the Monster leaves it.
     ///
@@ -51,72 +54,5 @@ enum MonsterStamp {
 
     private static func hitPoints(_ current: Int, of max: Int?) -> String {
         max.map { "\(current)/\($0)" } ?? "\(current)"
-    }
-
-    // MARK: The Face
-
-    /// The Face a Pawn wearing `current` has on becoming a Monster whose Face is `monsterFace`.
-    ///
-    /// A Face the Pawn took from a Monster is replaced — by the new Monster's, or by nothing,
-    /// which shows the colour again — exactly as a label taken from the old Monster's
-    /// initials is. One the DM cut by hand, or one a Character gave, is the DM's and is never
-    /// touched. A Pawn with none takes the Monster's. One an Item gave is the app's too, and
-    /// goes as a Monster's does — the rule `ItemStamp` follows the other way round.
-    static func face(over current: PawnFace?, from monsterFace: PawnFace?) -> PawnFace? {
-        switch current?.origin {
-        case .hand, .character: return current
-        case .monster, .item, nil: return monsterFace
-        }
-    }
-
-    // MARK: The label
-
-    /// The label a Pawn takes on becoming `monster`: "GG1", "GG2" for two Gnoll Guerrieri.
-    ///
-    /// Only a label the app gave is replaced: the bare number the Pawn was born with
-    /// (`Pawn.nextLabel`), or the one a `previous` Monster gave it — "GG1" on a Gnoll
-    /// Guerriero the DM is making an Ogre. Anything else is something the DM typed, and is
-    /// theirs. Numbered one past the highest label of the same initials on the Map, whatever
-    /// Monster it belongs to: Gnoll Guerriero and Goblin Guerriero share "GG" and share one
-    /// run of numbers, because what a label is *for* in the Order is telling two rows apart.
-    static func label(for monster: Monster, replacing label: String, from previous: String? = nil,
-                      among pawns: [Pawn]) -> String {
-        Self.label(named: monster.name, replacing: label, from: previous, among: pawns)
-    }
-
-    /// The rule behind `label(for:replacing:from:among:)`, for any definition a Pawn can be
-    /// said to be — a Monster, or an Item (`ItemStamp`) — by its `name`.
-    static func label(named name: String, replacing label: String, from previous: String? = nil,
-                      among pawns: [Pawn]) -> String {
-        guard Int(label) != nil || isLabel(label, givenBy: previous) else { return label }
-        let prefix = initials(of: name)
-        guard !prefix.isEmpty else { return label }
-        let highest = pawns.compactMap { pawn -> Int? in
-            guard pawn.label.hasPrefix(prefix) else { return nil }
-            return Int(pawn.label.dropFirst(prefix.count))
-        }.max() ?? 0
-        return "\(prefix)\(highest + 1)"
-    }
-
-    /// Whether `label` is one `monsterName` would have given: its initials and a number.
-    static func isLabel(_ label: String, givenBy monsterName: String?) -> Bool {
-        guard let monsterName else { return false }
-        let prefix = initials(of: monsterName)
-        guard !prefix.isEmpty, label.hasPrefix(prefix) else { return false }
-        return Int(label.dropFirst(prefix.count)) != nil
-    }
-
-    /// The first letter of each word, capitalised — or the first two letters of a name that
-    /// is one word, because "W1" is too thin to read at a glance. Punctuation is stepped
-    /// over, so "(antica)" gives A and "d'Ossa" gives D.
-    static func initials(of name: String) -> String {
-        let words = name.split(whereSeparator: \.isWhitespace)
-            .map { $0.filter(\.isLetter) }
-            .filter { !$0.isEmpty }
-        guard words.count != 1 else {
-            let word = words[0]
-            return word.prefix(1).uppercased() + word.dropFirst().prefix(1).lowercased()
-        }
-        return words.map { $0.prefix(1).uppercased() }.joined()
     }
 }
