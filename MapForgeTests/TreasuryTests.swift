@@ -115,6 +115,18 @@ final class TreasuryTests: XCTestCase {
         XCTAssertEqual(treasury.pictureProblems.map(\.name), ["Corda"])
     }
 
+    /// A bare name two pictures share is no Face, and is said — the Item is still offered.
+    func testABareNameTwoPicturesShareGivesNoFaceAndIsSaid() throws {
+        try write("png", to: "A/Borsa.webp")
+        try write("png", to: "B/Borsa.webp")
+        try write("---\nitem: true\nimage: \"[[Borsa.webp]]\"\n---\n# Borsa\n", to: "Oggetti/Borsa.md")
+
+        let borsa = try XCTUnwrap(treasury.items.first)
+        XCTAssertEqual(borsa.picture, .ambiguous(link: "Borsa.webp"))
+        XCTAssertEqual(treasury.pictureProblems.map(\.name), ["Borsa"])
+        XCTAssertEqual(treasury.pictureProblems.map(\.file), ["Oggetti/Borsa.md"])
+    }
+
     // MARK: What is skipped, and said
 
     func testTheSecondItemOfANameIsSkippedAndTheFirstByPathWins() throws {

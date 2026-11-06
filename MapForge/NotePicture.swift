@@ -59,7 +59,7 @@ enum NotePicture: Equatable {
     }
 }
 
-/// A note that may name its picture with `image:` — a Monster's or a Character's.
+/// A note that may name its picture with `image:` — a Monster's, a Character's or an Item's.
 protocol PicturedNote {
     var name: String { get }
     /// The note, relative to the Workspace root.
