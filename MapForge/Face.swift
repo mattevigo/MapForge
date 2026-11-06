@@ -29,6 +29,9 @@ struct PawnFace: Codable, Equatable {
         case character
         /// Taken from the Monster this Pawn is (`monsterName`), whose note names the picture.
         case monster
+        /// Taken from the Item this Treasure is (`itemName`), whose note's frontmatter names
+        /// the picture (ADR-0031). To a Treasure what `monster` is to a Creature.
+        case item
     }
 
     /// `from` rather than `origin` in the file, so a DM reading it sees

@@ -46,6 +46,7 @@ struct EditPawnDraft: Equatable {
         switch (face.kept ?? openedWithFace)?.origin {
         case .monster: monsterName.map { .monster($0) }
         case .character: characterID.map { .character($0) }
+        case .item: itemName.map { .item($0) }
         case .hand, nil: nil
         }
     }
@@ -156,7 +157,7 @@ struct EditPawnDraft: Equatable {
     var asksWhomToRecut: Bool {
         guard face.newCut != nil, monsterToStamp == nil else { return false }
         switch recutSource {
-        case .monster: return face.isRecut
+        case .monster, .item: return face.isRecut
         case .character: return true
         case nil: return false
         }

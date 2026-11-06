@@ -1,13 +1,15 @@
 import Foundation
 
 /// What a Pawn's Face came from, when it came from a definition rather than the DM's hand: the
-/// Monster it was taken from, or the Character that Stamped it.
+/// Monster or the Item it was taken from, or the Character that Stamped it.
 enum FaceSource: Equatable {
     case monster(String)
     case character(UUID)
+    case item(String)
 
-    /// What `pawn`'s Face came from: the Monster in its `monsterName` or the Character in its
-    /// `characterID`, by the Face's own `from` — or nil for a Face cut by hand, or none.
+    /// What `pawn`'s Face came from: the Monster in its `monsterName`, the Character in its
+    /// `characterID` or the Item in its `itemName`, by the Face's own `from` — or nil for a
+    /// Face cut by hand, or none.
     ///
     /// The one place those remembered fields decide anything beyond a page of reference and
     /// a count: which Pawns re-cutting a definition's Face reaches (ADR-0028).
@@ -19,6 +21,9 @@ enum FaceSource: Equatable {
         case .character:
             guard let id = pawn.characterID else { return nil }
             self = .character(id)
+        case .item:
+            guard let name = pawn.itemName else { return nil }
+            self = .item(name)
         case .hand, nil:
             return nil
         }
@@ -29,6 +34,7 @@ enum FaceSource: Equatable {
         switch self {
         case .monster: .monster
         case .character: .character
+        case .item: .item
         }
     }
 }

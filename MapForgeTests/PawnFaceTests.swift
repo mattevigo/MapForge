@@ -29,6 +29,15 @@ final class PawnFaceTests: XCTestCase {
         XCTAssertEqual(face?["from"] as? String, "hand")
     }
 
+    func testAFaceAnItemGaveSaysSoAndSurvivesTheFogFile() throws {
+        let face = PawnFace(file: "b.png", origin: .item)
+        let encoded = try JSONEncoder().encode(makePawn(face: face))
+
+        let object = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        XCTAssertEqual((object?["face"] as? [String: Any])?["from"] as? String, "item")
+        XCTAssertEqual(try JSONDecoder().decode(Pawn.self, from: encoded).face, face)
+    }
+
     func testAPawnWithoutAFaceWritesNoKey() throws {
         // A DM who never gives a Pawn a Face sees no trace of the feature in their map files.
         let object = try JSONSerialization.jsonObject(

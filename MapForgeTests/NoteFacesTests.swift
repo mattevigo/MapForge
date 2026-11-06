@@ -194,4 +194,81 @@ final class NoteFacesTests: XCTestCase {
         XCTAssertNil(faces.face(for: PartyCharacter(name: "Durga"), note: durgasNote(picture: nil),
                                 in: root, library: library))
     }
+
+    // MARK: An Item's note
+
+    private func borsa(picture: NotePicture?) -> Item {
+        var item = Item(name: "Borsa")
+        item.picture = picture
+        return item
+    }
+
+    /// Cut once per Item, as a Monster's is, and kept under its name: every Treasure that
+    /// becomes the Borsa shares one file.
+    func testAnItemsPictureIsCutOnceAndSharedByEveryTreasure() throws {
+        let path = try picture("Allegati/Borsa.png")
+        var faces = NoteFaces()
+
+        let first = try XCTUnwrap(faces.face(for: borsa(picture: .found(path)),
+                                             in: root, library: library))
+        let second = faces.face(for: borsa(picture: .found(path)), in: root, library: library)
+
+        XCTAssertEqual(second, first)
+        XCTAssertEqual(first.origin, .item)
+        XCTAssertEqual(faces.items["Borsa"]?.square, CGRect(x: 100, y: 0, width: 100, height: 100))
+        XCTAssertEqual(try keptFiles().count, 1)
+        XCTAssertTrue(faces.monsters.isEmpty)
+    }
+
+    func testAnotherPictureInAnItemsNoteIsCutAfresh() throws {
+        var faces = NoteFaces()
+        let old = faces.face(for: borsa(picture: .found(try picture("Borsa.png"))),
+                             in: root, library: library)
+
+        let new = faces.face(for: borsa(picture: .found(try picture("Nuovo/Borsa.png"))),
+                             in: root, library: library)
+
+        XCTAssertNotNil(new)
+        XCTAssertNotEqual(new?.file, old?.file)
+        XCTAssertEqual(faces.items["Borsa"]?.picture, "Nuovo/Borsa.png")
+    }
+
+    func testAnItemWhosePictureIsMissingOrSharedHasNoFace() {
+        var faces = NoteFaces()
+
+        XCTAssertNil(faces.face(for: borsa(picture: nil), in: root, library: library))
+        XCTAssertNil(faces.face(for: borsa(picture: .missing(link: "Borsa.png")),
+                                in: root, library: library))
+        XCTAssertNil(faces.face(for: borsa(picture: .ambiguous(link: "Borsa.png")),
+                                in: root, library: library))
+        XCTAssertTrue(faces.items.isEmpty)
+    }
+
+    func testAnItemsCutSurvivesARelaunch() throws {
+        let store = NoteFacesStore(directory: root.appendingPathComponent(".mapforge"))
+        var faces = NoteFaces()
+        _ = faces.face(for: borsa(picture: .found(try picture("Borsa.png"))),
+                       in: root, library: library)
+
+        try store.save(faces)
+
+        XCTAssertEqual(store.load(), faces)
+        XCTAssertNotNil(store.load().items["Borsa"])
+    }
+
+    /// Every `note-faces.json` written before Items gave Faces has no `items` key.
+    func testAFileWrittenBeforeItemsIsStillRead() throws {
+        let directory = root.appendingPathComponent(".mapforge")
+        try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+        try Data("""
+        {"version": 1, "characters": {},
+         "monsters": {"Nothic": {"picture": "Nothic.png", "x": 100, "y": 0, "side": 100,
+                                 "file": "a.png"}}}
+        """.utf8).write(to: directory.appendingPathComponent("note-faces.json"))
+
+        let faces = NoteFacesStore(directory: directory).load()
+
+        XCTAssertEqual(faces.monsters["Nothic"]?.file, "a.png")
+        XCTAssertTrue(faces.items.isEmpty)
+    }
 }

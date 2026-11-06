@@ -151,6 +151,19 @@ final class FaceRecutTests: XCTestCase {
         XCTAssertNil(FaceSource(of: creature("GG1", monster: nil)))
     }
 
+    /// A Treasure's Face from its Item is that Item's, by the name the Treasure remembers.
+    func testATreasuresSourceIsTheItemItsFaceCameFrom() {
+        let borsa = Pawn(at: MapPoint(x: 100, y: 100), label: "Bo1", colorHex: "#D4A017",
+                         brightSquares: 0, kind: .treasure, itemName: "Borsa",
+                         face: PawnFace(file: "borsa.png", origin: .item))
+        var forgotten = borsa
+        forgotten.itemName = nil
+
+        XCTAssertEqual(FaceSource(of: borsa), .item("Borsa"))
+        XCTAssertEqual(FaceSource.item("Borsa").origin, .item)
+        XCTAssertNil(FaceSource(of: forgotten))
+    }
+
     // MARK: OK
 
     /// An open Workspace whose Goblin's note names a picture, cut once, with three Goblins on

@@ -59,12 +59,13 @@ enum AddPlacement {
     /// when the Pawn becomes a Monster. So does one a Character gave: the new Pawn remembers
     /// no Character, so there is no Character for it to be re-cut with. One a Monster gave is
     /// not copied at all: the new Pawn takes it fresh from the Monster, as it takes the
-    /// Monster's numbers, when `AppState.addPawnToMap` stamps it.
+    /// Monster's numbers, when `AppState.addPawnToMap` stamps it. Nor is one an Item gave: it
+    /// is the Item's to give, as a Monster's is.
     static func inherited(_ face: PawnFace?) -> PawnFace? {
         guard let face else { return nil }
         switch face.origin {
         case .hand, .character: return PawnFace(file: face.file, origin: .hand)
-        case .monster: return nil
+        case .monster, .item: return nil
         }
     }
 

@@ -840,6 +840,10 @@ final class AppState: ObservableObject {
             guard let character = character(id: id), character.face == nil,
                   let path = note(for: character)?.picture?.path else { return nil }
             return (path, noteFaces.characters[id.uuidString])
+        case .item:
+            // An Item's Face is not re-cut from its picture yet: the sheet offers no
+            // "Re-cut…" for it, and a new picture over it is this Pawn's alone.
+            return nil
         }
     }
 
@@ -849,7 +853,8 @@ final class AppState: ObservableObject {
         switch source {
         case .monster(let name): bestiary.monster(named: name)?.name
         case .character(let id): character(id: id)?.name
-        case nil: nil
+        // No Item is re-cut for "every" yet, so none is offered.
+        case .item, nil: nil
         }
     }
 
@@ -868,6 +873,9 @@ final class AppState: ObservableObject {
             guard var character = character(id: id) else { return }
             character.face = PawnFace(file: file, origin: .hand)
             updateCharacter(character)
+        case .item:
+            // Never reached: "every" is not offered for an Item (`recutName`).
+            return
         }
     }
 
