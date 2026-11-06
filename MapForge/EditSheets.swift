@@ -533,7 +533,6 @@ private struct MonsterSearchField: View {
             chosenName: monsterName,
             exists: { bestiary.monster(named: $0) != nil },
             search: bestiary.search,
-            name: \.name,
             detail: { monster in
                 [monster.challengeRating.map { String(localized: "CR \($0)") }, monster.type]
                     .compactMap { $0 }.joined(separator: " · ")
@@ -589,8 +588,6 @@ private struct ItemSearchField: View {
             chosenName: itemName,
             exists: { treasury.item(named: $0) != nil },
             search: treasury.search,
-            name: \.name,
-            detail: { _ in "" },
             isSearching: $isSearching,
             onPick: onPick,
             onClear: onClear
@@ -618,6 +615,14 @@ private struct ItemSearchField: View {
     }
 }
 
+/// A definition read from the DM's notes that a search box offers, by its name.
+protocol SearchableDefinition: Identifiable {
+    var name: String { get }
+}
+
+extension Monster: SearchableDefinition {}
+extension Item: SearchableDefinition {}
+
 /// A search box for a definition read from the DM's notes — a Monster, an Item — with the one
 /// chosen shown in its place.
 ///
@@ -628,7 +633,7 @@ private struct ItemSearchField: View {
 /// and then be typing into nothing.
 ///
 /// Holds no draft: it reports a pick or a clear and the sheet decides what that means.
-private struct DefinitionSearchField<Definition: Identifiable, Caption: View>: View {
+private struct DefinitionSearchField<Definition: SearchableDefinition, Caption: View>: View {
     let prompt: LocalizedStringKey
     /// The accessibility identifiers' prefix: "monster" gives "monster-search".
     let identifier: String
@@ -644,9 +649,8 @@ private struct DefinitionSearchField<Definition: Identifiable, Caption: View>: V
     let chosenName: String?
     let exists: (String) -> Bool
     let search: (String) -> [Definition]
-    let name: (Definition) -> String
-    /// The secondary text beside a result, or empty for none.
-    let detail: (Definition) -> String
+    /// The secondary text beside a result — a Monster's CR and type — or nil for none.
+    var detail: ((Definition) -> String)? = nil
     @Binding var isSearching: Bool
     let onPick: (Definition) -> Void
     let onClear: () -> Void
@@ -736,12 +740,14 @@ private struct DefinitionSearchField<Definition: Identifiable, Caption: View>: V
             ForEach(Array(results.enumerated()), id: \.element.id) { index, definition in
                 Button { pick(definition) } label: {
                     HStack(spacing: 6) {
-                        Text(name(definition)).lineLimit(1)
+                        Text(definition.name).lineLimit(1)
                         Spacer(minLength: 4)
-                        Text(detail(definition))
-                            .font(.caption)
-                            .foregroundStyle(index == highlighted ? .white.opacity(0.85) : .secondary)
-                            .lineLimit(1)
+                        if let detail {
+                            Text(detail(definition))
+                                .font(.caption)
+                                .foregroundStyle(index == highlighted ? .white.opacity(0.85) : .secondary)
+                                .lineLimit(1)
+                        }
                     }
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
