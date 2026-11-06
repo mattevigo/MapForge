@@ -28,7 +28,7 @@ MyGame/                              ← the Workspace (any folder the DM adopte
 │   ├── parties.json                 ← every Party and its Characters
 │   ├── preferences.json             ← active Party, chosen Player Display (app-written)
 │   ├── config.json                  ← no longer read (ADR-0023); left alone if present
-│   ├── note-faces.json              ← the cut each Monster's or Character's note picture was given
+│   ├── note-faces.json              ← the cut each Monster's, Character's or Item's note picture was given
 │   ├── faces/
 │   │   └── 3F2504E0-….png           ← one kept Face per cut (ADR-0028)
 │   └── sessions/
@@ -97,8 +97,8 @@ that holds the radii must hold the unit.
 | `pawns[].light` | A Pawn *is* a Light: `brightSquares` is its sight. `dimSquares` is on disk but **re-derived on load** as sight + 1 (the fade), so the stored value is cosmetic history. |
 | `pawns[].characterID` | Which Character stamped this Pawn. Advisory only — counts on the Party panel, and, with `face.from: character`, which Pawns re-cutting that Character's Face for *every* one reaches (ADR-0028) — and omitted when absent (ADR-0007). |
 | `pawns[].monsterName` | Which Monster this Creature was said to be. Advisory only — the reference view, *Add*'s "same as last", and, with `face.from: monster`, which Pawns re-cutting that Monster's Face for *every* one reaches (ADR-0028), and the Roll sheet's offered Modifier, read live from that Monster's note (ADR-0029) — and omitted when absent (ADR-0020). The numbers were **copied** into `stats.json`. |
-| `pawns[].itemName` | Which Item this Treasure was said to be, by the name its note gives it. Advisory only, as `monsterName` is, and omitted when absent; a Pawn that stops being a Treasure forgets it (ADR-0031). The label was **copied** from the Item's initials. |
-| `pawns[].face` | The **Face** this Pawn is drawn as, in place of its colour, on both screens. `file` names a kept cut in `.mapforge/faces/` — a file name, never a path, and never the picture it was cut from. `from` is where the Face came from: `hand` (cut by the DM for this Pawn, or for the one it inherited the Face from under *Add*, which then share the `file`), `character` (copied by the Stamp from the Character in `characterID`; under *Add* it passes on as `hand`) or `monster` (taken from a Monster whose note names the picture — the one in `monsterName`, until the DM clears or changes it; under *Add* it is taken fresh from the Monster, never copied). Becoming another Monster replaces a `monster` Face with the new Monster's, or removes it; `hand` and `character` are never touched. A `monster` or `character` Face re-cut for *only this Pawn* becomes `hand`; re-cut for *every* one, it keeps its `from` and names the new `file`. Omitted when the Pawn has none; a `file` that is missing draws the colour (ADR-0028). |
+| `pawns[].itemName` | Which Item this Treasure was said to be, by the name its note gives it. Advisory only, as `monsterName` is — with `face.from: item`, the Item a Face came from — and omitted when absent; a Pawn that stops being a Treasure forgets it (ADR-0031). The label was **copied** from the Item's initials. |
+| `pawns[].face` | The **Face** this Pawn is drawn as, in place of its colour, on both screens. `file` names a kept cut in `.mapforge/faces/` — a file name, never a path, and never the picture it was cut from. `from` is where the Face came from: `hand` (cut by the DM for this Pawn, or for the one it inherited the Face from under *Add*, which then share the `file`), `character` (copied by the Stamp from the Character in `characterID`; under *Add* it passes on as `hand`) `monster` (taken from a Monster whose note names the picture — the one in `monsterName`, until the DM clears or changes it; under *Add* it is taken fresh from the Monster, never copied) or `item` (taken from an Item whose note's frontmatter names the picture — the one in `itemName`, as `monster` is; under *Add* it is never copied). Becoming another Monster replaces a `monster` Face with the new Monster's, or removes it, and becoming another Item does the same to an `item` Face; `hand` and `character` are never touched. A `monster` or `character` Face re-cut for *only this Pawn* becomes `hand`; re-cut for *every* one, it keeps its `from` and names the new `file`. Omitted when the Pawn has none; a `file` that is missing draws the colour (ADR-0028). |
 | `isCreature` (legacy) | Read forever, never written: a file written before `kind` existed decodes `true` as `creature`. |
 
 Rules:
@@ -277,7 +277,7 @@ next save rather than latched.
 
 One PNG per cut, named by a fresh UUID, written when the DM presses OK on a cut in the Edit
 Pawn sheet, or Save on one in a Character's editor — never on Cancel — or when a note's
-picture is first cut for a Monster or a Character (`note-faces.json`). It is the **square** the
+picture is first cut for a Monster, a Character or an Item (`note-faces.json`). It is the **square** the
 DM chose, scaled down to 512 pixels a side when larger, and never the picture it came from:
 that picture may be anywhere on the Mac and may be moved or deleted afterwards without any Map
 noticing (ADR-0028). A cut is never rewritten, so two Pawns, or a Character and the Pawns it
@@ -296,6 +296,10 @@ loses nothing; the app does not yet delete them itself.
   "characters": {
     "6B1D…": { "picture": "Personaggi/Durga/Durga.webp", "x": 0, "y": 40,
                "side": 600, "file": "9C41….png" }
+  },
+  "items": {
+    "Borsa": { "picture": "Riferimento/Allegati/Borsa.webp", "x": 0, "y": 0,
+               "side": 400, "file": "7E02….png" }
   }
 }
 ```
@@ -303,14 +307,17 @@ loses nothing; the app does not yet delete them itself.
 The cut the app made from the picture each Monster's note names (`image:`), keyed by the
 Monster's name as a Pawn's `monsterName` is — and, under `characters`, from the picture each
 Character's note names, keyed by the Character's `id`, so it is cut once for that Character and
-used only while the DM has cut no Face for it. In each: `picture` relative to the Workspace root, the
+used only while the DM has cut no Face for it — and, under `items`, from the picture each Item's
+note names in its frontmatter, keyed by the Item's name as a Pawn's `itemName` is, exactly as a
+Monster's. `items` is absent from files written before Items gave Faces, and read as none. In each: `picture` relative to the Workspace root, the
 square at `x`, `y` with sides of `side`, in the picture's pixels from its top left, and the
-kept `file` in `faces/` that every Pawn taking the Face names. A Monster's is made the first
+kept `file` in `faces/` that every Pawn taking the Face names. A Monster's or an Item's is made the first
 time a Pawn takes its Face, a Character's when the notes are read or the Character is saved,
 each as the centred square, and made again only when the note names another picture or `file`
 has gone. Re-cutting a Monster's Face in the Edit Pawn sheet and answering *every* replaces its
 `x`, `y`, `side` and `file`, and re-cuts every Pawn on the open Map wearing that Monster's
-Face; Maps not open keep theirs. A Monster renamed in the notes is another key, and starts again.
+Face; Maps not open keep theirs. A Monster or an Item renamed in the notes is another key, and
+starts again.
 Pawns copy `file` into their own `face`, so a new cut never reaches a Pawn already on a Map
 (ADR-0028). Absent until the first cut. **Forgiving**: every entry can be made again from the
 notes, so an unreadable file is read as no cuts and replaced at the next one.
@@ -351,8 +358,9 @@ says `item: true`. Only that key and `image:` are read: `image:` names the Item'
 fence's `image:` does, and is looked up the same way. The Item's name is the note's first `#`
 heading, or else its file name with `_` read as spaces. Two Items of one name, or a
 frontmatter that is not YAML or not a list of fields and has a line starting with `item:`, are
-skipped and reported under the Item search. What an Item stamps onto a Pawn is its label's
-initials, copied into `.fog.json`; only the name is remembered in `itemName` (ADR-0031).
+skipped and reported under the Item search, as is an `image:` that gives no Face. What an Item
+stamps onto a Pawn is its label's initials and its picture's cut as the Pawn's Face, copied into
+`.fog.json`; only the name is remembered in `itemName` (ADR-0031).
 
 ### `sessions/<timestamp>.jsonl` — one Session Log per evening
 
@@ -472,8 +480,8 @@ What follows from the shape:
 | `sessions/*.jsonl` | every Comment, move, Roll, pointer, start/stop | append + fsync, one line | truncated tail dropped |
 | `parties.json` | every roster edit | atomic replace, pretty | reported, writes refused |
 | `preferences.json` | Party or display chosen | atomic replace, pretty | replaced by defaults |
-| `faces/*.png` | OK on a cut in the Edit Pawn sheet, Save on one in a Character's editor, a Monster's or a Character's note picture first cut | atomic, once per cut, never rewritten; a failed write leaves the Pawn or Character the Face it had | the Pawn, or the Character in the roster, draws its colour |
-| `note-faces.json` | a Pawn first taking a Monster's Face; a linked Character's note picture first cut, when the notes are read or the Character is saved; a note naming another picture | atomic replace, pretty; a failed write is logged, and the picture is cut again next launch | read as no cuts, replaced at the next |
+| `faces/*.png` | OK on a cut in the Edit Pawn sheet, Save on one in a Character's editor, a Monster's, an Item's or a Character's note picture first cut | atomic, once per cut, never rewritten; a failed write leaves the Pawn or Character the Face it had | the Pawn, or the Character in the roster, draws its colour |
+| `note-faces.json` | a Pawn first taking a Monster's or an Item's Face; a linked Character's note picture first cut, when the notes are read or the Character is saved; a note naming another picture | atomic replace, pretty; a failed write is logged, and the picture is cut again next launch | read as no cuts, replaced at the next |
 | `workspace.json` | adoption only | atomic, once | Workspace refused to open |
 | `UserDefaults` | Workspace opened / forgotten | system | — |
 
