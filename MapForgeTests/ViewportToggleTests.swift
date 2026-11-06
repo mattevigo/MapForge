@@ -77,4 +77,11 @@ final class ViewportToggleTests: XCTestCase {
         XCTAssertFalse(ViewportToggle.staysShowing(mapOverflows: true, hasDisplay: true,
                                                    isMapFitOn: true))
     }
+
+    /// The help explains what the toggle does — and, while it is unavailable because the Map
+    /// is fitted, why, rather than leaving the DM to guess at a greyed-out button.
+    func testItsHelpSaysWhyItIsUnavailableWhileTheMapIsFitted() {
+        XCTAssertEqual(ViewportToggle.explanation(isMapFitOn: false), .dragToMoveTheirView)
+        XCTAssertEqual(ViewportToggle.explanation(isMapFitOn: true), .nothingToMoveUnderMapFit)
+    }
 }

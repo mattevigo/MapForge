@@ -1790,7 +1790,8 @@ struct ControlView: View {
     /// is no Cancel, deliberately — see `ViewportToggle`.
     ///
     /// Unavailable under Map Fit, where the rectangle covers the whole Map and there is
-    /// nothing to drag it to; its help says so rather than leaving the DM to guess why.
+    /// nothing to drag it to; its help says so (`ViewportToggle.explanation`) rather than
+    /// leaving the DM to guess why.
     ///
     /// Drawn only in the Live View, as it was inside `modeControls`' `.normal` case: the
     /// rectangle is not drawn in Grid Fit or the Wall Editor, so a control for dragging it
@@ -1810,9 +1811,7 @@ struct ControlView: View {
                 .disabled(!ViewportToggle.isAvailable(mapOverflows: mapOverflowsViewport,
                                                       hasDisplay: appState.playerScreen != nil,
                                                       isMapFitOn: appState.isMapFitOn))
-                .help(appState.isMapFitOn
-                      ? String(localized: "Map Fit shows the players the whole Map, so there is nothing to move. Turn it off first.")
-                      : String(localized: "Show the rectangle the players see, and drag it to move their view."))
+                .help(ViewportToggle.explanation(isMapFitOn: appState.isMapFitOn).text)
         }
     }
 
