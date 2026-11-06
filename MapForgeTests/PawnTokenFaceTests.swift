@@ -104,6 +104,55 @@ final class PawnTokenFaceTests: XCTestCase {
                                              library: library, isHovered: true), 0)
     }
 
+    // MARK: A Treasure's Face on the Player Display
+
+    private func chest(at point: MapPoint = MapPoint(x: 0, y: 0), face: PawnFace?) -> Pawn {
+        Pawn(at: point, label: "Bo1", colorHex: "#FF0000", brightSquares: 0, kind: .treasure,
+             itemName: "Borsa", face: face)
+    }
+
+    /// The table sees the Item's picture in the Treasure's rounded square, not in a disc: near
+    /// a corner, where a disc has already curved away, the square still shows the Face.
+    func testThePlayerDisplayDrawsATreasuresFaceInItsRoundedSquare() throws {
+        let (library, cut) = try blueFace()
+        let face = PawnFace(file: cut.file, origin: .item)
+        let token = PawnToken(pawn: chest(face: face), squareSide: 100, isForPlayers: true)
+
+        let image = try render(token, library: library)
+
+        XCTAssertEqual(FaceFixture.colour(of: image, x: 50, y: 50), .blue)
+        XCTAssertEqual(FaceFixture.colour(of: image, x: 12, y: 12), .blue)
+        var creature = chest(face: face)
+        creature.kind = .creature
+        let disc = try render(PawnToken(pawn: creature, squareSide: 100, isForPlayers: true),
+                              library: library)
+        XCTAssertNotEqual(FaceFixture.colour(of: disc, x: 12, y: 12), .blue)
+    }
+
+    /// A Face hides nothing and reveals nothing: a Treasure wearing one is hidden from the
+    /// table exactly as its token would be — by darkness, by the DM's hiding, by Solo Sight.
+    func testATreasureWearingAFaceIsHiddenAsItsTokenIs() {
+        let face = PawnFace(file: "borsa.png", origin: .item)
+        let lit = VisibilityCache().regions(
+            for: FogDocument(lights: [Light(at: MapPoint(x: 300, y: 300),
+                                            brightSquares: 5, dimSquares: 5)]),
+            imagePixelSize: CGSize(width: 1000, height: 800), pixelsPerSquare: 20,
+            soloSightPawnID: nil)
+        func shows(_ pawn: Pawn, solo: Pawn.ID? = nil) -> Bool {
+            PlayerVisibility.showsToPlayers(pawn: pawn, regions: lit, isFogOverlayOn: true,
+                                            hasVisibility: true, soloSightPawnID: solo)
+        }
+        let inTheLight = chest(at: MapPoint(x: 300, y: 300), face: face)
+        var hidden = inTheLight
+        hidden.isHidden = true
+
+        XCTAssertTrue(shows(inTheLight))
+        XCTAssertFalse(shows(chest(at: MapPoint(x: 900, y: 700), face: face)), "in the dark")
+        XCTAssertFalse(shows(hidden), "hidden by the DM")
+        XCTAssertFalse(shows(chest(at: MapPoint(x: 900, y: 700), face: face), solo: UUID()),
+                       "outside what the isolated Pawn sees")
+    }
+
     func testThePlayerDisplayNeverDrawsAFacesLabel() throws {
         let (library, face) = try blueFace()
 
