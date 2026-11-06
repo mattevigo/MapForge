@@ -440,6 +440,24 @@ final class FaceRecutTests: XCTestCase {
         XCTAssertNil(state.recutName(for: .item("Gemma di Fuoco")), "gone from the notes")
     }
 
+    // MARK: What OK asks
+
+    func testOKAsksAboutAMonstersFaceInTermsOfPawns() {
+        let question = RecutQuestion(.monster("Goblin"), named: "Goblin")
+
+        XCTAssertEqual(question.onlyThis, "Only This Pawn")
+        XCTAssertEqual(question.every, "Every Goblin")
+        XCTAssertEqual(question.message, "This Face came from Goblin. Every Pawn on this Map wearing it, and every Pawn that takes it later, can have the new cut.")
+    }
+
+    func testOKAsksAboutAnItemsFaceInTermsOfTreasures() {
+        let question = RecutQuestion(.item("Borsa"), named: "Borsa")
+
+        XCTAssertEqual(question.onlyThis, "Only This Treasure")
+        XCTAssertEqual(question.every, "Every Borsa")
+        XCTAssertEqual(question.message, "This Face came from Borsa. Every Treasure on this Map wearing it, and every Treasure that becomes it later, can have the new cut.")
+    }
+
     func testACharactersOwnFaceKeepsNoPictureToReCut() async throws {
         let (state, _, _) = try await makeGoblins()
         state.addParty(named: "Eroi")

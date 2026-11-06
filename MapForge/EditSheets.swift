@@ -182,12 +182,12 @@ struct EditPawnSheet: View {
         // Never together with the heal below: a Pawn becoming another Monster takes that
         // Monster's Face, and so is never asked whom a re-cut is for.
         .alert("Who takes the new cut?", isPresented: $askingWhomToRecut) {
-            Button("Only This Pawn") {
+            Button(recutQuestion?.onlyThis ?? String(localized: "Only This Pawn")) {
                 draft.recutsEvery = false
                 onCommit(draft)
             }
-            if let recutName {
-                Button(String(localized: "Every \(recutName)")) {
+            if let recutQuestion {
+                Button(recutQuestion.every) {
                     draft.recutsEvery = true
                     onCommit(draft)
                 }
@@ -195,9 +195,7 @@ struct EditPawnSheet: View {
             // Back to the open sheet, as the heal's Cancel is.
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text(recutName.map {
-                String(localized: "This Face came from \($0). Every Pawn on this Map wearing it, and every Pawn that takes it later, can have the new cut.")
-            } ?? "")
+            Text(recutQuestion?.message ?? "")
         }
         .alert("Heal \(draft.label)?",
                isPresented: Binding(get: { confirming != nil },
@@ -250,16 +248,18 @@ struct EditPawnSheet: View {
         return { faces.recutPicture(source) }
     }
 
-    /// The Monster, Character or Item "every" re-cuts, when the Face came from one still
-    /// defined.
-    private var recutName: String? {
-        draft.recutSource.flatMap { definitionFaces?.name($0) }
+    /// "Only this Pawn, or every one?", asked of the Monster, Character or Item "every"
+    /// re-cuts — nil when the Face came from none still defined, and there is nothing to ask.
+    private var recutQuestion: RecutQuestion? {
+        guard let source = draft.recutSource, let name = definitionFaces?.name(source)
+        else { return nil }
+        return RecutQuestion(source, named: name)
     }
 
     /// OK. Asks first only when the stamp would overwrite hit points that exist — a dialog
     /// that appears when nothing can be lost is one the DM learns to click through.
     private func commit() {
-        if draft.asksWhomToRecut, recutName != nil {
+        if draft.asksWhomToRecut, recutQuestion != nil {
             askingWhomToRecut = true
         } else if let healing = draft.healing(over: statBlock, in: bestiary) {
             confirming = healing

@@ -10276,6 +10276,46 @@
         }
       }
     },
+    "Only This Treasure": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur dieser Schatz"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Μόνο αυτός ο θησαυρός"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo este tesoro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce trésor seulement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo questo tesoro"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Só este tesouro"
+          }
+        }
+      }
+    },
     "Open Map…": {
       "localizations": {
         "de": {
@@ -14693,6 +14733,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Este rosto vem de %@. Cada peça deste mapa que o usa, e cada peça que o receber depois, pode ficar com o novo recorte."
+          }
+        }
+      }
+    },
+    "This Face came from %@. Every Treasure on this Map wearing it, and every Treasure that becomes it later, can have the new cut.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Gesicht stammt von %@. Jeder Schatz auf dieser Karte, der es trägt, und jeder, der später zu diesem Gegenstand wird, kann den neuen Schnitt erhalten."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Αυτό το πρόσωπο προέρχεται από: %@. Κάθε θησαυρός σε αυτόν τον χάρτη που το φέρει, και κάθε θησαυρός που θα γίνει αυτό το αντικείμενο αργότερα, μπορεί να πάρει τη νέα κοπή."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este rostro viene de %@. Cada tesoro de este mapa que lo lleva, y cada tesoro que se convierta en ese objeto después, puede recibir el nuevo recorte."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce visage vient de %@. Chaque trésor de cette carte qui le porte, et chaque trésor qui deviendra cet objet ensuite, peut recevoir la nouvelle découpe."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo volto viene da %@. Ogni tesoro su questa mappa che lo porta, e ogni tesoro che diventerà quell'oggetto in seguito, può avere il nuovo ritaglio."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este rosto vem de %@. Cada tesouro deste mapa que o usa, e cada tesouro que se tornar esse item depois, pode ficar com o novo recorte."
           }
         }
       }

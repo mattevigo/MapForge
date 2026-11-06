@@ -60,3 +60,28 @@ enum FaceRecut {
         }
     }
 }
+
+/// What OK asks before a re-cut of a definition's Face is kept: "only this Pawn, or every
+/// one?" (ADR-0028), in the words of the Pawns "every" would reach — Treasures for an Item's
+/// Face, which only a Treasure takes.
+struct RecutQuestion: Equatable {
+    /// The answer that keeps the cut for this Pawn alone.
+    let onlyThis: String
+    /// The answer that gives it to the definition — "Every Goblin".
+    let every: String
+    /// What "every" reaches.
+    let message: String
+
+    /// The question for a Face that came from `source`, still defined under `name`.
+    init(_ source: FaceSource, named name: String) {
+        every = String(localized: "Every \(name)")
+        switch source {
+        case .item:
+            onlyThis = String(localized: "Only This Treasure")
+            message = String(localized: "This Face came from \(name). Every Treasure on this Map wearing it, and every Treasure that becomes it later, can have the new cut.")
+        case .monster, .character:
+            onlyThis = String(localized: "Only This Pawn")
+            message = String(localized: "This Face came from \(name). Every Pawn on this Map wearing it, and every Pawn that takes it later, can have the new cut.")
+        }
+    }
+}
