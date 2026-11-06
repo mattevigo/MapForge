@@ -4,7 +4,8 @@ import SwiftUI
 /// and the distance beside it.
 ///
 /// One view for both screens, differing only in the frame handed to it — the Player
-/// Display's True Scale frame or the Control mirror's rebased one. Two drawing paths is how
+/// Display's frame (True Scale, or stretched under Map Fit) or the Control mirror's
+/// rebased one. Two drawing paths is how
 /// the screens drift, which is the divergence `PawnToken` and
 /// `PlayerVisibility.showsToPlayers` both exist to prevent.
 ///
