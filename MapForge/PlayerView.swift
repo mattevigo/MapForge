@@ -12,16 +12,18 @@ struct PlayerView: View {
         GeometryReader { geo in
             ZStack {
                 Color.black
+                // True Scale at the Viewport, or under Map Fit the whole screen. Everything
+                // below places itself against this frame, x and y separately, so under
+                // Map Fit's stretch every Pawn, Light and Measurement follows the artwork.
+                //
+                // No frame is True Scale on a screen that reports no physical size, which
+                // stays black. Map Fit needs no size, so it draws there all the same.
                 if let image = appState.mapImage,
                    let map = appState.mapScale,
-                   let metrics = appState.playerMetrics {
-                    // True Scale at the Viewport, or under Map Fit the whole screen. Everything
-                    // below places itself against this frame, x and y separately, so under
-                    // Map Fit's stretch every Pawn, Light and Measurement follows the artwork.
-                    let frame = ScaleMath.playerFrame(map: map, display: metrics,
-                                                      screenSizePoints: geo.size,
-                                                      desiredViewportOrigin: appState.viewportOrigin,
-                                                      isMapFitOn: appState.isMapFitOn)
+                   let frame = ScaleMath.playerFrame(map: map, display: appState.playerMetrics,
+                                                     screenSizePoints: geo.size,
+                                                     desiredViewportOrigin: appState.viewportOrigin,
+                                                     isMapFitOn: appState.isMapFitOn) {
                     Image(nsImage: image)
                         .resizable()
                         .interpolation(.high)

@@ -86,11 +86,54 @@ final class ScaleMathTests: XCTestCase {
         let viewport = ScaleMath.playerViewport(map: map, display: display,
                                                 screenSizePoints: CGSize(width: 1000, height: 600),
                                                 desiredOrigin: CGPoint(x: 4, y: 2), isMapFitOn: false)
-        assertEqual(CGRect(origin: viewport.originInches, size: viewport.sizeInches),
+        assertEqual(viewport.map { CGRect(origin: $0.originInches, size: $0.sizeInches) },
                     CGRect(x: 4, y: 2, width: 20, height: 12))
         XCTAssertEqual(viewport, ScaleMath.resolvedViewport(map: map, display: display,
                                                             screenSizePoints: CGSize(width: 1000, height: 600),
                                                             desiredOrigin: CGPoint(x: 4, y: 2)))
+    }
+
+    /// A screen whose EDID reports no physical size has no `DisplayMetrics`, so True Scale
+    /// cannot be drawn on it. Map Fit can: it reads neither the display's size in inches nor
+    /// the Map's, only the screen's points, so the players still get the whole Map.
+    func testMapFitNeedsNoPhysicalSizeForTheDisplay() {
+        let map = MapScale.grid(squaresWide: 30, imagePixelSize: CGSize(width: 3000, height: 2000))
+        let frame = ScaleMath.playerFrame(map: map, display: nil,
+                                          screenSizePoints: CGSize(width: 1000, height: 600),
+                                          desiredViewportOrigin: nil, isMapFitOn: true)
+        assertEqual(frame, CGRect(x: 0, y: 0, width: 1000, height: 600))
+    }
+
+    /// Nor a declared size for the Map: an undeclared Grid is a zero-inch Map at True Scale,
+    /// and Map Fit ignores the Grid.
+    func testMapFitNeedsNoDeclaredSizeForTheMap() {
+        let map = MapScale(imagePixelSize: CGSize(width: 3000, height: 2000), physicalWidthInches: 0)
+        let frame = ScaleMath.playerFrame(map: map, display: nil,
+                                          screenSizePoints: CGSize(width: 1000, height: 600),
+                                          desiredViewportOrigin: nil, isMapFitOn: true)
+        assertEqual(frame, CGRect(x: 0, y: 0, width: 1000, height: 600))
+    }
+
+    /// True Scale is inches on glass, and a display without a physical size has none: there
+    /// is no frame to draw it in, so the Player Display stays black as it always has.
+    func testTrueScaleWithoutAPhysicalSizeHasNoFrame() {
+        let map = MapScale.grid(squaresWide: 30, imagePixelSize: CGSize(width: 3000, height: 2000))
+        XCTAssertNil(ScaleMath.playerFrame(map: map, display: nil,
+                                           screenSizePoints: CGSize(width: 1000, height: 600),
+                                           desiredViewportOrigin: nil, isMapFitOn: false))
+    }
+
+    /// The green rectangle follows the same rule: under Map Fit it is the whole Map whether
+    /// or not the display knows its size, and at True Scale it needs that size to exist.
+    func testTheViewportUnderMapFitNeedsNoPhysicalSize() {
+        let map = MapScale.grid(squaresWide: 30, imagePixelSize: CGSize(width: 3000, height: 2000))
+        XCTAssertEqual(ScaleMath.playerViewport(map: map, display: nil,
+                                                screenSizePoints: CGSize(width: 1000, height: 600),
+                                                desiredOrigin: nil, isMapFitOn: true),
+                       Viewport(originInches: .zero, sizeInches: CGSize(width: 30, height: 20)))
+        XCTAssertNil(ScaleMath.playerViewport(map: map, display: nil,
+                                              screenSizePoints: CGSize(width: 1000, height: 600),
+                                              desiredOrigin: nil, isMapFitOn: false))
     }
 
     func testCalibrationCorrectionScalesPointsPerInch() {
@@ -102,8 +145,9 @@ final class ScaleMathTests: XCTestCase {
         XCTAssertEqual(corrected.pointsPerInch.width, 50 / 0.95, accuracy: 1e-9)
     }
 
-    private func assertEqual(_ a: CGRect, _ b: CGRect, accuracy: CGFloat = 1e-9,
+    private func assertEqual(_ a: CGRect?, _ b: CGRect, accuracy: CGFloat = 1e-9,
                              file: StaticString = #filePath, line: UInt = #line) {
+        guard let a else { return XCTFail("no frame, expected \(b)", file: file, line: line) }
         XCTAssertEqual(a.origin.x, b.origin.x, accuracy: accuracy, file: file, line: line)
         XCTAssertEqual(a.origin.y, b.origin.y, accuracy: accuracy, file: file, line: line)
         XCTAssertEqual(a.width, b.width, accuracy: accuracy, file: file, line: line)

@@ -35,7 +35,7 @@ final class MapFitTests: XCTestCase {
                                      physicalSizeMM: CGSize(width: 508, height: 304.8),
                                      backingScaleFactor: 2)
         let map = MapScale.grid(squaresWide: 30, imagePixelSize: CGSize(width: 3000, height: 2000))
-        func viewport() -> Viewport {
+        func viewport() -> Viewport? {
             ScaleMath.playerViewport(map: map, display: display,
                                      screenSizePoints: CGSize(width: 1000, height: 600),
                                      desiredOrigin: appState.viewportOrigin,
@@ -49,7 +49,7 @@ final class MapFitTests: XCTestCase {
 
         appState.isMapFitOn = false
         XCTAssertEqual(viewport(), before)
-        XCTAssertEqual(before.originInches, CGPoint(x: 3, y: 4))
+        XCTAssertEqual(before?.originInches, CGPoint(x: 3, y: 4))
     }
 }
 

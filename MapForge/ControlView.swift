@@ -605,10 +605,9 @@ struct ControlView: View {
     /// one: the whole Map under Map Fit, the True Scale region otherwise. This is what the
     /// green rectangle outlines — see `ScaleMath.playerViewport`.
     private var resolvedViewport: Viewport? {
-        guard let metrics = appState.playerMetrics,
-              let screen = appState.playerScreen,
+        guard let screen = appState.playerScreen,
               let map = appState.mapScale else { return nil }
-        return ScaleMath.playerViewport(map: map, display: metrics,
+        return ScaleMath.playerViewport(map: map, display: appState.playerMetrics,
                                         screenSizePoints: screen.frame.size,
                                         desiredOrigin: appState.viewportOrigin,
                                         isMapFitOn: appState.isMapFitOn)
