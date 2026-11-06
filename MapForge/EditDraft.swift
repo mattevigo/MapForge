@@ -156,10 +156,11 @@ struct EditPawnDraft: Equatable {
     /// be that definition's: a Monster's or an Item's Face is the picture its note names, so
     /// only that picture cut again; a Character's own Face may be any picture. A Face cut by
     /// hand, or another picture over a Monster's or an Item's, is this Pawn's alone and is cut
-    /// without asking. Never while the Pawn becomes another Monster, whose Face is the new
-    /// one's.
+    /// without asking. Never while the Pawn becomes another Monster or another Item, whose
+    /// Face is the new one's: the cut would be asked about under the new one's name, and
+    /// "every" would overwrite a cut that was never this Face's.
     var asksWhomToRecut: Bool {
-        guard face.newCut != nil, monsterToStamp == nil else { return false }
+        guard face.newCut != nil, monsterToStamp == nil, itemToBecome == nil else { return false }
         switch recutSource {
         case .monster, .item: return face.isRecut
         case .character: return true

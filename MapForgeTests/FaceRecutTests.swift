@@ -431,6 +431,21 @@ final class FaceRecutTests: XCTestCase {
         XCTAssertFalse(draft.asksWhomToRecut)
     }
 
+    /// A Treasure becoming another Item takes that Item's Face, so its re-cut is never asked
+    /// about — as a Creature becoming another Monster is not — and never reaches the new
+    /// Item's shared cut.
+    func testATreasureBecomingAnotherItemIsNeverAskedWhomItsReCutIsFor() async throws {
+        let (state, workspace, pawns) = try await makeBorse()
+        var draft = try recutDraft(of: pawns[0], in: state)
+        draft.pick(try XCTUnwrap(state.treasury.item(named: "Corda")), among: state.fog.pawns)
+        draft.recutsEvery = true
+
+        XCTAssertFalse(draft.asksWhomToRecut)
+        state.updatePawn(id: pawns[0].id, with: draft)
+        XCTAssertNil(NoteFacesStore(directory: workspace.supportDirectory).load().items["Corda"])
+        XCTAssertEqual(state.fog.pawns[3].face?.file, "corda.png")
+    }
+
     func testOnlyAnItemWhoseNoteNamesAPictureCanBeReCutForEveryOne() async throws {
         let (state, _, _) = try await makeBorse()
 
