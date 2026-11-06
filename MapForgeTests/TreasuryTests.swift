@@ -156,6 +156,23 @@ final class TreasuryTests: XCTestCase {
                        String(localized: "the frontmatter is not a list of fields"))
     }
 
+    /// YAML may write the fields as one flow mapping. An `item:` key there was meant as an
+    /// Item as much as one on a line of its own.
+    func testAnItemKeyInABrokenFlowMappingIsSkippedWithAReason() throws {
+        try write("---\n{fonte: XPHB, item: true, image: [[Borsa.webp}\n---\n# Borsa\n",
+                  to: "Oggetti/Borsa.md")
+
+        XCTAssertEqual(treasury.skipped.map(\.file), ["Oggetti/Borsa.md"])
+        XCTAssertEqual(treasury.skipped.first?.reason,
+                       String(localized: "the frontmatter is not valid YAML"))
+    }
+
+    /// Only the key: a word that merely ends in "item", or a key that is not `item`, is not it.
+    func testAnUnreadableFrontmatterWhoseKeysOnlyResembleItemIsNoItemsBusiness() throws {
+        try write("---\nmagic-item: true\nitems: [a\n---\n# Borsa\n", to: "Oggetti/Borsa.md")
+        XCTAssertEqual(treasury.skipped, [])
+    }
+
     func testAnUnreadableFrontmatterThatNeverMentionsItemIsNoItemsBusiness() throws {
         // A tavern's note with a broken tag list: the Bestiary does not report it, and
         // neither does the Treasury, which cannot tell it was ever meant as an Item.

@@ -59,9 +59,13 @@ as Fantasy Statblocks' own keys do.
   `item: true` is never an Item. A `statblock` fence never makes one.
 - Two Items with one name are reported like two Monsters with one name: the first by path wins,
   and the other is skipped and listed with its reason. A frontmatter that is not YAML, or is not
-  a list of fields, is skipped and listed too, but only when a line of it starts with `item:`.
-  The app cannot otherwise tell that the note was meant as an Item, and a tavern's broken tag
-  list is none of the Treasury's business.
+  a list of fields, is skipped and listed too, but only when it writes `item` as a key
+  anywhere in it: on a line of its own, in a list, or in a flow mapping such as
+  `{item: true, …}`. `item` must be a word of its own, so `magic-item:` and `items:` are not
+  it. The app cannot otherwise tell that the note was meant as an Item, and a tavern's broken
+  tag list is none of the Treasury's business. YAML that cannot be read cannot be told key from
+  value either, so an `item:` inside a value counts too. A note listed that was not meant as
+  an Item is a smaller harm than one missing from the search without a word.
 - A Treasure remembers its Item by name, in `itemName`. That memory is advisory, as
   `monsterName` is. A label taken from an Item's initials follows the Monster's rule exactly.
 - ADR-0028's one exception reaches Items too: re-cutting an Item's Face for every one re-cuts

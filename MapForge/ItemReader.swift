@@ -36,17 +36,17 @@ enum ItemReader {
         return .item(item)
     }
 
-    /// A frontmatter YAML cannot read, reported only when a line of it is an `item:` key.
+    /// A frontmatter YAML cannot read, reported only when it writes an `item:` key anywhere —
+    /// on a line of its own, in a list, or in a flow mapping such as `{item: true, …}`.
     ///
     /// Every Obsidian note may have a frontmatter, and the Treasury has no business with a
     /// tavern's broken tag list: only a note that at least *wrote* `item:` was meant as an
-    /// Item, and only that one is missed from the search if it goes unreported.
+    /// Item, and only that one is missed from the search if it goes unreported. `item` as a
+    /// word of its own, so `magic-item:` and `items:` are not it. Text the YAML cannot read
+    /// cannot be told key from value, so an `item:` inside a value counts too: a note
+    /// reported that was not meant is a smaller harm than one dropped in silence.
     private static func unreadable(_ yaml: String, reason: String) -> Reading {
-        let mentionsItem = yaml.split(separator: "\n").contains { line in
-            let key = line.trimmingCharacters(in: .whitespaces)
-            let unlisted = key.hasPrefix("- ") ? key.dropFirst(2) : Substring(key)
-            return unlisted.hasPrefix("item:")
-        }
+        let mentionsItem = yaml.range(of: #"(?<![\w-])item\s*:"#, options: .regularExpression) != nil
         return mentionsItem ? .skipped(reason: reason) : .notAnItem
     }
 
