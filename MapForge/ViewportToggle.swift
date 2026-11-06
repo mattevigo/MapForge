@@ -54,8 +54,13 @@ enum ViewportToggle {
     /// A Map that fits inside the Viewport has no hidden part: the rectangle would cover the
     /// whole thing and have nowhere to go. Without a Player Display there is no Viewport to
     /// move in the first place.
-    static func isAvailable(mapOverflows: Bool, hasDisplay: Bool) -> Bool {
-        mapOverflows && hasDisplay
+    ///
+    /// Nor under **Map Fit**, however far the Map overflows at True Scale: the players see
+    /// the whole Map, so the rectangle covers all of it and there is nothing to pan. The
+    /// Viewport's origin is kept, not cleared, so turning Map Fit off offers the toggle again
+    /// over the same region the table had.
+    static func isAvailable(mapOverflows: Bool, hasDisplay: Bool, isMapFitOn: Bool) -> Bool {
+        mapOverflows && hasDisplay && !isMapFitOn
     }
 
     /// Whether a rectangle already showing should stay showing.
@@ -64,7 +69,32 @@ enum ViewportToggle {
     /// declaring a Grid that shrinks the Map below the Viewport, leaves the rectangle over a
     /// preview it no longer describes. It puts itself away instead, the way Solo Sight
     /// clears itself rather than waiting to be noticed.
-    static func staysShowing(mapOverflows: Bool, hasDisplay: Bool) -> Bool {
-        isAvailable(mapOverflows: mapOverflows, hasDisplay: hasDisplay)
+    static func staysShowing(mapOverflows: Bool, hasDisplay: Bool, isMapFitOn: Bool) -> Bool {
+        isAvailable(mapOverflows: mapOverflows, hasDisplay: hasDisplay, isMapFitOn: isMapFitOn)
+    }
+
+    /// What the toggle's help says.
+    enum Explanation: Equatable {
+        /// What the toggle does: show the rectangle, drag it to pan.
+        case dragToMoveTheirView
+        /// Why it is unavailable: Map Fit shows the whole Map, so there is nothing to pan.
+        case nothingToMoveUnderMapFit
+
+        var text: String {
+            switch self {
+            case .dragToMoveTheirView:
+                String(localized: "Show the rectangle the players see, and drag it to move their view.")
+            case .nothingToMoveUnderMapFit:
+                String(localized: "Map Fit shows the players the whole Map, so there is nothing to move. Turn it off first.")
+            }
+        }
+    }
+
+    /// The help for the toggle: what it does, or — while Map Fit makes it unavailable — why,
+    /// rather than leaving the DM to guess at a greyed-out button. Only Map Fit gets its own
+    /// sentence: a Map that fits the screen, or no Player Display, are visible from the
+    /// Live View itself, and Map Fit is a switch the DM may have forgotten is on.
+    static func explanation(isMapFitOn: Bool) -> Explanation {
+        isMapFitOn ? .nothingToMoveUnderMapFit : .dragToMoveTheirView
     }
 }

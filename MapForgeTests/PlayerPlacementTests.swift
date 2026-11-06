@@ -54,6 +54,30 @@ final class PlayerPlacementTests: XCTestCase {
         XCTAssertEqual(PlayerPlacement.viewPoint(MapPoint(x: 1, y: 1), map: empty, frame: frame),
                        CGPoint(x: frame.minX, y: frame.minY))
         XCTAssertEqual(PlayerPlacement.squareSidePoints(map: empty, frame: frame), 0)
+        XCTAssertEqual(CGPoint(x: 1, y: 1).applying(PlayerPlacement.mapToView(map: empty, frame: frame)),
+                       CGPoint(x: frame.minX, y: frame.minY))
+    }
+
+    // MARK: An uneven scale
+
+    func testTheMapToViewTransformScalesEachAxisAsTheArtworkIs() {
+        // A frame need not keep the Map's shape exactly: 3000×2000 px into
+        // 1000×600 pt is a third across but three tenths down. A Light drawn through this
+        // transform must reach as far as its polygon on both axes, so the transform has to
+        // land a Light's rim exactly where `viewPoint` does — not where a single,
+        // width-derived radius would.
+        let frame = CGRect(x: 10, y: 20, width: 1000, height: 600)
+        let transform = PlayerPlacement.mapToView(map: map, frame: frame)
+
+        let centre = CGPoint(x: 1500, y: 1000).applying(transform)
+        XCTAssertEqual(centre.x, 510, accuracy: 1e-9)
+        XCTAssertEqual(centre.y, 320, accuracy: 1e-9)
+
+        // A 600 px reach: 200 pt across, 180 pt down.
+        let rimAcross = CGPoint(x: 2100, y: 1000).applying(transform)
+        let rimDown = CGPoint(x: 1500, y: 1600).applying(transform)
+        XCTAssertEqual(rimAcross.x - centre.x, 200, accuracy: 1e-9)
+        XCTAssertEqual(rimDown.y - centre.y, 180, accuracy: 1e-9)
     }
 
     // MARK: Drag round trip

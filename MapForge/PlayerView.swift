@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// The Map at True Scale, centered, black letterbox — plus the Pawns standing on it.
+/// The Map at True Scale, centered, black letterbox — or, under Map Fit, the whole Map as
+/// large as the screen allows, letterboxed the same way — plus the Pawns standing on it.
 ///
 /// Pawns are drawn here whether or not the Fog Overlay is active: a Pawn is a token
 /// first and a Light second, so switching fog off leaves the players their tokens.
@@ -11,15 +12,18 @@ struct PlayerView: View {
         GeometryReader { geo in
             ZStack {
                 Color.black
+                // True Scale at the Viewport, or under Map Fit the whole Map fitted to the
+                // screen. Everything below places itself against this frame, so every Pawn,
+                // Light and Measurement follows the artwork either way.
+                //
+                // No frame is True Scale on a screen that reports no physical size, which
+                // stays black. Map Fit needs no size, so it draws there all the same.
                 if let image = appState.mapImage,
                    let map = appState.mapScale,
-                   let metrics = appState.playerMetrics {
-                    let viewport = ScaleMath.resolvedViewport(map: map, display: metrics,
-                                                              screenSizePoints: geo.size,
-                                                              desiredOrigin: appState.viewportOrigin)
-                    let frame = ScaleMath.trueScaleFrame(map: map, display: metrics,
-                                                         screenSizePoints: geo.size,
-                                                         viewportOriginInches: viewport.originInches)
+                   let frame = ScaleMath.playerFrame(map: map, display: appState.playerMetrics,
+                                                     screenSizePoints: geo.size,
+                                                     desiredViewportOrigin: appState.viewportOrigin,
+                                                     isMapFitOn: appState.isMapFitOn) {
                     Image(nsImage: image)
                         .resizable()
                         .interpolation(.high)

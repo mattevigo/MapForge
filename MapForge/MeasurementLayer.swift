@@ -4,7 +4,8 @@ import SwiftUI
 /// and the distance beside it.
 ///
 /// One view for both screens, differing only in the frame handed to it — the Player
-/// Display's True Scale frame or the Control mirror's rebased one. Two drawing paths is how
+/// Display's frame (True Scale, or fitted under Map Fit) or the Control mirror's
+/// rebased one. Two drawing paths is how
 /// the screens drift, which is the divergence `PawnToken` and
 /// `PlayerVisibility.showsToPlayers` both exist to prevent.
 ///
@@ -158,14 +159,36 @@ struct MeasurementLayer: View {
     /// perpendicular keeps it beside the end it names. Always to the upper side, so the
     /// number sits above a horizontal measurement rather than under the DM's cursor.
     private var nudge: CGVector {
+        Self.readoutNudge(shape: measurement.shape, direction: measurement.direction,
+                          map: map, frame: frame)
+    }
+
+    /// `nudge` for a shape aimed at `direction` (radians, Map space), drawn on `frame`.
+    ///
+    /// Perpendicular to the line **as drawn**, not to `direction`. When the frame scales the
+    /// Map alike on both axes the two are the same. They part on a display whose pixels are
+    /// not square — True Scale reads `pointsPerInch` per axis — where the uneven scale turns
+    /// the line, and a Map-space perpendicular would slide the capsule along the drawn line
+    /// rather than stand it beside it.
+    static func readoutNudge(shape: MeasurementShape, direction: CGFloat,
+                             map: MapScale, frame: CGRect) -> CGVector {
         // 22, not less: at 14 the capsule's own half-height overlapped the end cap and
         // partly hid the marker it exists to point at. Checked by rendering the layer at
         // four angles rather than by eye.
         let gap: CGFloat = 22
-        switch measurement.shape {
+        switch shape {
         case .cone, .line:
-            let normal = CGVector(dx: -sin(measurement.direction),
-                                  dy: cos(measurement.direction))
+            let mapToView = PlayerPlacement.mapToView(map: map, frame: frame)
+            var drawn = CGVector(dx: cos(direction) * mapToView.a,
+                                 dy: sin(direction) * mapToView.d)
+            var length = (drawn.dx * drawn.dx + drawn.dy * drawn.dy).squareRoot()
+            if length == 0 {
+                // A surface with no size draws no line to sit beside; the Map-space
+                // direction is the only one there is.
+                drawn = CGVector(dx: cos(direction), dy: sin(direction))
+                length = 1
+            }
+            let normal = CGVector(dx: -drawn.dy / length, dy: drawn.dx / length)
             let side: CGFloat = normal.dy > 0 ? -1 : 1
             return CGVector(dx: normal.dx * gap * side, dy: normal.dy * gap * side)
         case .circle, .square:

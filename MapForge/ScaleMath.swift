@@ -100,4 +100,70 @@ enum ScaleMath {
                width: map.physicalWidthInches * display.pointsPerInch.width,
                height: map.physicalHeightInches * display.pointsPerInch.height)
     }
+
+    /// The frame (in points) the Map occupies under **Map Fit**: the whole Map, as large as
+    /// the screen allows, in its own proportions and centred — black letterbox on the two
+    /// sides the Map does not reach, and never a crop.
+    ///
+    /// Sized from the image's pixels and nothing else. Map Fit ignores the declared size and
+    /// the Grid, so it reads neither the Map's inches nor the display's; the image's own
+    /// aspect ratio is what it keeps. A Map smaller than the screen is enlarged until it
+    /// touches, which is the difference from True Scale. A Map with no pixels has nothing to
+    /// fit and gets the whole screen rather than a division by zero.
+    static func mapFitFrame(imagePixelSize: CGSize, screenSizePoints: CGSize) -> CGRect {
+        guard imagePixelSize.width > 0, imagePixelSize.height > 0 else {
+            return CGRect(origin: .zero, size: screenSizePoints)
+        }
+        let scale = min(screenSizePoints.width / imagePixelSize.width,
+                        screenSizePoints.height / imagePixelSize.height)
+        let size = CGSize(width: imagePixelSize.width * scale,
+                          height: imagePixelSize.height * scale)
+        return CGRect(x: (screenSizePoints.width - size.width) / 2,
+                      y: (screenSizePoints.height - size.height) / 2,
+                      width: size.width, height: size.height)
+    }
+
+    /// The frame the Player Display draws the Map into: fitted to the screen under Map Fit,
+    /// otherwise True Scale with the Viewport at `desiredViewportOrigin` (clamped, or
+    /// centered when nil). Nil when there is nothing to draw: True Scale on a display that
+    /// reports no physical size.
+    ///
+    /// `display` is optional because only True Scale needs it. Map Fit reads the screen's
+    /// points and the image's pixels and nothing else — not the display's inches, not the
+    /// Map's — so a screen whose EDID gives no size still shows the players the whole Map
+    /// rather than black.
+    ///
+    /// The Viewport origin is read only when Map Fit is off, and never cleared by it, so
+    /// turning Map Fit off returns to True Scale wherever the Viewport was before.
+    static func playerFrame(map: MapScale, display: DisplayMetrics?, screenSizePoints: CGSize,
+                            desiredViewportOrigin: CGPoint?, isMapFitOn: Bool) -> CGRect? {
+        if isMapFitOn {
+            return mapFitFrame(imagePixelSize: map.imagePixelSize, screenSizePoints: screenSizePoints)
+        }
+        guard let display else { return nil }
+        let viewport = resolvedViewport(map: map, display: display,
+                                        screenSizePoints: screenSizePoints,
+                                        desiredOrigin: desiredViewportOrigin)
+        return trueScaleFrame(map: map, display: display, screenSizePoints: screenSizePoints,
+                              viewportOriginInches: viewport.originInches)
+    }
+
+    /// The Viewport the players are shown: under Map Fit the **whole Map**, otherwise the
+    /// True Scale one at `desiredOrigin` (clamped, or centered when nil).
+    ///
+    /// The Live View's green rectangle answers "what do the players see", and under Map Fit
+    /// the answer is all of it, so the rectangle must cover the Map rather than go on
+    /// outlining a True Scale region nobody is looking at. The partner of `playerFrame`: one
+    /// says where the Map lands on the Player Display, this says which part of it is there.
+    ///
+    /// `desiredOrigin` is read only when Map Fit is off, and never cleared by it, so turning
+    /// Map Fit off returns the rectangle to wherever the DM had left it. Nil exactly when
+    /// `playerFrame` is: True Scale on a display that reports no physical size.
+    static func playerViewport(map: MapScale, display: DisplayMetrics?, screenSizePoints: CGSize,
+                               desiredOrigin: CGPoint?, isMapFitOn: Bool) -> Viewport? {
+        if isMapFitOn { return Viewport(originInches: .zero, sizeInches: map.physicalSizeInches) }
+        guard let display else { return nil }
+        return resolvedViewport(map: map, display: display, screenSizePoints: screenSizePoints,
+                                desiredOrigin: desiredOrigin)
+    }
 }

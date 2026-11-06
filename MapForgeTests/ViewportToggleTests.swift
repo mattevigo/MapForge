@@ -43,24 +43,45 @@ final class ViewportToggleTests: XCTestCase {
     /// Offered only when there is something to pan: a Map that fits inside the Viewport has
     /// no hidden part, so the rectangle would cover everything and move nowhere.
     func testItIsOfferedOnlyWhenTheMapOverflows() {
-        XCTAssertTrue(ViewportToggle.isAvailable(mapOverflows: true, hasDisplay: true))
-        XCTAssertFalse(ViewportToggle.isAvailable(mapOverflows: false, hasDisplay: true))
+        XCTAssertTrue(ViewportToggle.isAvailable(mapOverflows: true, hasDisplay: true, isMapFitOn: false))
+        XCTAssertFalse(ViewportToggle.isAvailable(mapOverflows: false, hasDisplay: true, isMapFitOn: false))
     }
 
     /// And only with a Player Display: without one there is no Viewport to move.
     func testItNeedsAPlayerDisplay() {
-        XCTAssertFalse(ViewportToggle.isAvailable(mapOverflows: true, hasDisplay: false))
+        XCTAssertFalse(ViewportToggle.isAvailable(mapOverflows: true, hasDisplay: false, isMapFitOn: false))
     }
 
     /// Unplugging mid-drag puts the rectangle away rather than leaving it over a preview
     /// that no longer mirrors anything — the same self-invalidation Solo Sight performs.
     func testUnpluggingTheDisplayPutsItAway() {
-        XCTAssertFalse(ViewportToggle.staysShowing(mapOverflows: true, hasDisplay: false))
-        XCTAssertTrue(ViewportToggle.staysShowing(mapOverflows: true, hasDisplay: true))
+        XCTAssertFalse(ViewportToggle.staysShowing(mapOverflows: true, hasDisplay: false, isMapFitOn: false))
+        XCTAssertTrue(ViewportToggle.staysShowing(mapOverflows: true, hasDisplay: true, isMapFitOn: false))
     }
 
     /// Declaring a Grid can shrink the Map below the Viewport while the rectangle is up.
     func testAMapThatStopsOverflowingPutsItAway() {
-        XCTAssertFalse(ViewportToggle.staysShowing(mapOverflows: false, hasDisplay: true))
+        XCTAssertFalse(ViewportToggle.staysShowing(mapOverflows: false, hasDisplay: true, isMapFitOn: false))
+    }
+
+    /// Under Map Fit the players see the whole Map, so there is nothing to pan — however
+    /// far the Map overflows the screen at True Scale.
+    func testItIsNotOfferedWhileTheMapIsFitted() {
+        XCTAssertFalse(ViewportToggle.isAvailable(mapOverflows: true, hasDisplay: true,
+                                                  isMapFitOn: true))
+    }
+
+    /// Turning Map Fit on with the rectangle armed puts it away: it now covers the whole Map
+    /// and has nowhere to be dragged.
+    func testFittingTheMapPutsItAway() {
+        XCTAssertFalse(ViewportToggle.staysShowing(mapOverflows: true, hasDisplay: true,
+                                                   isMapFitOn: true))
+    }
+
+    /// The help explains what the toggle does — and, while it is unavailable because the Map
+    /// is fitted, why, rather than leaving the DM to guess at a greyed-out button.
+    func testItsHelpSaysWhyItIsUnavailableWhileTheMapIsFitted() {
+        XCTAssertEqual(ViewportToggle.explanation(isMapFitOn: false), .dragToMoveTheirView)
+        XCTAssertEqual(ViewportToggle.explanation(isMapFitOn: true), .nothingToMoveUnderMapFit)
     }
 }
