@@ -8339,6 +8339,46 @@
         }
       }
     },
+    "Map Fit shows the players the whole Map, so there is nothing to move. Turn it off first.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„Karte anpassen“ zeigt den Spielern die ganze Karte, daher gibt es nichts zu verschieben. Schalte es zuerst aus."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Η Προσαρμογή χάρτη δείχνει στους παίκτες ολόκληρο τον χάρτη, οπότε δεν υπάρχει τίποτα να μετακινηθεί. Απενεργοποιήστε την πρώτα."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustar mapa muestra el mapa entero a los jugadores, así que no hay nada que mover. Desactívalo primero."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajuster la carte montre toute la carte aux joueurs : il n’y a rien à déplacer. Désactivez-le d’abord."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adatta mappa mostra ai giocatori l’intera mappa, quindi non c’è nulla da spostare. Disattivalo prima."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustar mapa mostra o mapa inteiro aos jogadores, então não há nada para mover. Desative-o primeiro."
+          }
+        }
+      }
+    },
     "MapForge Control": {
       "localizations": {
         "de": {

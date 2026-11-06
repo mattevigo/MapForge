@@ -128,4 +128,21 @@ enum ScaleMath {
         return trueScaleFrame(map: map, display: display, screenSizePoints: screenSizePoints,
                               viewportOriginInches: viewport.originInches)
     }
+
+    /// The Viewport the players are shown: under Map Fit the **whole Map**, otherwise the
+    /// True Scale one at `desiredOrigin` (clamped, or centered when nil).
+    ///
+    /// The Live View's green rectangle answers "what do the players see", and under Map Fit
+    /// the answer is all of it, so the rectangle must cover the Map rather than go on
+    /// outlining a True Scale region nobody is looking at. The partner of `playerFrame`: one
+    /// says where the Map lands on the Player Display, this says which part of it is there.
+    ///
+    /// `desiredOrigin` is read only when Map Fit is off, and never cleared by it, so turning
+    /// Map Fit off returns the rectangle to wherever the DM had left it.
+    static func playerViewport(map: MapScale, display: DisplayMetrics, screenSizePoints: CGSize,
+                               desiredOrigin: CGPoint?, isMapFitOn: Bool) -> Viewport {
+        if isMapFitOn { return Viewport(originInches: .zero, sizeInches: map.physicalSizeInches) }
+        return resolvedViewport(map: map, display: display, screenSizePoints: screenSizePoints,
+                                desiredOrigin: desiredOrigin)
+    }
 }
