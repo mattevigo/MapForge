@@ -296,6 +296,7 @@ struct ControlView: View {
                               hasDeclaredGrid: appState.hasDeclaredGrid,
                               unit: appState.distanceUnit,
                               bestiary: appState.bestiary,
+                              treasury: appState.treasury,
                               pawns: appState.fog.pawns,
                               // The fight's copy while one runs: that is the one a stamp
                               // would overwrite, and so the one to ask about.

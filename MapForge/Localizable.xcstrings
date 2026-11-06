@@ -6858,6 +6858,46 @@
         }
       }
     },
+    "Forget the Item.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gegenstand vergessen."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Αφαίρεση του αντικειμένου."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olvidar el objeto."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oublier l’objet."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dimentica l'oggetto."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esquecer o item."
+          }
+        }
+      }
+    },
     "Forget the Monster. The Stat Block keeps its numbers.": {
       "localizations": {
         "de": {
@@ -9916,6 +9956,46 @@
         }
       }
     },
+    "Notes marked as Items that the app could not take": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als Gegenstände markierte Notizen, die die App nicht übernehmen konnte"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Σημειώσεις σημασμένες ως αντικείμενα που η εφαρμογή δεν μπόρεσε να δεχτεί"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas marcadas como objetos que la app no ha podido admitir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes marquées comme objets que l’app n’a pas pu prendre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note segnate come oggetti che l'app non ha potuto accettare"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas marcadas como itens que o app não conseguiu aceitar"
+          }
+        }
+      }
+    },
     "Notes whose Speed or Senses are in feet": {
       "localizations": {
         "de": {
@@ -12564,6 +12644,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Buscar notas de personagens"
+          }
+        }
+      }
+    },
+    "Search Items": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gegenstände suchen"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Αναζήτηση αντικειμένων"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar objetos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechercher des objets"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerca oggetti"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar itens"
           }
         }
       }
@@ -16872,6 +16992,46 @@
     },
     "—": {
       "shouldTranslate": false
+    },
+    "— not among the Items": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— nicht unter den Gegenständen"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— δεν υπάρχει στα αντικείμενα"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— no está entre los objetos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— absent des objets"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— assente dagli oggetti"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— fora dos itens"
+          }
+        }
+      }
     },
     "— not found": {
       "localizations": {

@@ -23,6 +23,9 @@ import SwiftUI
 /// makes OK stamp the Monster's numbers into the Stat Block as well — still one commit, and
 /// still nothing on Cancel — and because a stamp arrives at full hit points, OK asks first
 /// when that would overwrite hit points that exist. See ADR-0021.
+///
+/// **A Treasure can be said to be an Item** in the same place, from the Treasury (ADR-0031).
+/// There are no numbers to stamp, so OK simply says what the Treasure becomes.
 struct EditPawnSheet: View {
     @State var draft: EditPawnDraft
     /// Whether a Grid has been declared. Sight is measured in Grid squares, so without one
@@ -32,6 +35,8 @@ struct EditPawnSheet: View {
     let unit: DistanceUnit
     /// What the search box searches.
     var bestiary = Bestiary.closed
+    /// What a Treasure's search box searches.
+    var treasury = Treasury.closed
     /// The Map as it stands, for numbering a picked Monster's label.
     var pawns: [Pawn] = []
     /// The Pawn's Stat Block as it stands, for knowing whether a stamp would heal it.
@@ -105,6 +110,15 @@ struct EditPawnSheet: View {
                             .gridCellAnchor(.topLeading)
                             // Above the rows below it, which the open results float over.
                             .zIndex(1)
+                    } else if draft.kind.canBeItem {
+                        // And only a Treasure can be an Item.
+                        ItemSearchField(treasury: treasury,
+                                        itemName: draft.itemName,
+                                        isSearching: $isSearching,
+                                        onPick: { draft.pick($0, among: pawns) },
+                                        onClear: { draft.clearItem() })
+                            .gridCellAnchor(.topLeading)
+                            .zIndex(1)
                     }
                 }
                 GridRow {
@@ -152,7 +166,10 @@ struct EditPawnSheet: View {
                 Spacer()
                 Button("Cancel", action: onCancel)
                     .keyboardShortcut(.cancelAction)
-                Button("OK", action: commit)
+                // "Become Borsa" once an Item is chosen: a Treasure has no numbers to stamp
+                // and so no heal to confirm, and this is where the DM sees what OK will do.
+                Button(draft.itemToBecome.map { String(localized: "Become \($0)") }
+                       ?? String(localized: "OK"), action: commit)
                     // Return belongs to the search results while they are open.
                     .keyboardShortcut(isSearching ? nil : .defaultAction)
                     .accessibilityIdentifier("edit-pawn-ok")
@@ -468,13 +485,8 @@ private struct FaceThumbnail: View {
 
 /// The search box beside the Kind: which Monster this Creature is.
 ///
-/// The app's first search field. The results **float** beneath it, over the rows below, and
-/// take no room of their own: a sheet that grew and shrank with every keystroke moved the OK
-/// button under the DM's cursor as they typed. Drawn as an overlay rather than a popover,
-/// which on macOS takes key focus from the field it belongs to — the DM would type one letter
-/// and then be typing into nothing.
-///
-/// Holds no draft: it reports a pick or a clear and the sheet decides what that means.
+/// Holds no draft: it reports a pick or a clear and the sheet decides what that means. Under
+/// it, everything the Bestiary has to say about its notes.
 private struct MonsterSearchField: View {
     let bestiary: Bestiary
     /// The unit in force, which the Monsters' notes are checked against.
@@ -487,115 +499,29 @@ private struct MonsterSearchField: View {
     let onPick: (Monster) -> Void
     let onClear: () -> Void
 
-    @State private var query = ""
-    @State private var highlighted = 0
-    @FocusState private var isFocused: Bool
-
-    /// As many as fit between the field and the sheet's bottom edge, which is where a
-    /// floating list is clipped. Typing one more letter is quicker than scrolling a list in
-    /// a modal.
-    private static let resultLimit = 5
-    private static let width: CGFloat = 250
-
-    private var results: [Monster] {
-        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else { return [] }
-        return Array(bestiary.search(query).prefix(Self.resultLimit))
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if let monsterName {
-                chosen(monsterName)
-            } else {
-                field
-                    .overlay(alignment: .topLeading) {
-                        if !results.isEmpty {
-                            list
-                                .frame(width: Self.width)
-                                .fixedSize(horizontal: false, vertical: true)
-                                // Just under the field: its height and a small gap.
-                                .offset(y: 26)
-                        }
-                    }
-                    // Over the caption below it, which the results float across: a click
-                    // meant for a result must never land on "Use feet" underneath.
-                    .zIndex(1)
-            }
+        DefinitionSearchField(
+            prompt: "Search Monsters",
+            identifier: "monster",
+            chosenSymbol: "pawprint.fill",
+            notFound: "— not in the Bestiary",
+            clearHelp: "Forget the Monster. The Stat Block keeps its numbers.",
+            isAvailable: bestiary.isAvailable,
+            isRead: bestiary.unavailable == nil,
+            chosenName: monsterName,
+            exists: { bestiary.monster(named: $0) != nil },
+            search: bestiary.search,
+            name: \.name,
+            detail: { monster in
+                [monster.challengeRating.map { String(localized: "CR \($0)") }, monster.type]
+                    .compactMap { $0 }.joined(separator: " · ")
+            },
+            isSearching: $isSearching,
+            onPick: onPick,
+            onClear: onClear
+        ) {
             caption
         }
-        .frame(width: Self.width, alignment: .leading)
-        .onChange(of: query) { _, query in
-            highlighted = 0
-            isSearching = !query.trimmingCharacters(in: .whitespaces).isEmpty
-        }
-        .onDisappear { isSearching = false }
-    }
-
-    private func chosen(_ name: String) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: "pawprint.fill").foregroundStyle(.secondary)
-            Text(name).lineLimit(1)
-            if bestiary.unavailable == nil, bestiary.monster(named: name) == nil {
-                Text("— not in the Bestiary").foregroundStyle(.secondary).lineLimit(1)
-            }
-            Spacer(minLength: 0)
-            Button(action: { onClear(); query = "" }) {
-                Image(systemName: "xmark.circle.fill")
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .help("Forget the Monster. The Stat Block keeps its numbers.")
-            .accessibilityIdentifier("monster-clear")
-        }
-        .padding(.horizontal, 6)
-        .frame(height: 22)
-        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 5))
-        .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color(nsColor: .separatorColor)))
-        .accessibilityIdentifier("monster-chosen")
-    }
-
-    private var field: some View {
-        TextField("Search Monsters", text: $query)
-            .textFieldStyle(.roundedBorder)
-            .focused($isFocused)
-            .disabled(!bestiary.isAvailable)
-            .accessibilityIdentifier("monster-search")
-            .onKeyPress(.downArrow) { move(1) }
-            .onKeyPress(.upArrow) { move(-1) }
-            .onKeyPress(.return) { pickHighlighted() }
-            .onSubmit { _ = pickHighlighted() }
-    }
-
-    private var list: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(results.enumerated()), id: \.element.id) { index, monster in
-                Button { pick(monster) } label: {
-                    HStack(spacing: 6) {
-                        Text(monster.name).lineLimit(1)
-                        Spacer(minLength: 4)
-                        Text([monster.challengeRating.map { String(localized: "CR \($0)") }, monster.type]
-                            .compactMap { $0 }.joined(separator: " · "))
-                            .font(.caption)
-                            .foregroundStyle(index == highlighted ? .white.opacity(0.85) : .secondary)
-                            .lineLimit(1)
-                    }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .foregroundStyle(index == highlighted ? .white : .primary)
-                    .background(index == highlighted ? Color.accentColor : .clear,
-                                in: RoundedRectangle(cornerRadius: 4))
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("monster-result-\(index)")
-            }
-        }
-        .padding(3)
-        // Opaque, and lifted: it sits on top of other controls now, not between them.
-        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
-        .shadow(color: .black.opacity(0.18), radius: 6, y: 2)
     }
 
     /// The Bestiary's one line, and the only place a skipped note is ever mentioned — then,
@@ -617,6 +543,202 @@ private struct MonsterSearchField: View {
         PictureProblemsCaption(problems: bestiary.pictureProblems,
                                identifier: "bestiary-picture-problems")
     }
+}
+
+/// The search box beside the Kind for a Treasure: which Item it is. The Monster box's twin, so
+/// a DM who knows one knows the other.
+private struct ItemSearchField: View {
+    let treasury: Treasury
+    /// The Item already chosen, shown instead of the field.
+    let itemName: String?
+    @Binding var isSearching: Bool
+    let onPick: (Item) -> Void
+    let onClear: () -> Void
+
+    var body: some View {
+        DefinitionSearchField(
+            prompt: "Search Items",
+            identifier: "item",
+            chosenSymbol: "bag.fill",
+            notFound: "— not among the Items",
+            clearHelp: "Forget the Item.",
+            isAvailable: treasury.isAvailable,
+            isRead: treasury.unavailable == nil,
+            chosenName: itemName,
+            exists: { treasury.item(named: $0) != nil },
+            search: treasury.search,
+            name: \.name,
+            detail: { _ in "" },
+            isSearching: $isSearching,
+            onPick: onPick,
+            onClear: onClear
+        ) {
+            caption
+        }
+    }
+
+    /// The Treasury's one line, and the only place a skipped note is ever mentioned — then
+    /// the Items whose picture gives no Face. Silent when there is nothing to say.
+    @ViewBuilder private var caption: some View {
+        if let text = treasury.caption {
+            if treasury.skipped.isEmpty {
+                Text(text).font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("treasury-caption")
+            } else {
+                SkippedNotesButton(caption: text, skipped: treasury.skipped,
+                                   title: String(localized: "Notes marked as Items that the app could not take"),
+                                   identifier: "treasury-caption")
+            }
+        }
+        PictureProblemsCaption(problems: treasury.pictureProblems,
+                               identifier: "treasury-picture-problems")
+    }
+}
+
+/// A search box for a definition read from the DM's notes — a Monster, an Item — with the one
+/// chosen shown in its place.
+///
+/// The app's first search field. The results **float** beneath it, over the rows below, and
+/// take no room of their own: a sheet that grew and shrank with every keystroke moved the OK
+/// button under the DM's cursor as they typed. Drawn as an overlay rather than a popover,
+/// which on macOS takes key focus from the field it belongs to — the DM would type one letter
+/// and then be typing into nothing.
+///
+/// Holds no draft: it reports a pick or a clear and the sheet decides what that means.
+private struct DefinitionSearchField<Definition: Identifiable, Caption: View>: View {
+    let prompt: LocalizedStringKey
+    /// The accessibility identifiers' prefix: "monster" gives "monster-search".
+    let identifier: String
+    let chosenSymbol: String
+    /// Said beside a chosen name the notes no longer define.
+    let notFound: LocalizedStringKey
+    let clearHelp: LocalizedStringKey
+    /// Whether there is anything to search. The field is disabled without it.
+    let isAvailable: Bool
+    /// Whether the notes have been read, so a chosen name can be said to be missing.
+    let isRead: Bool
+    /// The definition already chosen, shown instead of the field.
+    let chosenName: String?
+    let exists: (String) -> Bool
+    let search: (String) -> [Definition]
+    let name: (Definition) -> String
+    /// The secondary text beside a result, or empty for none.
+    let detail: (Definition) -> String
+    @Binding var isSearching: Bool
+    let onPick: (Definition) -> Void
+    let onClear: () -> Void
+    @ViewBuilder let caption: () -> Caption
+
+    @State private var query = ""
+    @State private var highlighted = 0
+    @FocusState private var isFocused: Bool
+
+    /// As many as fit between the field and the sheet's bottom edge, which is where a
+    /// floating list is clipped. Typing one more letter is quicker than scrolling a list in
+    /// a modal.
+    private var resultLimit: Int { 5 }
+    private var width: CGFloat { 250 }
+
+    private var results: [Definition] {
+        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else { return [] }
+        return Array(search(query).prefix(resultLimit))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let chosenName {
+                chosen(chosenName)
+            } else {
+                field
+                    .overlay(alignment: .topLeading) {
+                        if !results.isEmpty {
+                            list
+                                .frame(width: width)
+                                .fixedSize(horizontal: false, vertical: true)
+                                // Just under the field: its height and a small gap.
+                                .offset(y: 26)
+                        }
+                    }
+                    // Over the caption below it, which the results float across: a click
+                    // meant for a result must never land on "Use feet" underneath.
+                    .zIndex(1)
+            }
+            caption()
+        }
+        .frame(width: width, alignment: .leading)
+        .onChange(of: query) { _, query in
+            highlighted = 0
+            isSearching = !query.trimmingCharacters(in: .whitespaces).isEmpty
+        }
+        .onDisappear { isSearching = false }
+    }
+
+    private func chosen(_ name: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: chosenSymbol).foregroundStyle(.secondary)
+            Text(name).lineLimit(1)
+            if isRead, !exists(name) {
+                Text(notFound).foregroundStyle(.secondary).lineLimit(1)
+            }
+            Spacer(minLength: 0)
+            Button(action: { onClear(); query = "" }) {
+                Image(systemName: "xmark.circle.fill")
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help(clearHelp)
+            .accessibilityIdentifier("\(identifier)-clear")
+        }
+        .padding(.horizontal, 6)
+        .frame(height: 22)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 5))
+        .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color(nsColor: .separatorColor)))
+        .accessibilityIdentifier("\(identifier)-chosen")
+    }
+
+    private var field: some View {
+        TextField(prompt, text: $query)
+            .textFieldStyle(.roundedBorder)
+            .focused($isFocused)
+            .disabled(!isAvailable)
+            .accessibilityIdentifier("\(identifier)-search")
+            .onKeyPress(.downArrow) { move(1) }
+            .onKeyPress(.upArrow) { move(-1) }
+            .onKeyPress(.return) { pickHighlighted() }
+            .onSubmit { _ = pickHighlighted() }
+    }
+
+    private var list: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(results.enumerated()), id: \.element.id) { index, definition in
+                Button { pick(definition) } label: {
+                    HStack(spacing: 6) {
+                        Text(name(definition)).lineLimit(1)
+                        Spacer(minLength: 4)
+                        Text(detail(definition))
+                            .font(.caption)
+                            .foregroundStyle(index == highlighted ? .white.opacity(0.85) : .secondary)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .foregroundStyle(index == highlighted ? .white : .primary)
+                    .background(index == highlighted ? Color.accentColor : .clear,
+                                in: RoundedRectangle(cornerRadius: 4))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("\(identifier)-result-\(index)")
+            }
+        }
+        .padding(3)
+        // Opaque, and lifted: it sits on top of other controls now, not between them.
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
+        .shadow(color: .black.opacity(0.18), radius: 6, y: 2)
+    }
 
     private func move(_ step: Int) -> KeyPress.Result {
         guard !results.isEmpty else { return .ignored }
@@ -630,8 +752,8 @@ private struct MonsterSearchField: View {
         return .handled
     }
 
-    private func pick(_ monster: Monster) {
-        onPick(monster)
+    private func pick(_ definition: Definition) {
+        onPick(definition)
         query = ""
     }
 }
