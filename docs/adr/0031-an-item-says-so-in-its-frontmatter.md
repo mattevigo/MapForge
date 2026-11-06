@@ -64,6 +64,9 @@ as Fantasy Statblocks' own keys do.
   list is none of the Treasury's business.
 - A Treasure remembers its Item by name, in `itemName`. That memory is advisory, as
   `monsterName` is. A label taken from an Item's initials follows the Monster's rule exactly.
+- ADR-0028's one exception reaches Items too: re-cutting an Item's Face for every one re-cuts
+  the Item's kept cut and the Treasures on the open Map that took their Face from it, found by
+  `itemName`.
 - Until DM Realm writes `item: true`, the Treasury is empty and says so.
 
 ## Considered Options
