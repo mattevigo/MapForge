@@ -28,23 +28,32 @@ enum AddPlacement {
     /// `bestiary` still has that Monster: with nothing to copy the numbers from, the new Pawn
     /// claims to be nothing.
     ///
+    /// A Treasure inherits the last Treasure's **Item** the same way, so the second Borsa is
+    /// a Borsa — labelled "Bo2", and given the Item's Face by `AppState.addPawnToMap`. Only
+    /// when `treasury` still has that Item, for the same reason.
+    ///
     /// Any Kind inherits the last one's **Face**, so the second skeleton arrives wearing the
     /// first one's with no second cut. See `inherited(_:)`.
     static func pawn(kind: PawnKind, at point: MapPoint, existing: [Pawn],
-                     imageSize: CGSize? = nil, bestiary: Bestiary = Bestiary()) -> Pawn? {
+                     imageSize: CGSize? = nil, bestiary: Bestiary = Bestiary(),
+                     treasury: Treasury = Treasury()) -> Pawn? {
         guard isInside(point, imageSize) else { return nil }
         // The last of this Kind, not the last placed. See the type's note.
         let previous = existing.last { $0.kind == kind }
         let monster = kind.canBeMonster ? bestiary.monster(named: previous?.monsterName) : nil
+        let item = kind.canBeItem ? treasury.item(named: previous?.itemName) : nil
         let born = Pawn.nextLabel(after: existing)
+        let label = monster.map { MonsterStamp.label(for: $0, replacing: born, among: existing) }
+            ?? item.map { ItemStamp.label(for: $0, replacing: born, among: existing) }
+            ?? born
         return Pawn(at: point,
-                    label: monster.map { MonsterStamp.label(for: $0, replacing: born,
-                                                            among: existing) } ?? born,
+                    label: label,
                     colorHex: previous?.colorHex ?? Pawn.defaultColorHex,
                     brightSquares: previous?.light.brightSquares ?? defaultSightSquares,
                     kind: kind,
                     isBig: previous?.isBig ?? false,
                     monsterName: monster?.name,
+                    itemName: item?.name,
                     face: inherited(previous?.face))
     }
 
