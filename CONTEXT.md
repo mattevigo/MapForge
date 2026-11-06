@@ -117,8 +117,16 @@ Every Monster the app has read from the Workspace — the collection a DM search
 _Avoid_: monster library, compendium, monster cache, catalog, manual
 
 **Treasure**:
-A chest, a hoard, a body — something the players find rather than fight. Discovered exactly as a Creature is: no Light, hidden by darkness, revealed where the light reaches it. It differs only in being drawn as a rounded square rather than a disc, and in being listed in its own group, because a DM reasons about loot and monsters separately. Size stays orthogonal — a Treasure can be Big.
-_Avoid_: loot, chest, item, object
+A chest, a hoard, a body — something the players find rather than fight. Discovered exactly as a Creature is: no Light, hidden by darkness, revealed where the light reaches it. It differs only in being drawn as a rounded square rather than a disc, and in being listed in its own group, because a DM reasons about loot and monsters separately. Size stays orthogonal — a Treasure can be Big. A Treasure can be said to be an **Item** from the **Treasury**, as a Creature can be said to be a Monster.
+_Avoid_: loot, chest, item (that is the definition, not the Pawn), object
+
+**Item**:
+A thing as the DM's notes define it — a Borsa, a Gemma di Fuoco. It is to a Treasure what a Monster is to a Creature: a definition, never on a Map, and three bags on a Map share one Item. A note is an Item when its frontmatter says `item: true`, wherever the note lives; nothing else makes one, a `statblock` fence included. Its name is the note's first heading, or its file name when it has none. Saying which Item a Treasure is **copies**, as a Monster does: a Treasure still labelled with its bare number, or with the initials of the Item it was, is relabelled from the Item's initials — Bo1, Bo2 for two Borse — by the Monster's rule, and a label the DM typed is never touched. There are no numbers to copy: an Item has none. The Treasure remembers which Item it was, advisorily, as a Creature remembers its Monster, and forgets it when it stops being a Treasure. Only a Treasure can be an Item.
+_Avoid_: object, equipment, loot, magic item (one kind of Item, not the word for all of them)
+
+**Treasury**:
+Every Item the app has read from the Workspace — the collection a DM searches when saying what a Treasure is. The Bestiary's sibling, and on the same terms: read in the same walk over the notes, when the Workspace opens and at no other time, never authored in the app and never kept on disk. A note marked as an Item that cannot be read, or that names an Item another note already defines, is skipped and listed with its reason, never dropped in silence.
+_Avoid_: inventory (that is a Character's), item library, catalog, loot table
 
 **Big**:
 A Pawn whose token occupies 2×2 Grid squares instead of 1×1 — an ogre, not a goblin. Independent of Pawn Kind: a big hoard is as meaningful as a big monster. Purely visual: its Light radii and its sight are still measured from its point, because a creature's size does not change how far it sees or how far its torch reaches.

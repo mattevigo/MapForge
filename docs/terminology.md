@@ -127,6 +127,7 @@ official word, and listed so they stay one choice:
 | Creature | Creatura | Kreatur | Créature | Criatura | Criatura |
 | Monster | Mostro | Monster | Monstre | Monstruo | Monstro |
 | Treasure | Tesoro | Schatz | Trésor | Tesoro | Tesouro |
+| Item (as in *magic item*) | Oggetto | Gegenstand | Objet | Objeto | Item |
 | Stat Block | Scheda delle statistiche | Wertekasten | Profil | Perfil | Bloco de Estatísticas |
 | Traits (heading) | Tratti | Merkmale | Traits | Atributos | Traços † |
 | Actions (heading) | Azioni | Aktionen | Actions | Acciones | Ações |
@@ -415,6 +416,7 @@ ordinary language are Greek: a Greek DM says *τέρας*, not "monster".
 | Pawn Kind | Είδος | |
 | Player (a Pawn Kind) | Παίκτης | |
 | Creature / Monster / Treasure | Πλάσμα / Τέρας / Θησαυρός | |
+| Item | Αντικείμενο | |
 | Big | Ογκώδης | *Μεγάλο* (the community's Large) |
 | Face | Πρόσωπο | *πορτρέτο*, *εικόνα* (any picture, the Map's included) |
 | Add | Προσθήκη | |

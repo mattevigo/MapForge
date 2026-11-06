@@ -79,6 +79,9 @@ that holds the radii must hold the unit.
     { "id": "…", "label": "GG1", "colorHex": "#5A5A5A", "kind": "creature",
       "isHidden": false, "isBig": false, "monsterName": "Gnoll Guerriero",
       "face": { "file": "3F2504E0-….png", "from": "hand" },
+      "light": { "…": "…" } },
+    { "id": "…", "label": "Bo1", "colorHex": "#D4A017", "kind": "treasure",
+      "isHidden": false, "isBig": false, "itemName": "Borsa",
       "light": { "…": "…" } }
   ]
 }
@@ -94,6 +97,7 @@ that holds the radii must hold the unit.
 | `pawns[].light` | A Pawn *is* a Light: `brightSquares` is its sight. `dimSquares` is on disk but **re-derived on load** as sight + 1 (the fade), so the stored value is cosmetic history. |
 | `pawns[].characterID` | Which Character stamped this Pawn. Advisory only — counts on the Party panel, and, with `face.from: character`, which Pawns re-cutting that Character's Face for *every* one reaches (ADR-0028) — and omitted when absent (ADR-0007). |
 | `pawns[].monsterName` | Which Monster this Creature was said to be. Advisory only — the reference view, *Add*'s "same as last", and, with `face.from: monster`, which Pawns re-cutting that Monster's Face for *every* one reaches (ADR-0028), and the Roll sheet's offered Modifier, read live from that Monster's note (ADR-0029) — and omitted when absent (ADR-0020). The numbers were **copied** into `stats.json`. |
+| `pawns[].itemName` | Which Item this Treasure was said to be, by the name its note gives it. Advisory only, as `monsterName` is, and omitted when absent; a Pawn that stops being a Treasure forgets it (ADR-0031). The label was **copied** from the Item's initials. |
 | `pawns[].face` | The **Face** this Pawn is drawn as, in place of its colour, on both screens. `file` names a kept cut in `.mapforge/faces/` — a file name, never a path, and never the picture it was cut from. `from` is where the Face came from: `hand` (cut by the DM for this Pawn, or for the one it inherited the Face from under *Add*, which then share the `file`), `character` (copied by the Stamp from the Character in `characterID`; under *Add* it passes on as `hand`) or `monster` (taken from a Monster whose note names the picture — the one in `monsterName`, until the DM clears or changes it; under *Add* it is taken fresh from the Monster, never copied). Becoming another Monster replaces a `monster` Face with the new Monster's, or removes it; `hand` and `character` are never touched. A `monster` or `character` Face re-cut for *only this Pawn* becomes `hand`; re-cut for *every* one, it keeps its `from` and names the new `file`. Omitted when the Pawn has none; a `file` that is missing draws the colour (ADR-0028). |
 | `isCreature` (legacy) | Read forever, never written: a file written before `kind` existed decodes `true` as `creature`. |
 
@@ -338,6 +342,17 @@ Character's note (a fence with a Character-only key and no `bestiary: false`) fo
 those are never saved either. What a Monster stamps onto a Pawn
 (`armorClass`, `hitPoints` → `maxHP`/`currentHP`, `initiativeBonus`, size → `isBig`) is
 copied into `stats.json` and `.fog.json`; only the name is remembered in `monsterName`.
+
+### The Treasury — never saved
+
+The **Treasury is never saved** either: it is read in the same walk as the Bestiary, from the
+same notes. A note is an Item when its YAML frontmatter, between the `---` lines at its top,
+says `item: true`. Only that key and `image:` are read: `image:` names the Item's picture as a
+fence's `image:` does, and is looked up the same way. The Item's name is the note's first `#`
+heading, or else its file name with `_` read as spaces. Two Items of one name, or a
+frontmatter that is not YAML or not a list of fields and has a line starting with `item:`, are
+skipped and reported under the Item search. What an Item stamps onto a Pawn is its label's
+initials, copied into `.fog.json`; only the name is remembered in `itemName` (ADR-0031).
 
 ### `sessions/<timestamp>.jsonl` — one Session Log per evening
 
