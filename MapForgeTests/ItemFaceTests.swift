@@ -106,6 +106,30 @@ final class ItemFaceTests: XCTestCase {
         XCTAssertEqual(kept.file, face(of: first.id, in: state)?.file)
     }
 
+    // MARK: Add
+
+    /// The second Borsa placed with Add wears the Item's kept cut, taken fresh from the Item
+    /// — not a copy of the first one's file reference.
+    func testAddAfterAnItemTreasureGivesTheNewPawnTheItemsFace() async throws {
+        let (state, workspace) = try await makeAppState()
+        let first = treasure("1")
+        state.fog.pawns = [first]
+        try make(first.id, borsa(picture: .found("Allegati/Borsa.png")), in: state)
+
+        let added = try XCTUnwrap(AddPlacement.pawn(kind: .treasure, at: MapPoint(x: 50, y: 50),
+                                                    existing: state.fog.pawns,
+                                                    treasury: state.treasury))
+        state.addPawnToMap(added)
+
+        let placed = try XCTUnwrap(state.fog.pawns.last)
+        XCTAssertEqual(placed.itemName, "Borsa")
+        XCTAssertEqual(placed.label, "Bo2")
+        XCTAssertEqual(placed.face?.origin, .item)
+        let kept = try XCTUnwrap(NoteFacesStore(directory: workspace.supportDirectory).load()
+            .items["Borsa"])
+        XCTAssertEqual(placed.face?.file, kept.file)
+    }
+
     // MARK: Becoming another Item
 
     func testBecomingAnItemWithAPictureSwapsTheFace() async throws {

@@ -85,7 +85,7 @@ The prep-time mode for tracing Walls, entered deliberately and left again. It is
 _Avoid_: fog editor, edit fog, fog mode, authoring mode
 
 **Add**:
-Arming the Live View to place one new thing — a Light, or a Pawn of any Kind — chosen before it is placed and landed by the next click on the Map. The Kind is settled at the moment of arming rather than in an editor afterwards, so a DM adding four goblins arms once per goblin and never opens a form. What is placed inherits from the last thing of that Kind placed, so the second goblin is already the right colour, size and Face — and the same Monster, taken afresh from the Bestiary at full hit points and with the Monster's own Face rather than copied from its sibling's wounds. At most one thing is armed at a time, Measurement included, and Esc backs out.
+Arming the Live View to place one new thing — a Light, or a Pawn of any Kind — chosen before it is placed and landed by the next click on the Map. The Kind is settled at the moment of arming rather than in an editor afterwards, so a DM adding four goblins arms once per goblin and never opens a form. What is placed inherits from the last thing of that Kind placed, so the second goblin is already the right colour, size and Face — and the same Monster, taken afresh from the Bestiary at full hit points and with the Monster's own Face rather than copied from its sibling's wounds; and the second Borsa is the same Item, with the Item's own Face rather than its sibling's. A Monster or Item that has left the notes is not inherited, and the new Pawn is a plain Creature or Treasure. At most one thing is armed at a time, Measurement included, and Esc backs out.
 _Avoid_: create, insert, new, place, spawn
 
 **Character**:
