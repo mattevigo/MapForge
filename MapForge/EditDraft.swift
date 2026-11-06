@@ -27,6 +27,9 @@ struct EditPawnDraft: Equatable {
     /// The Monster this Creature is, by name. Set through `pick` and `clearMonster`, which
     /// keep the label and the size in step with it.
     private(set) var monsterName: String?
+    /// The Item this Treasure is, by name. Set through `pick` and `clearItem`, which keep the
+    /// label in step with it, as they do a Monster's.
+    private(set) var itemName: String?
     /// The Face the Pawn is drawn as, and any cut made in this sheet and not yet kept. Kept by
     /// OK alone (`AppState.updatePawn`), so Cancel leaves no cut of the Pawn's own in the
     /// Workspace — only, if the DM asked for it, the Monster's shared cut, which the next Pawn
@@ -35,14 +38,15 @@ struct EditPawnDraft: Equatable {
     /// The DM's answer to "only this Pawn, or every one?" — true for every Pawn that took the
     /// Face from `recutSource`. Asked only when `asksWhomToRecut`.
     var recutsEvery = false
-    /// Where the Face in the sheet came from, when a Monster or a Character gave it: whose
-    /// picture "Re-cut…" opens, and whose cut "every" would change. Asked of the sheet as it
-    /// stands — the Face taken or kept, and the Monster it is now — never of the Pawn as it
-    /// opened, so a Face taken here can be re-cut at once.
+    /// Where the Face in the sheet came from, when a Monster, a Character or an Item gave
+    /// it: whose picture "Re-cut…" opens, and whose cut "every" would change. Asked of the
+    /// sheet as it stands — the Face taken or kept, and the Monster or Item it is now — never
+    /// of the Pawn as it opened, so a Face taken here can be re-cut at once.
     var recutSource: FaceSource? {
         switch (face.kept ?? openedWithFace)?.origin {
         case .monster: monsterName.map { .monster($0) }
         case .character: characterID.map { .character($0) }
+        case .item: itemName.map { .item($0) }
         case .hand, nil: nil
         }
     }
@@ -53,17 +57,19 @@ struct EditPawnDraft: Equatable {
     private let pawnID: Pawn.ID
     /// The Monster the Pawn had when the sheet opened — what decides whether OK stamps.
     private let openedWithMonster: String?
+    /// The Item the Pawn had when the sheet opened — whose initials a label may carry.
+    private let openedWithItem: String?
     /// The label the Pawn had when the sheet opened, to give back if a pick is undone.
     private let openedWithLabel: String
     /// The label the last `pick` wrote, so a second pick can tell the app's label from one
     /// the DM typed over it.
     private var pickedLabel: String?
-    /// The Face the Pawn had when the sheet opened, to give back if a Monster's Face taken
-    /// here stops being this Pawn's Monster's.
+    /// The Face the Pawn had when the sheet opened, to give back if a Monster's or an Item's
+    /// Face taken here stops being this Pawn's Monster's or Item's.
     private let openedWithFace: PawnFace?
-    /// The Monster whose Face `takeMonsterFace` gave in this sheet, while the Pawn still wears
-    /// it — so picking another Monster does not carry it onto that one.
-    private var tookFaceOf: String?
+    /// The Monster or Item whose Face `takeMonsterFace` or `takeItemFace` gave in this sheet,
+    /// while the Pawn still wears it — so picking another does not carry it onto that one.
+    private var tookFaceFrom: FaceSource?
 
     init(pawn: Pawn) {
         pawnID = pawn.id
@@ -73,10 +79,12 @@ struct EditPawnDraft: Equatable {
         isBig = pawn.isBig
         sightSquares = pawn.light.brightSquares
         monsterName = pawn.monsterName
+        itemName = pawn.itemName
         face = FaceDraft(pawn.face)
         openedWithFace = pawn.face
         characterID = pawn.characterID
         openedWithMonster = pawn.monsterName
+        openedWithItem = pawn.itemName
         openedWithLabel = pawn.label
     }
 
@@ -88,39 +96,79 @@ struct EditPawnDraft: Equatable {
     /// `pawns` is the Map as it stands, for the label's number.
     mutating func pick(_ monster: Monster, among pawns: [Pawn]) {
         monsterName = monster.name
-        giveBackTakenFace(unlessOf: monster.name)
         isBig = monster.isBig
-        // A label this sheet wrote is not one the DM typed: changing one's mind from an
-        // Ogre to a Gnoll should not leave the gnoll called "Og1".
-        let replaceable = label == pickedLabel ? openedWithLabel : label
-        let relabelled = MonsterStamp.label(for: monster, replacing: replaceable,
-                                            from: openedWithMonster,
-                                            among: pawns.filter { $0.id != pawnID })
-        guard relabelled != replaceable else { return }
-        label = relabelled
-        pickedLabel = relabelled
+        becoming(monster.name, as: .monster(monster.name), from: openedWithMonster, among: pawns)
     }
 
     /// Forget the Monster. The Stat Block is not touched — a copy is not un-copied — and a
     /// label this sheet wrote goes back to what it replaced.
     mutating func clearMonster() {
         monsterName = nil
-        giveBackTakenFace(unlessOf: nil)
+        forgettingDefinition()
+    }
+
+    /// Say which Item this Treasure is, and show the DM what follows from it: a label the app
+    /// gave — the bare number, or the initials of the Item it was — becomes "Bo1", by the
+    /// rule a Monster's label follows. There is nothing else to show: an Item has no numbers.
+    /// Its Face is given on OK (`AppState.updatePawn`), as a Monster's is.
+    ///
+    /// `pawns` is the Map as it stands, for the label's number.
+    mutating func pick(_ item: Item, among pawns: [Pawn]) {
+        itemName = item.name
+        becoming(item.name, as: .item(item.name), from: openedWithItem, among: pawns)
+    }
+
+    /// Forget the Item. A label this sheet wrote goes back to what it replaced.
+    mutating func clearItem() {
+        itemName = nil
+        forgettingDefinition()
+    }
+
+    /// What picking the Monster or the Item called `name` — `source` — does beyond naming
+    /// it: a Face taken here from another one goes back, and a label the app gave, or the
+    /// `previous` one's initials, is relabelled from this one's.
+    private mutating func becoming(_ name: String, as source: FaceSource, from previous: String?,
+                                   among pawns: [Pawn]) {
+        giveBackTakenFace(unlessFrom: source)
+        // A label this sheet wrote is not one the DM typed: changing one's mind from an
+        // Ogre to a Gnoll should not leave the gnoll called "Og1".
+        let replaceable = label == pickedLabel ? openedWithLabel : label
+        let relabelled = DefinitionStamp.label(named: name, replacing: replaceable,
+                                               from: previous,
+                                               among: pawns.filter { $0.id != pawnID })
+        guard relabelled != replaceable else { return }
+        label = relabelled
+        pickedLabel = relabelled
+    }
+
+    /// What clearing the Monster or the Item does beyond forgetting it: a Face taken here
+    /// from it goes back, and so does a label this sheet wrote.
+    private mutating func forgettingDefinition() {
+        giveBackTakenFace(unlessFrom: nil)
         if label == pickedLabel { label = openedWithLabel }
         pickedLabel = nil
     }
 
+    /// The Item OK makes the Treasure, or nil when the Item is untouched — whose Face OK
+    /// gives (`AppState.updatePawn`). Only an Item that *changed*, as `monsterToStamp` is.
+    var itemToBecome: String? {
+        guard kind.canBeItem, itemName != openedWithItem else { return nil }
+        return itemName
+    }
+
     /// Whether OK must ask "only this Pawn, or every one?" (ADR-0028).
     ///
-    /// Only over a Face a Monster or a Character gave, and only for a cut that could be that
-    /// definition's: a Monster's Face is the picture its note names, so only that picture cut
-    /// again; a Character's own Face may be any picture. A Face cut by hand, or another
-    /// picture over a Monster's, is this Pawn's alone and is cut without asking. Never while
-    /// the Pawn becomes another Monster, whose Face is the new one's.
+    /// Only over a Face a Monster, a Character or an Item gave, and only for a cut that could
+    /// be that definition's: a Monster's or an Item's Face is the picture its note names, so
+    /// only that picture cut again; a Character's own Face may be any picture. A Face cut by
+    /// hand, or another picture over a Monster's or an Item's, is this Pawn's alone and is cut
+    /// without asking. Never while the Pawn becomes another Monster or another Item, whose
+    /// Face is the new one's: the cut would be asked about under the new one's name, and
+    /// "every" would overwrite a cut that was never this Face's.
     var asksWhomToRecut: Bool {
-        guard face.newCut != nil, monsterToStamp == nil else { return false }
+        guard face.newCut != nil, monsterToStamp == nil, itemToBecome == nil else { return false }
         switch recutSource {
-        case .monster: return face.isRecut
+        case .monster, .item: return face.isRecut
         case .character: return true
         case nil: return false
         }
@@ -135,28 +183,63 @@ struct EditPawnDraft: Equatable {
     /// offered when the Pawn already wears that Monster's Face, or the note names no picture
     /// the Workspace holds.
     func offersMonsterFace(of monster: Monster?) -> Bool {
-        guard kind.canBeMonster, let monster, monster.name == monsterName,
-              monster.picture?.path != nil else { return false }
-        let wearsIt = face.newCut == nil && face.kept?.origin == .monster
-            && (tookFaceOf ?? openedWithMonster) == monster.name
-        return !wearsIt
+        kind.canBeMonster && offersFace(of: monster, ifItIs: monsterName,
+                                        openedWith: openedWithMonster, as: FaceSource.monster)
     }
 
     /// Give the Pawn `face`, the Face of the Monster named `name` that it is.
     mutating func takeMonsterFace(_ face: PawnFace, of name: String) {
-        self.face.take(face)
-        tookFaceOf = name
+        take(face, from: .monster(name))
     }
 
-    /// The Face the sheet opened with back, when a Monster's Face taken here would otherwise
-    /// follow the Pawn onto Monster `name` — whose Face OK then gives by the usual rule. Left
-    /// alone once the DM has cut or removed a Face since: that is theirs.
-    private mutating func giveBackTakenFace(unlessOf name: String?) {
-        guard let taken = tookFaceOf, taken != name else { return }
-        if face.newCut == nil, face.kept?.origin == .monster {
+    /// Whether the sheet offers to give the Treasure `item`'s Face — the Item it is now.
+    ///
+    /// `offersMonsterFace(of:)` for a Treasure, and for the same reason: one that was already
+    /// the Item before its note named a picture, or whose Face the DM removed, has no other
+    /// way to get it. Not offered when the Treasure already wears that Item's Face, or the
+    /// note names no picture the Workspace holds.
+    func offersItemFace(of item: Item?) -> Bool {
+        kind.canBeItem && offersFace(of: item, ifItIs: itemName,
+                                     openedWith: openedWithItem, as: FaceSource.item)
+    }
+
+    /// Give the Treasure `face`, the Face of the Item named `name` that it is.
+    mutating func takeItemFace(_ face: PawnFace, of name: String) {
+        take(face, from: .item(name))
+    }
+
+    /// Whether the sheet offers `note`'s Face: the note is the definition the Pawn is now —
+    /// `current`, by name — and names a picture the Workspace holds, and the Pawn does not
+    /// already wear its Face. `source` makes a name the Monster or the Item it is.
+    private func offersFace(of note: (some PicturedNote)?, ifItIs current: String?,
+                            openedWith opened: String?,
+                            as source: (String) -> FaceSource) -> Bool {
+        guard let note, note.name == current, note.picture?.path != nil else { return false }
+        return !wears(source(note.name), openedWith: opened.map(source))
+    }
+
+    /// Wear `face`, the Face of `source`, and remember where it came from.
+    private mutating func take(_ face: PawnFace, from source: FaceSource) {
+        self.face.take(face)
+        tookFaceFrom = source
+    }
+
+    /// Whether the sheet's Face is `source`'s: taken from it here, or — with nothing taken —
+    /// worn since the sheet opened, when the Pawn already was `opened`.
+    private func wears(_ source: FaceSource, openedWith opened: FaceSource?) -> Bool {
+        face.newCut == nil && face.kept?.origin == source.origin
+            && (tookFaceFrom ?? opened) == source
+    }
+
+    /// The Face the sheet opened with back, when a Monster's or an Item's Face taken here
+    /// would otherwise follow the Pawn onto `source` — whose Face OK then gives by the usual
+    /// rule. Left alone once the DM has cut or removed a Face since: that is theirs.
+    private mutating func giveBackTakenFace(unlessFrom source: FaceSource?) {
+        guard let taken = tookFaceFrom, taken != source else { return }
+        if face.newCut == nil, face.kept?.origin == taken.origin {
             face = FaceDraft(openedWithFace)
         }
-        tookFaceOf = nil
+        tookFaceFrom = nil
     }
 
     /// The Monster OK must stamp, or nil when it must not.
@@ -188,6 +271,8 @@ struct EditPawnDraft: Equatable {
         // Only a Creature can be a Monster (`CONTEXT.md`). The search box is hidden for the
         // other Kinds, and the memory goes with it rather than lingering unseen.
         edited.monsterName = kind.canBeMonster ? monsterName : nil
+        // And only a Treasure can be an Item, for the same reason.
+        edited.itemName = kind.canBeItem ? itemName : nil
         // A removed Face goes; a pending cut is not a Face until OK has kept it, which is
         // `AppState.updatePawn`'s to do, so here it leaves the Face the sheet opened with.
         edited.face = face.kept

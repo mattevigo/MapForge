@@ -296,6 +296,7 @@ struct ControlView: View {
                               hasDeclaredGrid: appState.hasDeclaredGrid,
                               unit: appState.distanceUnit,
                               bestiary: appState.bestiary,
+                              treasury: appState.treasury,
                               pawns: appState.fog.pawns,
                               // The fight's copy while one runs: that is the one a stamp
                               // would overwrite, and so the one to ask about.
@@ -306,6 +307,7 @@ struct ControlView: View {
                               faceLibrary: appState.faceLibrary,
                               definitionFaces: appState.faceLibrary == nil ? nil : DefinitionFaces(
                                   monsterFace: { appState.monsterFace(for: $0) },
+                                  itemFace: { appState.itemFace(for: $0) },
                                   canRecut: { appState.canRecut($0) },
                                   recutPicture: { appState.recutPicture(for: $0) },
                                   name: { appState.recutName(for: $0) }),
@@ -1262,7 +1264,8 @@ struct ControlView: View {
             guard let pawn = AddPlacement.pawn(kind: pawnKind, at: point,
                                                existing: appState.fog.pawns,
                                                imageSize: appState.mapImage?.pixelSize,
-                                               bestiary: appState.bestiary)
+                                               bestiary: appState.bestiary,
+                                               treasury: appState.treasury)
             else { return }   // outside the image: refused, and still armed
             // Through `addPawnToMap` rather than appending here, so a Creature placed while
             // a fight is running rolls Initiative and joins the Order. A Treasure is refused

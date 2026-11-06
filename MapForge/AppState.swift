@@ -155,7 +155,8 @@ final class AppState: ObservableObject {
     /// its colour and the Edit Pawn sheet offers no picture, there being nowhere to keep one.
     /// Set alongside `workspace`, whose change is what redraws the tokens.
     private(set) var faceLibrary: FaceLibrary?
-    /// The cut made from each Monster's picture, as `note-faces.json` holds it. Empty with no
+    /// The cut made from each Monster's, Character's note's and Item's picture, as
+    /// `note-faces.json` holds it. Empty with no
     /// Workspace open. See `monsterFace(for:)`.
     private(set) var noteFaces = NoteFaces()
     private var noteFacesStore: NoteFacesStore?
@@ -175,7 +176,14 @@ final class AppState: ObservableObject {
     /// Settable so a test can hand some over without a folder of notes.
     @Published var characterNotes = CharacterNotes()
 
-    /// The read in flight, kept so a test can wait for it and a switch can abandon it.
+    /// Every Item read from the open Workspace's notes, in the same walk as the Bestiary and on
+    /// the same terms: read when the Workspace opens and never written anywhere (ADR-0031).
+    /// Settable so a test can hand one over without a folder of notes.
+    @Published var treasury = Treasury.closed
+
+    /// The read of the notes in flight — the Bestiary, the Characters' notes and the Treasury,
+    /// in one walk (`BestiaryStore.read`) — kept so a test can wait for it and a switch can
+    /// abandon it.
     private(set) var bestiaryLoad: Task<Void, Never>?
     /// Which Party the panel offers. Remembered in the Workspace, per ADR-0012.
     @Published private(set) var activePartyID: UUID?
@@ -778,10 +786,11 @@ final class AppState: ObservableObject {
             fog.pawns = FaceRecut.recut(fog.pawns, from: source, to: file, reCutting: id)
             edited = fog.pawns[index]
         }
-        // Becoming a Monster brings its Face, over any Face the old Monster gave — unless the
-        // DM removed or cut one in this same sheet, which is what they meant.
-        if !draft.face.isChanged, let monster = bestiary.monster(named: draft.monsterToStamp) {
-            edited.face = MonsterStamp.face(over: edited.face, from: monsterFace(for: monster))
+        // Becoming a Monster or an Item brings its Face, over any Face the old one gave —
+        // unless the DM removed or cut one in this same sheet, which is what they meant.
+        if !draft.face.isChanged {
+            edited.face = definitionFace(over: edited.face, becoming: draft.monsterToStamp,
+                                         or: draft.itemToBecome)
         }
         fog.pawns[index] = edited
         // The one thing this sheet does to a Stat Block: a Monster that *changed* is stamped,
@@ -805,8 +814,8 @@ final class AppState: ObservableObject {
     }
 
     /// The picture `source`'s Face is cut from, and the square to start from — for cutting it
-    /// again. Only for a Face cut from a note's picture, a Monster's or a Character's: a Face
-    /// cut by hand keeps no picture, so the DM chooses one again.
+    /// again. Only for a Face cut from a note's picture, a Monster's, a Character's or an
+    /// Item's: a Face cut by hand keeps no picture, so the DM chooses one again.
     ///
     /// The picture the note names **now** — never the one an older cut was made from, which
     /// the note may since have replaced. It starts from the square last cut when that square
@@ -835,22 +844,26 @@ final class AppState: ObservableObject {
             guard let character = character(id: id), character.face == nil,
                   let path = note(for: character)?.picture?.path else { return nil }
             return (path, noteFaces.characters[id.uuidString])
+        case .item(let name):
+            guard let path = treasury.item(named: name)?.picture?.path else { return nil }
+            return (path, noteFaces.items[name])
         }
     }
 
-    /// The name "every" is offered under — "Every Goblin" — or nil when the Monster or the
-    /// Character has gone, and there is no definition left to re-cut.
+    /// The name "every" is offered under — "Every Goblin", "Every Borsa" — or nil when the
+    /// Monster, the Character or the Item has gone, and there is no definition left to re-cut.
     func recutName(for source: FaceSource?) -> String? {
         switch source {
         case .monster(let name): bestiary.monster(named: name)?.name
         case .character(let id): character(id: id)?.name
+        case .item(let name): treasury.item(named: name)?.name
         case nil: nil
         }
     }
 
-    /// Makes `file`, cut as `square`, the Face of `source` itself: the Monster's cut of its
-    /// picture, or the Character's own Face, which wins over its note's from then on. Pawns
-    /// that take the Face afterwards take this one.
+    /// Makes `file`, cut as `square`, the Face of `source` itself: the Monster's or the
+    /// Item's cut of its picture, or the Character's own Face, which wins over its note's from
+    /// then on. Pawns that take the Face afterwards take this one.
     private func recutDefinition(_ source: FaceSource, square: CGRect, file: String) {
         switch source {
         case .monster(let name):
@@ -863,6 +876,11 @@ final class AppState: ObservableObject {
             guard var character = character(id: id) else { return }
             character.face = PawnFace(file: file, origin: .hand)
             updateCharacter(character)
+        case .item(let name):
+            // As a Monster's, against the picture the note names now.
+            guard let path = treasury.item(named: name)?.picture?.path else { return }
+            noteFaces.items[name] = NoteFaces.Cut(picture: path, square: square, file: file)
+            saveNoteFaces()
         }
     }
 
@@ -875,6 +893,30 @@ final class AppState: ObservableObject {
         keepingNoteFaces { faces, root, library in
             faces.face(for: monster, in: root, library: library)
         }
+    }
+
+    /// The Face a Treasure takes from `item`: its picture's cut, made now if this is the first
+    /// Treasure to take it since the note named that picture — or nil when its note names no
+    /// picture the Workspace holds, or no Workspace is open. Kept at once, as a Monster's is.
+    func itemFace(for item: Item) -> PawnFace? {
+        keepingNoteFaces { faces, root, library in
+            faces.face(for: item, in: root, library: library)
+        }
+    }
+
+    /// The Face a Pawn wearing `current` has on becoming the Monster named `monster` or the
+    /// Item named `item`: the definition's Face, by `DefinitionStamp`'s rule (ADR-0028,
+    /// ADR-0031). `current` itself when neither names one the notes still define.
+    func definitionFace(over current: PawnFace?, becoming monster: String?,
+                        or item: String?) -> PawnFace? {
+        var face = current
+        if let monster = bestiary.monster(named: monster) {
+            face = DefinitionStamp.face(over: face, from: monsterFace(for: monster))
+        }
+        if let item = treasury.item(named: item) {
+            face = DefinitionStamp.face(over: face, from: itemFace(for: item))
+        }
+        return face
     }
 
     /// `body`'s Face from `noteFaces`, written to disk if it made a cut — or nil with no
@@ -1215,6 +1257,7 @@ final class AppState: ObservableObject {
         bestiaryLoad = nil
         bestiary = .closed
         characterNotes = CharacterNotes()
+        treasury = .closed
         partyStore = nil
         workspacePreferences = nil
         partyBook = PartyBook()
@@ -1226,7 +1269,7 @@ final class AppState: ObservableObject {
         playerScreen = nil
     }
 
-    /// Reads the Workspace's Monsters and Characters' notes, off the main thread.
+    /// Reads the Workspace's Monsters, Characters' notes and Items, off the main thread.
     ///
     /// The one moment the DM's notes are read (ADR-0020): no rescan, no watching. Off the
     /// main thread because it is a walk over a folder of the DM's choosing, and a vault is
@@ -1236,6 +1279,7 @@ final class AppState: ObservableObject {
         bestiaryLoad?.cancel()
         bestiary = .reading
         characterNotes = CharacterNotes()
+        treasury = .reading
         bestiaryLoad = Task { [weak self] in
             let read = await Task.detached(priority: .userInitiated) {
                 BestiaryStore.read(workspace)
@@ -1243,6 +1287,7 @@ final class AppState: ObservableObject {
             guard let self, !Task.isCancelled, self.workspace == workspace else { return }
             self.bestiary = read.bestiary
             self.characterNotes = read.characters
+            self.treasury = read.treasury
             self.cutNoteFaces()
         }
     }

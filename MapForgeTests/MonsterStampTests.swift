@@ -1,11 +1,11 @@
 import XCTest
 @testable import MapForge
 
-/// What saying "this Creature is a Gnoll Guerriero" does to the Pawn and its Stat Block.
+/// What saying "this Creature is a Gnoll Guerriero" does to its Stat Block.
 ///
 /// A copy, as a Character's Stamp is (ADR-0020). The rules pinned here are the ones a DM
-/// would otherwise discover mid-fight: what a stamp heals, what it leaves alone, and what a
-/// row of identical gnolls ends up being called.
+/// would otherwise discover mid-fight: what a stamp heals and what it leaves alone. Its label
+/// and its Face are `DefinitionStampTests`'.
 final class MonsterStampTests: XCTestCase {
     private let gnoll = Monster(name: "Gnoll Guerriero", armorClass: 15, hitPoints: 27,
                                 initiativeBonus: 1)
@@ -78,86 +78,5 @@ final class MonsterStampTests: XCTestCase {
     func testCurrentHitPointsWithNoMaximumStillReadSensibly() {
         XCTAssertEqual(MonsterStamp.healing(from: gnoll, over: StatBlock(currentHP: 5))?.before,
                        "5")
-    }
-
-    // MARK: The label
-
-    private func pawn(_ label: String) -> Pawn {
-        Pawn(at: MapPoint(x: 0, y: 0), label: label, colorHex: "#C81E1E",
-             brightSquares: 6, kind: .creature)
-    }
-
-    func testInitials() {
-        XCTAssertEqual(MonsterStamp.initials(of: "Gnoll Guerriero"), "GG")
-        XCTAssertEqual(MonsterStamp.initials(of: "Capo Goblin"), "CG")
-        XCTAssertEqual(MonsterStamp.initials(of: "Naga d'Ossa"), "ND")
-        XCTAssertEqual(MonsterStamp.initials(of: "  melma   grigia (antica) "), "MGA")
-    }
-
-    func testASingleWordTakesTwoLetters() {
-        // "W1" is too thin to read at a glance across a table.
-        XCTAssertEqual(MonsterStamp.initials(of: "Wraith"), "Wr")
-        XCTAssertEqual(MonsterStamp.initials(of: "ogre"), "Og")
-        XCTAssertEqual(MonsterStamp.initials(of: "X"), "X")
-    }
-
-    func testABornNumberBecomesATalkingLabel() {
-        XCTAssertEqual(MonsterStamp.label(for: gnoll, replacing: "3", among: []), "GG1")
-    }
-
-    func testTheNumberFollowsTheHighestAlreadyOnTheMap() {
-        let onMap = [pawn("GG1"), pawn("GG4"), pawn("CG9"), pawn("Grog")]
-        XCTAssertEqual(MonsterStamp.label(for: gnoll, replacing: "7", among: onMap), "GG5")
-    }
-
-    func testTwoMonstersSharingInitialsShareOneNumbering() {
-        // Gnoll Guerriero and Goblin Guerriero are both GG. A label's job in the Order is
-        // to be unique; the colour and the reference view say which is which.
-        let goblin = Monster(name: "Goblin Guerriero")
-        XCTAssertEqual(MonsterStamp.label(for: goblin, replacing: "2",
-                                          among: [pawn("GG1"), pawn("GG2")]), "GG3")
-    }
-
-    func testALabelTheDMTypedIsNeverTouched() {
-        XCTAssertEqual(MonsterStamp.label(for: gnoll, replacing: "Yeenoghu's pet", among: []),
-                       "Yeenoghu's pet")
-        XCTAssertEqual(MonsterStamp.label(for: gnoll, replacing: "", among: []), "")
-    }
-
-    func testALongerPrefixIsNotMistakenForThisOne() {
-        // "GGX3" is somebody else's label, not the third GG.
-        XCTAssertEqual(MonsterStamp.label(for: gnoll, replacing: "1",
-                                          among: [pawn("GGX3"), pawn("GG")]), "GG1")
-    }
-
-    // MARK: The Face
-
-    private let gnollFace = PawnFace(file: "gnoll.png", origin: .monster)
-    private let ogreFace = PawnFace(file: "ogre.png", origin: .monster)
-
-    func testAPawnWithNoFaceTakesTheMonsters() {
-        XCTAssertEqual(MonsterStamp.face(over: nil, from: ogreFace), ogreFace)
-    }
-
-    func testAFaceTakenFromTheOldMonsterIsReplacedByTheNewOnes() {
-        XCTAssertEqual(MonsterStamp.face(over: gnollFace, from: ogreFace), ogreFace)
-    }
-
-    /// The colour shows again, as a label taken from the old Monster's initials is replaced.
-    func testAFaceTakenFromTheOldMonsterGoesWhenTheNewOneHasNone() {
-        XCTAssertNil(MonsterStamp.face(over: gnollFace, from: nil))
-    }
-
-    func testAFaceCutByHandIsNeverTouched() {
-        let hand = PawnFace(file: "mine.png", origin: .hand)
-
-        XCTAssertEqual(MonsterStamp.face(over: hand, from: ogreFace), hand)
-        XCTAssertEqual(MonsterStamp.face(over: hand, from: nil), hand)
-    }
-
-    func testAFaceACharacterGaveIsNeverTouched() {
-        let durga = PawnFace(file: "durga.png", origin: .character)
-
-        XCTAssertEqual(MonsterStamp.face(over: durga, from: ogreFace), durga)
     }
 }

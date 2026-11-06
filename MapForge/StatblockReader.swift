@@ -7,7 +7,8 @@ import Yams
 /// Obsidian's Fantasy Statblocks plugin, which is YAML. Everything outside the fence is the
 /// DM's prose and is ignored.
 ///
-/// **The only place YAML is known about** (ADR-0019). Yams turns the fence into a tree; what
+/// **One of the two places YAML is known about** (ADR-0019) — `ItemReader`, which reads a
+/// note's frontmatter, is the other. Yams turns the fence into a tree; what
 /// a Monster *is* — which integer `hp: 67 (9d8 + 27)` means, that `−` is a minus, what
 /// `extends` lays over what — is decided here, on top of that tree.
 ///

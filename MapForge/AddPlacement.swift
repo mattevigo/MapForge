@@ -28,23 +28,31 @@ enum AddPlacement {
     /// `bestiary` still has that Monster: with nothing to copy the numbers from, the new Pawn
     /// claims to be nothing.
     ///
+    /// A Treasure inherits the last Treasure's **Item** the same way, so the second Borsa is
+    /// a Borsa — labelled "Bo2", and given the Item's Face by `AppState.addPawnToMap`. Only
+    /// when `treasury` still has that Item, for the same reason.
+    ///
     /// Any Kind inherits the last one's **Face**, so the second skeleton arrives wearing the
     /// first one's with no second cut. See `inherited(_:)`.
     static func pawn(kind: PawnKind, at point: MapPoint, existing: [Pawn],
-                     imageSize: CGSize? = nil, bestiary: Bestiary = Bestiary()) -> Pawn? {
+                     imageSize: CGSize? = nil, bestiary: Bestiary = Bestiary(),
+                     treasury: Treasury = Treasury()) -> Pawn? {
         guard isInside(point, imageSize) else { return nil }
         // The last of this Kind, not the last placed. See the type's note.
         let previous = existing.last { $0.kind == kind }
         let monster = kind.canBeMonster ? bestiary.monster(named: previous?.monsterName) : nil
+        let item = kind.canBeItem ? treasury.item(named: previous?.itemName) : nil
         let born = Pawn.nextLabel(after: existing)
+        let label = (monster?.name ?? item?.name)
+            .map { DefinitionStamp.label(named: $0, replacing: born, among: existing) } ?? born
         return Pawn(at: point,
-                    label: monster.map { MonsterStamp.label(for: $0, replacing: born,
-                                                            among: existing) } ?? born,
+                    label: label,
                     colorHex: previous?.colorHex ?? Pawn.defaultColorHex,
                     brightSquares: previous?.light.brightSquares ?? defaultSightSquares,
                     kind: kind,
                     isBig: previous?.isBig ?? false,
                     monsterName: monster?.name,
+                    itemName: item?.name,
                     face: inherited(previous?.face))
     }
 
@@ -59,12 +67,13 @@ enum AddPlacement {
     /// when the Pawn becomes a Monster. So does one a Character gave: the new Pawn remembers
     /// no Character, so there is no Character for it to be re-cut with. One a Monster gave is
     /// not copied at all: the new Pawn takes it fresh from the Monster, as it takes the
-    /// Monster's numbers, when `AppState.addPawnToMap` stamps it.
+    /// Monster's numbers, when `AppState.addPawnToMap` stamps it. Nor is one an Item gave: it
+    /// is the Item's to give, as a Monster's is.
     static func inherited(_ face: PawnFace?) -> PawnFace? {
         guard let face else { return nil }
         switch face.origin {
         case .hand, .character: return PawnFace(file: face.file, origin: .hand)
-        case .monster: return nil
+        case .monster, .item: return nil
         }
     }
 

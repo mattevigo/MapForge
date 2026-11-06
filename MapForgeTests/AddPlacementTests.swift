@@ -275,3 +275,63 @@ final class AddPlacementMonsterTests: XCTestCase {
         XCTAssertNil(placed.monsterName)
     }
 }
+
+/// `Add` and the Treasury: the second Borsa is a Borsa, as the second gnoll is a gnoll.
+final class AddPlacementItemTests: XCTestCase {
+    private let treasury = Treasury(items: [Item(name: "Borsa")])
+
+    private func borsa(_ label: String) -> Pawn {
+        Pawn(at: MapPoint(x: 10, y: 10), label: label, colorHex: "#D4A017",
+             brightSquares: 0, kind: .treasure, itemName: "Borsa")
+    }
+
+    private func add(_ kind: PawnKind, after existing: [Pawn],
+                     treasury: Treasury? = nil) throws -> Pawn {
+        try XCTUnwrap(AddPlacement.pawn(kind: kind, at: MapPoint(x: 5, y: 5),
+                                        existing: existing,
+                                        treasury: treasury ?? self.treasury))
+    }
+
+    func testTheNextTreasureIsTheSameItem() throws {
+        let placed = try add(.treasure, after: [borsa("Bo1")])
+
+        XCTAssertEqual(placed.itemName, "Borsa")
+        XCTAssertEqual(placed.label, "Bo2")
+    }
+
+    func testAnItemThatHasLeftTheTreasuryIsNotInherited() throws {
+        // Nothing left to say what it is, so it claims to be nothing.
+        let placed = try add(.treasure, after: [borsa("Bo1")], treasury: Treasury())
+
+        XCTAssertNil(placed.itemName)
+        XCTAssertEqual(placed.label, "1")
+    }
+
+    func testACreatureNeverInheritsAnItem() throws {
+        var odd = borsa("Bo1")
+        odd.kind = .creature
+
+        XCTAssertNil(try add(.creature, after: [odd]).itemName)
+    }
+
+    func testATreasureNeverInheritsAMonster() throws {
+        var chest = borsa("GG1")
+        chest.itemName = nil
+        chest.monsterName = "Gnoll Guerriero"
+        let placed = try XCTUnwrap(AddPlacement.pawn(
+            kind: .treasure, at: MapPoint(x: 5, y: 5), existing: [chest],
+            bestiary: Bestiary(monsters: [Monster(name: "Gnoll Guerriero", hitPoints: 27)])))
+
+        XCTAssertNil(placed.monsterName)
+        XCTAssertEqual(placed.label, "1")
+    }
+
+    /// An Item's Face is the Item's to give: taken fresh when the Treasure is placed, never
+    /// copied from the sibling's file.
+    func testAFaceFromAnItemIsNotInherited() throws {
+        var first = borsa("Bo1")
+        first.face = PawnFace(file: "borsa.png", origin: .item)
+
+        XCTAssertNil(try add(.treasure, after: [first]).face)
+    }
+}

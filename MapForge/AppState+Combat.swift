@@ -325,15 +325,17 @@ extension AppState {
     /// into the Log. Never over numbers that already exist, which is what keeps a Stamped
     /// Character's block its own. It takes the Monster's Face here too, by the rule becoming
     /// a Monster follows: a Face the DM cut by hand, inherited from the sibling, is kept.
+    ///
+    /// A Treasure that arrives already an Item takes the Item's Face here by the same rule.
+    /// It has no numbers to stamp.
     func addPawnToMap(_ pawn: Pawn) {
         var pawn = pawn
-        if let monster = bestiary.monster(named: pawn.monsterName) {
-            if statsDocument.blocks[pawn.id] == nil {
-                setStatBlock(MonsterStamp.statBlock(from: monster, over: StatBlock()), for: pawn.id)
-            }
-            // Fresh from the Monster, as its numbers are, never copied from a sibling.
-            pawn.face = MonsterStamp.face(over: pawn.face, from: monsterFace(for: monster))
+        if let monster = bestiary.monster(named: pawn.monsterName),
+           statsDocument.blocks[pawn.id] == nil {
+            setStatBlock(MonsterStamp.statBlock(from: monster, over: StatBlock()), for: pawn.id)
         }
+        // Fresh from the Monster or the Item, as its numbers are, never copied from a sibling.
+        pawn.face = definitionFace(over: pawn.face, becoming: pawn.monsterName, or: pawn.itemName)
         fog.pawns.append(pawn)
         flushPendingFogWrites()
         joinEncounter(pawn)

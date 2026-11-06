@@ -8,7 +8,8 @@ import Foundation
 /// Cut **once per Monster**, so four Goblins share one file, and keyed by the Monster's name,
 /// as a Pawn remembers its Monster: a Monster renamed in the notes is another Monster to the
 /// app, and its cut starts again. Cut **once per Character** too, keyed by its id, for as long
-/// as the DM has cut no Face for it. The cut starts as the centred square, until the DM cuts
+/// as the DM has cut no Face for it. Cut **once per Item**, keyed by its name, exactly as a
+/// Monster's is (ADR-0031). The cut starts as the centred square, until the DM cuts
 /// another. It is made again when the note names another picture — a new picture reaches the
 /// Pawns that take the Face afterwards, never those already on a Map, which keep the copy they
 /// were given.
@@ -19,8 +20,11 @@ struct NoteFaces: Codable, Equatable {
     /// By the Character's id rather than its note's name: cut once for that Character, as a
     /// Face cut by hand for it would be, so two Characters reading one note are two cuts.
     var characters: [String: Cut] = [:]
+    /// By the Item's name, as a Treasure remembers its Item. Absent from files written before
+    /// Items gave Faces, which read as no cuts.
+    var items: [String: Cut] = [:]
 
-    /// One Monster's or Character's cut.
+    /// One Monster's, Character's or Item's cut.
     struct Cut: Codable, Equatable {
         /// The picture it was cut from, relative to the Workspace root.
         var picture: String
@@ -61,19 +65,22 @@ struct NoteFaces: Codable, Equatable {
         }
     }
 
-    init(monsters: [String: Cut] = [:], characters: [String: Cut] = [:]) {
+    init(monsters: [String: Cut] = [:], characters: [String: Cut] = [:],
+         items: [String: Cut] = [:]) {
         self.monsters = monsters
         self.characters = characters
+        self.items = items
     }
 
     private enum CodingKeys: String, CodingKey {
-        case version, monsters, characters
+        case version, monsters, characters, items
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         monsters = try container.decodeIfPresent([String: Cut].self, forKey: .monsters) ?? [:]
         characters = try container.decodeIfPresent([String: Cut].self, forKey: .characters) ?? [:]
+        items = try container.decodeIfPresent([String: Cut].self, forKey: .items) ?? [:]
     }
 
     /// The version is stamped, never echoed, as every file this app writes stamps its own.
@@ -82,6 +89,7 @@ struct NoteFaces: Codable, Equatable {
         try container.encode(Self.current, forKey: .version)
         try container.encode(monsters, forKey: .monsters)
         try container.encode(characters, forKey: .characters)
+        try container.encode(items, forKey: .items)
     }
 
     /// The Face a Pawn takes from `monster`, cutting it now when there is no cut of the
@@ -90,6 +98,13 @@ struct NoteFaces: Codable, Equatable {
     /// `root` is the Workspace's folder, which the picture's path is relative to.
     mutating func face(for monster: Monster, in root: URL, library: FaceLibrary) -> PawnFace? {
         face(of: monster.picture, at: \.monsters, key: monster.name, origin: .monster,
+             in: root, library: library)
+    }
+
+    /// The Face a Treasure takes from `item`, cut now as a Monster's is — or nil when the Item
+    /// has no usable picture.
+    mutating func face(for item: Item, in root: URL, library: FaceLibrary) -> PawnFace? {
+        face(of: item.picture, at: \.items, key: item.name, origin: .item,
              in: root, library: library)
     }
 
