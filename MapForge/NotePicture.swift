@@ -69,6 +69,7 @@ protocol PicturedNote {
 
 extension Monster: PicturedNote {}
 extension CharacterNote: PicturedNote {}
+extension Item: PicturedNote {}
 
 /// A note whose picture gives no Face, and why, in words for the DM.
 struct PictureProblem: Equatable, Identifiable {
