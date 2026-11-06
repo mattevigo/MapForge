@@ -49,6 +49,15 @@ final class AppState: ObservableObject {
     @Published var viewportOrigin: CGPoint? {
         didSet { presentIfPossible() }
     }
+    /// **Map Fit**: the whole Map stretched over the whole Player Display, the Grid ignored.
+    /// Off is True Scale at the Viewport.
+    ///
+    /// A live switch, not a setting: never persisted, so every launch starts at True Scale.
+    /// It leaves `viewportOrigin` alone, so turning it off returns the table to where the
+    /// Viewport was before.
+    @Published var isMapFitOn = false {
+        didSet { presentIfPossible() }
+    }
     /// The Walls, Lights and Pawns authored on the current Map, and its Grid. Edits are
     /// debounced to disk. The Grid rides here rather than being persisted separately so
     /// that Light radii — which are in Grid squares — travel with their unit (ADR 0003);

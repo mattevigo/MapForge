@@ -45,6 +45,31 @@ final class ScaleMathTests: XCTestCase {
         assertEqual(frame, CGRect(x: 250, y: 175, width: 500, height: 250))
     }
 
+    func testMapFitFrameIsTheWholeScreen() {
+        let frame = ScaleMath.mapFitFrame(screenSizePoints: CGSize(width: 1000, height: 600))
+        assertEqual(frame, CGRect(x: 0, y: 0, width: 1000, height: 600))
+    }
+
+    func testUnderMapFitAMapOfAnotherShapeStillGetsTheScreensExactSize() {
+        // A tall 10×40 in Map on a wide 1000×600 pt screen: no letterbox and no crop. It is
+        // stretched to the screen's exact size — distorted, as the DM accepted.
+        let map = MapScale.grid(squaresWide: 10, imagePixelSize: CGSize(width: 500, height: 2000))
+        let frame = ScaleMath.playerFrame(map: map, display: display,
+                                          screenSizePoints: CGSize(width: 1000, height: 600),
+                                          desiredViewportOrigin: CGPoint(x: 0, y: 7), isMapFitOn: true)
+        assertEqual(frame, CGRect(x: 0, y: 0, width: 1000, height: 600))
+    }
+
+    func testWithMapFitOffThePlayerFrameIsTrueScaleAtTheViewport() {
+        // The 30×20 in Map from the overflow case (1500×1000 pt), its Viewport moved to
+        // 4 in right and 2 in down: the frame shifts 200 pt left and 100 pt up.
+        let map = MapScale.grid(squaresWide: 30, imagePixelSize: CGSize(width: 3000, height: 2000))
+        let frame = ScaleMath.playerFrame(map: map, display: display,
+                                          screenSizePoints: CGSize(width: 1000, height: 600),
+                                          desiredViewportOrigin: CGPoint(x: 4, y: 2), isMapFitOn: false)
+        assertEqual(frame, CGRect(x: -200, y: -100, width: 1500, height: 1000))
+    }
+
     func testCalibrationCorrectionScalesPointsPerInch() {
         // The display claims 508 mm but a ruler measured the 200 mm calibration bar as 190 mm on glass:
         // the display is smaller than claimed → more pixels per real inch.
