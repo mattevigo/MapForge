@@ -58,7 +58,7 @@ struct CharacterNotes: Equatable {
     var notes: [CharacterNote] = []
 
     /// Character notes the app could not take — a second note of a name, a fence with none.
-    var skipped: [Bestiary.Skipped] = []
+    var skipped: [SkippedNote] = []
 
     /// The notes whose picture gives no Face, and why.
     var pictureProblems: [PictureProblem] { notes.pictureProblems }

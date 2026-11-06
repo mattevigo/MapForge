@@ -112,7 +112,7 @@ final class BestiaryTests: XCTestCase {
         let bestiary = BestiaryStore.load(for: workspace)
         XCTAssertEqual(bestiary.monsters.map(\.name), ["Lich"])
         XCTAssertEqual(bestiary.skipped,
-                       [Bestiary.Skipped(file: "Bestiario/Senza_Nome.md",
+                       [SkippedNote(file: "Bestiario/Senza_Nome.md",
                                          reason: "the statblock has no name")])
     }
 
@@ -123,7 +123,7 @@ final class BestiaryTests: XCTestCase {
         let bestiary = BestiaryStore.load(for: workspace)
         XCTAssertEqual(bestiary.monsters.map(\.armorClass), [17])
         XCTAssertEqual(bestiary.skipped,
-                       [Bestiary.Skipped(file: "Bestiario/B/Lich_Vecchio.md",
+                       [SkippedNote(file: "Bestiario/B/Lich_Vecchio.md",
                                          reason: "another note already defines “Lich”")])
     }
 
@@ -237,7 +237,7 @@ final class BestiaryTests: XCTestCase {
         let bestiary = BestiaryStore.load(for: workspace)
         XCTAssertEqual(bestiary.monsters, [])
         XCTAssertEqual(bestiary.skipped,
-                       [Bestiary.Skipped(file: "PNG/Vinx.md",
+                       [SkippedNote(file: "PNG/Vinx.md",
                                          reason: "extends: “Esploratore” names a Monster no note defines")])
     }
 
@@ -347,14 +347,14 @@ final class BestiaryTests: XCTestCase {
         let characters = BestiaryStore.read(workspace).characters
         XCTAssertEqual(characters.notes.map(\.maxHP), [60])
         XCTAssertEqual(characters.skipped,
-                       [Bestiary.Skipped(file: "Personaggi/Krathos/Krathos_copia.md",
+                       [SkippedNote(file: "Personaggi/Krathos/Krathos_copia.md",
                                          reason: "another note already defines “Krathos”")])
     }
 
     func testACharactersFenceWithNoNameIsSkippedAndNamed() throws {
         try write("```statblock\nplayer: Max\nhp: 60\n```\n", to: "Personaggi/Senza_Nome.md")
         XCTAssertEqual(BestiaryStore.read(workspace).characters.skipped,
-                       [Bestiary.Skipped(file: "Personaggi/Senza_Nome.md",
+                       [SkippedNote(file: "Personaggi/Senza_Nome.md",
                                          reason: "the statblock has no name")])
     }
 
@@ -446,9 +446,9 @@ final class BestiaryTests: XCTestCase {
 
     func testSkippedFilesAreCounted() {
         var bestiary = shelf
-        bestiary.skipped = [Bestiary.Skipped(file: "x.md", reason: "r")]
+        bestiary.skipped = [SkippedNote(file: "x.md", reason: "r")]
         XCTAssertEqual(bestiary.caption, "4 Monsters · 1 file skipped")
-        bestiary.skipped.append(Bestiary.Skipped(file: "y.md", reason: "r"))
+        bestiary.skipped.append(SkippedNote(file: "y.md", reason: "r"))
         XCTAssertEqual(bestiary.caption, "4 Monsters · 2 files skipped")
     }
 

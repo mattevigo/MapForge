@@ -9,25 +9,16 @@ struct Treasury: Equatable {
 
     /// Notes that say they are Items and that the app could not take. Reported rather than
     /// dropped, as the Bestiary's are.
-    var skipped: [Bestiary.Skipped] = []
+    var skipped: [SkippedNote] = []
 
     /// Why there is no Treasury at all, in words for the DM — or nil when there is one.
     var unavailable: String?
 
-    init(items: [Item] = [], skipped: [Bestiary.Skipped] = [], unavailable: String? = nil) {
+    init(items: [Item] = [], skipped: [SkippedNote] = [], unavailable: String? = nil) {
         self.items = items
         self.skipped = skipped
         self.unavailable = unavailable
     }
-
-    /// What stands in before a Workspace is open.
-    static var closed: Treasury { Treasury(unavailable: String(localized: "No Workspace is open.")) }
-
-    /// What stands in while the notes are being read, so the search box can say so.
-    static var reading: Treasury { Treasury(unavailable: String(localized: "Reading the Items…")) }
-
-    /// Whether there is anything to search. The search box is disabled without it.
-    var isAvailable: Bool { unavailable == nil && !items.isEmpty }
 
     /// The Item a Treasure remembers. Exact, not a search, as `Bestiary.monster(named:)` is.
     func item(named name: String?) -> Item? {
@@ -43,15 +34,13 @@ struct Treasury: Equatable {
 
     /// The Items whose note names a picture that gives no Face, and why.
     var pictureProblems: [PictureProblem] { items.pictureProblems }
+}
 
-    /// The one line under the search box, or nil when there is nothing to say — silent when
-    /// everything was read, as the Bestiary's is.
-    var caption: String? {
-        if let unavailable { return unavailable }
-        if items.isEmpty && skipped.isEmpty { return String(localized: "No Items found in this Workspace.") }
-        guard !skipped.isEmpty else { return nil }
-        let itemCount = String(localized: "\(items.count) Items")
-        let skippedCount = String(localized: "\(skipped.count) files skipped")
-        return "\(itemCount) · \(skippedCount)"
-    }
+/// What the Item search box says, by the Bestiary's rules: silent when everything was read.
+extension Treasury: DefinitionShelf {
+    var definitions: [Item] { items }
+    static func empty(because reason: String) -> Treasury { Treasury(unavailable: reason) }
+    static var whileReading: String { String(localized: "Reading the Items…") }
+    static var noneFound: String { String(localized: "No Items found in this Workspace.") }
+    static func counted(_ count: Int) -> String { String(localized: "\(count) Items") }
 }

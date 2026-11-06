@@ -228,9 +228,9 @@ final class TreasuryTests: XCTestCase {
 
     func testSkippedFilesAreCounted() {
         var treasury = shelf
-        treasury.skipped = [Bestiary.Skipped(file: "x.md", reason: "r")]
+        treasury.skipped = [SkippedNote(file: "x.md", reason: "r")]
         XCTAssertEqual(treasury.caption, "4 Items · 1 file skipped")
-        treasury.skipped.append(Bestiary.Skipped(file: "y.md", reason: "r"))
+        treasury.skipped.append(SkippedNote(file: "y.md", reason: "r"))
         XCTAssertEqual(treasury.caption, "4 Items · 2 files skipped")
         treasury.items = [Item(name: "Borsa")]
         XCTAssertEqual(treasury.caption, "1 Item · 2 files skipped")

@@ -784,7 +784,7 @@ private struct DefinitionSearchField<Definition: Identifiable, Caption: View>: V
 /// Character note box, with its own `title`.
 struct SkippedNotesButton: View {
     let caption: String
-    let skipped: [Bestiary.Skipped]
+    let skipped: [SkippedNote]
     var title = String(localized: "Notes with a statblock the Bestiary could not take")
     var identifier = "bestiary-caption"
     @State private var isShowing = false
