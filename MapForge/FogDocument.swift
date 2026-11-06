@@ -275,6 +275,15 @@ struct Pawn: Codable, Equatable, Identifiable {
     /// this file can read. See `docs/adr/0020-monsters-are-read-from-the-dms-notes.md`.
     var monsterName: String?
 
+    /// Which `Item` this Treasure was said to be, by the name its note gives it — its first
+    /// `#` heading, or its file name.
+    ///
+    /// **Advisory**, exactly as `monsterName` is, and for the same reasons a name: the label
+    /// was copied from the Item when it was chosen, so a Treasure whose note has been renamed
+    /// or deleted loses nothing it shows. See
+    /// `docs/adr/0031-an-item-says-so-in-its-frontmatter.md`.
+    var itemName: String?
+
     /// The **Face** this Pawn is drawn as, in place of its colour, or nil for the coloured
     /// token. The colour is kept underneath, so removing the Face shows it again.
     ///
@@ -318,7 +327,8 @@ struct Pawn: Codable, Equatable, Identifiable {
     init(id: UUID = UUID(), at: MapPoint, label: String, colorHex: String,
          brightSquares: CGFloat,
          kind: PawnKind = .player, isHidden: Bool = false, isBig: Bool = false,
-         characterID: UUID? = nil, monsterName: String? = nil, face: PawnFace? = nil) {
+         characterID: UUID? = nil, monsterName: String? = nil, itemName: String? = nil,
+         face: PawnFace? = nil) {
         self.id = id
         self.label = label
         self.colorHex = colorHex
@@ -329,6 +339,7 @@ struct Pawn: Codable, Equatable, Identifiable {
         self.isBig = isBig
         self.characterID = characterID
         self.monsterName = monsterName
+        self.itemName = itemName
         self.face = face
     }
 
@@ -356,6 +367,7 @@ struct Pawn: Codable, Equatable, Identifiable {
         isBig = try container.decodeIfPresent(Bool.self, forKey: .isBig) ?? false
         characterID = try container.decodeIfPresent(UUID.self, forKey: .characterID)
         monsterName = try container.decodeIfPresent(String.self, forKey: .monsterName)
+        itemName = try container.decodeIfPresent(String.self, forKey: .itemName)
         face = try container.decodeIfPresent(PawnFace.self, forKey: .face)
     }
 
@@ -382,6 +394,8 @@ struct Pawn: Codable, Equatable, Identifiable {
         // Omitted when absent for the same reason.
         try container.encodeIfPresent(monsterName, forKey: .monsterName)
         // Omitted when absent for the same reason.
+        try container.encodeIfPresent(itemName, forKey: .itemName)
+        // Omitted when absent for the same reason.
         try container.encodeIfPresent(face, forKey: .face)
     }
 
@@ -405,7 +419,7 @@ struct Pawn: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, label, colorHex, light, kind, isCreature, isHidden, isBig, characterID,
-             monsterName, face
+             monsterName, itemName, face
     }
 }
 
