@@ -155,7 +155,8 @@ final class AppState: ObservableObject {
     /// its colour and the Edit Pawn sheet offers no picture, there being nowhere to keep one.
     /// Set alongside `workspace`, whose change is what redraws the tokens.
     private(set) var faceLibrary: FaceLibrary?
-    /// The cut made from each Monster's picture, as `note-faces.json` holds it. Empty with no
+    /// The cut made from each Monster's, Character's note's and Item's picture, as
+    /// `note-faces.json` holds it. Empty with no
     /// Workspace open. See `monsterFace(for:)`.
     private(set) var noteFaces = NoteFaces()
     private var noteFacesStore: NoteFacesStore?
@@ -180,7 +181,9 @@ final class AppState: ObservableObject {
     /// Settable so a test can hand one over without a folder of notes.
     @Published var treasury = Treasury.closed
 
-    /// The read in flight, kept so a test can wait for it and a switch can abandon it.
+    /// The read of the notes in flight — the Bestiary, the Characters' notes and the Treasury,
+    /// in one walk (`BestiaryStore.read`) — kept so a test can wait for it and a switch can
+    /// abandon it.
     private(set) var bestiaryLoad: Task<Void, Never>?
     /// Which Party the panel offers. Remembered in the Workspace, per ADR-0012.
     @Published private(set) var activePartyID: UUID?

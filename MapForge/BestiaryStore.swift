@@ -1,12 +1,14 @@
 import Foundation
 
-/// Builds the `Bestiary` by reading every note in the Workspace (ADR-0023) — and, in the same
-/// walk, the `Treasury` (ADR-0031).
+/// Builds the `Bestiary`, the Characters' notes and the `Treasury` by reading every note in
+/// the Workspace once (ADR-0023, ADR-0024, ADR-0031). Named for the Bestiary, which it read
+/// first; it reads the Treasury too.
 ///
-/// The whole Workspace rather than a folder, because the DM keeps Monsters wherever their
-/// notes put them — a reference shelf, a campaign's own creatures, its named NPCs — in
-/// folders whose names are theirs to translate and change. Which fences are not Monsters, the
-/// fences say (`StatblockReader`).
+/// The whole Workspace rather than a folder, because the DM keeps Monsters and Items wherever
+/// their notes put them — a reference shelf, a campaign's own creatures, its named NPCs, an
+/// Adventure's treasures — in folders whose names are theirs to translate and change. Which
+/// fences are not Monsters, the fences say (`StatblockReader`); which notes are Items, their
+/// frontmatter says (`ItemReader`).
 ///
 /// Reads and never writes. Synchronous and free of `AppState`, so the caller chooses the
 /// thread — `AppState.open` runs it off the main one — and a test can point it at a
@@ -21,11 +23,14 @@ enum BestiaryStore {
         var treasury: Treasury
     }
 
+    /// The Bestiary alone, for a caller that wants nothing else. `read` gives everything the
+    /// walk finds, the Treasury included.
     static func load(for workspace: Workspace,
                      fileManager: FileManager = .default) -> Bestiary {
         read(workspace, fileManager: fileManager).bestiary
     }
 
+    /// Every Monster, Character's note and Item in `workspace`, from one walk over its notes.
     static func read(_ workspace: Workspace,
                      fileManager: FileManager = .default) -> Reading {
         let root = workspace.url.path
