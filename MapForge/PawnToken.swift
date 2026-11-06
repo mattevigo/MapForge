@@ -62,6 +62,17 @@ struct PawnToken: View {
         }
     }
 
+    /// What shows through a Face's transparent parts on a token of `kind`. An Item's picture
+    /// is usually an object on a transparent ground, so a Treasure's Face is drawn on white,
+    /// never on the Map; anyone who acts keeps their Face's own ground. Shared with the Edit
+    /// Pawn sheet's preview, like `outline(for:diameter:)`.
+    static func faceGround(for kind: PawnKind) -> Color {
+        switch kind {
+        case .player, .creature: return .clear
+        case .treasure: return .white
+        }
+    }
+
     /// Where the Pawn's Face is read from. Nil with no Workspace open.
     @Environment(\.faceLibrary) private var faceLibrary
 
@@ -83,6 +94,7 @@ struct PawnToken: View {
                         .interpolation(.high)
                         .scaledToFill()
                         .frame(width: diameter, height: diameter)
+                        .background(Self.faceGround(for: pawn.kind))
                         .clipShape(outline)
                 } else {
                     outline.fill(Color(hex: pawn.colorHex) ?? .red)

@@ -500,6 +500,7 @@ private struct FaceThumbnail: View {
             .resizable()
             .interpolation(.high)
             .frame(width: Self.side, height: Self.side)
+            .background(PawnToken.faceGround(for: kind))
             .clipShape(outline)
             .overlay(outline.stroke(Color.black.opacity(0.6), lineWidth: 1.5))
     }
