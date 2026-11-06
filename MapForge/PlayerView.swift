@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// The Map at True Scale, centered, black letterbox — plus the Pawns standing on it.
+/// The Map at True Scale, centered, black letterbox — or, under Map Fit, stretched edge to
+/// edge — plus the Pawns standing on it.
 ///
 /// Pawns are drawn here whether or not the Fog Overlay is active: a Pawn is a token
 /// first and a Light second, so switching fog off leaves the players their tokens.
@@ -14,12 +15,13 @@ struct PlayerView: View {
                 if let image = appState.mapImage,
                    let map = appState.mapScale,
                    let metrics = appState.playerMetrics {
-                    let viewport = ScaleMath.resolvedViewport(map: map, display: metrics,
-                                                              screenSizePoints: geo.size,
-                                                              desiredOrigin: appState.viewportOrigin)
-                    let frame = ScaleMath.trueScaleFrame(map: map, display: metrics,
-                                                         screenSizePoints: geo.size,
-                                                         viewportOriginInches: viewport.originInches)
+                    // True Scale at the Viewport, or under Map Fit the whole screen. Everything
+                    // below places itself against this frame, x and y separately, so under
+                    // Map Fit's stretch every Pawn, Light and Measurement follows the artwork.
+                    let frame = ScaleMath.playerFrame(map: map, display: metrics,
+                                                      screenSizePoints: geo.size,
+                                                      desiredViewportOrigin: appState.viewportOrigin,
+                                                      isMapFitOn: appState.isMapFitOn)
                     Image(nsImage: image)
                         .resizable()
                         .interpolation(.high)

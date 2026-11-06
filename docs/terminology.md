@@ -180,6 +180,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Workspace | Area di lavoro | *cartella di gioco*; *campagna* (the glossary rules it out) |
 | Grid Fit | Adatta griglia | |
 | Viewport | Inquadratura | *area visibile* (Visibility is another term) |
+| Map Fit | Adatta mappa *(proposed)* | *adatta allo schermo* (fit to screen, the glossary avoids it), *adatta griglia* (that is Grid Fit) |
 | Wall | Muro | *parete* (domestic) |
 | Wall Editor | Editor dei muri | *modifica muri* (*modifica* is the Edit verb) |
 | Light | Luce | *lampada*, *torcia* |
@@ -223,6 +224,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Workspace | Arbeitsbereich | *Kampagne*, *Bibliothek* |
 | Grid Fit | Raster anpassen | |
 | Viewport | Bildausschnitt | *Sichtfenster* (*Sicht* is sight) |
+| Map Fit | Karte anpassen | *An Bildschirm anpassen* (fit to screen) |
 | Wall | Wand | *Mauer* |
 | Wall Editor | Wandeditor | *Nebeleditor* (edit fog) |
 | Light | Licht | *Lichtquelle* (light source) |
@@ -266,6 +268,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Workspace | Espace de travail | *campagne*, *bibliothèque* |
 | Grid Fit | Ajuster la grille | |
 | Viewport | Cadrage | *vue* (Visibility's *Visibilité* is official) |
+| Map Fit | Ajuster la carte | *Adapter à l'écran* (fit to screen) |
 | Wall | Mur | |
 | Wall Editor | Éditeur de murs | |
 | Light | Lumière | *source de lumière* |
@@ -309,6 +312,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Workspace | Espacio de trabajo | *campaña*, *biblioteca* |
 | Grid Fit | Ajustar cuadrícula | |
 | Viewport | Encuadre | *vista* |
+| Map Fit | Ajustar mapa | *Ajustar a la pantalla* (fit to screen) |
 | Wall | Muro | *pared* |
 | Wall Editor | Editor de muros | |
 | Light | Luz | *fuente de luz* |
@@ -352,6 +356,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Workspace | Espaço de trabalho | *campanha*, *biblioteca* |
 | Grid Fit | Ajustar grade | |
 | Viewport | Enquadramento | *visão* (official *Visão no Escuro*) |
+| Map Fit | Ajustar mapa | *Ajustar à tela* (fit to screen) |
 | Wall | Parede | *muro* |
 | Wall Editor | Editor de paredes | |
 | Light | Luz | *fonte de luz* |
@@ -402,6 +407,7 @@ ordinary language are Greek: a Greek DM says *τέρας*, not "monster".
 | square (of the Grid) | τετράγωνο | |
 | Grid Fit | Προσαρμογή πλέγματος | |
 | Viewport | Κάδρο | *Πλαίσιο προβολής* (long) |
+| Map Fit | Προσαρμογή χάρτη | *Προσαρμογή στην οθόνη* (fit to screen) |
 | Wall | Τοίχος | |
 | Wall Editor | Επεξεργασία τοίχων | |
 | Light | Φως | |

@@ -13,8 +13,12 @@ The square lattice a Map is drawn on. One square is 1 inch physical (the DnD con
 _Avoid_: mesh, tiles
 
 **True Scale**:
-Rendering a Map so its physical dimensions on the Player Display match its declared real-world dimensions exactly (1 inch of map = 1 inch of screen).
+Rendering a Map so its physical dimensions on the Player Display match its declared real-world dimensions exactly (1 inch of map = 1 inch of screen). The way a Map is drawn unless the DM has switched on Map Fit, and what every launch starts with.
 _Avoid_: 1:1, actual size, life size
+
+**Map Fit**:
+Stretching the whole Map over the whole Player Display, edge to edge: no letterbox, no crop. The counterpart of True Scale, switched on and off from the Live Toolbar, and never saved — not per Map, not per display, not across launches. The Map's declared size and its Grid stand as they are, and Map Fit ignores them, so a Map whose shape differs from the screen's is distorted; that is the price of the whole Map on the whole screen, and the DM pays it knowingly. Everything placed on the Map — Pawns, Lights, Fog, Measurements — stays in Map space and stretches with the artwork, and a Measurement still reads its true distance in squares. Distinct from Grid Fit, which declares the Grid and changes nothing on the Player Display.
+_Avoid_: fit to screen, stretch, zoom to fit, scaling
 
 **Player Display**:
 The external (HDMI) screen showing only the Map, fullscreen, with no controls. Auto-selected when exactly one external display is connected.
@@ -45,7 +49,7 @@ The stable key for a physical display, used to remember which screen is the Play
 _Avoid_: screen ID, display number, monitor name
 
 **Viewport**:
-The region of a Map currently visible on the Player Display. At True Scale most Maps exceed the screen, so the DM moves the Viewport from the Live View, where it is always drawn as a green rectangle over the whole Map — knowing what the players can see is not a question a DM should press a button to answer. A toggle decides whether that rectangle can be **dragged**, not whether it is drawn: idle it is an outline the clicks pass through, armed it is filled and moves. Moving it is a live action the table watches as it happens, so it has no Cancel, exactly as dragging a Pawn has none.
+The region of a Map currently visible on the Player Display. It belongs to True Scale: under Map Fit the players see the whole Map, and switching Map Fit off returns them to the Viewport they had. At True Scale most Maps exceed the screen, so the DM moves the Viewport from the Live View, where it is always drawn as a green rectangle over the whole Map — knowing what the players can see is not a question a DM should press a button to answer. A toggle decides whether that rectangle can be **dragged**, not whether it is drawn: idle it is an outline the clicks pass through, armed it is filled and moves. Moving it is a live action the table watches as it happens, so it has no Cancel, exactly as dragging a Pawn has none.
 _Avoid_: camera, crop, window
 
 **Sidecar**:
@@ -247,7 +251,7 @@ The rows above the Map — the Map's width, not the window's — holding what on
 _Avoid_: map toolbar, top bar, prep bar, controls
 
 **Live Toolbar**:
-The row above the Map holding what the table sees the result of: the Fog switch, the Measurement visibility switch, the Viewport toggle, and the Session control. The counterpart to the Setup Toolbar, and the reason the pair is named at all — these are the switches that change what the players are looking at, now. It is replaced along with the Map when the Log View opens, so there is no Session control while reading: every switch here is about the Player Display, and a DM reaching for one has already decided to look at the Map again.
+The row above the Map holding what the table sees the result of: the Fog switch, the Measurement visibility switch, the Viewport toggle, the Map Fit toggle, and the Session control. The counterpart to the Setup Toolbar, and the reason the pair is named at all — these are the switches that change what the players are looking at, now. It is replaced along with the Map when the Log View opens, so there is no Session control while reading: every switch here is about the Player Display, and a DM reaching for one has already decided to look at the Map again.
 _Avoid_: players toolbar, player bar, table bar, session bar
 
 **Roll**:

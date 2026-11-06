@@ -47,7 +47,8 @@ struct FogCanvas: View {
                           from context: inout GraphicsContext,
                           to target: CGFloat, of unlit: CGFloat) {
         let removal = FogShading.removalAlpha(from: unlit, to: target)
-        guard removal > 0 else { return }
+        // A Map with no pixels has no Map space to draw the Lights in.
+        guard removal > 0, map.imagePixelSize.width > 0, map.imagePixelSize.height > 0 else { return }
         // `.destinationOut` must be the mode the LAYER composites back with, so it is set
         // on the parent context before `drawLayer`. Setting it *inside* the layer applies
         // it to the layer's own empty contents — erasing nothing from transparency — and
@@ -58,6 +59,11 @@ struct FogCanvas: View {
         defer { context.blendMode = previousBlendMode }
         context.drawLayer { layer in
             layer.opacity = removal
+            // The layer is drawn in image pixels and stretched onto the surface as the
+            // artwork is. Under Map Fit the two axes scale differently, and a falloff whose
+            // radius was scaled by the width alone would stop short of the polygon's rim
+            // down one axis and overrun it across the other.
+            layer.concatenate(PlayerPlacement.mapToView(map: map, frame: frame))
             for region in regions {
                 let polygon = region[keyPath: band]
                 guard !polygon.isEmpty else { continue }
@@ -71,11 +77,11 @@ struct FogCanvas: View {
     }
 
     /// Full strength through the middle of a Light, fading to clear exactly at its rim.
+    /// In image pixels: the layer's transform stretches it onto the surface.
     private func falloffShading(for region: LitRegion,
                                 band: KeyPath<LitRegion, Polygon>) -> GraphicsContext.Shading {
-        let centre = PlayerPlacement.viewPoint(region.origin, map: map, frame: frame)
-        let rim = region[keyPath: band].radiusFrom(region.origin)
-        let radius = rim / max(map.imagePixelSize.width, 1) * frame.width
+        let centre = CGPoint(x: region.origin.x, y: region.origin.y)
+        let radius = region[keyPath: band].radiusFrom(region.origin)
         guard radius > 0 else { return .color(.black) }
 
         let stops = stride(from: 0.0, through: 1.0, by: 0.05).map { fraction in
@@ -86,12 +92,10 @@ struct FogCanvas: View {
                                startRadius: 0, endRadius: radius)
     }
 
-    /// One polygon, in image pixels, mapped onto this surface.
+    /// One polygon, in image pixels; the layer's transform maps it onto this surface.
     private func path(_ polygon: Polygon) -> Path {
         var path = Path()
-        let points = polygon.vertices.map {
-            PlayerPlacement.viewPoint($0, map: map, frame: frame)
-        }
+        let points = polygon.vertices.map { CGPoint(x: $0.x, y: $0.y) }
         guard let first = points.first else { return path }
         path.move(to: first)
         for point in points.dropFirst() { path.addLine(to: point) }
