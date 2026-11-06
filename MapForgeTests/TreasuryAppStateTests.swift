@@ -75,7 +75,7 @@ final class TreasuryAppStateTests: XCTestCase {
                                                 withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: notes, withIntermediateDirectories: true)
         try Data("---\nitem: true\n---\n# Borsa\n".utf8)
-            .write(to: notes.appendingPathComponent("Bag.md"))
+            .write(to: notes.appendingPathComponent("Borsa.md"))
 
         let state = makeAppState()
         state.open(Workspace(url: root))

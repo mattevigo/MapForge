@@ -1,6 +1,6 @@
 import Foundation
 
-/// A thing the DM's notes define and a Treasure can be said to be — a Bag, a Gemma di Fuoco.
+/// A thing the DM's notes define and a Treasure can be said to be — a Borsa, a Gemma di Fuoco.
 /// To a Treasure what a `Monster` is to a Creature: a definition, never on a Map.
 ///
 /// A note is an Item when its frontmatter says `item: true` (ADR-0031). Read from the notes

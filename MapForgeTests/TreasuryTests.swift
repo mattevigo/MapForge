@@ -47,10 +47,10 @@ final class TreasuryTests: XCTestCase {
 
         ## Descrizione
         Una borsa di stoffa.
-        """, to: "Riferimento/Equipaggiamento/Bag.md")
+        """, to: "Riferimento/Equipaggiamento/Borsa.md")
 
         XCTAssertEqual(treasury.items.map(\.name), ["Borsa"])
-        XCTAssertEqual(treasury.items.first?.file, "Riferimento/Equipaggiamento/Bag.md")
+        XCTAssertEqual(treasury.items.first?.file, "Riferimento/Equipaggiamento/Borsa.md")
         XCTAssertEqual(treasury.skipped, [])
         XCTAssertNil(treasury.unavailable)
     }
@@ -66,8 +66,8 @@ final class TreasuryTests: XCTestCase {
     }
 
     func testNotesThatDoNotSayTheyAreItemsAreIgnoredInSilence() throws {
-        try write("---\nfonte: XPHB p. 225\n---\n# Borsa\n", to: "Riferimento/Equipaggiamento/Bag.md")
-        try write("---\nitem: false\n---\n# Corda\n", to: "Riferimento/Equipaggiamento/Rope.md")
+        try write("---\nfonte: XPHB p. 225\n---\n# Borsa\n", to: "Riferimento/Equipaggiamento/Borsa.md")
+        try write("---\nitem: false\n---\n# Corda\n", to: "Riferimento/Equipaggiamento/Corda.md")
         try write("# Indice\n\nitem: true\n", to: "Indice.md")
         try write("""
         # Goblin
@@ -95,7 +95,7 @@ final class TreasuryTests: XCTestCase {
         # Borsa
 
         ![[Altro.webp]]
-        """, to: "Riferimento/Equipaggiamento/Bag.md")
+        """, to: "Riferimento/Equipaggiamento/Borsa.md")
 
         let borsa = try XCTUnwrap(treasury.items.first)
         XCTAssertEqual(borsa.imageLink, "Riferimento/Allegati/Borsa.webp")
@@ -130,11 +130,11 @@ final class TreasuryTests: XCTestCase {
     // MARK: What is skipped, and said
 
     func testTheSecondItemOfANameIsSkippedAndTheFirstByPathWins() throws {
-        try write("---\nitem: true\n---\n# Borsa\n", to: "Riferimento/Equipaggiamento/Bag.md")
+        try write("---\nitem: true\n---\n# Borsa\n", to: "Riferimento/Equipaggiamento/Borsa.md")
         try write("---\nitem: true\n---\n# Borsa\n", to: "Campagne/Eroi/Oggetti/Borsa.md")
 
         XCTAssertEqual(treasury.items.map(\.file), ["Campagne/Eroi/Oggetti/Borsa.md"])
-        XCTAssertEqual(treasury.skipped.map(\.file), ["Riferimento/Equipaggiamento/Bag.md"])
+        XCTAssertEqual(treasury.skipped.map(\.file), ["Riferimento/Equipaggiamento/Borsa.md"])
         XCTAssertEqual(treasury.skipped.first?.reason,
                        String(localized: "another note already defines “Borsa”"))
     }
@@ -181,10 +181,10 @@ final class TreasuryTests: XCTestCase {
     }
 
     func testSkippedNotesAreReportedInPathOrder() throws {
-        try write("---\nitem: true\n---\n# Borsa\n", to: "A/Bag.md")
-        try write("---\nitem: true\n---\n# Borsa\n", to: "C/Bag.md")
+        try write("---\nitem: true\n---\n# Borsa\n", to: "A/Borsa.md")
+        try write("---\nitem: true\n---\n# Borsa\n", to: "C/Borsa.md")
         try write("---\nitem: true\nx: [\n---\n", to: "B/Broken.md")
-        XCTAssertEqual(treasury.skipped.map(\.file), ["B/Broken.md", "C/Bag.md"])
+        XCTAssertEqual(treasury.skipped.map(\.file), ["B/Broken.md", "C/Borsa.md"])
     }
 
     // MARK: Searching
@@ -246,8 +246,8 @@ final class TreasuryTests: XCTestCase {
     }
 
     func testItemsAreSortedByName() throws {
-        try write("---\nitem: true\n---\n# Zaino\n", to: "A/Backpack.md")
-        try write("---\nitem: true\n---\n# Borsa\n", to: "B/Bag.md")
+        try write("---\nitem: true\n---\n# Zaino\n", to: "A/Zaino.md")
+        try write("---\nitem: true\n---\n# Borsa\n", to: "B/Borsa.md")
         try write("---\nitem: true\n---\n# Ägis\n", to: "C/Aegis.md")
         XCTAssertEqual(treasury.items.map(\.name), ["Ägis", "Borsa", "Zaino"])
     }
