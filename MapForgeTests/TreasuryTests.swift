@@ -158,6 +158,64 @@ final class TreasuryTests: XCTestCase {
         XCTAssertEqual(treasury.skipped.map(\.file), ["B/Broken.md", "C/Bag.md"])
     }
 
+    // MARK: Searching
+
+    private let shelf = Treasury(items: [
+        Item(name: "Borsa"), Item(name: "Gemma di Fuoco"),
+        Item(name: "Pozione di Guarigione"), Item(name: "Spada Lunga +1"),
+    ])
+
+    func testSearchFindsAnyPartOfTheNameStartsFirstAndIgnoresAccentsAndCase() {
+        // The Bestiary's search, the same query answered the same way.
+        XCTAssertEqual(shelf.search("di").map(\.name), ["Gemma di Fuoco", "Pozione di Guarigione"])
+        XCTAssertEqual(shelf.search("GUAR").map(\.name), ["Pozione di Guarigione"])
+        XCTAssertEqual(Treasury(items: [Item(name: "Ascia"), Item(name: "Gemma Spada")])
+            .search("spa").map(\.name), ["Gemma Spada"])
+        XCTAssertEqual(Treasury(items: [Item(name: "Gemma Spada"), Item(name: "Spadone")])
+            .search("spa").map(\.name), ["Spadone", "Gemma Spada"])
+        XCTAssertEqual(Treasury(items: [Item(name: "Pietà")]).search("pieta").count, 1)
+        XCTAssertEqual(shelf.search("  ").count, 4)
+    }
+
+    func testAnItemIsFoundByTheNameATreasureRemembers() {
+        XCTAssertEqual(shelf.item(named: "Borsa")?.name, "Borsa")
+        XCTAssertNil(shelf.item(named: "borsa"), "a remembered name is exact, not a search")
+        XCTAssertNil(shelf.item(named: nil))
+    }
+
+    func testTheTreasuryIsAvailableOnlyWhenReadAndNotEmpty() {
+        XCTAssertTrue(shelf.isAvailable)
+        XCTAssertFalse(Treasury().isAvailable)
+        XCTAssertFalse(Treasury.closed.isAvailable)
+        XCTAssertFalse(Treasury.reading.isAvailable)
+        XCTAssertNotEqual(Treasury.closed, Treasury.reading)
+    }
+
+    // MARK: The caption
+
+    func testAHealthyTreasurySaysNothing() {
+        XCTAssertNil(shelf.caption)
+    }
+
+    func testSkippedFilesAreCounted() {
+        var treasury = shelf
+        treasury.skipped = [Bestiary.Skipped(file: "x.md", reason: "r")]
+        XCTAssertEqual(treasury.caption, "4 Items · 1 file skipped")
+        treasury.skipped.append(Bestiary.Skipped(file: "y.md", reason: "r"))
+        XCTAssertEqual(treasury.caption, "4 Items · 2 files skipped")
+        treasury.items = [Item(name: "Borsa")]
+        XCTAssertEqual(treasury.caption, "1 Item · 2 files skipped")
+    }
+
+    func testAnUnavailableTreasurySaysWhy() {
+        XCTAssertEqual(Treasury(unavailable: "Because.").caption, "Because.")
+        XCTAssertEqual(Treasury.closed.caption, Bestiary.closed.caption)
+    }
+
+    func testAWorkspaceWithNoItemsSaysSo() {
+        XCTAssertEqual(Treasury().caption, "No Items found in this Workspace.")
+    }
+
     func testItemsAreSortedByName() throws {
         try write("---\nitem: true\n---\n# Zaino\n", to: "A/Backpack.md")
         try write("---\nitem: true\n---\n# Borsa\n", to: "B/Bag.md")

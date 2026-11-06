@@ -39,6 +39,44 @@ struct Treasury: Equatable {
     /// Why there is no Treasury at all, in words for the DM — or nil when there is one.
     var unavailable: String?
 
+    init(items: [Item] = [], skipped: [Bestiary.Skipped] = [], unavailable: String? = nil) {
+        self.items = items
+        self.skipped = skipped
+        self.unavailable = unavailable
+    }
+
+    /// What stands in before a Workspace is open.
+    static var closed: Treasury { Treasury(unavailable: String(localized: "No Workspace is open.")) }
+
+    /// What stands in while the notes are being read, so the search box can say so.
+    static var reading: Treasury { Treasury(unavailable: String(localized: "Reading the Items…")) }
+
+    /// Whether there is anything to search. The search box is disabled without it.
+    var isAvailable: Bool { unavailable == nil && !items.isEmpty }
+
+    /// The Item a Treasure remembers. Exact, not a search, as `Bestiary.monster(named:)` is.
+    func item(named name: String?) -> Item? {
+        guard let name else { return nil }
+        return items.first { $0.name == name }
+    }
+
+    /// Items whose name contains `query`, ignoring case and accents, those that *start* with
+    /// it first. An empty query offers everything.
+    func search(_ query: String) -> [Item] {
+        NameSearch.matches(query, among: items, name: \.name)
+    }
+
     /// The Items whose note names a picture that gives no Face, and why.
     var pictureProblems: [PictureProblem] { items.pictureProblems }
+
+    /// The one line under the search box, or nil when there is nothing to say — silent when
+    /// everything was read, as the Bestiary's is.
+    var caption: String? {
+        if let unavailable { return unavailable }
+        if items.isEmpty && skipped.isEmpty { return String(localized: "No Items found in this Workspace.") }
+        guard !skipped.isEmpty else { return nil }
+        let itemCount = String(localized: "\(items.count) Items")
+        let skippedCount = String(localized: "\(skipped.count) files skipped")
+        return "\(itemCount) · \(skippedCount)"
+    }
 }
