@@ -80,8 +80,15 @@ enum MonsterStamp {
     /// run of numbers, because what a label is *for* in the Order is telling two rows apart.
     static func label(for monster: Monster, replacing label: String, from previous: String? = nil,
                       among pawns: [Pawn]) -> String {
+        Self.label(named: monster.name, replacing: label, from: previous, among: pawns)
+    }
+
+    /// The rule behind `label(for:replacing:from:among:)`, for any definition a Pawn can be
+    /// said to be — a Monster, or an Item (`ItemStamp`) — by its `name`.
+    static func label(named name: String, replacing label: String, from previous: String? = nil,
+                      among pawns: [Pawn]) -> String {
         guard Int(label) != nil || isLabel(label, givenBy: previous) else { return label }
-        let prefix = initials(of: monster.name)
+        let prefix = initials(of: name)
         guard !prefix.isEmpty else { return label }
         let highest = pawns.compactMap { pawn -> Int? in
             guard pawn.label.hasPrefix(prefix) else { return nil }

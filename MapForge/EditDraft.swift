@@ -27,6 +27,9 @@ struct EditPawnDraft: Equatable {
     /// The Monster this Creature is, by name. Set through `pick` and `clearMonster`, which
     /// keep the label and the size in step with it.
     private(set) var monsterName: String?
+    /// The Item this Treasure is, by name. Set through `pick` and `clearItem`, which keep the
+    /// label in step with it, as they do a Monster's.
+    private(set) var itemName: String?
     /// The Face the Pawn is drawn as, and any cut made in this sheet and not yet kept. Kept by
     /// OK alone (`AppState.updatePawn`), so Cancel leaves no cut of the Pawn's own in the
     /// Workspace — only, if the DM asked for it, the Monster's shared cut, which the next Pawn
@@ -53,6 +56,8 @@ struct EditPawnDraft: Equatable {
     private let pawnID: Pawn.ID
     /// The Monster the Pawn had when the sheet opened — what decides whether OK stamps.
     private let openedWithMonster: String?
+    /// The Item the Pawn had when the sheet opened — whose initials a label may carry.
+    private let openedWithItem: String?
     /// The label the Pawn had when the sheet opened, to give back if a pick is undone.
     private let openedWithLabel: String
     /// The label the last `pick` wrote, so a second pick can tell the app's label from one
@@ -73,10 +78,12 @@ struct EditPawnDraft: Equatable {
         isBig = pawn.isBig
         sightSquares = pawn.light.brightSquares
         monsterName = pawn.monsterName
+        itemName = pawn.itemName
         face = FaceDraft(pawn.face)
         openedWithFace = pawn.face
         characterID = pawn.characterID
         openedWithMonster = pawn.monsterName
+        openedWithItem = pawn.itemName
         openedWithLabel = pawn.label
     }
 
@@ -108,6 +115,35 @@ struct EditPawnDraft: Equatable {
         giveBackTakenFace(unlessOf: nil)
         if label == pickedLabel { label = openedWithLabel }
         pickedLabel = nil
+    }
+
+    /// Say which Item this Treasure is, and show the DM what follows from it: a label the app
+    /// gave — the bare number, or the initials of the Item it was — becomes "Bo1", by the
+    /// rule a Monster's label follows. There is nothing else to show: an Item has no numbers.
+    ///
+    /// `pawns` is the Map as it stands, for the label's number.
+    mutating func pick(_ item: Item, among pawns: [Pawn]) {
+        itemName = item.name
+        let replaceable = label == pickedLabel ? openedWithLabel : label
+        let relabelled = ItemStamp.label(for: item, replacing: replaceable, from: openedWithItem,
+                                         among: pawns.filter { $0.id != pawnID })
+        guard relabelled != replaceable else { return }
+        label = relabelled
+        pickedLabel = relabelled
+    }
+
+    /// Forget the Item. A label this sheet wrote goes back to what it replaced.
+    mutating func clearItem() {
+        itemName = nil
+        if label == pickedLabel { label = openedWithLabel }
+        pickedLabel = nil
+    }
+
+    /// The Item OK makes the Treasure, or nil when the Item is untouched — what OK's title
+    /// says, "Become Borsa". Only an Item that *changed*, as `monsterToStamp` is.
+    var itemToBecome: String? {
+        guard kind.canBeItem, itemName != openedWithItem else { return nil }
+        return itemName
     }
 
     /// Whether OK must ask "only this Pawn, or every one?" (ADR-0028).
@@ -188,6 +224,8 @@ struct EditPawnDraft: Equatable {
         // Only a Creature can be a Monster (`CONTEXT.md`). The search box is hidden for the
         // other Kinds, and the memory goes with it rather than lingering unseen.
         edited.monsterName = kind.canBeMonster ? monsterName : nil
+        // And only a Treasure can be an Item, for the same reason.
+        edited.itemName = kind.canBeItem ? itemName : nil
         // A removed Face goes; a pending cut is not a Face until OK has kept it, which is
         // `AppState.updatePawn`'s to do, so here it leaves the Face the sheet opened with.
         edited.face = face.kept

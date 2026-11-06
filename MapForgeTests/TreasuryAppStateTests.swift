@@ -33,6 +33,39 @@ final class TreasuryAppStateTests: XCTestCase {
         return state
     }
 
+    private func treasure(_ label: String, itemName: String? = nil) -> Pawn {
+        Pawn(at: MapPoint(x: 100, y: 100), label: label, colorHex: "#D4A017",
+             brightSquares: 0, kind: .treasure, itemName: itemName)
+    }
+
+    // MARK: OK
+
+    func testOKMakesTheTreasureRememberTheItemAndRelabelsIt() {
+        let state = makeAppState()
+        let pawn = treasure("2")
+        state.fog.pawns = [treasure("Bo1", itemName: "Borsa"), pawn]
+
+        var draft = EditPawnDraft(pawn: pawn)
+        draft.pick(Item(name: "Borsa"), among: state.fog.pawns)
+        state.updatePawn(id: pawn.id, with: draft)
+
+        XCTAssertEqual(state.fog.pawns[1].itemName, "Borsa")
+        XCTAssertEqual(state.fog.pawns[1].label, "Bo2")
+        XCTAssertEqual(state.statBlock(for: pawn.id), StatBlock(), "an Item has no numbers")
+    }
+
+    func testATreasureMadeACreatureForgetsItsItem() {
+        let state = makeAppState()
+        let pawn = treasure("Bo1", itemName: "Borsa")
+        state.fog.pawns = [pawn]
+
+        var draft = EditPawnDraft(pawn: pawn)
+        draft.kind = .creature
+        state.updatePawn(id: pawn.id, with: draft)
+
+        XCTAssertNil(state.fog.pawns[0].itemName)
+    }
+
     // MARK: The Workspace
 
     func testOpeningAWorkspaceReadsItsItemsAndClosingForgetsThem() async throws {

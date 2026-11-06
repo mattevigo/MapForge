@@ -475,6 +475,17 @@ enum PawnKind: String, Codable, CaseIterable, Equatable {
         }
     }
 
+    /// Whether a Pawn of this kind can be said to be an `Item`.
+    ///
+    /// Only a Treasure (`CONTEXT.md`, **Item**): an Item is to a Treasure what a Monster is
+    /// to a Creature. One place, as `canBeMonster` is, and a `switch` with no `default`.
+    var canBeItem: Bool {
+        switch self {
+        case .treasure: return true
+        case .player, .creature: return false
+        }
+    }
+
     /// The heading this kind is listed under in the live panel.
     var pluralTitle: String {
         switch self {
