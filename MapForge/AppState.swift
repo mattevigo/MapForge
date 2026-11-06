@@ -788,6 +788,10 @@ final class AppState: ObservableObject {
         if !draft.face.isChanged, let monster = bestiary.monster(named: draft.monsterToStamp) {
             edited.face = MonsterStamp.face(over: edited.face, from: monsterFace(for: monster))
         }
+        // And becoming an Item brings the Item's, by the same rule (ADR-0031).
+        if !draft.face.isChanged, let item = treasury.item(named: draft.itemToBecome) {
+            edited.face = ItemStamp.face(over: edited.face, from: itemFace(for: item))
+        }
         fog.pawns[index] = edited
         // The one thing this sheet does to a Stat Block: a Monster that *changed* is stamped,
         // whole (ADR-0021). Through `editStatBlock`, so mid-fight the stamp is recorded as
@@ -887,6 +891,15 @@ final class AppState: ObservableObject {
     func monsterFace(for monster: Monster) -> PawnFace? {
         keepingNoteFaces { faces, root, library in
             faces.face(for: monster, in: root, library: library)
+        }
+    }
+
+    /// The Face a Treasure takes from `item`: its picture's cut, made now if this is the first
+    /// Treasure to take it since the note named that picture — or nil when its note names no
+    /// picture the Workspace holds, or no Workspace is open. Kept at once, as a Monster's is.
+    func itemFace(for item: Item) -> PawnFace? {
+        keepingNoteFaces { faces, root, library in
+            faces.face(for: item, in: root, library: library)
         }
     }
 
