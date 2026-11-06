@@ -26,10 +26,41 @@ final class MapFitTests: XCTestCase {
         XCTAssertEqual(appState.viewportOrigin, CGPoint(x: 3, y: 4))
     }
 
+    // MARK: Without a Player Display
+
+    /// There is no screen to fit the Map to without a Player Display, so the toggle is
+    /// unavailable.
+    func testItIsOfferedOnlyWithAPlayerDisplay() {
+        XCTAssertTrue(MapFitToggle.isAvailable(hasDisplay: true))
+        XCTAssertFalse(MapFitToggle.isAvailable(hasDisplay: false))
+    }
+
+    /// Unplugging the Player Display while fitted would otherwise leave Map Fit on behind a
+    /// disabled toggle the DM cannot press to turn it off. It puts itself away instead, the
+    /// way an armed Viewport rectangle does — and the next display starts at True Scale.
+    func testLosingThePlayerDisplayPutsItAway() {
+        XCTAssertFalse(MapFitToggle.staysOn(hasDisplay: false))
+        XCTAssertTrue(MapFitToggle.staysOn(hasDisplay: true))
+    }
+
+    /// The session obeys the rule wherever the Player Display is resolved: with no screen to
+    /// present on (a test has none), Map Fit cannot stay on.
+    func testTheSessionPutsItAwayWithoutAPlayerDisplay() {
+        let appState = AppState(preferences: isolatedPreferences())
+        XCTAssertNil(appState.playerScreen)
+        appState.isMapFitOn = true
+        XCTAssertFalse(appState.isMapFitOn)
+    }
+
+    // MARK: The Viewport
+
     /// The green rectangle covers the whole Map while fitted, and comes back to the True
     /// Scale region it outlined before once Map Fit is off.
     func testTheViewportCoversTheWholeMapWhileFittedAndReturnsAfter() {
-        let appState = AppState(preferences: isolatedPreferences())
+        // Map Fit held here rather than on an `AppState`: a test has no Player Display, and
+        // the session puts Map Fit away without one.
+        var isMapFitOn = false
+        var viewportOrigin: CGPoint?
         // 50 pt/in on a 1000×600 pt screen shows 20×12 in of a 30×20 in Map.
         let display = DisplayMetrics(pixelSize: CGSize(width: 2000, height: 1200),
                                      physicalSizeMM: CGSize(width: 508, height: 304.8),
@@ -38,16 +69,16 @@ final class MapFitTests: XCTestCase {
         func viewport() -> Viewport? {
             ScaleMath.playerViewport(map: map, display: display,
                                      screenSizePoints: CGSize(width: 1000, height: 600),
-                                     desiredOrigin: appState.viewportOrigin,
-                                     isMapFitOn: appState.isMapFitOn)
+                                     desiredOrigin: viewportOrigin,
+                                     isMapFitOn: isMapFitOn)
         }
-        appState.viewportOrigin = CGPoint(x: 3, y: 4)
+        viewportOrigin = CGPoint(x: 3, y: 4)
         let before = viewport()
 
-        appState.isMapFitOn = true
+        isMapFitOn = true
         XCTAssertEqual(viewport(), Viewport(originInches: .zero, sizeInches: CGSize(width: 30, height: 20)))
 
-        appState.isMapFitOn = false
+        isMapFitOn = false
         XCTAssertEqual(viewport(), before)
         XCTAssertEqual(before?.originInches, CGPoint(x: 3, y: 4))
     }

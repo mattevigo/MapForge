@@ -1819,14 +1819,15 @@ struct ControlView: View {
     /// **Map Fit**, beside the Viewport toggle and shown on the same terms: in the Live View
     /// only, so it costs this row width and never height, as `viewportToggle` explains.
     ///
-    /// Disabled without a Player Display: there is no screen to fit the Map to. Not
-    /// persisted — see `AppState.isMapFitOn`.
+    /// Disabled without a Player Display: there is no screen to fit the Map to, and losing
+    /// the screen while fitted switches Map Fit off (`MapFitToggle`). Not persisted — see
+    /// `AppState.isMapFitOn`.
     @ViewBuilder
     private var mapFitToggle: some View {
         if mode == .normal {
             Toggle("Map Fit", isOn: $appState.isMapFitOn)
                 .toggleStyle(.button)
-                .disabled(appState.playerScreen == nil)
+                .disabled(!MapFitToggle.isAvailable(hasDisplay: appState.playerScreen != nil))
                 .help("Stretch the whole Map over the Player Display, ignoring the Grid.")
         }
     }
