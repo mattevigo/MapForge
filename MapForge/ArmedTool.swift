@@ -62,7 +62,16 @@ enum ArmedTool {
         /// the rest; a ⇧-click that misses every token is the DM reaching for one more and
         /// missing, which is no reason to let the others go either. Only a plain click on the
         /// bare Map ends the Selection.
-        func leftClick(isShiftDown: Bool, on target: LiveHitTest?) -> Click {
+        ///
+        /// And none of this is a click at all when the release ends a drag (`endsDrag`, from
+        /// `LiveViewPress`) — a rectangle, a Selection carried, any drag. The Map's tap is
+        /// heard over the whole Live View, and nothing promises that SwiftUI fails it on
+        /// movement; were it to fire on that mouse-up, a plain "click" on the bare Map would
+        /// empty what the rectangle just picked, a ⇧-"click" would toggle a carried Pawn
+        /// back out, and an armed tool would take a click the DM never made.
+        func leftClick(isShiftDown: Bool, on target: LiveHitTest?,
+                       endsDrag: Bool = false) -> Click {
+            if endsDrag { return .nothing }
             if isArmed { return .armedTool }
             switch (isShiftDown, target) {
             case (true, let target?): return .toggle(target)

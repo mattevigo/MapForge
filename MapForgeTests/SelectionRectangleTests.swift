@@ -160,7 +160,7 @@ final class SelectionRectangleTests: XCTestCase {
     /// With nothing armed, a plain drag that starts on the bare Map draws the rectangle.
     func testAPlainDragOnTheBareMapWithNothingArmedDrawsARectangle() {
         XCTAssertTrue(SelectionRectangle.begins(isArmed: false, isOptionDown: false,
-                                                startsOn: nil))
+                                                startsOn: nil, isTokenDragging: false))
     }
 
     /// A drag that starts on a token is that token's drag — the Pawn or Light moves, and
@@ -170,9 +170,22 @@ final class SelectionRectangleTests: XCTestCase {
         let lantern = Light(at: MapPoint(x: 60, y: 60), brightSquares: 4, name: "lantern")
 
         XCTAssertFalse(SelectionRectangle.begins(isArmed: false, isOptionDown: false,
-                                                 startsOn: .pawn(rogue.id)))
+                                                 startsOn: .pawn(rogue.id),
+                                                 isTokenDragging: false))
         XCTAssertFalse(SelectionRectangle.begins(isArmed: false, isOptionDown: false,
-                                                 startsOn: .light(lantern.id)))
+                                                 startsOn: .light(lantern.id),
+                                                 isTokenDragging: false))
+    }
+
+    /// A press on the rim of a token, dragged away from it: the token's own drag picks it
+    /// up from the first point, and by the time this drag has gone far enough to decide, the
+    /// token — or the whole Selection it belongs to — has already moved off the spot that
+    /// was pressed. Asked of where the tokens stand now, that spot is the bare Map; but the
+    /// drag is the token's, and draws no rectangle beside the move — nor, on release,
+    /// replaces the Selection being carried.
+    func testADragWhileATokenIsBeingDraggedDrawsNoRectangle() {
+        XCTAssertFalse(SelectionRectangle.begins(isArmed: false, isOptionDown: false,
+                                                 startsOn: nil, isTokenDragging: true))
     }
 
     /// With Add, a Measurement or the Viewport armed, the drag is what it was before there
@@ -186,7 +199,7 @@ final class SelectionRectangleTests: XCTestCase {
                                           hasMeasurement: measurement,
                                           isViewportArmed: viewport).isArmed
             XCTAssertFalse(SelectionRectangle.begins(isArmed: isArmed, isOptionDown: false,
-                                                     startsOn: nil))
+                                                     startsOn: nil, isTokenDragging: false))
         }
     }
 
@@ -194,7 +207,7 @@ final class SelectionRectangleTests: XCTestCase {
     /// reaches a `DragGesture` at all — see `MiddleMouseDragModifier`.)
     func testAnOptionDragDrawsNoRectangle() {
         XCTAssertFalse(SelectionRectangle.begins(isArmed: false, isOptionDown: true,
-                                                 startsOn: nil))
+                                                 startsOn: nil, isTokenDragging: false))
     }
 
     // MARK: Where the drag starts

@@ -93,6 +93,24 @@ final class SelectionRoutingTests: XCTestCase {
                        .nothing)
     }
 
+    /// A release that ends a drag is no click, whatever the tap underneath makes of it: not
+    /// the plain click on the bare Map that would empty the Selection a rectangle has just
+    /// picked, not the ⇧-click that would toggle a carried Pawn back out, and not an armed
+    /// tool's click either — a Selection dragged with a Measurement on screen must not
+    /// settle it on the way down.
+    func testAClickThatEndsADragIsNoClick() {
+        XCTAssertEqual(ArmedTool.State().leftClick(isShiftDown: false, on: nil,
+                                                   endsDrag: true),
+                       .nothing)
+        XCTAssertEqual(ArmedTool.State().leftClick(isShiftDown: true, on: .pawn(rogue.id),
+                                                   endsDrag: true),
+                       .nothing)
+        XCTAssertEqual(ArmedTool.State(hasMeasurement: true).leftClick(isShiftDown: false,
+                                                                       on: .pawn(rogue.id),
+                                                                       endsDrag: true),
+                       .nothing)
+    }
+
     /// The Viewport counts as armed: a click with the rectangle armed is for moving what the
     /// table sees, and must not end the Selection on the way.
     func testTheArmedViewportKeepsClicksFromPicking() {

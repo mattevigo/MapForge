@@ -62,6 +62,10 @@ struct ControlView: View {
     /// sees it: declined, or a rectangle being drawn. Nil between drags. See
     /// `SelectionRectangle.Drag`.
     @State private var selectionDrag: SelectionRectangle.Drag?
+    /// The primary press on the Live View: whether a token's own drag is under way, and
+    /// whether the release ends a drag rather than being a click. Fed by every drag on the
+    /// Live View and asked by the tap and the selection rectangle. See `LiveViewPress`.
+    @State private var press = LiveViewPress()
     /// The transform a pinch started from: `MagnifyGesture` reports cumulative
     /// magnification, so compounding it against the live scale would accelerate. Attached
     /// to the preview, like the middle-button drag, so every mode pinches the same way.
@@ -771,11 +775,12 @@ struct ControlView: View {
                     }
                     // Heard on the Live View whether or not anything is armed. It used to be
                     // gated on `claimsLeftClick`, out of caution that a tap here might swallow
-                    // the Pawn drag underneath — but it is simultaneous, it fails the moment
-                    // the pointer moves, and a Pawn has been dragged under it every time Add
-                    // or a Measurement was armed. The Selection needs the idle click: ⇧ picks
-                    // and a plain click on the bare Map lets go. `ArmedTool.State.leftClick` says
-                    // which click is whose.
+                    // the Pawn drag underneath — but it is simultaneous, and a Pawn has been
+                    // dragged under it every time Add or a Measurement was armed. The
+                    // Selection needs the idle click: ⇧ picks and a plain click on the bare
+                    // Map lets go. `ArmedTool.State.leftClick` says which click is whose —
+                    // and, from `press`, that a release ending a drag is none, rather than
+                    // trusting this tap to fail whenever the pointer has moved.
                     .simultaneousGesture(
                         TapGesture().onEnded {
                             if mode == .normal, let map = appState.mapScale {
@@ -837,14 +842,17 @@ struct ControlView: View {
                     // selection rectangle, and its release picks the Pawns inside. Every
                     // other drag here is left as it was: `SelectionRectangle.begins` declines
                     // one with anything armed (the Viewport's drag, an armed tool's), one with
-                    // ⌥ (the pan above), and one that starts on a token (that token's own
-                    // drag, in `PawnLayer`). Simultaneous, like the pan, so declining costs
-                    // the drag it leaves alone nothing; the middle button never reaches a
-                    // `DragGesture`. Locations are this container's own, the space `fitted`
-                    // is in — never an `NSEvent`'s.
+                    // ⌥ (the pan above), and one that starts on a token or finds a token's
+                    // own drag under way (`PawnLayer`'s). Simultaneous, like the pan, so
+                    // declining costs the drag it leaves alone nothing; the middle button
+                    // never reaches a `DragGesture`. Locations are this container's own, the
+                    // space `fitted` is in — never an `NSEvent`'s.
                     .simultaneousGesture(
                         DragGesture(minimumDistance: 3)
                             .onChanged { value in
+                                // Every drag on the Live View passes here, whoever owns it,
+                                // so its release is known to be no click.
+                                press.dragged()
                                 guard mode == .normal, let map = appState.mapScale else { return }
                                 dragSelectionRectangle(value, map: map, frame: fitted)
                             }
@@ -853,6 +861,7 @@ struct ControlView: View {
                                     endSelectionRectangle(value, map: map, frame: fitted)
                                 }
                                 selectionDrag = nil
+                                press.ended()
                             }
                     )
                     // The middle button pans the Magnifier in every mode, because no mode
@@ -1037,14 +1046,17 @@ struct ControlView: View {
                           isFogOverlayOn: appState.isFogOverlayOn,
                           hasVisibility: appState.hasDeclaredGrid)
                   },
-                  onMove: { appState.movePawn(id: $0, to: $1) },
+                  // Each token's drag tells `press` it is under way and when it ends, so the
+                  // selection rectangle stays out of it and its release is no click.
+                  onMove: { press.tokenDragged(); appState.movePawn(id: $0, to: $1) },
                   onCommit: { id, origin in
+                      press.ended()
                       appState.commitPawnMove(id: id, from: origin)
                   },
-                  onMoveLight: { appState.moveLight(id: $0, to: $1) },
-                  onCommitLight: { appState.commitLightMove() },
-                  onMoveSelection: { appState.moveSelection($0, by: $1) },
-                  onCommitSelection: { appState.commitSelectionMove($0) },
+                  onMoveLight: { press.tokenDragged(); appState.moveLight(id: $0, to: $1) },
+                  onCommitLight: { press.ended(); appState.commitLightMove() },
+                  onMoveSelection: { press.tokenDragged(); appState.moveSelection($0, by: $1) },
+                  onCommitSelection: { press.ended(); appState.commitSelectionMove($0) },
                   hoveredPawnID: hoveredPawnID,
                   selection: appState.selection)
         // Above the tokens: a Measurement is what the DM is pointing at, and a cone
@@ -1117,7 +1129,8 @@ struct ControlView: View {
         // AppKit's modifier state, which is safe where its *location* is not: there is no
         // coordinate space to get wrong in a flag.
         switch armed.leftClick(isShiftDown: NSEvent.modifierFlags.contains(.shift),
-                               on: pickTarget(map: map, frame: frame)) {
+                               on: pickTarget(map: map, frame: frame),
+                               endsDrag: press.takeDragEnd()) {
         case .armedTool: break
         case .toggle(.pawn(let id)): appState.toggleSelection(pawn: id); return
         case .toggle(.light(let id)): appState.toggleSelection(light: id); return
@@ -1298,7 +1311,9 @@ struct ControlView: View {
 
     /// A step of the primary drag on the Live View. The first one decides, once, whether this
     /// drag is the selection rectangle's — `SelectionRectangle.begins` — from where the press
-    /// went down, not from where the pointer is now; every later one moves the far corner.
+    /// went down, not from where the pointer is now, and from whether a token's own drag
+    /// (`press`) has already picked something up there: that drag starts sooner and may
+    /// have carried the token off the spot. Every later step moves the far corner.
     ///
     /// ⌥ and ⇧ are read from AppKit's modifier state, which is safe where its location is
     /// not: a flag has no coordinate space to get wrong.
@@ -1313,7 +1328,8 @@ struct ControlView: View {
                                         map: map, frame: frame)
             guard SelectionRectangle.begins(isArmed: armed.isArmed,
                                             isOptionDown: flags.contains(.option),
-                                            startsOn: token) else {
+                                            startsOn: token,
+                                            isTokenDragging: press.isTokenDragging) else {
                 selectionDrag = .declined
                 return
             }

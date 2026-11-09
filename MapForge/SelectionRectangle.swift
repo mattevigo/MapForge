@@ -47,10 +47,18 @@ enum SelectionRectangle {
     /// Light Marker is that token's own, and moves it. The middle button needs no rule
     /// here — SwiftUI's `DragGesture` never sees it (`MiddleMouseDragModifier`).
     ///
+    /// "Starts on a token" is asked two ways, because neither alone survives the token
+    /// moving. `token` is what stands under the press *now*; `isTokenDragging` is whether a
+    /// token's own drag has already picked one up. That drag starts at one point and this
+    /// decision at three, so by the time it is asked, a token pressed near its rim — or the
+    /// whole Selection it carries — may have moved off the spot, leaving `token` nil. The
+    /// drag in progress still says whose drag this is.
+    ///
     /// Decided at the start and not re-asked: a drag that began on a token and crossed onto
     /// the bare Map is still dragging that token.
-    static func begins(isArmed: Bool, isOptionDown: Bool, startsOn token: LiveHitTest?) -> Bool {
-        !isArmed && !isOptionDown && token == nil
+    static func begins(isArmed: Bool, isOptionDown: Bool, startsOn token: LiveHitTest?,
+                       isTokenDragging: Bool) -> Bool {
+        !isArmed && !isOptionDown && token == nil && !isTokenDragging
     }
 
     /// One primary drag on the Live View, as far as the rectangle is concerned. Held by
