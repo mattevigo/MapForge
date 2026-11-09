@@ -58,6 +58,10 @@ struct ControlView: View {
     /// The transform a middle-button drag started from, for the same reason. One for all
     /// three modes: that drag is attached to the preview itself, not to a mode's overlay.
     @State private var middlePanStart: PreviewTransform?
+    /// The primary drag on the Live View, while one is under way, as the selection rectangle
+    /// sees it: declined, or a rectangle being drawn. Nil between drags. See
+    /// `SelectionRectangle.Drag`.
+    @State private var selectionDrag: SelectionRectangle.Drag?
     /// The transform a pinch started from: `MagnifyGesture` reports cumulative
     /// magnification, so compounding it against the live scale would accelerate. Attached
     /// to the preview, like the middle-button drag, so every mode pinches the same way.
@@ -708,6 +712,22 @@ struct ControlView: View {
                                 .frame(width: fitted.width, height: fitted.height)
                                 .position(x: fitted.midX, y: fitted.midY)
                         }
+                        // The selection rectangle, above the tokens so the DM sees what it
+                        // covers. Held in Map space and drawn back through `fitted`, so it
+                        // stays on the same patch of artwork if the Magnifier moves mid-drag.
+                        // Here and nowhere else: the Player Display never builds this view,
+                        // and the table never learns what the DM is picking.
+                        if mode == .normal, let map = appState.mapScale,
+                           let rect = selectionDrag?.mapRect {
+                            let drawn = rect.applying(PlayerPlacement.mapToView(map: map,
+                                                                                frame: fitted))
+                            Rectangle()
+                                .fill(Color.accentColor.opacity(0.12))
+                                .overlay(Rectangle().stroke(Color.accentColor, lineWidth: 1))
+                                .frame(width: drawn.width, height: drawn.height)
+                                .position(x: drawn.midX, y: drawn.midY)
+                                .allowsHitTesting(false)
+                        }
                     }
                     // Pin to the preview and clip. Both are load-bearing: without the
                     // frame the ZStack sizes itself to the zoomed Image and the reader
@@ -812,6 +832,28 @@ struct ControlView: View {
                                                          container: previewSize)
                             }
                             .onEnded { _ in livePanStart = nil }
+                    )
+                    // With nothing armed, a plain drag that starts on the bare Map draws the
+                    // selection rectangle, and its release picks the Pawns inside. Every
+                    // other drag here is left as it was: `SelectionRectangle.begins` declines
+                    // one with anything armed (the Viewport's drag, an armed tool's), one with
+                    // ⌥ (the pan above), and one that starts on a token (that token's own
+                    // drag, in `PawnLayer`). Simultaneous, like the pan, so declining costs
+                    // the drag it leaves alone nothing; the middle button never reaches a
+                    // `DragGesture`. Locations are this container's own, the space `fitted`
+                    // is in — never an `NSEvent`'s.
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 3)
+                            .onChanged { value in
+                                guard mode == .normal, let map = appState.mapScale else { return }
+                                dragSelectionRectangle(value, map: map, frame: fitted)
+                            }
+                            .onEnded { value in
+                                if mode == .normal, let map = appState.mapScale {
+                                    endSelectionRectangle(value, map: map, frame: fitted)
+                                }
+                                selectionDrag = nil
+                            }
                     )
                     // The middle button pans the Magnifier in every mode, because no mode
                     // uses that button for anything else, so unlike ⌥-drag it needs no
@@ -1249,6 +1291,48 @@ struct ControlView: View {
         if let id = hoveredPawnID(map: map, frame: frame) { return .pawn(id) }
         if case .light(let id)? = liveHit(map: map, frame: frame) { return .light(id) }
         return nil
+    }
+
+    /// A step of the primary drag on the Live View. The first one decides, once, whether this
+    /// drag is the selection rectangle's — `SelectionRectangle.begins` — from where the press
+    /// went down, not from where the pointer is now; every later one moves the far corner.
+    ///
+    /// ⌥ and ⇧ are read from AppKit's modifier state, which is safe where its location is
+    /// not: a flag has no coordinate space to get wrong.
+    private func dragSelectionRectangle(_ value: DragGesture.Value, map: MapScale,
+                                        frame: CGRect) {
+        let end = PlayerPlacement.mapPoint(value.location, map: map, frame: frame)
+        switch selectionDrag {
+        case nil:
+            let flags = NSEvent.modifierFlags
+            let token = SelectionRectangle.token(under: value.startLocation,
+                                                 pawns: appState.fog.pawns,
+                                                 lights: appState.fog.lights,
+                                                 map: map, frame: frame)
+            guard SelectionRectangle.begins(isArmed: isArmedForSelection,
+                                            isOptionDown: flags.contains(.option),
+                                            startsOn: token) else {
+                selectionDrag = .declined
+                return
+            }
+            selectionDrag = .drawing(
+                from: PlayerPlacement.mapPoint(value.startLocation, map: map, frame: frame),
+                to: end, adding: flags.contains(.shift))
+        case .drawing(let start, _, let adding)?:
+            selectionDrag = .drawing(from: start, to: end, adding: adding)
+        case .declined?:
+            break
+        }
+    }
+
+    /// The release: the Pawns whose centres the rectangle covers replace the Selection, or
+    /// join it with ⇧ — held as the drag began or as it ends. A declined drag does nothing.
+    private func endSelectionRectangle(_ value: DragGesture.Value, map: MapScale,
+                                       frame: CGRect) {
+        guard case .drawing(let start, _, let adding)? = selectionDrag else { return }
+        let end = PlayerPlacement.mapPoint(value.location, map: map, frame: frame)
+        appState.selectPawns(inside: SelectionRectangle.mapRect(from: start, to: end),
+                             adding: adding || NSEvent.modifierFlags.contains(.shift))
     }
 
     private func measurementUnderCursor(map: MapScale,
