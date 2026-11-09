@@ -50,7 +50,7 @@ final class SelectionMoveTests: XCTestCase {
         XCTAssertEqual(position(of: lantern, in: state), MapPoint(x: 320, y: 140))
     }
 
-    /// A Light Marker that is a member carries the party as a Pawn does: the rogue's lantern
+    /// A Light Marker that is a member carries the whole Selection as a Pawn does: the rogue's lantern
     /// can lead.
     func testGrabbingAPickedLightMovesTheWholeSelection() throws {
         let state = makeAppState()
@@ -72,7 +72,7 @@ final class SelectionMoveTests: XCTestCase {
     }
 
     /// A Pawn or a Light that is not picked moves alone, exactly as before there was a
-    /// Selection, and the party it was dragged past stays where it stood, still picked.
+    /// Selection, and the members it was dragged past stay where they stood, still picked.
     func testDraggingANonMemberMovesOnlyItAndLeavesTheSelectionWhereItWas() {
         let state = makeAppState()
         let rogue = pawn("Rogue", at: MapPoint(x: 100, y: 100))
@@ -108,7 +108,7 @@ final class SelectionMoveTests: XCTestCase {
     // MARK: The image edge
 
     /// The whole Selection stops when its first member reaches the edge — here the lantern,
-    /// so a Light holds the party back as surely as a Pawn would. Nobody is clamped on their
+    /// so a Light holds the Selection back as surely as a Pawn would. Nobody is clamped on their
     /// own: the formation arrives at the edge intact rather than squashed against it.
     func testATranslationPastTheEdgeStopsTheWholeSelectionWhereItsFirstMemberReachesIt()
         throws {
@@ -250,7 +250,7 @@ final class SelectionMoveTests: XCTestCase {
         XCTAssertEqual(try sessionLines(state), linesBefore)
     }
 
-    /// The Selection survives the move, so the DM can walk the party down a corridor in
+    /// The Selection survives the move, so the DM can walk the same members down a corridor in
     /// several drags.
     func testTheSelectionSurvivesTheMove() throws {
         let state = makeAppState()

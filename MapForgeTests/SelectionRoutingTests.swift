@@ -5,8 +5,8 @@ import XCTest
 ///
 /// Picking happens only while nothing is armed — no Add, no Measurement, no Viewport. While
 /// something is, every click belongs to it as before, ⇧ or not; and Esc backs out of it
-/// first, so the DM who armed a tool and changed their mind does not lose the party they
-/// had picked (`CONTEXT.md`, **Selection**; the `pawn-selection` spec).
+/// first, so the DM who armed a tool and changed their mind does not lose the Selection
+/// they had picked (`CONTEXT.md`, **Selection**; the `pawn-selection` spec).
 final class SelectionRoutingTests: XCTestCase {
     private let rogue = Pawn(at: MapPoint(x: 100, y: 100), label: "Rogue",
                              colorHex: Pawn.defaultColorHex, brightSquares: 6)
@@ -83,7 +83,7 @@ final class SelectionRoutingTests: XCTestCase {
     // MARK: Esc
 
     /// Esc peels back one layer at a time: the armed tool first, then the Selection. The DM
-    /// who armed Add and thought better of it keeps the party they had picked.
+    /// who armed Add and thought better of it keeps the Selection they had picked.
     func testEscDisarmsAddFirstAndClearsTheSelectionOnTheNextPress() {
         XCTAssertEqual(escape(add: true), .disarmAdd)
         // `ControlView` has disarmed Add; the next press finds nothing armed.
@@ -102,7 +102,7 @@ final class SelectionRoutingTests: XCTestCase {
 
     /// A Measurement on screen keeps Esc for itself — it abandons typed digits, and never
     /// the Measurement (right-click is the one dismissal, after ADR-0005). It never falls
-    /// through to the Selection: an Esc meant for the digits must not lose the party.
+    /// through to the Selection: an Esc meant for the digits must not lose the Selection.
     func testEscWithAMeasurementOnScreenIsTheMeasurements() {
         XCTAssertEqual(escape(measurement: true), .measurement)
         XCTAssertEqual(escape(measurement: true, viewport: true), .measurement)

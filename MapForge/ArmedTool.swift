@@ -90,7 +90,7 @@ enum ArmedTool {
 
     /// Esc peels back one layer per press: whatever is armed first, the Selection only once
     /// nothing is. The DM who armed a tool and changed their mind backs out of it without
-    /// losing the party they picked; the next Esc lets the party go.
+    /// losing the Selection they picked; the next Esc lets it go.
     ///
     /// A Measurement on screen never lets Esc through. Esc already means "abandon the
     /// digits" there and deliberately not "dismiss" (right-click is the one dismissal, the

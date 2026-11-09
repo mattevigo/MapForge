@@ -112,7 +112,7 @@ final class SelectionTests: XCTestCase {
         XCTAssertTrue(appState.selection.isEmpty)
     }
 
-    /// Deleting a member takes just that member out — the rest of the party is still picked.
+    /// Deleting a member takes just that member out — every other member is still picked.
     func testDeletingAPickedPawnTakesOnlyThatPawnOut() throws {
         let appState = try loadedAppState()
         let rogue = pawn("Rogue"), fighter = pawn("Fighter")

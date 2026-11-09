@@ -64,8 +64,8 @@ struct SelectionMove {
     ///
     /// The whole Selection stops rather than each member being held by `PawnBounds.clamp`
     /// on its own, which would keep everyone on the Map but squash the formation against
-    /// the edge: the party would arrive in a different shape from the one it set out in.
-    /// Each axis is cut separately, so a party pressed against the east wall still slides
+    /// the edge: the members would arrive in a different shape from the one they set out in.
+    /// Each axis is cut separately, so a Selection pressed against the east wall still slides
     /// north along it, as one Pawn does.
     ///
     /// No move is ever refused outright: were a member already outside the image, a drag

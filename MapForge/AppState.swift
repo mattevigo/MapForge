@@ -605,7 +605,7 @@ final class AppState: ObservableObject {
         let inside = SelectionRectangle.pawnIDs(centredIn: rect, among: fog.pawns)
         var next = selection
         if adding { next.add(pawns: inside) } else { next.replace(withPawns: inside) }
-        // Published only on a change: an empty ⇧-rectangle, or the same party swept again,
+        // Published only on a change: an empty ⇧-rectangle, or the same Pawns swept again,
         // need not redraw every ring.
         if next != selection { selection = next }
     }
@@ -767,14 +767,14 @@ final class AppState: ObservableObject {
     }
 
     /// Move the whole Selection: every member to where it stood as the drag began, plus
-    /// `translation` in image pixels — the party walking down the corridor in formation.
+    /// `translation` in image pixels — the members walking down the corridor in formation.
     ///
     /// Held inside the image as a whole: the translation stops where the first member
     /// reaches the edge, and nobody is clamped on their own — see `SelectionMove.limited`.
     ///
     /// Live and not undoable, on `movePawn`'s terms. One write to `fog` for the lot, not one
     /// per member: each write runs `fog`'s `didSet` and publishes a change, and at drag rate
-    /// a write per member is that work times the party.
+    /// a write per member is that work times the members.
     func moveSelection(_ move: SelectionMove, by translation: CGVector) {
         let translation = mapImage.map { move.limited(translation, toImage: $0.pixelSize) }
             ?? translation

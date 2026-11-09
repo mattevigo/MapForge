@@ -17,7 +17,7 @@ enum SelectionRectangle {
     ///
     /// Pawns only — the signature takes no Lights, so none can come back. A Light joins the
     /// Selection by its own ⇧-click and nothing else; a torch on the floor of the room the
-    /// DM sweeps the party out of is not something they meant to carry along.
+    /// DM sweeps the players' Pawns out of is not something they meant to carry along.
     static func pawnIDs(centredIn rect: CGRect, among pawns: [Pawn]) -> [Pawn.ID] {
         // Not `CGRect.contains`, which leaves out the max edges: a Pawn whose centre the
         // DM drew the edge through is, as far as anyone can see, inside.
