@@ -89,6 +89,14 @@ final class AppState: ObservableObject {
                 }
                 return false
             }
+            // The Selection holds Pawn and Light IDs, so it goes the same way: a deleted
+            // member leaves it and the rest stay picked. Skipped while nothing is picked,
+            // which is nearly always — this runs at drag rate.
+            if !selection.isEmpty {
+                let kept = selection.keepingOnly(pawns: Set(fog.pawns.map(\.id)),
+                                                 lights: Set(fog.lights.map(\.id)))
+                if kept != selection { selection = kept }
+            }
             guard fog != oldValue, mapURL != nil else { return }
             fogAutosave.schedule(fog)
         }
@@ -442,6 +450,9 @@ final class AppState: ObservableObject {
         // its distance means something different under another Map's Grid.
         measurement = nil
         pinnedMeasurements = []
+        // And the Selection, by the rule Solo Sight's line above states: what the DM picked
+        // was picked on the outgoing Map.
+        selection = Selection()
         mapURL = url
         mapImage = image
         viewportOrigin = nil
@@ -551,6 +562,33 @@ final class AppState: ObservableObject {
         guard let id = soloSightPawnID,
               fog.pawns.contains(where: { $0.id == id }) else { return nil }
         return id
+    }
+
+    /// The Pawns and Lights the DM has picked in the Live View — see `Selection`.
+    ///
+    /// Live state beside Solo Sight and the Measurement, and on their terms: never persisted,
+    /// never part of `FogEdits`, and a reference into `fog` that `fog` itself invalidates.
+    /// Drawn on the Control Window only; nothing the Player Display reads looks at it.
+    @Published private(set) var selection = Selection()
+
+    /// ⇧-click on a Pawn with nothing armed. A Pawn not on this Map is refused rather than
+    /// remembered: an ID that matches nothing is the stale reference `fog`'s `didSet`
+    /// exists to prevent.
+    func toggleSelection(pawn id: Pawn.ID) {
+        guard fog.pawns.contains(where: { $0.id == id }) else { return }
+        selection.toggle(pawn: id)
+    }
+
+    /// ⇧-click on a Light Marker with nothing armed, on the same terms as a Pawn's.
+    func toggleSelection(light id: Light.ID) {
+        guard fog.lights.contains(where: { $0.id == id }) else { return }
+        selection.toggle(light: id)
+    }
+
+    /// End the Selection: Esc with nothing armed, or a plain click on the bare Map.
+    func clearSelection() {
+        guard !selection.isEmpty else { return }
+        selection = Selection()
     }
 
     /// The **Measurement** being taken, or nil when nothing is being measured.
@@ -955,9 +993,10 @@ final class AppState: ObservableObject {
 
     /// Delete a Light. No confirmation: a live action the DM can simply repeat.
     ///
-    /// Nothing holds a `Light.ID` the way Solo Sight and a Measurement hold a `Pawn.ID`, so
-    /// unlike `removePawnFromMap` this has nothing to invalidate — `litRegions` recomputes
-    /// from `fog`, and the roster row goes with the Light.
+    /// The one thing that holds a `Light.ID` is the Selection, and `fog`'s `didSet` takes a
+    /// deleted Light out of it as it takes a deleted Pawn out of Solo Sight — so there is
+    /// nothing to invalidate here. `litRegions` recomputes from `fog`, and the roster row
+    /// goes with the Light.
     func removeLight(id: Light.ID) {
         guard fog.lights.contains(where: { $0.id == id }) else { return }
         fog.lights.removeAll { $0.id == id }
@@ -1455,6 +1494,9 @@ final class AppState: ObservableObject {
         // with a different transform — a Measurement left on it would be drawn wrong.
         measurement = nil
         pinnedMeasurements = []
+        // Nothing can be picked in the Wall Editor, so nothing stays picked into it: rings on
+        // tokens the DM cannot move there would promise a drag the mode does not have.
+        selection = Selection()
     }
 
     /// Called as the fog editing mode closes, by Done as well as Cancel.
