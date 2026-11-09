@@ -894,10 +894,10 @@ struct ControlView: View {
                     // over the Map, and no text field has focus. See MeasurementTyping.
                     // Esc alone is claimed, too, with a Selection or the Viewport to back
                     // out of — under the same frame and text-field gates.
-                    .onMeasurementKeys(isArmed: mode == .normal && armed.claimsLeftClick,
-                                       claimsEscape: mode == .normal && claimsEscape,
-                                       isOverMap: mirrorCursor != nil) {
-                        handleMeasurementKey($0)
+                    .onLiveViewKeys(isArmed: mode == .normal && armed.claimsLeftClick,
+                                    claimsEscape: mode == .normal && claimsEscape,
+                                    isOverMap: mirrorCursor != nil) {
+                        handleLiveViewKey($0)
                     }
                     // The Viewport drag measures itself here. Without this space the
                     // gesture falls back to the dragged rectangle's own coordinates,
@@ -1488,9 +1488,10 @@ struct ControlView: View {
                                                   pixelsPerSquare: pixelsPerSquare))
     }
 
-    /// A keystroke the Map claimed while a Measurement is armed. Which keystrokes those
-    /// are is decided by `MeasurementTyping.decide`, not here.
-    private func handleMeasurementKey(_ decision: MeasurementTyping.Decision) {
+    /// A keystroke the Map claimed: digits, ⌫ and Return while a Measurement is armed, and
+    /// Esc whenever there is something to back out of. Which keystrokes those are is decided
+    /// by `MeasurementTyping.decide`, not here.
+    private func handleLiveViewKey(_ decision: MeasurementTyping.Decision) {
         // Esc backs out one layer per press — the armed tool, then the Selection. Only digits
         // typed into a Measurement keep it, and go on to their own handling below.
         if decision == .abandon {

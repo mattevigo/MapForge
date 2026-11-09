@@ -1,8 +1,14 @@
 import AppKit
 import SwiftUI
 
-/// Digit reporting for the Map, so a DM can type an exact distance instead of hunting for
-/// the pixel that happens to be 9 m away.
+/// The Live View's keys: digits, ⌫ and Return for a Measurement being typed, so a DM can
+/// type an exact distance instead of hunting for the pixel that happens to be 9 m away —
+/// and Esc, which backs out of whatever the Live View has on: digits typed, an armed tool,
+/// the Viewport, the Selection (`ArmedTool.State.escape` says which).
+///
+/// Named for the Live View rather than for the Measurement it began with, because Esc
+/// reaches further than a Measurement. Which key is claimed is still
+/// `MeasurementTyping.decide`'s alone; what a claimed key does is the caller's.
 ///
 /// A process-global `NSEvent` monitor, like `DeleteKeyModifier` and `ScrollWheelModifier`,
 /// because SwiftUI focus does not reach a `.position()`-based ZStack. That mechanism has a
@@ -13,7 +19,7 @@ import SwiftUI
 ///
 /// Scoped by frame like `ScrollWheelModifier` rather than by window like `DeleteKey`: the
 /// Control Window is full of digit-friendly fields, and only the Map should claim digits.
-struct MeasurementKeysModifier: ViewModifier {
+struct LiveViewKeysModifier: ViewModifier {
     /// Whether a Measurement is armed. The narrowest of the three gates, and the reason
     /// this monitor is tolerable at all: it is live only in a state the DM entered
     /// deliberately, and torn down with the Measurement.
@@ -91,13 +97,13 @@ private extension NSEvent.ModifierFlags {
 }
 
 extension View {
-    /// Reports digits, ⌫, Return and Esc to a Measurement being typed. Claims nothing
-    /// unless a Measurement is armed — or, for Esc alone, `claimsEscape` — the cursor is
-    /// over this view, and no text field has focus — see `MeasurementTyping.decide`.
-    func onMeasurementKeys(isArmed: Bool, claimsEscape: Bool = false, isOverMap: Bool,
-                           perform onDecision: @escaping (MeasurementTyping.Decision) -> Void)
+    /// Reports the Live View's keys — digits, ⌫, Return and Esc. Claims nothing unless a
+    /// Measurement is armed — or, for Esc alone, `claimsEscape` — the cursor is over this
+    /// view, and no text field has focus — see `MeasurementTyping.decide`.
+    func onLiveViewKeys(isArmed: Bool, claimsEscape: Bool = false, isOverMap: Bool,
+                        perform onDecision: @escaping (MeasurementTyping.Decision) -> Void)
     -> some View {
-        modifier(MeasurementKeysModifier(isArmed: isArmed, claimsEscape: claimsEscape,
-                                         isOverMap: isOverMap, onDecision: onDecision))
+        modifier(LiveViewKeysModifier(isArmed: isArmed, claimsEscape: claimsEscape,
+                                      isOverMap: isOverMap, onDecision: onDecision))
     }
 }

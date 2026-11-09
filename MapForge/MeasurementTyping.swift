@@ -30,6 +30,7 @@ enum MeasurementTyping {
     /// - `isEditingText` — nothing is taking text input. The gate `DeleteKey` learned the
     ///   hard way; a DM typing into "Grid squares wide" must not also be sizing a cone.
     ///
+    /// Asked of every key the Live View hears (`onLiveViewKeys`), not only a Measurement's:
     /// `claimsEscape` opens the first gate for Esc alone: with a Selection or the Viewport to
     /// back out of and no Measurement, Esc means something on the Map and nothing else does,
     /// so every digit still goes back to AppKit. What the claimed Esc backs out of is
