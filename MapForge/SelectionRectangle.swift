@@ -70,27 +70,4 @@ enum SelectionRectangle {
             return SelectionRectangle.mapRect(from: from, to: to)
         }
     }
-
-    /// The Pawn or Light Marker under a press, as drawn — `point` and `frame` in the same
-    /// view space, the one `PawnLayer` draws in.
-    ///
-    /// Asked of the tokens on screen, not of `LiveHitTest`'s Map-space footprints, because
-    /// the question is whose drag the press belongs to, and each token's drag is attached to
-    /// what is drawn: a token's whole disc (`PawnLayer.pawnID(under:)`) and a marker's
-    /// square-wide grab area (`PawnLayer.lightGrabSide`). A narrower test would let the
-    /// rectangle start on the rim of a token whose own drag is moving it at the same time.
-    /// The Pawn first: it is drawn over any marker it stands on.
-    static func token(under point: CGPoint, pawns: [Pawn], lights: [Light], map: MapScale,
-                      frame: CGRect) -> LiveHitTest? {
-        if let id = PawnLayer.pawnID(under: point, pawns: pawns, map: map, frame: frame) {
-            return .pawn(id)
-        }
-        let side = PlayerPlacement.squareSidePoints(map: map, frame: frame)
-        let radius = PawnLayer.lightGrabSide(squareSide: side) / 2
-        return lights.last { light in
-            let centre = PlayerPlacement.viewPoint(light.at, map: map, frame: frame)
-            let dx = point.x - centre.x, dy = point.y - centre.y
-            return dx * dx + dy * dy <= radius * radius
-        }.map { .light($0.id) }
-    }
 }

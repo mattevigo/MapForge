@@ -239,8 +239,8 @@ final class SelectionRectangleTests: XCTestCase {
         // 800 pixels across 20 squares, drawn 800 points wide: 40 points a square.
         let map = MapScale(imagePixelSize: CGSize(width: 800, height: 600),
                            physicalWidthInches: 20)
-        return SelectionRectangle.token(under: point, pawns: pawns, lights: lights, map: map,
-                                        frame: CGRect(x: 0, y: 0, width: 800, height: 600))
+        return PawnLayer.token(under: point, pawns: pawns, lights: lights, map: map,
+                               frame: CGRect(x: 0, y: 0, width: 800, height: 600))
     }
 
     // MARK: Fixtures

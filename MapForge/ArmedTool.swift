@@ -53,8 +53,9 @@ enum ArmedTool {
         /// for that must not quietly change what is picked.
         var isArmed: Bool { claimsLeftClick || isViewportArmed }
 
-        /// Where a left-click goes. `target` is the token under it — the Pawn before the
-        /// Light Marker it stands on, because the Pawn is drawn above it.
+        /// Where a left-click goes. `target` is the token under it as drawn,
+        /// `PawnLayer.token(under:)` — the area each token's drag answers to, and the Pawn
+        /// before the Light Marker it stands on, because the Pawn is drawn above it.
         ///
         /// Picking is ⇧'s alone, and only while nothing is armed. A plain click on a token is
         /// the start of its drag or nothing at all, so it neither picks the token nor drops

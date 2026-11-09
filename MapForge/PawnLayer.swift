@@ -128,10 +128,34 @@ struct PawnLayer: View {
     }
 
     /// How far across a Light Marker can be grabbed, in this layer's points: a square's
-    /// worth, never under 18. Named so the selection rectangle can ask whether a press
-    /// landed on a marker — the drag it must leave alone — by the same measure the marker
-    /// is grabbed by.
+    /// worth, never under 18. Named so `token(under:)` asks whether a press or a click
+    /// landed on a marker by the same measure the marker is grabbed by.
     static func lightGrabSide(squareSide side: CGFloat) -> CGFloat { max(side, 18) }
+
+    /// The Pawn or Light Marker under `point` as drawn — `point` and `frame` in the same view
+    /// space, the one this layer draws in — or nil on the bare Map.
+    ///
+    /// Asked of the tokens on screen, not of `LiveHitTest`'s Map-space footprints, because
+    /// the question is whose drag a press belongs to, and each token's drag is attached to
+    /// what is drawn: a token's whole disc (`pawnID(under:)`) and a marker's square-wide grab
+    /// area (`lightGrabSide`, a circle, as its `contentShape` is). A ⇧-click picks by it and
+    /// a plain click on the bare Map is one where it finds nothing, so a click the DM sees
+    /// land on a marker's grab area is never taken for the bare Map; and the selection
+    /// rectangle declines a drag that starts on one, which is that token's own drag. The
+    /// Pawn first: it is drawn over any marker it stands on.
+    static func token(under point: CGPoint, pawns: [Pawn], lights: [Light], map: MapScale,
+                      frame: CGRect) -> LiveHitTest? {
+        if let id = pawnID(under: point, pawns: pawns, map: map, frame: frame) {
+            return .pawn(id)
+        }
+        let side = PlayerPlacement.squareSidePoints(map: map, frame: frame)
+        let radius = lightGrabSide(squareSide: side) / 2
+        return lights.last { light in
+            let centre = PlayerPlacement.viewPoint(light.at, map: map, frame: frame)
+            let dx = point.x - centre.x, dy = point.y - centre.y
+            return dx * dx + dy * dy <= radius * radius
+        }.map { .light($0.id) }
+    }
 
     /// The Pawn whose token, as drawn, is under `point` — in the space `frame` is given in.
     ///

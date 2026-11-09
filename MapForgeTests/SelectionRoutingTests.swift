@@ -37,6 +37,29 @@ final class SelectionRoutingTests: XCTestCase {
                        .toggle(.pawn(rogue.id)))
     }
 
+    /// A click is on a Light Marker wherever its drag would pick the marker up — the whole
+    /// square-wide grab area the DM sees the marker answer to, not only the half-square box
+    /// the right-click menu's `LiveHitTest` measures. So a ⇧-click there picks the marker,
+    /// and a plain click there is never "the bare Map": it does not end the Selection.
+    func testAClickInsideALightMarkersGrabAreaIsOnTheMarker() {
+        // 800 pixels across 20 squares, drawn 800 points wide: 40 points, and 40 pixels, a
+        // square. The grab area reaches 20 from the marker's centre; the box only 10.
+        let map = MapScale(imagePixelSize: CGSize(width: 800, height: 600),
+                           physicalWidthInches: 20)
+        let frame = CGRect(x: 0, y: 0, width: 800, height: 600)
+        let press = CGPoint(x: 317, y: 300)
+        XCTAssertNil(LiveHitTest.hit(at: MapPoint(x: 317, y: 300), pawns: [],
+                                     lights: [lantern], gridPixels: 40),
+                     "the press is outside the right-click menu's box")
+
+        let target = PawnLayer.token(under: press, pawns: [], lights: [lantern], map: map,
+                                     frame: frame)
+
+        XCTAssertEqual(ArmedTool.State().leftClick(isShiftDown: true, on: target),
+                       .toggle(.light(lantern.id)))
+        XCTAssertEqual(ArmedTool.State().leftClick(isShiftDown: false, on: target), .nothing)
+    }
+
     /// With Add armed, ⇧-click on a token still places the new Pawn — the click is the
     /// armed tool's, exactly as a plain one is.
     func testShiftClickWithSomethingArmedGoesToTheArmedTool() {

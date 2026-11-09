@@ -1281,17 +1281,19 @@ struct ControlView: View {
         return PawnLayer.pawnID(under: cursor, pawns: appState.fog.pawns, map: map, frame: frame)
     }
 
-    /// What a ⇧-click picks: the Pawn whose token, as drawn, is under the cursor — the one
-    /// on top, and the one standing on a Light Marker rather than the marker — or else the
-    /// Light Marker there.
+    /// What a click lands on, for the Selection: the token under the cursor as drawn — the
+    /// Pawn on top, the Pawn rather than the Light Marker it stands on, or else the marker —
+    /// or nil on the bare Map.
     ///
-    /// The token as drawn rather than `liveHit`'s Pawn, for the reason `hoveredPawnID` gives:
-    /// with no Grid declared `LiveHitTest` answers for a speck at the token's centre, and a
-    /// ⇧-click on the edge of a hundred-point token would miss it and pick nothing.
+    /// Asked of `PawnLayer.token(under:)`, the area each token's own drag answers to, rather
+    /// than of `liveHit`: with no Grid declared `LiveHitTest` answers for a speck at a token's
+    /// centre, and it gives a Light Marker half the grab area the DM sees it picked up by. A
+    /// ⇧-click on either edge would pick nothing, and a plain one would end the Selection
+    /// as a click on the bare Map.
     private func pickTarget(map: MapScale, frame: CGRect) -> LiveHitTest? {
-        if let id = hoveredPawnID(map: map, frame: frame) { return .pawn(id) }
-        if case .light(let id)? = liveHit(map: map, frame: frame) { return .light(id) }
-        return nil
+        guard let cursor = mirrorCursor else { return nil }
+        return PawnLayer.token(under: cursor, pawns: appState.fog.pawns,
+                               lights: appState.fog.lights, map: map, frame: frame)
     }
 
     /// A step of the primary drag on the Live View. The first one decides, once, whether this
@@ -1306,10 +1308,9 @@ struct ControlView: View {
         switch selectionDrag {
         case nil:
             let flags = NSEvent.modifierFlags
-            let token = SelectionRectangle.token(under: value.startLocation,
-                                                 pawns: appState.fog.pawns,
-                                                 lights: appState.fog.lights,
-                                                 map: map, frame: frame)
+            let token = PawnLayer.token(under: value.startLocation,
+                                        pawns: appState.fog.pawns, lights: appState.fog.lights,
+                                        map: map, frame: frame)
             guard SelectionRectangle.begins(isArmed: armed.isArmed,
                                             isOptionDown: flags.contains(.option),
                                             startsOn: token) else {
