@@ -749,13 +749,20 @@ struct ControlView: View {
                             measurementMenu(map: map, frame: fitted)
                         }
                     }
+                    // Heard on the Live View whether or not anything is armed. It used to be
+                    // gated on `claimsLeftClick`, out of caution that a tap here might swallow
+                    // the Pawn drag underneath — but it is simultaneous, it fails the moment
+                    // the pointer moves, and a Pawn has been dragged under it every time Add
+                    // or a Measurement was armed. The Selection needs the idle click: ⇧ picks
+                    // and a plain click on the bare Map lets go. `ArmedTool.leftClick` says
+                    // which click is whose.
                     .simultaneousGesture(
                         TapGesture().onEnded {
                             if mode == .normal, let map = appState.mapScale {
                                 leftClick(map: map, frame: fitted)
                             }
                         },
-                        including: mode == .normal && claimsLeftClick ? .all : .subviews
+                        including: mode == .normal ? .all : .subviews
                     )
                     // The wheel zooms and a swipe pans — `ScrollIntent` tells the two apart —
                     // in every mode, on the one Magnifier. The Viewport is untouched even
@@ -834,7 +841,10 @@ struct ControlView: View {
                     }
                     // Digits are claimed only while a Measurement is armed, the cursor is
                     // over the Map, and no text field has focus. See MeasurementTyping.
+                    // Esc alone is claimed, too, with a Selection or the Viewport to back
+                    // out of — under the same frame and text-field gates.
                     .onMeasurementKeys(isArmed: mode == .normal && claimsLeftClick,
+                                       claimsEscape: mode == .normal && claimsEscape,
                                        isOverMap: mirrorCursor != nil) {
                         handleMeasurementKey($0)
                     }
@@ -991,7 +1001,8 @@ struct ControlView: View {
                   },
                   onMoveLight: { appState.moveLight(id: $0, to: $1) },
                   onCommitLight: { appState.commitLightMove() },
-                  hoveredPawnID: hoveredPawnID)
+                  hoveredPawnID: hoveredPawnID,
+                  selection: appState.selection)
         // Above the tokens: a Measurement is what the DM is pointing at, and a cone
         // half-hidden behind the party is unreadable.
         if let pixelsPerSquare = appState.pixelsPerSquare {
@@ -1057,6 +1068,19 @@ struct ControlView: View {
     /// step: place the Origin, settle the distance, clear it. The DM never has to remember
     /// which button does which.
     private func leftClick(map: MapScale, frame: CGRect) {
+        // The Selection first, because it is what an unarmed click is for — and with
+        // anything armed this hands the click straight on, ⇧ or not. The ⇧ is read from
+        // AppKit's modifier state, which is safe where its *location* is not: there is no
+        // coordinate space to get wrong in a flag.
+        switch ArmedTool.leftClick(isArmed: isArmedForSelection,
+                                   isShiftDown: NSEvent.modifierFlags.contains(.shift),
+                                   on: pickTarget(map: map, frame: frame)) {
+        case .armedTool: break
+        case .toggle(.pawn(let id)): appState.toggleSelection(pawn: id); return
+        case .toggle(.light(let id)): appState.toggleSelection(light: id); return
+        case .clearSelection: appState.clearSelection(); return
+        case .nothing: return
+        }
         // `Add` is armed and waiting for a point. First, and unambiguous: the two armings
         // are mutually exclusive, so this and the Measurement branch below can never both
         // want the same click.
@@ -1214,6 +1238,19 @@ struct ControlView: View {
         return PawnLayer.pawnID(under: cursor, pawns: appState.fog.pawns, map: map, frame: frame)
     }
 
+    /// What a ⇧-click picks: the Pawn whose token, as drawn, is under the cursor — the one
+    /// on top, and the one standing on a Light Marker rather than the marker — or else the
+    /// Light Marker there.
+    ///
+    /// The token as drawn rather than `liveHit`'s Pawn, for the reason `hoveredPawnID` gives:
+    /// with no Grid declared `LiveHitTest` answers for a speck at the token's centre, and a
+    /// ⇧-click on the edge of a hundred-point token would miss it and pick nothing.
+    private func pickTarget(map: MapScale, frame: CGRect) -> LiveHitTest? {
+        if let id = hoveredPawnID(map: map, frame: frame) { return .pawn(id) }
+        if case .light(let id)? = liveHit(map: map, frame: frame) { return .light(id) }
+        return nil
+    }
+
     private func measurementUnderCursor(map: MapScale,
                                         frame: CGRect) -> LiveMenu.MeasurementUnderCursor? {
         guard let cursor = mirrorCursor,
@@ -1332,6 +1369,20 @@ struct ControlView: View {
                                   hasMeasurement: appState.measurement != nil)
     }
 
+    /// Whether a click or an Esc has something armed to go to before it may reach the
+    /// Selection — `claimsLeftClick` and the Viewport. See `ArmedTool.isArmed`.
+    private var isArmedForSelection: Bool {
+        ArmedTool.isArmed(hasArmedAdd: armedAdd != nil, hasArmedShape: armedShape != nil,
+                          hasMeasurement: appState.measurement != nil,
+                          isViewportArmed: isShowingViewport)
+    }
+
+    /// Whether the Map claims Esc with no Measurement to type into: there is the Viewport to
+    /// put away, or a Selection to let go. Never digits — see `MeasurementTyping.decide`.
+    private var claimsEscape: Bool {
+        isShowingViewport || !appState.selection.isEmpty
+    }
+
     /// Follow the cursor: an armed Measurement rubber-bands as the mouse moves, so the
     /// shape is live before it is committed. Distance snaps to whole squares — every DnD
     /// distance is a multiple of one, and nobody reads "8.7 m" off a screen.
@@ -1349,6 +1400,20 @@ struct ControlView: View {
     /// A keystroke the Map claimed while a Measurement is armed. Which keystrokes those
     /// are is decided by `MeasurementTyping.decide`, not here.
     private func handleMeasurementKey(_ decision: MeasurementTyping.Decision) {
+        // Esc backs out one layer per press — the armed tool, then the Selection. Only a
+        // Measurement on screen keeps it, and goes on to its own handling below.
+        if decision == .abandon {
+            switch ArmedTool.escape(hasArmedAdd: armedAdd != nil,
+                                    hasArmedShape: armedShape != nil,
+                                    hasMeasurement: appState.measurement != nil,
+                                    isViewportArmed: isShowingViewport) {
+            case .disarmAdd: armedAdd = nil; return
+            case .disarmShape: armedShape = nil; return
+            case .putViewportAway: isShowingViewport = false; return
+            case .clearSelection: appState.clearSelection(); return
+            case .measurement: break
+            }
+        }
         // An armed tool has no Measurement yet, and the only key that means anything to it
         // is the one that backs out. `Add` arms the same way and Esc backs out of it too.
         if armedAdd != nil {

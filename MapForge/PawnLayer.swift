@@ -38,6 +38,13 @@ struct PawnLayer: View {
     /// tracking hover on each token: reading the cursor adds no gesture, so dragging a Pawn,
     /// Add, a Measurement and the Viewport see exactly the clicks they saw before.
     var hoveredPawnID: Pawn.ID?
+    /// What the DM has picked, each member of which wears a ring. Handed in the way
+    /// `hoveredPawnID` is, and for a stronger reason: this layer is the Control Window's
+    /// alone, so a ring drawn here cannot reach the Player Display — drawing it inside the
+    /// shared `PawnToken` or `LightMarker` would put one flag between the table and what
+    /// the DM picked. Picking a Pawn does not show its label: the ring says which, and a
+    /// Face says who.
+    var selection = Selection()
 
     @State private var dragStart: MapPoint?
     /// The Pawn being dragged, which keeps its label for the whole drag. The pointer is on
@@ -58,6 +65,13 @@ struct PawnLayer: View {
                     // The same 0.4 a Pawn the players cannot see gets, because it is the
                     // same statement: the table cannot see this.
                     .opacity(isLightDimmed(light) ? 0.4 : 1)
+                    // Unfaded, as a Pawn's ring is.
+                    .overlay {
+                        if selection.contains(light: light.id) {
+                            SelectionRing(shape: AnyShape(Circle()),
+                                          diameter: LightMarker.diameter(squareSide: max(side, 12)))
+                        }
+                    }
                     // A marker is a small dot; the grab area is a square's worth, so the
                     // DM is not hunting nine points with a trackpad. Under the tokens still,
                     // so a Pawn standing on a brazier is what a drag there picks up.
@@ -69,9 +83,20 @@ struct PawnLayer: View {
             }
             ForEach(pawns) { pawn in
                 let p = PlayerPlacement.viewPoint(pawn.at, map: map, frame: frame)
-                PawnToken(pawn: pawn, squareSide: Self.tokenSide(map: map, frame: frame),
+                let tokenSide = Self.tokenSide(map: map, frame: frame)
+                PawnToken(pawn: pawn, squareSide: tokenSide,
                           isHovered: pawn.id == pointedAt)
                     .opacity(isDimmed(pawn) ? 0.4 : 1)
+                    // Over the faded token, not faded with it: which Pawns are picked is
+                    // the DM's to see at full strength, whatever the table can see.
+                    .overlay {
+                        if selection.contains(pawn: pawn.id) {
+                            let diameter = tokenSide * pawn.squaresAcross
+                            SelectionRing(shape: PawnToken.outline(for: pawn.kind,
+                                                                   diameter: diameter),
+                                          diameter: diameter)
+                        }
+                    }
                     .position(x: p.x, y: p.y)
                     .gesture(drag(pawn))
                     // A test hook, and the only way to ask "is this Pawn on the preview":
@@ -151,5 +176,30 @@ struct PawnLayer: View {
                 draggedPawnID = nil
                 onCommit(pawn.id, origin)
             }
+    }
+}
+
+/// The ring a member of the Selection wears on the Control Window: the token's own outline,
+/// drawn just outside it in the system accent colour.
+///
+/// Outside rather than over the edge, so a Face is not cropped by it and a token in a
+/// colour near the accent's still shows a gap of its own; a dark hairline beneath the
+/// accent keeps it readable on pale artwork, where a blue on sandstone would fade.
+private struct SelectionRing: View {
+    let shape: AnyShape
+    /// The width of what it rings — the token's disc or square, or a Light Marker's dot.
+    let diameter: CGFloat
+
+    private static let gap: CGFloat = 2
+    private static let width: CGFloat = 3
+
+    var body: some View {
+        let side = diameter + 2 * (Self.gap + Self.width / 2)
+        ZStack {
+            shape.stroke(Color.black.opacity(0.55), lineWidth: Self.width + 2)
+            shape.stroke(Color.accentColor, lineWidth: Self.width)
+        }
+        .frame(width: side, height: side)
+        .allowsHitTesting(false)
     }
 }

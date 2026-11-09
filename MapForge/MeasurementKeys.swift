@@ -18,6 +18,9 @@ struct MeasurementKeysModifier: ViewModifier {
     /// this monitor is tolerable at all: it is live only in a state the DM entered
     /// deliberately, and torn down with the Measurement.
     let isArmed: Bool
+    /// Whether Esc alone is claimed with no Measurement armed — there is a Selection or the
+    /// Viewport to back out of. Every other key still passes through.
+    var claimsEscape = false
     /// Whether the cursor is over the Map. Passed in from `onContinuousHover` rather than
     /// computed here: an `NSEvent` location cannot be converted into the space a
     /// `GeometryReader` reports — see `RightClickModifier` for the measurements.
@@ -26,6 +29,7 @@ struct MeasurementKeysModifier: ViewModifier {
 
     private final class Handler {
         var isArmed = false
+        var claimsEscape = false
         var isOverMap = false
         var onDecision: (MeasurementTyping.Decision) -> Void = { _ in }
         weak var window: NSWindow?
@@ -38,6 +42,7 @@ struct MeasurementKeysModifier: ViewModifier {
         // Every render, before any event can arrive — the stale-capture bug both sibling
         // modifiers document at length.
         handler.isArmed = isArmed
+        handler.claimsEscape = claimsEscape
         handler.isOverMap = isOverMap
         handler.onDecision = onDecision
         return content
@@ -66,6 +71,7 @@ struct MeasurementKeysModifier: ViewModifier {
                 || (responder != nil && responder === window.fieldEditor(false, for: nil))
 
             let decision = MeasurementTyping.decide(for: key, isArmed: handler.isArmed,
+                                                    claimsEscape: handler.claimsEscape,
                                                     isInFrame: handler.isOverMap,
                                                     isEditingText: isEditingText)
             guard decision != .passThrough else { return event }
@@ -86,12 +92,12 @@ private extension NSEvent.ModifierFlags {
 
 extension View {
     /// Reports digits, ⌫, Return and Esc to a Measurement being typed. Claims nothing
-    /// unless a Measurement is armed, the cursor is over this view, and no text field has
-    /// focus — see `MeasurementTyping.decide`.
-    func onMeasurementKeys(isArmed: Bool, isOverMap: Bool,
+    /// unless a Measurement is armed — or, for Esc alone, `claimsEscape` — the cursor is
+    /// over this view, and no text field has focus — see `MeasurementTyping.decide`.
+    func onMeasurementKeys(isArmed: Bool, claimsEscape: Bool = false, isOverMap: Bool,
                            perform onDecision: @escaping (MeasurementTyping.Decision) -> Void)
     -> some View {
-        modifier(MeasurementKeysModifier(isArmed: isArmed, isOverMap: isOverMap,
-                                         onDecision: onDecision))
+        modifier(MeasurementKeysModifier(isArmed: isArmed, claimsEscape: claimsEscape,
+                                         isOverMap: isOverMap, onDecision: onDecision))
     }
 }

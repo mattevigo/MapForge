@@ -197,6 +197,46 @@ final class SelectionTests: XCTestCase {
         XCTAssertEqual(appState.sessionLineCount, linesBefore)
     }
 
+    /// The table sees the Pawns move, not that they were picked. Asserted against every
+    /// value `PlayerView` reads off `AppState`, so a Selection that leaked into any of them —
+    /// a Pawn re-ordered to draw on top, a Light flagged in the document — would show here.
+    /// The ring itself is drawn by `PawnLayer`, which only the Control Window builds.
+    func testPickingChangesNothingThePlayerDisplayDraws() throws {
+        let appState = try loadedAppState()
+        appState.squaresWide = 20
+        let rogue = pawn("Rogue"), fighter = pawn("Fighter", at: MapPoint(x: 80, y: 80))
+        let lantern = Light(at: MapPoint(x: 20, y: 20), brightSquares: 4, name: "lantern")
+        appState.fog.pawns = [rogue, fighter]
+        appState.fog.lights = [lantern]
+        appState.setSoloSight(id: rogue.id)
+        let before = playerDisplaysView(of: appState)
+
+        appState.toggleSelection(pawn: fighter.id)
+        appState.toggleSelection(light: lantern.id)
+
+        XCTAssertFalse(appState.selection.isEmpty, "precondition: something is picked")
+        XCTAssertEqual(playerDisplaysView(of: appState), before)
+    }
+
+    private struct PlayerDisplaysView: Equatable {
+        let fog: FogDocument
+        let litRegions: [LitRegion]
+        let measurements: [MapForge.Measurement.ID]
+        let soloSight: Pawn.ID?
+        let viewportOrigin: CGPoint?
+        let isFogOverlayOn: Bool
+        let isMapFitOn: Bool
+    }
+
+    private func playerDisplaysView(of appState: AppState) -> PlayerDisplaysView {
+        PlayerDisplaysView(fog: appState.fog, litRegions: appState.litRegions,
+                           measurements: appState.playerMeasurements.map(\.measurement.id),
+                           soloSight: appState.resolvedSoloSightPawnID,
+                           viewportOrigin: appState.viewportOrigin,
+                           isFogOverlayOn: appState.isFogOverlayOn,
+                           isMapFitOn: appState.isMapFitOn)
+    }
+
     // MARK: Fixtures
 
     /// Every file under `root`, by path, with its bytes.

@@ -29,9 +29,17 @@ enum MeasurementTyping {
     ///   than as `DeleteKey` does, because the Control Window is full of other controls.
     /// - `isEditingText` — nothing is taking text input. The gate `DeleteKey` learned the
     ///   hard way; a DM typing into "Grid squares wide" must not also be sizing a cone.
-    static func decide(for key: Character, isArmed: Bool, isInFrame: Bool,
-                       isEditingText: Bool) -> Decision {
-        guard isArmed, isInFrame, !isEditingText else { return .passThrough }
+    ///
+    /// `claimsEscape` opens the first gate for Esc alone: with a Selection or the Viewport to
+    /// back out of and no Measurement, Esc means something on the Map and nothing else does,
+    /// so every digit still goes back to AppKit. What the claimed Esc backs out of is
+    /// `ArmedTool.escape`'s to say.
+    static func decide(for key: Character, isArmed: Bool, claimsEscape: Bool = false,
+                       isInFrame: Bool, isEditingText: Bool) -> Decision {
+        guard isInFrame, !isEditingText else { return .passThrough }
+        if !isArmed {
+            return claimsEscape && key == "\u{1B}" ? .abandon : .passThrough
+        }
         switch key {
         case "0"..."9": return .digit(key)
         case "\u{7F}", "\u{F728}": return .backspace
