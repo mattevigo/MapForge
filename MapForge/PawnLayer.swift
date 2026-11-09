@@ -178,66 +178,62 @@ struct PawnLayer: View {
         }?.id
     }
 
-    /// The same gesture for a Light Marker. One `dragStart` serves both: only one thing is
-    /// under the cursor at a time.
+    /// A Light Marker's drag: the marker alone, or the whole Selection when it is a member.
+    /// Its ending carries no origin — nothing records where a torch used to be.
     private func drag(_ light: Light) -> some Gesture {
-        DragGesture(minimumDistance: 1, coordinateSpace: .named(Self.coordinateSpace))
-            .onChanged { value in
-                if dragStart == nil {
-                    dragStart = light.at
-                    selectionMove = SelectionMove(grabbingLight: light.id, selection: selection,
-                                                  pawns: pawns, lights: lights)
-                }
-                guard let start = dragStart, let translation = imageTranslation(value)
-                else { return }
-                if let selectionMove {
-                    onMoveSelection(selectionMove, translation)
-                } else {
-                    onMoveLight(light.id, MapPoint(x: start.x + translation.dx,
-                                                   y: start.y + translation.dy))
-                }
-            }
-            .onEnded { _ in
-                let carried = selectionMove
-                dragStart = nil
-                selectionMove = nil
-                if let carried { onCommitSelection(carried) } else { onCommitLight() }
-            }
+        drag(.light(light.id), from: light.at,
+             moveAlone: { onMoveLight(light.id, $0) },
+             commitAlone: { _ in onCommitLight() })
     }
 
+    /// A Pawn's drag: the Pawn alone, or the whole Selection when it is a member.
+    private func drag(_ pawn: Pawn) -> some Gesture {
+        drag(.pawn(pawn.id), from: pawn.at,
+             moveAlone: { onMove(pawn.id, $0) },
+             commitAlone: { onCommit(pawn.id, $0) })
+    }
+
+    /// The one drag every token has. One `dragStart` serves them all: only one thing is
+    /// under the cursor at a time.
+    ///
+    /// Whether the drag is the whole Selection's or `token`'s alone is decided once, as it
+    /// begins, and holds to its end. `moveAlone` takes where the token goes; `commitAlone`
+    /// where it stood as the drag began.
+    ///
     /// Measured in this layer's own named space, never the token's — a token placed with
     /// `.position()` moves as it is dragged, and measuring against it makes the gesture a
     /// feedback loop. That is the bug issue 09 cost a round of work on.
-    private func drag(_ pawn: Pawn) -> some Gesture {
+    private func drag(_ token: LiveHitTest, from position: MapPoint,
+                      moveAlone: @escaping (MapPoint) -> Void,
+                      commitAlone: @escaping (_ origin: MapPoint) -> Void) -> some Gesture {
         DragGesture(minimumDistance: 1, coordinateSpace: .named(Self.coordinateSpace))
             .onChanged { value in
                 if dragStart == nil {
-                    dragStart = pawn.at
+                    dragStart = position
                     // Membership is asked once, here, and the members' origins taken with
                     // it: the one pass over the whole Map a Selection drag makes. Every
                     // update after it is the members' alone.
-                    selectionMove = SelectionMove(grabbingPawn: pawn.id, selection: selection,
+                    selectionMove = SelectionMove(grabbing: token, selection: selection,
                                                   pawns: pawns, lights: lights)
                 }
-                draggedPawnID = pawn.id
+                if case .pawn(let id) = token { draggedPawnID = id }
                 guard let start = dragStart, let translation = imageTranslation(value)
                 else { return }
                 if let selectionMove {
                     onMoveSelection(selectionMove, translation)
                 } else {
-                    onMove(pawn.id, MapPoint(x: start.x + translation.dx,
-                                             y: start.y + translation.dy))
+                    moveAlone(MapPoint(x: start.x + translation.dx, y: start.y + translation.dy))
                 }
             }
             .onEnded { _ in
-                // `dragStart` is where the Pawn stood before any of this drag's updates,
+                // `dragStart` is where the token stood before any of this drag's updates,
                 // which is the only place that value still exists.
-                let origin = dragStart ?? pawn.at
+                let origin = dragStart ?? position
                 let carried = selectionMove
                 dragStart = nil
                 selectionMove = nil
                 draggedPawnID = nil
-                if let carried { onCommitSelection(carried) } else { onCommit(pawn.id, origin) }
+                if let carried { onCommitSelection(carried) } else { commitAlone(origin) }
             }
     }
 

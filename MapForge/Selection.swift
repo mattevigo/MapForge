@@ -22,6 +22,14 @@ struct Selection: Equatable {
     func contains(pawn id: Pawn.ID) -> Bool { pawnIDs.contains(id) }
     func contains(light id: Light.ID) -> Bool { lightIDs.contains(id) }
 
+    /// Whether the token — a Pawn or a Light Marker — is a member.
+    func contains(_ token: LiveHitTest) -> Bool {
+        switch token {
+        case .pawn(let id): return contains(pawn: id)
+        case .light(let id): return contains(light: id)
+        }
+    }
+
     /// ⇧-click on a Pawn: in if it was out, out if it was in.
     mutating func toggle(pawn id: Pawn.ID) {
         if pawnIDs.remove(id) == nil { pawnIDs.insert(id) }

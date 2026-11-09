@@ -61,7 +61,7 @@ final class SelectionMoveTests: XCTestCase {
         pick(rogue, in: state)
         state.toggleSelection(light: lantern.id)
 
-        let move = try XCTUnwrap(SelectionMove(grabbingLight: lantern.id,
+        let move = try XCTUnwrap(SelectionMove(grabbing: .light(lantern.id),
                                                selection: state.selection,
                                                pawns: state.fog.pawns,
                                                lights: state.fog.lights))
@@ -85,10 +85,10 @@ final class SelectionMoveTests: XCTestCase {
         pick(rogue, fighter, lantern, in: state)
         let picked = state.selection
 
-        XCTAssertNil(SelectionMove(grabbingPawn: goblin.id, selection: state.selection,
+        XCTAssertNil(SelectionMove(grabbing: .pawn(goblin.id), selection: state.selection,
                                    pawns: state.fog.pawns, lights: state.fog.lights),
                      "a drag on the goblin is the goblin's alone")
-        XCTAssertNil(SelectionMove(grabbingLight: brazier.id, selection: state.selection,
+        XCTAssertNil(SelectionMove(grabbing: .light(brazier.id), selection: state.selection,
                                    pawns: state.fog.pawns, lights: state.fog.lights),
                      "and a drag on the brazier the brazier's")
         // What `PawnLayer` does instead: the single-thing drag, as it always has.
@@ -302,7 +302,7 @@ final class SelectionMoveTests: XCTestCase {
 
     /// What `PawnLayer` takes as a drag on a member begins.
     private func grab(_ pawn: Pawn, in state: AppState) throws -> SelectionMove {
-        try XCTUnwrap(SelectionMove(grabbingPawn: pawn.id, selection: state.selection,
+        try XCTUnwrap(SelectionMove(grabbing: .pawn(pawn.id), selection: state.selection,
                                     pawns: state.fog.pawns, lights: state.fog.lights),
                       "\(pawn.label) is a member, so grabbing it moves the Selection")
     }

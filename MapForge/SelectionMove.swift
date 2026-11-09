@@ -3,7 +3,7 @@ import CoreGraphics
 /// One drag of the whole **Selection**: where each member stood as the drag began.
 ///
 /// Taken once, as the drag begins, and handed back to `AppState` on every update with the
-/// translation so far — never a step since the last frame. Each update is then where the
+/// translation so far — never a step since the last frame — for `apply` to carry out. Each update is then where the
 /// origins plus the translation put the members, so a drag held against the image edge and
 /// brought back lands every member exactly where the cursor says, with no stop at the edge
 /// left over in the formation.
@@ -28,28 +28,12 @@ struct SelectionMove {
     /// translation against, worked out once as the drag begins rather than on every update.
     private let extent: CGRect?
 
-    /// A drag on `id`, which moves the whole Selection — or nil when `id` is not a member,
-    /// and the drag moves that Pawn alone, exactly as it always has.
-    init?(grabbingPawn id: Pawn.ID, selection: Selection, pawns: [Pawn], lights: [Light]) {
-        guard selection.contains(pawn: id) else { return nil }
-        self.init(selection: selection, pawns: pawns, lights: lights)
-    }
-
-    /// The same for a Light Marker.
-    init?(grabbingLight id: Light.ID, selection: Selection, pawns: [Pawn], lights: [Light]) {
-        guard selection.contains(light: id) else { return nil }
-        self.init(selection: selection, pawns: pawns, lights: lights)
-    }
-
-    private init(selection: Selection, pawns: [Pawn], lights: [Light]) {
-        self.pawns = pawns.enumerated().compactMap { index, pawn in
-            selection.contains(pawn: pawn.id)
-                ? Member(id: pawn.id, index: index, origin: pawn.at) : nil
-        }
-        self.lights = lights.enumerated().compactMap { index, light in
-            selection.contains(light: light.id)
-                ? Member(id: light.id, index: index, origin: light.at) : nil
-        }
+    /// A drag on `token`, which moves the whole Selection — or nil when `token` is not a
+    /// member, and the drag moves that Pawn or Light alone, exactly as it always has.
+    init?(grabbing token: LiveHitTest, selection: Selection, pawns: [Pawn], lights: [Light]) {
+        guard selection.contains(token) else { return nil }
+        self.pawns = Self.members(of: pawns, pickedBy: selection.contains(pawn:))
+        self.lights = Self.members(of: lights, pickedBy: selection.contains(light:))
         let xs = self.pawns.map(\.origin.x) + self.lights.map(\.origin.x)
         let ys = self.pawns.map(\.origin.y) + self.lights.map(\.origin.y)
         if let minX = xs.min(), let maxX = xs.max(), let minY = ys.min(), let maxY = ys.max() {
@@ -57,6 +41,58 @@ struct SelectionMove {
         } else {
             extent = nil
         }
+    }
+
+    /// The picked ones among `items`, each with where it sits in the array and where it
+    /// stands — the one pass over the whole Map a Selection drag makes.
+    private static func members<Item: Locatable>(of items: [Item],
+                                                 pickedBy isPicked: (Item.ID) -> Bool)
+    -> [Member<Item.ID>] {
+        items.enumerated().compactMap { index, item in
+            isPicked(item.id) ? Member(id: item.id, index: index, origin: item.at) : nil
+        }
+    }
+
+    /// Put every member where it stood as the drag began plus `translation` in image pixels,
+    /// in `document` — held inside an image of `imageSize` as a whole (`limited`), or not
+    /// held at all with no image to hold it in.
+    ///
+    /// Whether anyone moved: a frame that moved no one need not be written back, and the
+    /// caller — `AppState`, the one place `fog` is assigned — writes the lot in one go.
+    func apply(_ translation: CGVector, within imageSize: CGSize?,
+               to document: inout FogDocument) -> Bool {
+        let translation = imageSize.map { limited(translation, toImage: $0) } ?? translation
+        let movedPawns = Self.place(pawns, by: translation, in: &document.pawns)
+        let movedLights = Self.place(lights, by: translation, in: &document.lights)
+        return movedPawns || movedLights
+    }
+
+    /// Each of `members` to its origin plus `translation` in `items`, skipping one that has
+    /// gone; whether any of them changed place.
+    private static func place<Item: Locatable>(_ members: [Member<Item.ID>],
+                                               by translation: CGVector,
+                                               in items: inout [Item]) -> Bool {
+        var moved = false
+        for member in members {
+            guard let index = index(of: member, in: items) else { continue }
+            let destination = MapPoint(x: member.origin.x + translation.dx,
+                                       y: member.origin.y + translation.dy)
+            guard items[index].at != destination else { continue }
+            items[index].at = destination
+            moved = true
+        }
+        return moved
+    }
+
+    /// Where `member` stands in `items` now: where it stood as the drag began, unless the
+    /// document has changed under the drag, when it is searched for — and nil if it has
+    /// gone, so a member deleted mid-drag is left out rather than another moved in its place.
+    private static func index<Item: Identifiable>(of member: Member<Item.ID>,
+                                                  in items: [Item]) -> Int? {
+        if items.indices.contains(member.index), items[member.index].id == member.id {
+            return member.index
+        }
+        return items.firstIndex { $0.id == member.id }
     }
 
     /// `translation` cut short, along each axis on its own, where the first member — Pawn or
@@ -70,7 +106,7 @@ struct SelectionMove {
     ///
     /// No move is ever refused outright: were a member already outside the image, a drag
     /// that takes it no further out is still allowed, and standing still always is.
-    func limited(_ translation: CGVector, toImage size: CGSize) -> CGVector {
+    private func limited(_ translation: CGVector, toImage size: CGSize) -> CGVector {
         guard let extent else { return translation }
         return CGVector(dx: Self.limit(translation.dx, low: extent.minX, high: extent.maxX,
                                        within: size.width),
@@ -85,3 +121,12 @@ struct SelectionMove {
         return min(max(delta, least), most)
     }
 }
+
+/// A Pawn or a Light: something on the Map with an ID and a place, which is all a Selection
+/// drag needs of either. A Pawn's place is its own Light's (`Pawn.at`).
+protocol Locatable: Identifiable {
+    var at: MapPoint { get set }
+}
+
+extension Pawn: Locatable {}
+extension Light: Locatable {}
