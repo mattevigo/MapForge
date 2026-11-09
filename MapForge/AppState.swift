@@ -591,6 +591,25 @@ final class AppState: ObservableObject {
         selection = Selection()
     }
 
+    /// A selection rectangle released over the bare Map, `rect` in Map space (image pixels).
+    /// The Pawns whose centres it covers — see `SelectionRectangle.pawnIDs` — replace the
+    /// Selection, Lights and all, or with ⇧ (`adding`) join it.
+    ///
+    /// An empty plain rectangle therefore ends the Selection, as a plain click on the bare
+    /// Map does, and an empty ⇧-rectangle leaves it alone, as a ⇧-click that misses does:
+    /// the rectangle is the click with an area, and keeps the click's rules.
+    ///
+    /// Asked of `fog.pawns`, so nothing but a Pawn on this Map can be picked — the same
+    /// guard `toggleSelection` keeps against a stale ID.
+    func selectPawns(inside rect: CGRect, adding: Bool) {
+        let inside = SelectionRectangle.pawnIDs(centredIn: rect, among: fog.pawns)
+        var next = selection
+        if adding { next.add(pawns: inside) } else { next.replace(withPawns: inside) }
+        // Published only on a change: an empty ⇧-rectangle, or the same party swept again,
+        // need not redraw every ring.
+        if next != selection { selection = next }
+    }
+
     /// The **Measurement** being taken, or nil when nothing is being measured.
     ///
     /// One at a time, still: this is the shape the DM is actively drawing or has just

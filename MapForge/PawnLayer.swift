@@ -75,7 +75,8 @@ struct PawnLayer: View {
                     // A marker is a small dot; the grab area is a square's worth, so the
                     // DM is not hunting nine points with a trackpad. Under the tokens still,
                     // so a Pawn standing on a brazier is what a drag there picks up.
-                    .frame(width: max(side, 18), height: max(side, 18))
+                    .frame(width: Self.lightGrabSide(squareSide: side),
+                           height: Self.lightGrabSide(squareSide: side))
                     .contentShape(Circle())
                     .position(x: p.x, y: p.y)
                     .gesture(drag(light))
@@ -115,6 +116,12 @@ struct PawnLayer: View {
     static func tokenSide(map: MapScale, frame: CGRect) -> CGFloat {
         max(PlayerPlacement.squareSidePoints(map: map, frame: frame), 12)
     }
+
+    /// How far across a Light Marker can be grabbed, in this layer's points: a square's
+    /// worth, never under 18. Named so the selection rectangle can ask whether a press
+    /// landed on a marker — the drag it must leave alone — by the same measure the marker
+    /// is grabbed by.
+    static func lightGrabSide(squareSide side: CGFloat) -> CGFloat { max(side, 18) }
 
     /// The Pawn whose token, as drawn, is under `point` — in the space `frame` is given in.
     ///
