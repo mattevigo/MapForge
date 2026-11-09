@@ -43,7 +43,11 @@ final class LiveViewPress {
         // A run-loop block rather than `DispatchQueue.main.async`, as `ClickSelectsAll` found:
         // the main queue drains whenever the run loop turns, mid-event-handling included,
         // where a default-mode block waits until the event is done with.
-        RunLoop.main.perform(inModes: [.default]) { [weak self] in self?.hasDragged = false }
+        // The main run loop runs its blocks on the main thread, so the closure the API types
+        // as `@Sendable` is in fact on the main actor.
+        RunLoop.main.perform(inModes: [.default]) { [weak self] in
+            MainActor.assumeIsolated { self?.hasDragged = false }
+        }
     }
 
     /// Whether this release ends a drag, and so is no click — asked by the Map's tap, once.
