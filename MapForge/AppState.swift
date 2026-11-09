@@ -747,6 +747,53 @@ final class AppState: ObservableObject {
         fog.pawns[index].at = destination
     }
 
+    /// Move the whole Selection: every member to where it stood as the drag began, plus
+    /// `translation` in image pixels — the party walking down the corridor in formation.
+    ///
+    /// Held inside the image as a whole: the translation stops where the first member
+    /// reaches the edge, and nobody is clamped on their own — see `SelectionMove.limited`.
+    ///
+    /// Live and not undoable, on `movePawn`'s terms. One write to `fog` for the lot, not one
+    /// per member: each write runs `fog`'s `didSet` and publishes a change, and at drag rate
+    /// a write per member is that work times the party.
+    func moveSelection(_ move: SelectionMove, by translation: CGVector) {
+        let translation = mapImage.map { move.limited(translation, toImage: $0.pixelSize) }
+            ?? translation
+        var document = fog
+        var moved = false
+        for member in move.pawns {
+            guard let index = Self.index(of: member, in: document.pawns) else { continue }
+            let destination = MapPoint(x: member.origin.x + translation.dx,
+                                       y: member.origin.y + translation.dy)
+            guard document.pawns[index].at != destination else { continue }
+            document.pawns[index].at = destination
+            moved = true
+        }
+        for member in move.lights {
+            guard let index = Self.index(of: member, in: document.lights) else { continue }
+            let destination = MapPoint(x: member.origin.x + translation.dx,
+                                       y: member.origin.y + translation.dy)
+            guard document.lights[index].at != destination else { continue }
+            document.lights[index].at = destination
+            moved = true
+        }
+        // Asked of the members rather than of the whole document, which `fog`'s `didSet`
+        // compares again anyway: a frame that moved no one writes nothing.
+        guard moved else { return }
+        fog = document
+    }
+
+    /// Where `member` stands in `items` now: where it stood as the drag began, unless the
+    /// document has changed under the drag, when it is searched for — and nil if it has
+    /// gone, so a member deleted mid-drag is left out rather than another moved in its place.
+    private static func index<Item: Identifiable>(of member: SelectionMove.Member<Item.ID>,
+                                                  in items: [Item]) -> Int? {
+        if items.indices.contains(member.index), items[member.index].id == member.id {
+            return member.index
+        }
+        return items.firstIndex { $0.id == member.id }
+    }
+
     /// Move a Light in the Live View — the DM carrying a lantern down a corridor, or nudging
     /// a brazier they placed a square out.
     ///
