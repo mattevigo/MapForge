@@ -21,6 +21,9 @@ enum ArmedTool {
         var hasArmedShape = false
         /// A Measurement is on screen — the one being taken, not a Pinned one.
         var hasMeasurement = false
+        /// Digits have been typed towards the Measurement's distance and not yet settled
+        /// with Return: the one thing about a Measurement that Esc backs out of.
+        var hasTypedDigits = false
         /// The Viewport rectangle is on the Map, its drag waiting.
         var isViewportArmed = false
 
@@ -72,14 +75,17 @@ enum ArmedTool {
         /// changed their mind backs out of it without losing the Selection they picked; the
         /// next Esc lets it go.
         ///
-        /// A Measurement on screen never lets Esc through. Esc already means "abandon the
-        /// digits" there and deliberately not "dismiss" (right-click is the one dismissal,
-        /// the objection ADR-0005 raised to a second), so a press made for the digits must
-        /// not reach further and drop the Selection instead.
+        /// A Measurement on screen holds Esc only while digits are typed into it. Esc means
+        /// "abandon the digits" there and deliberately not "dismiss" (right-click is the one
+        /// dismissal, the objection ADR-0005 raised to a second), so a press made for the
+        /// digits must not reach further and drop the Selection instead. With nothing typed
+        /// the Measurement has nothing for Esc to undo, and the press goes on: otherwise a
+        /// Measurement left on screen would keep the Selection from ever being let go. A
+        /// Pinned Measurement is never in this at all — it is parked, not being taken.
         var escape: Escape {
             if hasArmedAdd { return .disarmAdd }
             if hasArmedShape { return .disarmShape }
-            if hasMeasurement { return .measurement }
+            if hasMeasurement && hasTypedDigits { return .abandonDigits }
             if isViewportArmed { return .putViewportAway }
             return .clearSelection
         }
@@ -103,9 +109,9 @@ enum ArmedTool {
     enum Escape: Equatable {
         case disarmAdd
         case disarmShape
-        /// A Measurement is on screen, and the key is its own: it abandons typed digits and
-        /// leaves the Measurement — and the Selection — where they are.
-        case measurement
+        /// Digits are typed towards the Measurement on screen, and the key is theirs: it
+        /// abandons them and leaves the Measurement — and the Selection — where they are.
+        case abandonDigits
         case putViewportAway
         case clearSelection
     }

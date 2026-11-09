@@ -1447,6 +1447,7 @@ struct ControlView: View {
         ArmedTool.State(hasArmedAdd: armedAdd != nil,
                         hasArmedShape: armedShape != nil,
                         hasMeasurement: appState.measurement != nil,
+                        hasTypedDigits: !typedDistance.isEmpty,
                         isViewportArmed: isShowingViewport)
     }
 
@@ -1473,27 +1474,21 @@ struct ControlView: View {
     /// A keystroke the Map claimed while a Measurement is armed. Which keystrokes those
     /// are is decided by `MeasurementTyping.decide`, not here.
     private func handleMeasurementKey(_ decision: MeasurementTyping.Decision) {
-        // Esc backs out one layer per press — the armed tool, then the Selection. Only a
-        // Measurement on screen keeps it, and goes on to its own handling below.
+        // Esc backs out one layer per press — the armed tool, then the Selection. Only digits
+        // typed into a Measurement keep it, and go on to their own handling below.
         if decision == .abandon {
             switch armed.escape {
             case .disarmAdd: armedAdd = nil; return
             case .disarmShape: armedShape = nil; return
             case .putViewportAway: isShowingViewport = false; return
             case .clearSelection: appState.clearSelection(); return
-            case .measurement: break
+            case .abandonDigits: break
             }
         }
-        // An armed tool has no Measurement yet, and the only key that means anything to it
-        // is the one that backs out. `Add` arms the same way and Esc backs out of it too.
-        if armedAdd != nil {
-            if decision == .abandon { armedAdd = nil }
-            return
-        }
-        if armedShape != nil, appState.measurement == nil {
-            if decision == .abandon { armedShape = nil }
-            return
-        }
+        // An armed tool has no Measurement yet, and nothing to type into: Esc, the one key
+        // that means anything to it, was its own above.
+        if armedAdd != nil { return }
+        if armedShape != nil, appState.measurement == nil { return }
         guard var measurement = appState.resolvedMeasurement else { return }
         switch decision {
         case .passThrough:

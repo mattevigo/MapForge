@@ -98,18 +98,29 @@ final class SelectionRoutingTests: XCTestCase {
         XCTAssertEqual(escape(), .clearSelection)
     }
 
-    /// A Measurement on screen keeps Esc for itself — it abandons typed digits, and never
-    /// the Measurement (right-click is the one dismissal, after ADR-0005). It never falls
-    /// through to the Selection: an Esc meant for the digits must not lose the Selection.
-    func testEscWithAMeasurementOnScreenIsTheMeasurements() {
-        XCTAssertEqual(escape(measurement: true), .measurement)
-        XCTAssertEqual(escape(measurement: true, viewport: true), .measurement)
+    /// Digits typed towards a Measurement's distance are what Esc backs out of first — it
+    /// abandons them, and never the Measurement (right-click is the one dismissal, after
+    /// ADR-0005) — and the Selection is the next press's.
+    func testEscAbandonsTypedDigitsFirstAndClearsTheSelectionOnTheNextPress() {
+        XCTAssertEqual(escape(measurement: true, digits: true), .abandonDigits)
+        XCTAssertEqual(escape(measurement: true, digits: true, viewport: true), .abandonDigits)
+        // `ControlView` has abandoned the digits; the Measurement stays on screen.
+        XCTAssertEqual(escape(measurement: true), .clearSelection)
+    }
+
+    /// A Measurement on screen with nothing typed has nothing for Esc to back out of: Esc
+    /// never dismisses one. Were it to keep the key anyway, a Measurement left on screen
+    /// would mean Esc could never let the Selection go. (A Pinned Measurement is not "on
+    /// screen" in this sense at all: it is parked, and was never Esc's.)
+    func testAMeasurementOnScreenWithNothingTypedLetsEscThrough() {
+        XCTAssertEqual(escape(measurement: true), .clearSelection)
+        XCTAssertEqual(escape(measurement: true, viewport: true), .putViewportAway)
     }
 
     private func escape(add: Bool = false, shape: Bool = false, measurement: Bool = false,
-                        viewport: Bool = false) -> ArmedTool.Escape {
+                        digits: Bool = false, viewport: Bool = false) -> ArmedTool.Escape {
         ArmedTool.State(hasArmedAdd: add, hasArmedShape: shape, hasMeasurement: measurement,
-                        isViewportArmed: viewport).escape
+                        hasTypedDigits: digits, isViewportArmed: viewport).escape
     }
 
     /// The key monitor is narrower than the Map's other keys: with only a Selection, or the
