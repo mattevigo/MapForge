@@ -70,7 +70,7 @@ final class SelectionRectangleTests: XCTestCase {
         appState.toggleSelection(pawn: goblin.id)
         appState.toggleSelection(light: lantern.id)
 
-        appState.selectPawns(inside: CGRect(x: 0, y: 0, width: 100, height: 100), adding: false)
+        appState.selectPawns(inside: CGRect(x: 0, y: 0, width: 100, height: 100), mode: .replace)
 
         XCTAssertEqual(appState.selection.pawnIDs, [rogue.id])
         XCTAssertEqual(appState.selection.lightIDs, [])
@@ -84,10 +84,10 @@ final class SelectionRectangleTests: XCTestCase {
         appState.fog.pawns = [rogue]
         appState.fog.lights = [brazier]
 
-        appState.selectPawns(inside: CGRect(x: 0, y: 0, width: 100, height: 100), adding: false)
+        appState.selectPawns(inside: CGRect(x: 0, y: 0, width: 100, height: 100), mode: .replace)
         XCTAssertFalse(appState.selection.contains(light: brazier.id))
 
-        appState.selectPawns(inside: CGRect(x: 0, y: 0, width: 100, height: 100), adding: true)
+        appState.selectPawns(inside: CGRect(x: 0, y: 0, width: 100, height: 100), mode: .add)
         XCTAssertFalse(appState.selection.contains(light: brazier.id))
     }
 
@@ -105,7 +105,7 @@ final class SelectionRectangleTests: XCTestCase {
         appState.toggleSelection(pawn: goblin.id)
         appState.toggleSelection(light: lantern.id)
 
-        appState.selectPawns(inside: CGRect(x: 0, y: 0, width: 100, height: 100), adding: true)
+        appState.selectPawns(inside: CGRect(x: 0, y: 0, width: 100, height: 100), mode: .add)
 
         XCTAssertEqual(appState.selection.pawnIDs, [rogue.id, fighter.id, goblin.id])
         XCTAssertEqual(appState.selection.lightIDs, [lantern.id])
@@ -123,7 +123,7 @@ final class SelectionRectangleTests: XCTestCase {
         appState.toggleSelection(light: lantern.id)
 
         appState.selectPawns(inside: CGRect(x: 200, y: 200, width: 50, height: 50),
-                             adding: false)
+                             mode: .replace)
 
         XCTAssertTrue(appState.selection.isEmpty)
     }
@@ -137,7 +137,7 @@ final class SelectionRectangleTests: XCTestCase {
         appState.toggleSelection(pawn: rogue.id)
 
         appState.selectPawns(inside: CGRect(x: 200, y: 200, width: 50, height: 50),
-                             adding: true)
+                             mode: .add)
 
         XCTAssertEqual(appState.selection.pawnIDs, [rogue.id])
     }

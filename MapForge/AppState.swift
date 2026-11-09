@@ -593,7 +593,7 @@ final class AppState: ObservableObject {
 
     /// A selection rectangle released over the bare Map, `rect` in Map space (image pixels).
     /// The Pawns whose centres it covers — see `SelectionRectangle.pawnIDs` — replace the
-    /// Selection, Lights and all, or with ⇧ (`adding`) join it.
+    /// Selection, Lights and all, or with ⇧ (`.add`) join it.
     ///
     /// An empty plain rectangle therefore ends the Selection, as a plain click on the bare
     /// Map does, and an empty ⇧-rectangle leaves it alone, as a ⇧-click that misses does:
@@ -601,10 +601,13 @@ final class AppState: ObservableObject {
     ///
     /// Asked of `fog.pawns`, so nothing but a Pawn on this Map can be picked — the same
     /// guard `toggleSelection` keeps against a stale ID.
-    func selectPawns(inside rect: CGRect, adding: Bool) {
+    func selectPawns(inside rect: CGRect, mode: SelectionRectangle.Mode) {
         let inside = SelectionRectangle.pawnIDs(centredIn: rect, among: fog.pawns)
         var next = selection
-        if adding { next.add(pawns: inside) } else { next.replace(withPawns: inside) }
+        switch mode {
+        case .replace: next.replace(withPawns: inside)
+        case .add: next.add(pawns: inside)
+        }
         // Published only on a change: an empty ⇧-rectangle, or the same Pawns swept again,
         // need not redraw every ring.
         if next != selection { selection = next }

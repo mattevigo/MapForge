@@ -1335,9 +1335,9 @@ struct ControlView: View {
             }
             selectionDrag = .drawing(
                 from: PlayerPlacement.mapPoint(value.startLocation, map: map, frame: frame),
-                to: end, adding: flags.contains(.shift))
-        case .drawing(let start, _, let adding)?:
-            selectionDrag = .drawing(from: start, to: end, adding: adding)
+                to: end, mode: SelectionRectangle.Mode(isShiftDown: flags.contains(.shift)))
+        case .drawing(let start, _, let mode)?:
+            selectionDrag = .drawing(from: start, to: end, mode: mode)
         case .declined?:
             break
         }
@@ -1347,10 +1347,10 @@ struct ControlView: View {
     /// join it with ⇧ — held as the drag began or as it ends. A declined drag does nothing.
     private func endSelectionRectangle(_ value: DragGesture.Value, map: MapScale,
                                        frame: CGRect) {
-        guard case .drawing(let start, _, let adding)? = selectionDrag else { return }
+        guard case .drawing(let start, _, let mode)? = selectionDrag else { return }
         let end = PlayerPlacement.mapPoint(value.location, map: map, frame: frame)
         appState.selectPawns(inside: SelectionRectangle.mapRect(from: start, to: end),
-                             adding: adding || NSEvent.modifierFlags.contains(.shift))
+                             mode: NSEvent.modifierFlags.contains(.shift) ? .add : mode)
     }
 
     private func measurementUnderCursor(map: MapScale,

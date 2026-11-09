@@ -61,6 +61,17 @@ enum SelectionRectangle {
         !isArmed && !isOptionDown && token == nil && !isTokenDragging
     }
 
+    /// What a released rectangle does with the Pawns it covers.
+    enum Mode: Equatable {
+        /// A plain rectangle: they become the whole Selection.
+        case replace
+        /// A ⇧-rectangle: they join it.
+        case add
+
+        /// ⇧ adds; without it, the rectangle replaces.
+        init(isShiftDown: Bool) { self = isShiftDown ? .add : .replace }
+    }
+
     /// One primary drag on the Live View, as far as the rectangle is concerned. Held by
     /// `ControlView` for the length of the drag, then dropped.
     enum Drag: Equatable {
@@ -68,9 +79,9 @@ enum SelectionRectangle {
         /// end — however far it wanders onto the bare Map.
         case declined
         /// Between the Map point the drag began on and the one under the pointer now.
-        /// `adding` is ⇧ as the drag began; ⇧ at release adds as well, so the DM need not
+        /// `mode` is ⇧ as the drag began; ⇧ at release adds as well, so the DM need not
         /// have pressed it first.
-        case drawing(from: MapPoint, to: MapPoint, adding: Bool)
+        case drawing(from: MapPoint, to: MapPoint, mode: Mode)
 
         /// The rectangle in Map space while one is being drawn, nil otherwise.
         var mapRect: CGRect? {
