@@ -182,9 +182,9 @@ final class SelectionRectangleTests: XCTestCase {
                                                     (false, true, false, false),
                                                     (false, false, true, false),
                                                     (false, false, false, true)] {
-            let isArmed = ArmedTool.isArmed(hasArmedAdd: add, hasArmedShape: shape,
-                                            hasMeasurement: measurement,
-                                            isViewportArmed: viewport)
+            let isArmed = ArmedTool.State(hasArmedAdd: add, hasArmedShape: shape,
+                                          hasMeasurement: measurement,
+                                          isViewportArmed: viewport).isArmed
             XCTAssertFalse(SelectionRectangle.begins(isArmed: isArmed, isOptionDown: false,
                                                      startsOn: nil))
         }

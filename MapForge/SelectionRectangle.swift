@@ -41,7 +41,7 @@ enum SelectionRectangle {
 
     /// Whether a primary drag on the Live View draws a rectangle, decided once, as it starts.
     ///
-    /// Only with nothing armed (`ArmedTool.isArmed`: Add, a Measurement, the Viewport) —
+    /// Only with nothing armed (`ArmedTool.State.isArmed`: Add, a Measurement, the Viewport) —
     /// with any of them the drag is what it was before there was a rectangle. Never with ⌥,
     /// which pans the Magnifier. And never from a token: a drag that starts on a Pawn or a
     /// Light Marker is that token's own, and moves it. The middle button needs no rule

@@ -774,7 +774,7 @@ struct ControlView: View {
                     // the Pawn drag underneath — but it is simultaneous, it fails the moment
                     // the pointer moves, and a Pawn has been dragged under it every time Add
                     // or a Measurement was armed. The Selection needs the idle click: ⇧ picks
-                    // and a plain click on the bare Map lets go. `ArmedTool.leftClick` says
+                    // and a plain click on the bare Map lets go. `ArmedTool.State.leftClick` says
                     // which click is whose.
                     .simultaneousGesture(
                         TapGesture().onEnded {
@@ -885,7 +885,7 @@ struct ControlView: View {
                     // over the Map, and no text field has focus. See MeasurementTyping.
                     // Esc alone is claimed, too, with a Selection or the Viewport to back
                     // out of — under the same frame and text-field gates.
-                    .onMeasurementKeys(isArmed: mode == .normal && claimsLeftClick,
+                    .onMeasurementKeys(isArmed: mode == .normal && armed.claimsLeftClick,
                                        claimsEscape: mode == .normal && claimsEscape,
                                        isOverMap: mirrorCursor != nil) {
                         handleMeasurementKey($0)
@@ -1116,9 +1116,8 @@ struct ControlView: View {
         // anything armed this hands the click straight on, ⇧ or not. The ⇧ is read from
         // AppKit's modifier state, which is safe where its *location* is not: there is no
         // coordinate space to get wrong in a flag.
-        switch ArmedTool.leftClick(isArmed: isArmedForSelection,
-                                   isShiftDown: NSEvent.modifierFlags.contains(.shift),
-                                   on: pickTarget(map: map, frame: frame)) {
+        switch armed.leftClick(isShiftDown: NSEvent.modifierFlags.contains(.shift),
+                               on: pickTarget(map: map, frame: frame)) {
         case .armedTool: break
         case .toggle(.pawn(let id)): appState.toggleSelection(pawn: id); return
         case .toggle(.light(let id)): appState.toggleSelection(light: id); return
@@ -1311,7 +1310,7 @@ struct ControlView: View {
                                                  pawns: appState.fog.pawns,
                                                  lights: appState.fog.lights,
                                                  map: map, frame: frame)
-            guard SelectionRectangle.begins(isArmed: isArmedForSelection,
+            guard SelectionRectangle.begins(isArmed: armed.isArmed,
                                             isOptionDown: flags.contains(.option),
                                             startsOn: token) else {
                 selectionDrag = .declined
@@ -1438,29 +1437,17 @@ struct ControlView: View {
     /// Whether the DM is in the middle of measuring — either waiting to place an Origin,
     /// or with a Measurement on screen. The gate for the **key** handler: digits type a
     /// distance, which only a Measurement has.
-    private var isMeasuring: Bool {
-        ArmedTool.claimsDigits(hasArmedShape: armedShape != nil,
-                               hasMeasurement: appState.measurement != nil)
-    }
+    private var isMeasuring: Bool { armed.claimsDigits }
 
-    /// Whether the left-click belongs to the Map rather than to the Pawn drag underneath.
-    ///
-    /// Wider than `isMeasuring` by the armed `Add`, and deliberately one predicate rather
-    /// than a second condition beside the first: this render layer has four gesture
-    /// composition defects on record, and "which of these two flags claimed the click" is
-    /// exactly the shape of question that produced them.
-    private var claimsLeftClick: Bool {
-        ArmedTool.claimsLeftClick(hasArmedAdd: armedAdd != nil,
-                                  hasArmedShape: armedShape != nil,
-                                  hasMeasurement: appState.measurement != nil)
-    }
-
-    /// Whether a click or an Esc has something armed to go to before it may reach the
-    /// Selection — `claimsLeftClick` and the Viewport. See `ArmedTool.isArmed`.
-    private var isArmedForSelection: Bool {
-        ArmedTool.isArmed(hasArmedAdd: armedAdd != nil, hasArmedShape: armedShape != nil,
-                          hasMeasurement: appState.measurement != nil,
-                          isViewportArmed: isShowingViewport)
+    /// What is armed on the Live View, built here and nowhere else: every click and Esc is
+    /// routed by asking this one value (`ArmedTool.State`), so "which of these flags claimed
+    /// the click" — the shape of question behind this render layer's four gesture
+    /// composition defects — has one answer.
+    private var armed: ArmedTool.State {
+        ArmedTool.State(hasArmedAdd: armedAdd != nil,
+                        hasArmedShape: armedShape != nil,
+                        hasMeasurement: appState.measurement != nil,
+                        isViewportArmed: isShowingViewport)
     }
 
     /// Whether the Map claims Esc with no Measurement to type into: there is the Viewport to
@@ -1489,10 +1476,7 @@ struct ControlView: View {
         // Esc backs out one layer per press — the armed tool, then the Selection. Only a
         // Measurement on screen keeps it, and goes on to its own handling below.
         if decision == .abandon {
-            switch ArmedTool.escape(hasArmedAdd: armedAdd != nil,
-                                    hasArmedShape: armedShape != nil,
-                                    hasMeasurement: appState.measurement != nil,
-                                    isViewportArmed: isShowingViewport) {
+            switch armed.escape {
             case .disarmAdd: armedAdd = nil; return
             case .disarmShape: armedShape = nil; return
             case .putViewportAway: isShowingViewport = false; return

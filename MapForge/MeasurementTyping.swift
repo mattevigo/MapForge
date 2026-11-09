@@ -33,7 +33,7 @@ enum MeasurementTyping {
     /// `claimsEscape` opens the first gate for Esc alone: with a Selection or the Viewport to
     /// back out of and no Measurement, Esc means something on the Map and nothing else does,
     /// so every digit still goes back to AppKit. What the claimed Esc backs out of is
-    /// `ArmedTool.escape`'s to say.
+    /// `ArmedTool.State.escape`'s to say.
     static func decide(for key: Character, isArmed: Bool, claimsEscape: Bool = false,
                        isInFrame: Bool, isEditingText: Bool) -> Decision {
         guard isInFrame, !isEditingText else { return .passThrough }

@@ -15,13 +15,13 @@ final class SelectionRoutingTests: XCTestCase {
     // MARK: Clicks
 
     func testShiftClickOnAPawnWithNothingArmedTogglesIt() {
-        XCTAssertEqual(ArmedTool.leftClick(isArmed: false, isShiftDown: true,
+        XCTAssertEqual(ArmedTool.State().leftClick(isShiftDown: true,
                                            on: .pawn(rogue.id)),
                        .toggle(.pawn(rogue.id)))
     }
 
     func testShiftClickOnALightMarkerWithNothingArmedTogglesIt() {
-        XCTAssertEqual(ArmedTool.leftClick(isArmed: false, isShiftDown: true,
+        XCTAssertEqual(ArmedTool.State().leftClick(isShiftDown: true,
                                            on: .light(lantern.id)),
                        .toggle(.light(lantern.id)))
     }
@@ -33,32 +33,32 @@ final class SelectionRoutingTests: XCTestCase {
         let target = LiveHitTest.hit(at: rogue.at, pawns: [rogue], lights: [brazier],
                                      gridPixels: 20)
 
-        XCTAssertEqual(ArmedTool.leftClick(isArmed: false, isShiftDown: true, on: target),
+        XCTAssertEqual(ArmedTool.State().leftClick(isShiftDown: true, on: target),
                        .toggle(.pawn(rogue.id)))
     }
 
     /// With Add armed, ⇧-click on a token still places the new Pawn — the click is the
     /// armed tool's, exactly as a plain one is.
     func testShiftClickWithSomethingArmedGoesToTheArmedTool() {
-        XCTAssertEqual(ArmedTool.leftClick(isArmed: true, isShiftDown: true,
+        XCTAssertEqual(ArmedTool.State(hasArmedAdd: true).leftClick(isShiftDown: true,
                                            on: .pawn(rogue.id)),
                        .armedTool)
-        XCTAssertEqual(ArmedTool.leftClick(isArmed: true, isShiftDown: false, on: nil),
+        XCTAssertEqual(ArmedTool.State(hasArmedAdd: true).leftClick(isShiftDown: false, on: nil),
                        .armedTool)
     }
 
     func testAPlainClickOnTheBareMapWithNothingArmedEndsTheSelection() {
-        XCTAssertEqual(ArmedTool.leftClick(isArmed: false, isShiftDown: false, on: nil),
+        XCTAssertEqual(ArmedTool.State().leftClick(isShiftDown: false, on: nil),
                        .clearSelection)
     }
 
     /// A plain click on a token is the start of its drag, or nothing; it neither picks it
     /// nor drops the rest.
     func testAPlainClickOnATokenWithNothingArmedDoesNothing() {
-        XCTAssertEqual(ArmedTool.leftClick(isArmed: false, isShiftDown: false,
+        XCTAssertEqual(ArmedTool.State().leftClick(isShiftDown: false,
                                            on: .pawn(rogue.id)),
                        .nothing)
-        XCTAssertEqual(ArmedTool.leftClick(isArmed: false, isShiftDown: false,
+        XCTAssertEqual(ArmedTool.State().leftClick(isShiftDown: false,
                                            on: .light(lantern.id)),
                        .nothing)
     }
@@ -66,17 +66,15 @@ final class SelectionRoutingTests: XCTestCase {
     /// A ⇧-click that misses every token is the DM adding one more and missing — not a
     /// reason to let the rest go.
     func testAShiftClickOnTheBareMapKeepsTheSelection() {
-        XCTAssertEqual(ArmedTool.leftClick(isArmed: false, isShiftDown: true, on: nil),
+        XCTAssertEqual(ArmedTool.State().leftClick(isShiftDown: true, on: nil),
                        .nothing)
     }
 
     /// The Viewport counts as armed: a click with the rectangle armed is for moving what the
     /// table sees, and must not end the Selection on the way.
     func testTheArmedViewportKeepsClicksFromPicking() {
-        let isArmed = ArmedTool.isArmed(hasArmedAdd: false, hasArmedShape: false,
-                                        hasMeasurement: false, isViewportArmed: true)
-
-        XCTAssertEqual(ArmedTool.leftClick(isArmed: isArmed, isShiftDown: false, on: nil),
+        XCTAssertEqual(ArmedTool.State(isViewportArmed: true).leftClick(isShiftDown: false,
+                                                                        on: nil),
                        .armedTool)
     }
 
@@ -110,8 +108,8 @@ final class SelectionRoutingTests: XCTestCase {
 
     private func escape(add: Bool = false, shape: Bool = false, measurement: Bool = false,
                         viewport: Bool = false) -> ArmedTool.Escape {
-        ArmedTool.escape(hasArmedAdd: add, hasArmedShape: shape,
-                         hasMeasurement: measurement, isViewportArmed: viewport)
+        ArmedTool.State(hasArmedAdd: add, hasArmedShape: shape, hasMeasurement: measurement,
+                        isViewportArmed: viewport).escape
     }
 
     /// The key monitor is narrower than the Map's other keys: with only a Selection, or the
