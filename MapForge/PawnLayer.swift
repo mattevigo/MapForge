@@ -33,6 +33,12 @@ struct PawnLayer: View {
     /// records where a torch used to be.
     var onMoveLight: (Light.ID, MapPoint) -> Void = { _, _ in }
     var onCommitLight: () -> Void = {}
+    /// A drag on a member of the Selection, which carries every member: the translation so
+    /// far in image pixels, and the drag ending. Both hand back the `SelectionMove` this
+    /// view took as the drag began, which holds where each member started — each Pawn's
+    /// "from" in the Logs, for the same reason `onCommit` carries one.
+    var onMoveSelection: (SelectionMove, CGVector) -> Void = { _, _ in }
+    var onCommitSelection: (SelectionMove) -> Void = { _ in }
     /// The Pawn the DM's pointer rests on, whose label shows over its Face. The caller works
     /// it out with `pawnID(under:)` from the cursor it already tracks, rather than this view
     /// tracking hover on each token: reading the cursor adds no gesture, so dragging a Pawn,
@@ -47,6 +53,10 @@ struct PawnLayer: View {
     var selection = Selection()
 
     @State private var dragStart: MapPoint?
+    /// The Selection being carried, when the drag began on a member; nil for a drag that
+    /// moves one thing alone. Decided once, as the drag begins: a drag is the whole
+    /// Selection's or one thing's from start to finish.
+    @State private var selectionMove: SelectionMove?
     /// The Pawn being dragged, which keeps its label for the whole drag. The pointer is on
     /// it throughout, but the cursor the caller tracks need not follow a held button, and a
     /// stale one would hand the label to whichever Pawn stands where the drag began.
@@ -149,15 +159,25 @@ struct PawnLayer: View {
     private func drag(_ light: Light) -> some Gesture {
         DragGesture(minimumDistance: 1, coordinateSpace: .named(Self.coordinateSpace))
             .onChanged { value in
-                if dragStart == nil { dragStart = light.at }
-                guard let start = dragStart, frame.width > 0, frame.height > 0 else { return }
-                let dx = value.translation.width / frame.width * map.imagePixelSize.width
-                let dy = value.translation.height / frame.height * map.imagePixelSize.height
-                onMoveLight(light.id, MapPoint(x: start.x + dx, y: start.y + dy))
+                if dragStart == nil {
+                    dragStart = light.at
+                    selectionMove = SelectionMove(grabbingLight: light.id, selection: selection,
+                                                  pawns: pawns, lights: lights)
+                }
+                guard let start = dragStart, let translation = imageTranslation(value)
+                else { return }
+                if let selectionMove {
+                    onMoveSelection(selectionMove, translation)
+                } else {
+                    onMoveLight(light.id, MapPoint(x: start.x + translation.dx,
+                                                   y: start.y + translation.dy))
+                }
             }
             .onEnded { _ in
+                let carried = selectionMove
                 dragStart = nil
-                onCommitLight()
+                selectionMove = nil
+                if let carried { onCommitSelection(carried) } else { onCommitLight() }
             }
     }
 
@@ -167,22 +187,42 @@ struct PawnLayer: View {
     private func drag(_ pawn: Pawn) -> some Gesture {
         DragGesture(minimumDistance: 1, coordinateSpace: .named(Self.coordinateSpace))
             .onChanged { value in
-                if dragStart == nil { dragStart = pawn.at }
+                if dragStart == nil {
+                    dragStart = pawn.at
+                    // Membership is asked once, here, and the members' origins taken with
+                    // it: the one pass over the whole Map a Selection drag makes. Every
+                    // update after it is the members' alone.
+                    selectionMove = SelectionMove(grabbingPawn: pawn.id, selection: selection,
+                                                  pawns: pawns, lights: lights)
+                }
                 draggedPawnID = pawn.id
-                guard let start = dragStart, frame.width > 0, frame.height > 0 else { return }
-                // Container points back into image pixels: the inverse of PlayerPlacement.
-                let dx = value.translation.width / frame.width * map.imagePixelSize.width
-                let dy = value.translation.height / frame.height * map.imagePixelSize.height
-                onMove(pawn.id, MapPoint(x: start.x + dx, y: start.y + dy))
+                guard let start = dragStart, let translation = imageTranslation(value)
+                else { return }
+                if let selectionMove {
+                    onMoveSelection(selectionMove, translation)
+                } else {
+                    onMove(pawn.id, MapPoint(x: start.x + translation.dx,
+                                             y: start.y + translation.dy))
+                }
             }
             .onEnded { _ in
                 // `dragStart` is where the Pawn stood before any of this drag's updates,
                 // which is the only place that value still exists.
                 let origin = dragStart ?? pawn.at
+                let carried = selectionMove
                 dragStart = nil
+                selectionMove = nil
                 draggedPawnID = nil
-                onCommit(pawn.id, origin)
+                if let carried { onCommitSelection(carried) } else { onCommit(pawn.id, origin) }
             }
+    }
+
+    /// The drag so far in image pixels — container points back into the image, the inverse
+    /// of `PlayerPlacement` — or nil while the layer has no size to measure against.
+    private func imageTranslation(_ value: DragGesture.Value) -> CGVector? {
+        guard frame.width > 0, frame.height > 0 else { return nil }
+        return CGVector(dx: value.translation.width / frame.width * map.imagePixelSize.width,
+                        dy: value.translation.height / frame.height * map.imagePixelSize.height)
     }
 }
 

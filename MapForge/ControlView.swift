@@ -1043,6 +1043,8 @@ struct ControlView: View {
                   },
                   onMoveLight: { appState.moveLight(id: $0, to: $1) },
                   onCommitLight: { appState.commitLightMove() },
+                  onMoveSelection: { appState.moveSelection($0, by: $1) },
+                  onCommitSelection: { appState.commitSelectionMove($0) },
                   hoveredPawnID: hoveredPawnID,
                   selection: appState.selection)
         // Above the tokens: a Measurement is what the DM is pointing at, and a cone

@@ -260,6 +260,28 @@ extension AppState {
     /// call site needs no `if` about fights. See ADR-0014.
     func commitPawnMove(id: Pawn.ID, from origin: MapPoint) {
         flushPendingFogWrites()
+        recordPawnMove(id: id, from: origin)
+    }
+
+    /// A drag of the whole **Selection** has ended: on disk once, then each Pawn's move
+    /// recorded exactly as `commitPawnMove` records a drag of that Pawn alone.
+    ///
+    /// The same recording, not a copy of it, so a Line or a Change written here cannot drift
+    /// from one written by a single drag — a Selection is a way of acting, not a thing in
+    /// the record, and the DM Realm import reads the Logs without knowing it exists. No
+    /// combined "the Selection moved" record, and nothing for a Light, whose move the Logs
+    /// never record (`commitLightMove`). The flush is once for the lot: the moves all landed
+    /// in the same document.
+    func commitSelectionMove(_ move: SelectionMove) {
+        flushPendingFogWrites()
+        for member in move.pawns {
+            recordPawnMove(id: member.id, from: member.origin)
+        }
+    }
+
+    /// One Pawn's completed move into whichever Log is live — nothing when it ended where it
+    /// began. The record `commitPawnMove` and `commitSelectionMove` share.
+    private func recordPawnMove(id: Pawn.ID, from origin: MapPoint) {
         guard let pawn = fog.pawns.first(where: { $0.id == id }),
               pawn.at != origin else { return }
         let distance = distanceInSquares(from: origin, to: pawn.at)
