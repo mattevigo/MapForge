@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import SwiftUI
 
 /// Which shape a Measurement projects.
 ///
@@ -293,6 +294,22 @@ struct Measurement: Equatable, Identifiable {
         case .pawn(let id): pawnAt(id)
         }
     }
+
+    /// The colour the Measurement is drawn in, given the Pawn an Origin may name.
+    ///
+    /// Resolved live, like `originPoint(pawnAt:)`, and pure for the same reason: a colour
+    /// changed in the Edit Pawn sheet has to reach every Measurement of that Pawn the next
+    /// time they are drawn, which a colour copied in when the Measurement began would not.
+    func color(pawn: (Pawn.ID) -> Pawn?) -> Color {
+        switch origin {
+        case .point: Self.pointColor
+        case .pawn(let id): pawn(id).map(\.tokenColor) ?? Self.pointColor
+        }
+    }
+
+    /// The colour of a Measurement that is no one's: one taken from a point, even with a
+    /// Pawn standing on it. Also the armed `MeasurementCursor`'s, which has no Origin yet.
+    static let pointColor: Color = .green
 
     /// Where the live end of a chain currently reaches, in image pixels.
     ///

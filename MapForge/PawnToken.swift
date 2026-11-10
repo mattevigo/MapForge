@@ -97,7 +97,7 @@ struct PawnToken: View {
                         .background(Self.faceGround(for: pawn.kind))
                         .clipShape(outline)
                 } else {
-                    outline.fill(Color(hex: pawn.colorHex) ?? .red)
+                    outline.fill(pawn.tokenColor)
                 }
             }
             // A Pawn whose light is out is still on the Map — dimmed, not gone.
@@ -187,6 +187,11 @@ extension Color {
 }
 
 extension Pawn {
+    /// The colour the token is filled with, under its Face if it has one. Red when the
+    /// stored value is malformed, so a bad value shows as a fallback rather than a silent
+    /// black disc — and so the Pawn's Measurements are drawn in the colour its token is.
+    var tokenColor: Color { Color(hex: colorHex) ?? .red }
+
     /// The colour a newly placed Pawn takes when there is no previous one to copy.
     static let defaultColorHex = "#C81E1E"
 
