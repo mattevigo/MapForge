@@ -10443,7 +10443,7 @@
         }
       }
     },
-    "No Player counts, so there are no budgets to rate the Creatures against.": {
+    "No Player counts, so there is no XP budget to rate the Creatures against.": {
       "comment": "Over the Creatures' XP, shown alone when no Player in the fight can be counted",
       "localizations": {
         "de": {
@@ -10455,7 +10455,7 @@
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Κανένας παίκτης δεν μετράει, οπότε δεν υπάρχει προϋπολογισμός XP για να αξιολογηθούν τα πλάσματα."
+            "value": "Κανένας παίκτης δεν μετράει, οπότε δεν υπάρχει XP budget για να αξιολογηθούν τα πλάσματα."
           }
         },
         "es": {

@@ -33,7 +33,7 @@ struct EncounterDifficultyIndicator: View {
     /// from, and a band named against nothing would be a verdict the app cannot give.
     private var creatureXPAlone: some View {
         EncounterDifficultyCaption(value: encounterDifficulty.creatureXPLabel())
-            .help(String(localized: "No Player counts, so there are no budgets to rate the Creatures against.",
+            .help(String(localized: "No Player counts, so there is no XP budget to rate the Creatures against.",
                          comment: "Over the Creatures' XP, shown alone when no Player in the fight can be counted"))
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("encounter-difficulty")
