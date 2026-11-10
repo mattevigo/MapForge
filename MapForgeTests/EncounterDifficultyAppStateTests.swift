@@ -1,0 +1,164 @@
+import XCTest
+@testable import MapForge
+
+/// The Encounter Difficulty of the fight the DM has framed, read through the Pawns' advisory
+/// references each time it is asked for (ADR-0032): a Creature's Challenge Rating through its
+/// Monster, a Player's level through its Character's note.
+@MainActor
+final class EncounterDifficultyAppStateTests: XCTestCase {
+    private var directory: URL!
+    private var defaults: UserDefaults!
+    private var suiteName: String!
+
+    private let goblin = Monster(name: "Goblin", challengeRating: "1/4")
+    private let boss = Monster(name: "Capo Goblin", challengeRating: "2")
+    private let lair = Monster(name: "Drago Nero Adulto", challengeRating: "14 (15 in lair)")
+
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        directory = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("EncounterDifficultyAppStateTests.\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        suiteName = "MapForgeTests.\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: suiteName)
+    }
+
+    override func tearDownWithError() throws {
+        defaults.removePersistentDomain(forName: suiteName)
+        try? FileManager.default.removeItem(at: directory)
+        try super.tearDownWithError()
+    }
+
+    /// A Workspace whose notes are read: the goblins in the Bestiary, and Durga, a level-3
+    /// Character linked to her note, in the active Party.
+    private func makeAppState() throws -> (AppState, PartyCharacter) {
+        let state = AppState(preferences: DisplayPreferences(defaults: defaults),
+                             fogStore: FogStore(),
+                             partyStore: PartyStore(directory: directory))
+        state.beginEvening(in: directory)
+        state.mapURL = directory.appendingPathComponent("dungeon.png")
+        state.bestiary = Bestiary(monsters: [boss, lair, goblin])
+        state.characterNotes = CharacterNotes(notes: [CharacterNote(name: "Durga Pietraferma",
+                                                                    level: "3")])
+        state.addParty(named: "Lost Boys")
+        state.addCharacter(PartyCharacter(name: "Durga", noteName: "Durga Pietraferma"))
+        return (state, try XCTUnwrap(state.activeParty?.characters.first))
+    }
+
+    private func player(_ character: PartyCharacter?, monsterName: String? = nil) -> Pawn {
+        Pawn(at: MapPoint(x: 10, y: 10), label: "Durga", colorHex: "#FF0000",
+             brightSquares: 6, kind: .player, characterID: character?.id, monsterName: monsterName)
+    }
+
+    private func creature(_ monster: Monster?, characterID: UUID? = nil) -> Pawn {
+        Pawn(at: MapPoint(x: 100, y: 100), label: monster?.name ?? "?", colorHex: "#C81E1E",
+             brightSquares: 6, kind: .creature, characterID: characterID,
+             monsterName: monster?.name)
+    }
+
+    /// The spec's example: four level-3 Players — Durga Stamped four times, since the Pawn
+    /// is the unit — against four goblins and their boss.
+    private func specsFight(_ durga: PartyCharacter) -> [Pawn] {
+        (0..<4).map { _ in player(durga) } + (0..<4).map { _ in creature(goblin) } + [creature(boss)]
+    }
+
+    // MARK: The fight before Play
+
+    func testTheFightTickedInIsRated() throws {
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = specsFight(durga)
+
+        let difficulty = try XCTUnwrap(state.encounterDifficulty)
+        XCTAssertEqual(difficulty.creatureXP, 650)
+        XCTAssertEqual(difficulty.budgets,
+                       EncounterDifficulty.Budgets(low: 600, moderate: 900, high: 1_600))
+        XCTAssertEqual(difficulty.band, .moderate)
+    }
+
+    func testATreasureAnUntickedCreatureAndACreatureWithNoMonsterChangeNothing() throws {
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = specsFight(durga)
+        let before = state.encounterDifficulty
+
+        let chest = Pawn(at: MapPoint(x: 5, y: 5), label: "Chest", colorHex: "#FFD700",
+                         brightSquares: 0, kind: .treasure, monsterName: boss.name)
+        let unticked = creature(boss)
+        let byHand = creature(nil)
+        state.fog.pawns += [chest, unticked, byHand]
+        state.setInCombat(false, for: unticked.id)
+
+        XCTAssertEqual(state.encounterDifficulty, before)
+    }
+
+    func testUntickingACountedCreatureLowersTheTotalAtOnce() throws {
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = specsFight(durga)
+        let theBoss = try XCTUnwrap(state.fog.pawns.last)
+
+        state.setInCombat(false, for: theBoss.id)
+
+        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 200)
+        XCTAssertEqual(state.encounterDifficulty?.band, .low)
+    }
+
+    func testACreatureWhoseChallengeRatingCannotBeReadIsLeftOut() throws {
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = specsFight(durga) + [creature(lair)]
+        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 650)
+    }
+
+    func testAPlayerWithNoCountedLevelGivesNoBudget() throws {
+        let (state, durga) = try makeAppState()
+        var unlinked = PartyCharacter(name: "Brom")
+        state.addCharacter(unlinked)
+        unlinked = try XCTUnwrap(state.activeParty?.characters.first { $0.name == "Brom" })
+        state.fog.pawns = [player(durga), player(unlinked), player(nil), creature(goblin)]
+
+        XCTAssertEqual(state.encounterDifficulty?.budgets,
+                       EncounterDifficulty.Budgets(low: 150, moderate: 225, high: 400),
+                       "Durga's alone: Brom has no note, and the third Player no Character")
+    }
+
+    func testEachPawnCountsOnlyAsItsKind() throws {
+        // A link outlives the kind it was made for, as `modifierSource(for:)` knows: a
+        // Stamped Pawn the DM made a Creature keeps its Character, and is not a Player for it.
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = [player(durga, monsterName: boss.name),
+                           creature(goblin, characterID: durga.id)]
+
+        let difficulty = try XCTUnwrap(state.encounterDifficulty)
+        XCTAssertEqual(difficulty.creatureXP, 50)
+        XCTAssertEqual(difficulty.budgets?.low, 150)
+    }
+
+    // MARK: Read live
+
+    func testALevelWrittenInTheNotesReachesThePawnsAlreadyPlaced() throws {
+        // Nothing is copied at the Stamp, so the evening a Character levels up in the notes
+        // is the evening the budgets follow.
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = specsFight(durga)
+
+        state.characterNotes = CharacterNotes(notes: [CharacterNote(name: "Durga Pietraferma",
+                                                                    level: "5")])
+
+        XCTAssertEqual(state.encounterDifficulty?.budgets?.low, 2_000)
+    }
+
+    func testAMonsterThatLeftTheNotesTakesItsXPWithIt() throws {
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = specsFight(durga)
+
+        state.bestiary = Bestiary(monsters: [goblin])
+
+        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 200)
+    }
+
+    // MARK: Nothing to rate
+
+    func testWithNoCountedCreatureNothingIsRated() throws {
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = [player(durga), creature(nil), creature(lair)]
+        XCTAssertNil(state.encounterDifficulty)
+    }
+}
