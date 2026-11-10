@@ -358,6 +358,20 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
                        "the boss joined the fight, not the roster")
     }
 
+    func testWhileTheFightRunsTheUncountedAreNamedInTheOrdersSequence() throws {
+        // The DM reads the note's hover down the Order, not down the Map's drawing order.
+        let (state, durga) = try makeAppState()
+        let nameless = creature(nil)
+        let dragon = creature(lair)
+        state.fog.pawns = specsFight(durga) + [nameless, dragon]
+        state.startEncounter()
+        let order = try XCTUnwrap(state.encounter?.order)
+        state.reorderCombatant(from: try XCTUnwrap(order.firstIndex(of: dragon.id)), to: 0)
+
+        XCTAssertEqual(state.encounterDifficultyReading.uncounted.map(\.id), [dragon.id, nameless.id],
+                       "the dragon goes first in the Order, though it was placed last")
+    }
+
     func testRatingARunningFightWritesNothingToItsLog() throws {
         // Reference, never state (ADR-0032): the Combat Log never mentions it.
         let (state, durga) = try makeAppState()

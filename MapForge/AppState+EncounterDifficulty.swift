@@ -15,16 +15,17 @@ extension AppState {
         encounterDifficultyReading(of: pawnsBeingRated)
     }
 
-    /// The Pawns whose fight is rated. While an Encounter runs, its Combatants: the Pawns in
-    /// the Order, so a Benched one — dead, fled or set aside — is left out and one joining
-    /// counts at once. Before Play, the non-Treasure Pawns ticked into the next fight: the
-    /// ones Play would roll for.
+    /// The Pawns whose fight is rated, in the fight's order. While an Encounter runs, its
+    /// Combatants in the Order's sequence, so a Benched one — dead, fled or set aside — is
+    /// left out and one joining counts at once. Before Play, the non-Treasure Pawns ticked
+    /// into the next fight, the ones Play would roll for, in the Map's order: there is no
+    /// Order yet.
     var pawnsBeingRated: [Pawn] {
         guard let encounter else {
             return fog.pawns.filter { $0.kind != .treasure && isInCombat($0.id) }
         }
-        let order = Set(encounter.order)
-        return fog.pawns.filter { $0.kind != .treasure && order.contains($0.id) }
+        let pawns = Dictionary(fog.pawns.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return encounter.order.compactMap { pawns[$0] }.filter { $0.kind != .treasure }
     }
 
     /// What `pawns` add up to, and which of them could not be counted. An uncounted Pawn is
@@ -103,7 +104,8 @@ private enum Tally {
 struct EncounterDifficultyReading: Equatable {
     /// Nil when no Creature counts: a fight with nothing to fight has nothing to rate.
     var encounterDifficulty: EncounterDifficulty?
-    /// In the fight's order. Never a Treasure.
+    /// In the fight's order: the Order's while it runs, the Map's before Play. Never a
+    /// Treasure.
     var uncounted: [UncountedPawn]
 }
 
