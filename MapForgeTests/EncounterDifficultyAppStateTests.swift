@@ -154,6 +154,89 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
         XCTAssertEqual(state.encounterDifficulty?.creatureXP, 200)
     }
 
+    // MARK: The fight while it runs
+
+    func testBenchingACountedCreatureLowersTheTotalByItsXP() throws {
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = specsFight(durga)
+        let theBoss = try XCTUnwrap(state.fog.pawns.last)
+        state.startEncounter()
+        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 650)
+
+        state.benchCombatant(theBoss.id)
+
+        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 200, "650 less the boss's 450")
+    }
+
+    func testABenchedCreatureReturningToTheOrderRestoresTheTotal() throws {
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = specsFight(durga)
+        let theBoss = try XCTUnwrap(state.fog.pawns.last)
+        state.startEncounter()
+        state.benchCombatant(theBoss.id)
+
+        state.unbenchCombatant(theBoss.id)
+
+        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 650)
+    }
+
+    func testAPawnJoiningMidFightCountsThoughItWasNeverTickedIn() throws {
+        // A summon, or the barkeep who picks a side: the Order is the fight now, not the roster.
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = specsFight(durga)
+        let theBoss = try XCTUnwrap(state.fog.pawns.last)
+        state.setInCombat(false, for: theBoss.id)
+        state.startEncounter()
+        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 200)
+
+        state.unbenchCombatant(theBoss.id)
+
+        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 650)
+    }
+
+    func testBenchingACountedPlayerLowersEachBudgetByThatPlayersShare() throws {
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = specsFight(durga)
+        let aDurga = try XCTUnwrap(state.fog.pawns.first)
+        state.startEncounter()
+
+        state.benchCombatant(aDurga.id)
+
+        XCTAssertEqual(state.encounterDifficulty?.budgets,
+                       EncounterDifficulty.Budgets(low: 450, moderate: 675, high: 1_200),
+                       "Four level-3 budgets less one: 150, 225 and 400 each")
+        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 650, "the Creatures are untouched")
+    }
+
+    func testOnceTheEncounterStopsTheTickedInRosterIsRatedAgain() throws {
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = specsFight(durga)
+        let theBoss = try XCTUnwrap(state.fog.pawns.last)
+        state.setInCombat(false, for: theBoss.id)
+        state.startEncounter()
+        state.unbenchCombatant(theBoss.id)
+
+        state.stopEncounter()
+
+        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 200,
+                       "the boss joined the fight, not the roster")
+    }
+
+    func testRatingARunningFightWritesNothingToItsLog() throws {
+        // Reference, never state (ADR-0032): the Combat Log never mentions it.
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = specsFight(durga)
+        state.startEncounter()
+        let lines = state.encounter?.lines
+
+        _ = state.encounterDifficulty
+        state.endTurn()
+        _ = state.encounterDifficulty
+
+        let ended = try XCTUnwrap(state.encounter?.lines)
+        XCTAssertEqual(ended.count, (lines?.count ?? 0) + 1, "only the Turn's own line")
+    }
+
     // MARK: Nothing to rate
 
     func testWithNoCountedCreatureNothingIsRated() throws {

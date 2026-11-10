@@ -15,11 +15,16 @@ extension AppState {
         encounterDifficulty(of: pawnsBeingRated)
     }
 
-    /// The Pawns whose fight is rated. Before Play, the non-Treasure Pawns ticked into the
-    /// next fight: the ones Play would roll for. A running Encounter is not rated yet.
+    /// The Pawns whose fight is rated. While an Encounter runs, its Combatants: the Pawns in
+    /// the Order, so a Benched one — dead, fled or set aside — is left out and one joining
+    /// counts at once. Before Play, the non-Treasure Pawns ticked into the next fight: the
+    /// ones Play would roll for.
     var pawnsBeingRated: [Pawn] {
-        guard encounter == nil else { return [] }
-        return fog.pawns.filter { $0.kind != .treasure && isInCombat($0.id) }
+        guard let encounter else {
+            return fog.pawns.filter { $0.kind != .treasure && isInCombat($0.id) }
+        }
+        let order = Set(encounter.order)
+        return fog.pawns.filter { $0.kind != .treasure && order.contains($0.id) }
     }
 
     /// What `pawns` add up to. A Pawn that cannot be counted is left out of the totals.
