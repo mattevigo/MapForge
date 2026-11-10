@@ -154,6 +154,142 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
         XCTAssertEqual(state.encounterDifficulty?.creatureXP, 200)
     }
 
+    // MARK: Uncounted Pawns, named
+
+    func testACreatureWithNoMonsterIsUncounted() throws {
+        let (state, durga) = try makeAppState()
+        let byHand = creature(nil)
+        state.fog.pawns = specsFight(durga) + [byHand]
+
+        XCTAssertEqual(state.encounterDifficultyReading.uncounted,
+                       [UncountedPawn(id: byHand.id, label: byHand.label, reason: .noMonster)])
+    }
+
+    func testACreatureWhoseMonsterLeftTheBestiaryIsUncounted() throws {
+        let (state, durga) = try makeAppState()
+        let ogre = creature(Monster(name: "Ogre", challengeRating: "2"))
+        state.fog.pawns = specsFight(durga) + [ogre]
+
+        XCTAssertEqual(state.encounterDifficultyReading.uncounted.map(\.reason),
+                       [.monsterNotInBestiary(monsterName: "Ogre")])
+    }
+
+    func testAChallengeRatingThatCannotBeReadIsQuoted() throws {
+        let (state, durga) = try makeAppState()
+        let dragon = Monster(name: "Drago Blu Adulto", challengeRating: "10 (13 in lair)")
+        state.bestiary = Bestiary(monsters: [boss, goblin, dragon])
+        state.fog.pawns = specsFight(durga) + [creature(dragon)]
+
+        XCTAssertEqual(state.encounterDifficultyReading.uncounted.map(\.reason),
+                       [.challengeRatingNotCounted("10 (13 in lair)")])
+    }
+
+    func testAMonsterWithNoChallengeRatingIsUncounted() throws {
+        let (state, durga) = try makeAppState()
+        let guardsman = Monster(name: "Guardia Cittadina")
+        state.bestiary = Bestiary(monsters: [boss, goblin, guardsman])
+        state.fog.pawns = specsFight(durga) + [creature(guardsman)]
+
+        XCTAssertEqual(state.encounterDifficultyReading.uncounted.map(\.reason),
+                       [.challengeRatingNotCounted(nil)])
+    }
+
+    func testAPlayerWithNoCharacterIsUncounted() throws {
+        let (state, durga) = try makeAppState()
+        let byHand = player(nil)
+        state.fog.pawns = specsFight(durga) + [byHand]
+
+        XCTAssertEqual(state.encounterDifficultyReading.uncounted,
+                       [UncountedPawn(id: byHand.id, label: "Durga", reason: .noCharacter)])
+    }
+
+    func testAPlayerWhoseCharacterNoLongerExistsIsUncounted() throws {
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = specsFight(durga) + [player(PartyCharacter(name: "Brom"))]
+
+        XCTAssertEqual(state.encounterDifficultyReading.uncounted.map(\.reason), [.characterGone])
+    }
+
+    func testAPlayerWhoseCharacterHasNoNoteIsUncounted() throws {
+        let (state, durga) = try makeAppState()
+        state.addCharacter(PartyCharacter(name: "Brom"))
+        let brom = try XCTUnwrap(state.activeParty?.characters.first { $0.name == "Brom" })
+        state.fog.pawns = specsFight(durga) + [player(brom)]
+
+        XCTAssertEqual(state.encounterDifficultyReading.uncounted.map(\.reason), [.noNote])
+    }
+
+    func testAPlayerWhoseNoteCannotBeFoundIsUncounted() throws {
+        let (state, durga) = try makeAppState()
+        state.addCharacter(PartyCharacter(name: "Brom", noteName: "Brom Mezzelfo"))
+        let brom = try XCTUnwrap(state.activeParty?.characters.first { $0.name == "Brom" })
+        state.fog.pawns = specsFight(durga) + [player(brom)]
+
+        XCTAssertEqual(state.encounterDifficultyReading.uncounted.map(\.reason),
+                       [.noteNotFound(noteName: "Brom Mezzelfo")])
+    }
+
+    func testALevelThatCannotBeReadIsQuoted() throws {
+        let (state, durga) = try makeAppState()
+        state.characterNotes = CharacterNotes(notes: [CharacterNote(name: "Durga Pietraferma",
+                                                                    level: "Guerriero 3")])
+        state.fog.pawns = [player(durga), creature(goblin)]
+
+        XCTAssertEqual(state.encounterDifficultyReading.uncounted.map(\.reason),
+                       [.levelNotCounted("Guerriero 3")])
+    }
+
+    func testANoteWithNoLevelIsUncounted() throws {
+        let (state, durga) = try makeAppState()
+        state.characterNotes = CharacterNotes(notes: [CharacterNote(name: "Durga Pietraferma")])
+        state.fog.pawns = [player(durga), creature(goblin)]
+
+        XCTAssertEqual(state.encounterDifficultyReading.uncounted.map(\.reason),
+                       [.levelNotCounted(nil)])
+    }
+
+    func testUncountedPawnsNeverChangeTheTotalsOrTheBudgets() throws {
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = specsFight(durga)
+        let before = state.encounterDifficulty
+
+        state.fog.pawns += [creature(nil), creature(lair), player(nil),
+                            player(PartyCharacter(name: "Brom"))]
+
+        XCTAssertEqual(state.encounterDifficulty, before)
+        XCTAssertEqual(state.encounterDifficultyReading.uncounted.count, 4)
+    }
+
+    func testATreasureIsNeverUncounted() throws {
+        let (state, durga) = try makeAppState()
+        let chest = Pawn(at: MapPoint(x: 5, y: 5), label: "Chest", colorHex: "#FFD700",
+                         brightSquares: 0, kind: .treasure)
+        state.fog.pawns = specsFight(durga) + [chest]
+
+        XCTAssertEqual(state.encounterDifficultyReading(of: state.fog.pawns).uncounted, [],
+                       "Not even when handed one: a Treasure has no numbers to miss")
+    }
+
+    func testWithNoCountedPlayerTheCreaturesXPIsGivenWithNoBand() throws {
+        let (state, _) = try makeAppState()
+        let byHand = player(nil)
+        state.fog.pawns = [creature(boss), creature(goblin), creature(goblin), byHand]
+
+        let reading = state.encounterDifficultyReading
+        XCTAssertEqual(reading.difficulty?.creatureXP, 550)
+        XCTAssertNil(reading.difficulty?.budgets)
+        XCTAssertNil(reading.difficulty?.band)
+        XCTAssertEqual(reading.uncounted.map(\.id), [byHand.id])
+    }
+
+    func testWithNoCountedCreatureNothingIsRatedThoughSomeAreUncounted() throws {
+        let (state, durga) = try makeAppState()
+        state.fog.pawns = [player(durga), creature(nil), creature(lair)]
+
+        XCTAssertNil(state.encounterDifficultyReading.difficulty)
+        XCTAssertEqual(state.encounterDifficultyReading.uncounted.count, 2)
+    }
+
     // MARK: Nothing to rate
 
     func testWithNoCountedCreatureNothingIsRated() throws {

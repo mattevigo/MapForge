@@ -12,7 +12,13 @@ extension AppState {
     /// The Encounter Difficulty of the fight being rated, or nil when no Creature in it
     /// counts — a fight with nothing to fight has nothing to rate.
     var encounterDifficulty: EncounterDifficulty? {
-        encounterDifficulty(of: pawnsBeingRated)
+        encounterDifficultyReading.difficulty
+    }
+
+    /// The fight being rated, read: its Encounter Difficulty, and every Pawn in it that could
+    /// not be counted, with why.
+    var encounterDifficultyReading: EncounterDifficultyReading {
+        encounterDifficultyReading(of: pawnsBeingRated)
     }
 
     /// The Pawns whose fight is rated. Before Play, the non-Treasure Pawns ticked into the
@@ -24,28 +30,135 @@ extension AppState {
 
     /// What `pawns` add up to. A Pawn that cannot be counted is left out of the totals.
     func encounterDifficulty(of pawns: [Pawn]) -> EncounterDifficulty? {
-        let challengeRatings = pawns.compactMap(challengeRating(of:))
-        guard !challengeRatings.isEmpty else { return nil }
-        return EncounterDifficulty(levels: pawns.compactMap(level(of:)),
-                                   challengeRatings: challengeRatings)
+        encounterDifficultyReading(of: pawns).difficulty
+    }
+
+    /// What `pawns` add up to, and which of them could not be counted. An uncounted Pawn is
+    /// left out of the totals and named instead, never guessed (ADR-0032); a Treasure is
+    /// neither, having no numbers to count.
+    func encounterDifficultyReading(of pawns: [Pawn]) -> EncounterDifficultyReading {
+        var levels: [CharacterLevel] = []
+        var challengeRatings: [ChallengeRating] = []
+        var uncounted: [UncountedPawn] = []
+        for pawn in pawns {
+            switch tally(pawn) {
+            case .challengeRating(let challengeRating): challengeRatings.append(challengeRating)
+            case .level(let level): levels.append(level)
+            case .uncounted(let reason):
+                uncounted.append(UncountedPawn(id: pawn.id, label: pawn.label, reason: reason))
+            case .nothing: break
+            }
+        }
+        let difficulty = challengeRatings.isEmpty
+            ? nil : EncounterDifficulty(levels: levels, challengeRatings: challengeRatings)
+        return EncounterDifficultyReading(difficulty: difficulty, uncounted: uncounted)
     }
 
     /// A Creature's Challenge Rating, through its Monster in the Bestiary, when its note's
     /// `cr` counts.
-    ///
-    /// By the Pawn's kind first, as `modifierSource(for:)` is, because each link outlives the
-    /// kind it was made for: a Player keeps a `monsterName` the DM gave it as a Creature, and
-    /// the party does not fight itself.
     func challengeRating(of pawn: Pawn) -> ChallengeRating? {
-        guard pawn.kind == .creature else { return nil }
-        return ChallengeRating(bestiary.monster(named: pawn.monsterName)?.challengeRating)
+        guard case .challengeRating(let challengeRating) = tally(pawn) else { return nil }
+        return challengeRating
     }
 
     /// A Player's level, through its Character and that Character's note, when the note's
     /// `level` counts.
     func level(of pawn: Pawn) -> CharacterLevel? {
-        guard pawn.kind == .player, let id = pawn.characterID,
-              let character = character(id: id) else { return nil }
-        return CharacterLevel(note(for: character)?.level)
+        guard case .level(let level) = tally(pawn) else { return nil }
+        return level
+    }
+
+    /// What one Pawn gives the reckoning.
+    ///
+    /// By the Pawn's kind first, as `modifierSource(for:)` is, because each link outlives the
+    /// kind it was made for: a Player keeps a `monsterName` the DM gave it as a Creature, and
+    /// the party does not fight itself.
+    private func tally(_ pawn: Pawn) -> Tally {
+        switch pawn.kind {
+        case .creature:
+            guard let monsterName = pawn.monsterName else { return .uncounted(.noMonster) }
+            guard let monster = bestiary.monster(named: monsterName) else {
+                return .uncounted(.monsterNotInBestiary(monsterName: monsterName))
+            }
+            guard let challengeRating = ChallengeRating(monster.challengeRating) else {
+                return .uncounted(.challengeRatingNotCounted(quoted(monster.challengeRating)))
+            }
+            return .challengeRating(challengeRating)
+        case .player:
+            guard let id = pawn.characterID else { return .uncounted(.noCharacter) }
+            guard let character = character(id: id) else { return .uncounted(.characterGone) }
+            guard let noteName = character.noteName else { return .uncounted(.noNote) }
+            guard let note = note(for: character) else {
+                return .uncounted(.noteNotFound(noteName: noteName))
+            }
+            guard let level = CharacterLevel(note.level) else {
+                return .uncounted(.levelNotCounted(quoted(note.level)))
+            }
+            return .level(level)
+        case .treasure:
+            return .nothing
+        }
+    }
+
+    /// A note's text as the DM would want it quoted back: nil when there is nothing written.
+    private func quoted(_ text: String?) -> String? {
+        guard let text = text?.trimmingCharacters(in: .whitespaces), !text.isEmpty else { return nil }
+        return text
+    }
+}
+
+/// What one Pawn gives the Encounter Difficulty.
+private enum Tally {
+    case challengeRating(ChallengeRating)
+    case level(CharacterLevel)
+    case uncounted(UncountedPawn.Reason)
+    /// A Treasure, which has no numbers and is no one's to count.
+    case nothing
+}
+
+/// The fight being rated, as `AppState` reads it: what counted, reckoned, beside the Pawns
+/// that did not.
+struct EncounterDifficultyReading: Equatable {
+    /// Nil when no Creature counts: a fight with nothing to fight has nothing to rate.
+    var difficulty: EncounterDifficulty?
+    /// In the fight's order. Never a Treasure.
+    var uncounted: [UncountedPawn]
+}
+
+/// A Pawn in the fight being rated whose numbers could not be read from the notes, and why
+/// — so the DM, who can fix the note, knows which one to fix.
+struct UncountedPawn: Equatable {
+    var id: UUID
+    var label: String
+    var reason: Reason
+
+    enum Reason: Equatable {
+        /// A Creature the DM never said was a Monster.
+        case noMonster
+        /// A Creature whose Monster has left the notes since the DM said it was one.
+        case monsterNotInBestiary(monsterName: String)
+        /// A Monster whose note's `cr` is not one the rules give XP for, quoted; nil when the
+        /// note writes none.
+        case challengeRatingNotCounted(String?)
+
+        /// A Player not Stamped from a Character.
+        case noCharacter
+        /// A Player whose Character has been deleted from every Party since the Stamp.
+        case characterGone
+        /// A Player whose Character was never linked to a note.
+        case noNote
+        /// A Player whose Character's note is not among the notes read.
+        case noteNotFound(noteName: String)
+        /// A Character's note whose `level` is not a whole number from 1 to 20, quoted; nil
+        /// when the note writes none.
+        case levelNotCounted(String?)
+
+        /// Which side the Pawn was to count for.
+        var kind: PawnKind {
+            switch self {
+            case .noMonster, .monsterNotInBestiary, .challengeRatingNotCounted: return .creature
+            case .noCharacter, .characterGone, .noNote, .noteNotFound, .levelNotCounted: return .player
+            }
+        }
     }
 }
