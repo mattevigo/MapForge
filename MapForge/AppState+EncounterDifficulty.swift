@@ -65,16 +65,17 @@ extension AppState {
             }
             return .challengeRating(challengeRating)
         case .player:
-            guard let id = pawn.characterID else { return .uncounted(.noCharacter) }
-            guard let character = character(id: id) else { return .uncounted(.characterGone) }
-            guard let noteName = character.noteName else { return .uncounted(.noNote) }
-            guard let note = note(for: character) else {
-                return .uncounted(.noteNotFound(noteName: noteName))
+            switch characterNote(for: pawn) {
+            case .noCharacter: return .uncounted(.noCharacter)
+            case .characterGone: return .uncounted(.characterGone)
+            case .unlinked: return .uncounted(.noNote)
+            case .missing(let noteName): return .uncounted(.noteNotFound(noteName: noteName))
+            case .found(let note):
+                guard let level = CharacterLevel(note.level) else {
+                    return .uncounted(.levelNotCounted(trimmedOrNil(note.level)))
+                }
+                return .level(level)
             }
-            guard let level = CharacterLevel(note.level) else {
-                return .uncounted(.levelNotCounted(trimmedOrNil(note.level)))
-            }
-            return .level(level)
         case .treasure:
             return .nothing
         }

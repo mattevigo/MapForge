@@ -1145,13 +1145,30 @@ final class AppState: ObservableObject {
     /// Character's note (ADR-0007, amended) — never from a name copied at the Stamp, so a
     /// Character the DM links tonight reaches the Pawns already on tonight's Map.
     func characterPage(for pawn: Pawn) -> CharacterPage? {
-        guard let id = pawn.characterID, let character = character(id: id) else { return nil }
-        guard let noteName = character.noteName else {
+        switch characterNote(for: pawn) {
+        case .noCharacter, .characterGone:
+            return nil
+        case .unlinked(let character):
             return .unlinked(characterName: character.name)
+        case .found(let note):
+            return .note(note)
+        case .missing(let noteName):
+            if let unavailable = bestiary.unavailable { return .unavailable(unavailable) }
+            return .missing(noteName: noteName)
         }
-        if let note = characterNotes.note(named: noteName) { return .note(note) }
-        if let unavailable = bestiary.unavailable { return .unavailable(unavailable) }
-        return .missing(noteName: noteName)
+    }
+
+    /// The walk from a Pawn to its Character's note — `characterID`, the Character, the name
+    /// of its note, the note — and where it stopped, if it did. Shared by the Character page
+    /// and the Encounter Difficulty, which each say a different thing at each stop.
+    func characterNote(for pawn: Pawn) -> CharacterNoteLookup {
+        guard let id = pawn.characterID else { return .noCharacter }
+        guard let character = character(id: id) else { return .characterGone }
+        guard let noteName = character.noteName else { return .unlinked(character) }
+        guard let note = characterNotes.note(named: noteName) else {
+            return .missing(noteName: noteName)
+        }
+        return .found(note)
     }
 
     /// The note the Roll sheet offers `pawn`'s Modifier from (ADR-0029): a Player's Character's,

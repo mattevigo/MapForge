@@ -1,5 +1,18 @@
 import SwiftUI
 
+/// How far `AppState.characterNote(for:)` got from a Pawn to its Character's note.
+enum CharacterNoteLookup: Equatable {
+    /// The Pawn was not Stamped from a Character.
+    case noCharacter
+    /// The Character that Stamped it has been deleted from every Party since.
+    case characterGone
+    /// The Character was never linked to a note.
+    case unlinked(PartyCharacter)
+    /// The Character's note is not among the notes read.
+    case missing(noteName: String)
+    case found(CharacterNote)
+}
+
 /// What the Combat tab shows under a Player Pawn's Stat Block editor — `AppState.characterPage(for:)`.
 enum CharacterPage: Equatable {
     /// The Character's note, read from the Workspace.
