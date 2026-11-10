@@ -1062,13 +1062,10 @@ struct ControlView: View {
         // Above the tokens: a Measurement is what the DM is pointing at, and a cone
         // half-hidden behind the party is unreadable.
         if let pixelsPerSquare = appState.pixelsPerSquare {
-            ForEach(appState.drawableMeasurements, id: \.measurement.id) {
-                MeasurementLayer(measurement: $0.measurement,
-                                 origin: $0.origin,
-                                 map: map, frame: frame,
+            ForEach(appState.drawableMeasurements) {
+                MeasurementLayer(drawable: $0, map: map, frame: frame,
                                  pixelsPerSquare: pixelsPerSquare,
-                                 unit: appState.distanceUnit,
-                                 color: $0.color)
+                                 unit: appState.distanceUnit)
             }
         }
     }

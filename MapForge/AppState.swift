@@ -712,18 +712,27 @@ final class AppState: ObservableObject {
     }
 
     /// A Measurement ready to draw: where it starts and the colour it is drawn in, both
-    /// resolved against its Pawn as it is now.
-    typealias DrawableMeasurement = (measurement: Measurement, origin: MapPoint, color: Color)
+    /// resolved against its Pawn as it is now. Handed to `MeasurementLayer` whole, so both
+    /// screens draw exactly what was resolved here.
+    struct DrawableMeasurement: Identifiable {
+        let measurement: Measurement
+        let origin: MapPoint
+        let color: Color
+
+        var id: Measurement.ID { measurement.id }
+    }
 
     var drawableMeasurements: [DrawableMeasurement] {
         var drawable = pinnedMeasurements.compactMap { pinned -> DrawableMeasurement? in
             guard let origin = pinned.originPoint(pawnAt: { id in
                 pawnOnMap(id)?.at
             }) else { return nil }
-            return (pinned, origin, measurementColor(pinned))
+            return DrawableMeasurement(measurement: pinned, origin: origin,
+                                       color: measurementColor(pinned))
         }
         if let measurement = resolvedMeasurement, let origin = measurementOriginPoint {
-            drawable.append((measurement, origin, measurementColor(measurement)))
+            drawable.append(DrawableMeasurement(measurement: measurement, origin: origin,
+                                                color: measurementColor(measurement)))
         }
         return drawable
     }

@@ -13,20 +13,23 @@ import SwiftUI
 /// Player Display draws only the world — see
 /// [ADR 0005](../docs/adr/0005-the-player-display-shows-the-measurement.md).
 struct MeasurementLayer: View {
-    let measurement: Measurement
-    /// Where the Measurement starts, already resolved against an anchoring Pawn.
-    let origin: MapPoint
+    /// The Measurement with its Origin and colour already resolved against an anchoring
+    /// Pawn — handed in whole rather than looked up, so both screens draw what
+    /// `AppState.drawableMeasurements` resolved once.
+    let drawable: AppState.DrawableMeasurement
     let map: MapScale
     let frame: CGRect
     let pixelsPerSquare: CGFloat
     /// The Distance Unit the readout speaks — the same on both screens, so the table and the
     /// DM never read one distance two ways.
     let unit: DistanceUnit
-    /// What the Measurement is drawn in, already resolved against an anchoring Pawn:
-    /// that Pawn's colour, so the table can tell whose it is, or
-    /// `Measurement.ownColor` for one taken from a point. Handed in rather than looked
-    /// up, so both screens draw the colour `AppState.drawableMeasurements` resolved once.
-    let color: Color
+
+    private var measurement: Measurement { drawable.measurement }
+    /// Where the Measurement starts.
+    private var origin: MapPoint { drawable.origin }
+    /// What the Measurement is drawn in: its Pawn's colour, so the table can tell whose it
+    /// is, or `Measurement.ownColor` for one taken from a point.
+    private var color: Color { drawable.color }
 
     /// Translucent fill, solid border — the pairing `GridFitOverlay` and `ViewportOverlay`
     /// already use for "a region under discussion". Only the colour is the Measurement's;
