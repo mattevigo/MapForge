@@ -86,8 +86,12 @@ struct CombatPanel: View {
         .padding(8)
     }
 
-    /// How hard the fight the DM has framed is, above the controls that start it — read
-    /// from the notes each time it is drawn (`AppState.encounterDifficulty`, ADR-0032).
+    /// How hard the fight the DM has framed is, directly above the controls — read from the
+    /// notes each time it is drawn (`AppState.encounterDifficulty`, ADR-0032).
+    ///
+    /// The same place before Play and while the fight runs, under "Round N" or the
+    /// correcting bar: it rates the ticked-in roster first and the Order after, and the DM
+    /// should not have to look for it twice.
     ///
     /// Nothing at all with no counted Creature, or no counted Player to give it budgets:
     /// a bar with nothing to measure, or nothing to measure against, would read as a
