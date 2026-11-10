@@ -13,8 +13,8 @@ struct EncounterDifficultyIndicator: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            if let budgets = encounterDifficulty.budgets {
-                EncounterDifficultyBar(creatureXP: encounterDifficulty.creatureXP, budgets: budgets)
+            if let bar = EncounterDifficultyBar(encounterDifficulty) {
+                bar
             } else {
                 creatureXPAlone
             }

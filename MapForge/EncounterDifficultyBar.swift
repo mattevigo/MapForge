@@ -7,19 +7,27 @@ import SwiftUI
 /// The DM's alone. It lives in `CombatPanel`, which only the Control Window shows: the
 /// players see the fight, never how hard the DM reckons it.
 struct EncounterDifficultyBar: View {
-    var creatureXP: Int
-    var budgets: EncounterDifficulty.Budgets
+    private let encounterDifficulty: EncounterDifficulty
+    private let budgets: EncounterDifficulty.Budgets
+    private let band: EncounterDifficulty.Band
+
+    /// Nil when no Player counts: with no budgets there are no marks to draw and no band to
+    /// name.
+    init?(_ encounterDifficulty: EncounterDifficulty) {
+        guard let budgets = encounterDifficulty.budgets,
+              let band = encounterDifficulty.band else { return nil }
+        self.encounterDifficulty = encounterDifficulty
+        self.budgets = budgets
+        self.band = band
+    }
 
     /// The overspent end: fixed, not proportional, so a dragon in a goblin fight does not
     /// squash the three budgets the DM is reading the fill against into the first few points.
     private static let stubWidth: CGFloat = 14
     private static let gap: CGFloat = 2
 
-    private var band: EncounterDifficulty.Band {
-        EncounterDifficulty.Band(of: creatureXP, within: budgets)
-    }
-
     var body: some View {
+        let creatureXP = encounterDifficulty.creatureXP
         let layout = Layout(creatureXP: creatureXP, budgets: budgets)
         VStack(alignment: .leading, spacing: 3) {
             EncounterDifficultyCaption(value: band.label(creatureXP: creatureXP))
