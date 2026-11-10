@@ -523,6 +523,9 @@
     "%@ · %@": {
       "shouldTranslate": false
     },
+    "%@ · %lld XP": {
+      "comment": "The Encounter Difficulty's band and the Creatures' total: Moderate · 650 XP"
+    },
     "%@ — %@": {
       "shouldTranslate": false
     },
@@ -3633,6 +3636,9 @@
         }
       }
     },
+    "Beyond High": {
+      "comment": "The Encounter Difficulty past the High budget: MapForge's own term, not the rulebook's"
+    },
     "Big": {
       "localizations": {
         "de": {
@@ -6057,6 +6063,9 @@
         }
       }
     },
+    "Encounter Difficulty": {
+      "comment": "The rulebook's term, over the Combat tab's bar"
+    },
     "Encounter ended": {
       "localizations": {
         "de": {
@@ -7503,6 +7512,9 @@
         }
       }
     },
+    "High": {
+      "comment": "An Encounter Difficulty band, as SRD 5.2.1 names it"
+    },
     "History": {
       "localizations": {
         "de": {
@@ -8469,6 +8481,12 @@
         }
       }
     },
+    "Low": {
+      "comment": "An Encounter Difficulty band, as SRD 5.2.1 names it"
+    },
+    "Low up to %lld XP, Moderate up to %lld XP, High up to %lld XP.": {
+      "comment": "The party's three budgets, under the Encounter Difficulty's bar"
+    },
     "Map Fit": {
       "localizations": {
         "de": {
@@ -8989,6 +9007,9 @@
           }
         }
       }
+    },
+    "Moderate": {
+      "comment": "An Encounter Difficulty band, as SRD 5.2.1 names it"
     },
     "Modifier:": {
       "localizations": {

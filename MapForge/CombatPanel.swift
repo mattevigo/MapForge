@@ -80,9 +80,23 @@ struct CombatPanel: View {
                     }
                 }
             }
+            encounterDifficulty
             controls
         }
         .padding(8)
+    }
+
+    /// How hard the fight the DM has framed is, above the controls that start it — read
+    /// from the notes each time it is drawn (`AppState.encounterDifficulty`, ADR-0032).
+    ///
+    /// Nothing at all with no counted Creature, or no counted Player to give it budgets:
+    /// a bar with nothing to measure, or nothing to measure against, would read as a
+    /// verdict the app cannot give.
+    @ViewBuilder
+    private var encounterDifficulty: some View {
+        if let difficulty = appState.encounterDifficulty, let budgets = difficulty.budgets {
+            EncounterDifficultyBar(creatureXP: difficulty.creatureXP, budgets: budgets)
+        }
     }
 
     /// The correcting state, over-signalled on purpose.
