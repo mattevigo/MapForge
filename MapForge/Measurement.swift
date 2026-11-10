@@ -32,13 +32,33 @@ enum MeasurementShape: CaseIterable, Hashable {
 
 /// Where a Measurement starts.
 ///
-/// A sum type rather than a point plus an optional ID: the two cases resolve differently,
-/// and only one of them can go stale. A Pawn-anchored Origin follows the Pawn as it is
-/// dragged and ends when the Pawn does — the `resolved…` guard on `AppState` is what keeps
-/// a stale ID inert, exactly as Solo Sight does.
+/// A sum type rather than a point plus an optional ID: the cases resolve differently, and
+/// only the Pawn ones can go stale. A Pawn-anchored Origin ends when the Pawn does — the
+/// `resolved…` guard on `AppState` is what keeps a stale ID inert, exactly as Solo Sight
+/// does.
 enum MeasurementOrigin: Equatable {
     case point(MapPoint)
+    /// A Cone, Circle or Square's from a Pawn: it starts wherever the Pawn stands now, so
+    /// it follows the Pawn as it is dragged. Those shapes answer "what is in range of where
+    /// it stands".
     case pawn(Pawn.ID)
+    /// A Line's from a Pawn: it starts where the Pawn stood when the Line was begun, and
+    /// stays there. A Line is a route, and a Pawn walking the route it was given must not
+    /// drag the route along behind it — following would move only the first point, since
+    /// the `chain` is in absolute Map points, and the path and its total would disagree.
+    ///
+    /// Still the Pawn's: it is drawn in the Pawn's colour and ends when the Pawn does,
+    /// which is why the ID is kept beside the point rather than decaying to `.point`.
+    case pawnWhereItStood(Pawn.ID, MapPoint)
+
+    /// The Pawn this Origin belongs to, whether or not it follows it — the reference that
+    /// goes stale when the Pawn is deleted, and the Pawn the colour is read from.
+    var pawnID: Pawn.ID? {
+        switch self {
+        case .point: nil
+        case .pawn(let id), .pawnWhereItStood(let id, _): id
+        }
+    }
 }
 
 /// A distance the DM asked about mid-play: an Origin, a shape, a length and an aim.
@@ -290,7 +310,7 @@ struct Measurement: Equatable, Identifiable {
     /// staleness question belongs to `AppState`, which already answers it for Solo Sight.
     func originPoint(pawnAt: (Pawn.ID) -> MapPoint?) -> MapPoint? {
         switch origin {
-        case .point(let point): point
+        case .point(let point), .pawnWhereItStood(_, let point): point
         case .pawn(let id): pawnAt(id)
         }
     }
@@ -301,10 +321,8 @@ struct Measurement: Equatable, Identifiable {
     /// changed in the Edit Pawn sheet has to reach every Measurement of that Pawn the next
     /// time they are drawn, which a colour copied in when the Measurement began would not.
     func color(pawn: (Pawn.ID) -> Pawn?) -> Color {
-        switch origin {
-        case .point: Self.pointColor
-        case .pawn(let id): pawn(id).map(\.tokenColor) ?? Self.pointColor
-        }
+        guard let id = origin.pawnID else { return Self.pointColor }
+        return pawn(id).map(\.tokenColor) ?? Self.pointColor
     }
 
     /// The colour of a Measurement that is no one's: one taken from a point, even with a

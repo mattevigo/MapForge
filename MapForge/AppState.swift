@@ -79,15 +79,14 @@ final class AppState: ObservableObject {
             // invalidates for the same reason and in the same place. Pinned ones hold the
             // same kind of reference and go the same way — a pin does not make a stale
             // anchor any less stale.
-            if case .pawn(let id) = measurement?.origin,
+            // A Line that stays where it was begun is still its Pawn's, and goes with it.
+            if let id = measurement?.origin.pawnID,
                !fog.pawns.contains(where: { $0.id == id }) {
                 measurement = nil
             }
             pinnedMeasurements.removeAll { pinned in
-                if case .pawn(let id) = pinned.origin {
-                    return !fog.pawns.contains(where: { $0.id == id })
-                }
-                return false
+                guard let id = pinned.origin.pawnID else { return false }
+                return !fog.pawns.contains(where: { $0.id == id })
             }
             // The Selection holds Pawn and Light IDs, so it goes the same way: a deleted
             // member leaves it and the rest stay picked. Skipped while nothing is picked,
@@ -666,13 +665,14 @@ final class AppState: ObservableObject {
     /// thing a measuring tool must not give.
     var resolvedMeasurement: Measurement? {
         guard let measurement else { return nil }
-        if case .pawn(let id) = measurement.origin,
+        if let id = measurement.origin.pawnID,
            !fog.pawns.contains(where: { $0.id == id }) { return nil }
         return measurement
     }
 
     /// Where the on-screen Measurement currently starts, in image pixels. Follows an
-    /// anchoring Pawn as it moves, which is why this is resolved rather than stored.
+    /// anchoring Pawn as it moves, which is why this is resolved rather than stored — except
+    /// a Line's, which stays where the Pawn stood when it was begun.
     var measurementOriginPoint: MapPoint? {
         resolvedMeasurement?.originPoint { id in
             fog.pawns.first(where: { $0.id == id })?.at

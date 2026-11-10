@@ -43,13 +43,15 @@ enum MeasurementControl {
     ///
     /// A click on a Pawn anchors to the Pawn — spec 5, so the DM does not have to find the
     /// exact pixel under a token they can already see, and so the Measurement follows it.
-    /// Anything else anchors to the point itself.
+    /// A Line is the exception: it is anchored to where the Pawn stands at this click, and
+    /// stays there (`MeasurementOrigin.pawnWhereItStood`). Anything else anchors to the
+    /// point itself.
     ///
     /// Hit-testing lives here rather than as a gesture on the token: `PawnLayer` already
     /// owns a drag, child gestures beat ancestor gestures, and this render layer has
     /// produced four defects from gesture composition (`ControlView`).
     static func origin(forClickAt point: MapPoint, pawns: [Pawn],
-                       pixelsPerSquare: CGFloat) -> MeasurementOrigin {
+                       pixelsPerSquare: CGFloat, shape: MeasurementShape) -> MeasurementOrigin {
         let hit = pawns
             .map { pawn -> (Pawn, CGFloat) in
                 (pawn, hypot(pawn.at.x - point.x, pawn.at.y - point.y))
@@ -62,8 +64,9 @@ enum MeasurementControl {
             .filter { $0.1 <= $0.0.squaresAcross * pixelsPerSquare / 2 }
             .min { $0.1 < $1.1 }
 
-        if let hit { return .pawn(hit.0.id) }
-        return .point(point)
+        guard let (pawn, _) = hit else { return .point(point) }
+        // A Line is a route and stays where it was begun; the others follow their Pawn.
+        return shape == .line ? .pawnWhereItStood(pawn.id, pawn.at) : .pawn(pawn.id)
     }
 
     /// Which way an aimed shape points: from the Origin towards the cursor.

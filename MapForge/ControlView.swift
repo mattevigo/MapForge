@@ -1176,7 +1176,8 @@ struct ControlView: View {
         let mapPoint = PlayerPlacement.mapPoint(point, map: map, frame: frame)
         let origin = MeasurementControl.origin(forClickAt: mapPoint,
                                                pawns: appState.fog.pawns,
-                                               pixelsPerSquare: pixelsPerSquare)
+                                               pixelsPerSquare: pixelsPerSquare,
+                                               shape: shape)
         armedShape = nil
         typedDistance.clear()
         appState.setMeasurement(Measurement(origin: origin, shape: shape,
