@@ -86,8 +86,8 @@ struct ChallengeRating: Equatable {
     }
 
     /// The 2024 table. `0` is worth 10: the 2024 rules give a CR 0 creature 0 or 10 by its
-    /// own stat block, the notes' `statblock` carries no XP to say which, and 10 is the one
-    /// nearly every such creature has (ADR-0032).
+    /// own rulebook entry, the notes' `statblock` carries no XP to say which, and 10 is the
+    /// one nearly every such creature has (ADR-0032).
     static let xpByChallengeRating: [String: Int] = [
         "0": 10, "1/8": 25, "1/4": 50, "1/2": 100,
         "1": 200, "2": 450, "3": 700, "4": 1_100, "5": 1_800,
