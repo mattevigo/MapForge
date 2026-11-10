@@ -54,19 +54,6 @@ final class MeasurementColorAppStateTests: XCTestCase {
     private let blue = Color(.sRGB, red: 0x33 / 255, green: 0x66 / 255, blue: 0xCC / 255)
     private let orange = Color(.sRGB, red: 0xFF / 255, green: 0x88 / 255, blue: 0x00 / 255)
 
-    private func state(with pawn: Pawn) -> AppState {
-        let defaults = UserDefaults(suiteName: "MeasurementColorTests.\(UUID().uuidString)")!
-        let state = AppState(preferences: DisplayPreferences(defaults: defaults))
-        state.squaresWide = 20
-        state.fog.pawns = [pawn]
-        return state
-    }
-
-    private func rogue() -> Pawn {
-        Pawn(at: MapPoint(x: 500, y: 400), label: "Rogue", colorHex: "#3366CC",
-             brightSquares: 4)
-    }
-
     private func settled(_ origin: MeasurementOrigin,
                          _ shape: MeasurementShape = .circle) -> MapForge.Measurement {
         var measurement = MapForge.Measurement(origin: origin, shape: shape, distance: 4,
@@ -76,8 +63,8 @@ final class MeasurementColorAppStateTests: XCTestCase {
     }
 
     func testBothScreensDrawAPawnsMeasurementsInItsColourAndAPointsInGreen() {
-        let rogue = rogue()
-        let state = state(with: rogue)
+        let rogue = MeasurementFixture.rogue()
+        let state = MeasurementFixture.state(with: rogue)
         state.setMeasurement(settled(.point(MapPoint(x: 10, y: 10))))
         state.pinMeasurement()
         state.setMeasurement(settled(.pawn(rogue.id), .cone))
@@ -88,8 +75,8 @@ final class MeasurementColorAppStateTests: XCTestCase {
     }
 
     func testRecolouringAPawnRecoloursItsLiveAndPinnedMeasurements() {
-        let rogue = rogue()
-        let state = state(with: rogue)
+        let rogue = MeasurementFixture.rogue()
+        let state = MeasurementFixture.state(with: rogue)
         state.setMeasurement(settled(.pawn(rogue.id)))
         state.pinMeasurement()
         state.setMeasurement(settled(.pawn(rogue.id), .cone))

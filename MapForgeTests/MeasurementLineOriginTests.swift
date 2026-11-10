@@ -9,19 +9,7 @@ import XCTest
 @MainActor
 final class MeasurementLineOriginTests: XCTestCase {
     private let pixelsPerSquare: CGFloat = 50
-    private let stood = MapPoint(x: 500, y: 400)
-
-    private func rogue() -> Pawn {
-        Pawn(at: stood, label: "Rogue", colorHex: "#3366CC", brightSquares: 4)
-    }
-
-    private func state(with pawn: Pawn) -> AppState {
-        let defaults = UserDefaults(suiteName: "MeasurementLineOriginTests.\(UUID().uuidString)")!
-        let state = AppState(preferences: DisplayPreferences(defaults: defaults))
-        state.squaresWide = 20
-        state.fog.pawns = [pawn]
-        return state
-    }
+    private let stood = MeasurementFixture.stood
 
     /// The Measurement a click on the Pawn's token begins, exactly as the Live View does.
     private func begin(_ shape: MeasurementShape, on pawn: Pawn,
@@ -44,8 +32,8 @@ final class MeasurementLineOriginTests: XCTestCase {
     }
 
     func testAFinishedLineFromAPawnStaysWhereItWasDrawnWhenThePawnMoves() throws {
-        let rogue = rogue()
-        let state = state(with: rogue)
+        let rogue = MeasurementFixture.rogue()
+        let state = MeasurementFixture.state(with: rogue)
         let line = begin(.line, on: rogue, in: state)
             .extended(to: MapPoint(x: 700, y: 400))
             .extended(to: MapPoint(x: 700, y: 600))
@@ -63,8 +51,8 @@ final class MeasurementLineOriginTests: XCTestCase {
     }
 
     func testALineStillBeingDrawnRubberBandsFromWhereThePawnStood() throws {
-        let rogue = rogue()
-        let state = state(with: rogue)
+        let rogue = MeasurementFixture.rogue()
+        let state = MeasurementFixture.state(with: rogue)
         state.setMeasurement(begin(.line, on: rogue, in: state)
             .extended(to: MapPoint(x: 700, y: 400)))
         let cursor = MapPoint(x: 700, y: 600)
@@ -89,8 +77,8 @@ final class MeasurementLineOriginTests: XCTestCase {
     // MARK: A Line that stays put is still its Pawn's
 
     func testALineFromAPawnEndsWhenThePawnIsDeletedLiveOrPinned() {
-        let rogue = rogue()
-        let state = state(with: rogue)
+        let rogue = MeasurementFixture.rogue()
+        let state = MeasurementFixture.state(with: rogue)
         state.setMeasurement(begin(.line, on: rogue, in: state)
             .extended(to: MapPoint(x: 700, y: 400))
             .finished(origin: stood, pixelsPerSquare: pixelsPerSquare))
@@ -108,8 +96,8 @@ final class MeasurementLineOriginTests: XCTestCase {
     }
 
     func testALineFromAPawnIsDrawnInThePawnsCurrentColour() {
-        let rogue = rogue()
-        let state = state(with: rogue)
+        let rogue = MeasurementFixture.rogue()
+        let state = MeasurementFixture.state(with: rogue)
         state.setMeasurement(begin(.line, on: rogue, in: state)
             .extended(to: MapPoint(x: 700, y: 400)))
 
@@ -125,8 +113,8 @@ final class MeasurementLineOriginTests: XCTestCase {
 
     func testAConeACircleAndASquareFromAPawnStillFollowIt() {
         for shape in [MeasurementShape.cone, .circle, .square] {
-            let rogue = rogue()
-            let state = state(with: rogue)
+            let rogue = MeasurementFixture.rogue()
+            let state = MeasurementFixture.state(with: rogue)
             var measurement = begin(shape, on: rogue, in: state)
             measurement.distance = 3
             state.setMeasurement(measurement)
@@ -140,7 +128,7 @@ final class MeasurementLineOriginTests: XCTestCase {
     }
 
     func testALineFromAPointIsAPointOriginAsBefore() {
-        let rogue = rogue()
+        let rogue = MeasurementFixture.rogue()
         let click = MapPoint(x: 900, y: 700)
         XCTAssertEqual(MeasurementControl.origin(forClickAt: click, pawns: [rogue],
                                                  pixelsPerSquare: pixelsPerSquare,
