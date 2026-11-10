@@ -1,3 +1,4 @@
+import SwiftUI
 import XCTest
 @testable import MapForge
 
@@ -83,5 +84,67 @@ final class MeasurementLineOriginTests: XCTestCase {
         XCTAssertEqual(state.measurementOriginPoint, stood)
         XCTAssertEqual(state.resolvedMeasurement?.chain, [MapPoint(x: 700, y: 400)])
         XCTAssertEqual(try XCTUnwrap(state.resolvedMeasurement).distance, 8, accuracy: 1e-9)
+    }
+
+    // MARK: A Line that stays put is still its Pawn's
+
+    func testALineFromAPawnEndsWhenThePawnIsDeletedLiveOrPinned() {
+        let rogue = rogue()
+        let state = state(with: rogue)
+        state.setMeasurement(begin(.line, on: rogue, in: state)
+            .extended(to: MapPoint(x: 700, y: 400))
+            .finished(origin: stood, pixelsPerSquare: pixelsPerSquare))
+        state.pinMeasurement()
+        state.setMeasurement(begin(.line, on: rogue, in: state)
+            .extended(to: MapPoint(x: 500, y: 600)))
+        XCTAssertEqual(state.pinnedMeasurements.count, 1, "precondition: one Pinned")
+        XCTAssertNotNil(state.measurement, "precondition: one being drawn")
+
+        state.removePawnFromMap(rogue.id)
+
+        XCTAssertNil(state.measurement)
+        XCTAssertTrue(state.pinnedMeasurements.isEmpty)
+        XCTAssertTrue(state.drawableMeasurements.isEmpty)
+    }
+
+    func testALineFromAPawnIsDrawnInThePawnsCurrentColour() {
+        let rogue = rogue()
+        let state = state(with: rogue)
+        state.setMeasurement(begin(.line, on: rogue, in: state)
+            .extended(to: MapPoint(x: 700, y: 400)))
+
+        var recolour = EditPawnDraft(pawn: rogue)
+        recolour.colorHex = "#FF8800"
+        state.updatePawn(id: rogue.id, with: recolour)
+
+        XCTAssertEqual(state.drawableMeasurements.map(\.color),
+                       [Color(.sRGB, red: 1, green: 0x88 / 255, blue: 0)])
+    }
+
+    // MARK: Everything else is as it was
+
+    func testAConeACircleAndASquareFromAPawnStillFollowIt() {
+        for shape in [MeasurementShape.cone, .circle, .square] {
+            let rogue = rogue()
+            let state = state(with: rogue)
+            var measurement = begin(shape, on: rogue, in: state)
+            measurement.distance = 3
+            state.setMeasurement(measurement)
+
+            state.movePawn(id: rogue.id, to: MapPoint(x: 900, y: 900))
+
+            XCTAssertEqual(state.measurementOriginPoint, MapPoint(x: 900, y: 900), "\(shape)")
+            XCTAssertEqual(state.drawableMeasurements.map(\.origin),
+                           [MapPoint(x: 900, y: 900)], "\(shape)")
+        }
+    }
+
+    func testALineFromAPointIsAPointOriginAsBefore() {
+        let rogue = rogue()
+        let click = MapPoint(x: 900, y: 700)
+        XCTAssertEqual(MeasurementControl.origin(forClickAt: click, pawns: [rogue],
+                                                 pixelsPerSquare: pixelsPerSquare,
+                                                 shape: .line),
+                       .point(click))
     }
 }
