@@ -12,6 +12,27 @@ extension Locale {
     }
 }
 
+extension Int {
+    /// A whole number as the table's book prints it: "1,100" in English, "1.100" in Italian,
+    /// "1 100" in French (`docs/terminology.md`, Numbers).
+    ///
+    /// macOS's own format for the language, but for Italian: macOS leaves four digits ungrouped
+    /// there, while the Italian book's XP tables group them ("1.100 PE"). Italian is grouped
+    /// from four digits by a formatter given its own separator, never by hand.
+    func grouped(in locale: Locale = .interface) -> String {
+        guard locale.language.languageCode == .italian else {
+            return formatted(.number.locale(locale))
+        }
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = true
+        formatter.groupingSize = 3
+        formatter.groupingSeparator = locale.groupingSeparator
+        return formatter.string(from: self as NSNumber) ?? formatted(.number.locale(locale))
+    }
+}
+
 /// A language MapForge can speak, or `system` for whichever one macOS picks.
 ///
 /// See `CONTEXT.md`'s **Interface Language**. Each case's raw value is the localisation it

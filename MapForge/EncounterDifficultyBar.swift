@@ -25,8 +25,7 @@ struct EncounterDifficultyBar: View {
                 Text("Encounter Difficulty", comment: "The rulebook's term, over the Combat tab's bar")
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
-                Text("\(band.title) · \(creatureXP) XP",
-                     comment: "The Encounter Difficulty's band and the Creatures' total: Moderate · 650 XP")
+                Text(band.label(creatureXP: creatureXP))
                     .fontWeight(.semibold)
                     .monospacedDigit()
             }
@@ -34,8 +33,7 @@ struct EncounterDifficultyBar: View {
             bar(layout)
                 .frame(height: 8)
         }
-        .help(String(localized: "Low up to \(budgets.low) XP, Moderate up to \(budgets.moderate) XP, High up to \(budgets.high) XP.",
-                     comment: "The party's three budgets, under the Encounter Difficulty's bar"))
+        .help(budgets.help())
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("encounter-difficulty")
     }
@@ -86,21 +84,40 @@ struct EncounterDifficultyBar: View {
     }
 }
 
-extension EncounterDifficulty.Band {
+extension EncounterDifficulty.Budgets {
+    /// The three ceilings, for the bar's hover: "Low up to 600 XP, Moderate up to 900 XP,
+    /// High up to 1,600 XP."
+    func help(in locale: Locale = .interface) -> String {
+        String(localized: LocalizedStringResource(
+            "Low up to \(low.grouped(in: locale)) XP, Moderate up to \(moderate.grouped(in: locale)) XP, High up to \(high.grouped(in: locale)) XP.",
+            locale: locale,
+            comment: "The party's three budgets, under the Encounter Difficulty's bar"))
+    }
+}
+
+extension EncounterDifficulty.Band: LocalizedTitle {
     /// The band's name: Low, Moderate and High as SRD 5.2.1 prints them, and MapForge's own
     /// Beyond High (ADR-0032, `docs/terminology.md`).
-    var title: String {
+    var titleResource: LocalizedStringResource {
         switch self {
         case .low:
-            return String(localized: "Low", comment: "An Encounter Difficulty band, as SRD 5.2.1 names it")
+            return LocalizedStringResource("Low", comment: "An Encounter Difficulty band, as SRD 5.2.1 names it")
         case .moderate:
-            return String(localized: "Moderate", comment: "An Encounter Difficulty band, as SRD 5.2.1 names it")
+            return LocalizedStringResource("Moderate", comment: "An Encounter Difficulty band, as SRD 5.2.1 names it")
         case .high:
-            return String(localized: "High", comment: "An Encounter Difficulty band, as SRD 5.2.1 names it")
+            return LocalizedStringResource("High", comment: "An Encounter Difficulty band, as SRD 5.2.1 names it")
         case .beyondHigh:
-            return String(localized: "Beyond High",
-                          comment: "The Encounter Difficulty past the High budget: MapForge's own term, not the rulebook's")
+            return LocalizedStringResource("Beyond High",
+                                           comment: "The Encounter Difficulty past the High budget: MapForge's own term, not the rulebook's")
         }
+    }
+
+    /// The band and the Creatures' total, as the bar's label: "Moderate · 650 XP",
+    /// "Media · 650 PE".
+    func label(creatureXP: Int, in locale: Locale = .interface) -> String {
+        String(localized: LocalizedStringResource(
+            "\(title(in: locale)) · \(creatureXP.grouped(in: locale)) XP", locale: locale,
+            comment: "The Encounter Difficulty's band and the Creatures' total: Moderate · 650 XP"))
     }
 
     /// Hotter as the fight gets harder. Never the only signal — the label names the band.

@@ -36,8 +36,7 @@ struct EncounterDifficultyIndicator: View {
             Text("Encounter Difficulty", comment: "The rulebook's term, over the Combat tab's bar")
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
-            Text("\(difficulty.creatureXP) XP",
-                 comment: "The Creatures' total when no Player counts, so there is no band: 650 XP")
+            Text(difficulty.creatureXPLabel())
                 .fontWeight(.semibold)
                 .monospacedDigit()
         }
@@ -46,6 +45,16 @@ struct EncounterDifficultyIndicator: View {
                      comment: "Over the Creatures' XP, shown alone when no Player in the fight can be counted"))
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("encounter-difficulty")
+    }
+}
+
+extension EncounterDifficulty {
+    /// The Creatures' total alone, for when no Player counts and there is no band: "650 XP",
+    /// "1.100 PE".
+    func creatureXPLabel(in locale: Locale = .interface) -> String {
+        String(localized: LocalizedStringResource(
+            "\(creatureXP.grouped(in: locale)) XP", locale: locale,
+            comment: "The Creatures' total when no Player counts, so there is no band: 650 XP"))
     }
 }
 

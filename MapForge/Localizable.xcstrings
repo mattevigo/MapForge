@@ -44,6 +44,47 @@
         }
       }
     },
+    "%@ XP": {
+      "comment": "The Creatures' total when no Player counts, so there is no band: 650 XP",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ EP"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ XP"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ PX"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ PX"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ PE"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ XP"
+          }
+        }
+      }
+    },
     "%@ across": {
       "localizations": {
         "de": {
@@ -523,8 +564,46 @@
     "%@ · %@": {
       "shouldTranslate": false
     },
-    "%@ · %lld XP": {
-      "comment": "The Encounter Difficulty's band and the Creatures' total: Moderate · 650 XP"
+    "%@ · %@ XP": {
+      "comment": "The Encounter Difficulty's band and the Creatures' total: Moderate · 650 XP",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@ EP"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@ XP"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@ PX"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@ PX"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@ PE"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@ XP"
+          }
+        }
+      }
     },
     "%@ — %@": {
       "shouldTranslate": false
@@ -2159,9 +2238,6 @@
         }
       }
     },
-    "%lld XP": {
-      "comment": "The Creatures' total when no Player counts, so there is no band: 650 XP"
-    },
     "%lld files skipped": {
       "localizations": {
         "de": {
@@ -3742,7 +3818,45 @@
       }
     },
     "Beyond High": {
-      "comment": "The Encounter Difficulty past the High budget: MapForge's own term, not the rulebook's"
+      "comment": "The Encounter Difficulty past the High budget: MapForge's own term, not the rulebook's",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Über Hoch"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beyond High"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuera de escala"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hors barème"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuori scala"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fora da escala"
+          }
+        }
+      }
     },
     "Big": {
       "localizations": {
@@ -6172,7 +6286,45 @@
       }
     },
     "Encounter Difficulty": {
-      "comment": "The rulebook's term, over the Combat tab's bar"
+      "comment": "The rulebook's term, over the Combat tab's bar",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Begegnungsschwierigkeit"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encounter Difficulty"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dificultad del encuentro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Difficulté de la rencontre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Difficoltà del combattimento"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dificuldade do encontro"
+          }
+        }
+      }
     },
     "Encounter ended": {
       "localizations": {
@@ -7621,7 +7773,45 @@
       }
     },
     "High": {
-      "comment": "An Encounter Difficulty band, as SRD 5.2.1 names it"
+      "comment": "An Encounter Difficulty band, as SRD 5.2.1 names it",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoch"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "High"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Élevée"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Difficile"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alta"
+          }
+        }
+      }
     },
     "History": {
       "localizations": {
@@ -8590,10 +8780,86 @@
       }
     },
     "Low": {
-      "comment": "An Encounter Difficulty band, as SRD 5.2.1 names it"
+      "comment": "An Encounter Difficulty band, as SRD 5.2.1 names it",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niedrig"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Low"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Baja"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faible"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Facile"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Baixa"
+          }
+        }
+      }
     },
-    "Low up to %lld XP, Moderate up to %lld XP, High up to %lld XP.": {
-      "comment": "The party's three budgets, under the Encounter Difficulty's bar"
+    "Low up to %@ XP, Moderate up to %@ XP, High up to %@ XP.": {
+      "comment": "The party's three budgets, under the Encounter Difficulty's bar",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niedrig bis %1$@ EP, Mittel bis %2$@ EP, Hoch bis %3$@ EP."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Low έως %1$@ XP, Moderate έως %2$@ XP, High έως %3$@ XP."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Baja hasta %1$@ PX, Moderada hasta %2$@ PX, Alta hasta %3$@ PX."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faible jusqu’à %1$@ PX, Modérée jusqu’à %2$@ PX, Élevée jusqu’à %3$@ PX."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Facile fino a %1$@ PE, Media fino a %2$@ PE, Difficile fino a %3$@ PE."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Baixa até %1$@ XP, Moderada até %2$@ XP, Alta até %3$@ XP."
+          }
+        }
+      }
     },
     "Map Fit": {
       "localizations": {
@@ -9117,7 +9383,45 @@
       }
     },
     "Moderate": {
-      "comment": "An Encounter Difficulty band, as SRD 5.2.1 names it"
+      "comment": "An Encounter Difficulty band, as SRD 5.2.1 names it",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mittel"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moderate"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moderada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modérée"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Media"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moderada"
+          }
+        }
+      }
     },
     "Modifier:": {
       "localizations": {
@@ -9560,7 +9864,45 @@
       }
     },
     "No Player counts, so there are no budgets to rate the Creatures against.": {
-      "comment": "Over the Creatures' XP, shown alone when no Player in the fight can be counted"
+      "comment": "Over the Creatures' XP, shown alone when no Player in the fight can be counted",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Spieler wird gezählt, also gibt es kein EP-Budget, an dem sich die Kreaturen messen lassen."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Κανένας παίκτης δεν μετράει, οπότε δεν υπάρχει προϋπολογισμός XP για να αξιολογηθούν τα πλάσματα."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se cuenta ningún jugador, así que no hay presupuesto de PX con el que valorar a las criaturas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun joueur n’est compté : il n’y a donc pas de budget de PX auquel comparer les créatures."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun giocatore viene contato, quindi non c'è un budget di PE con cui valutare le creature."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum jogador é contado, então não há orçamento de XP para avaliar as criaturas."
+          }
+        }
+      }
     },
     "No Session running — press Start Session to begin recording.": {
       "localizations": {
