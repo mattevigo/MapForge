@@ -50,6 +50,30 @@ final class MeasurementLineOriginTests: XCTestCase {
                        "the path drawn and its number disagree")
     }
 
+    func testAPinnedLineFromAPawnStaysWhereItWasDrawnWhenThePawnMoves() throws {
+        // Pinning is how a route already walked is held on screen while the DM measures the
+        // next thing — the Line most likely to have its Pawn walk off along it.
+        let rogue = MeasurementFixture.rogue()
+        let state = MeasurementFixture.state(with: rogue)
+        state.setMeasurement(begin(.line, on: rogue, in: state)
+            .extended(to: MapPoint(x: 700, y: 400))
+            .extended(to: MapPoint(x: 700, y: 600))
+            .finished(origin: stood, pixelsPerSquare: pixelsPerSquare))
+        state.pinMeasurement()
+        XCTAssertEqual(state.pinnedMeasurements.count, 1, "precondition: one Pinned")
+
+        state.movePawn(id: rogue.id, to: MapPoint(x: 900, y: 900))
+
+        let pinned = try XCTUnwrap(state.drawableMeasurements.first)
+        XCTAssertEqual(state.drawableMeasurements.count, 1)
+        XCTAssertEqual(pinned.origin, stood, "the Pinned route moved with the Pawn walking it")
+        XCTAssertEqual(pinned.measurement.chain,
+                       [MapPoint(x: 700, y: 400), MapPoint(x: 700, y: 600)])
+        XCTAssertEqual(pinned.measurement.chainSquares(from: pinned.origin,
+                                                       pixelsPerSquare: pixelsPerSquare),
+                       8, accuracy: 1e-9, "the Pinned chain drawn and its total disagree")
+    }
+
     func testALineStillBeingDrawnRubberBandsFromWhereThePawnStood() throws {
         let rogue = MeasurementFixture.rogue()
         let state = MeasurementFixture.state(with: rogue)
@@ -127,12 +151,32 @@ final class MeasurementLineOriginTests: XCTestCase {
         }
     }
 
-    func testALineFromAPointIsAPointOriginAsBefore() {
+    func testALineFromAPointIsAPointOriginAsBefore() throws {
+        // A click just past the token's edge — the Rogue's disc reaches 25 px from its
+        // centre, and this lands 30 px out — is a click on the Map, however near.
         let rogue = MeasurementFixture.rogue()
-        let click = MapPoint(x: 900, y: 700)
-        XCTAssertEqual(MeasurementControl.origin(forClickAt: click, pawns: [rogue],
-                                                 pixelsPerSquare: pixelsPerSquare,
-                                                 shape: .line),
-                       .point(click))
+        let state = MeasurementFixture.state(with: rogue)
+        let click = MapPoint(x: stood.x + 30, y: stood.y)
+        let origin = MeasurementControl.origin(forClickAt: click, pawns: state.fog.pawns,
+                                               pixelsPerSquare: pixelsPerSquare,
+                                               shape: .line)
+        XCTAssertEqual(origin, .point(click))
+        state.setMeasurement(MapForge.Measurement(origin: origin, shape: .line, distance: 0,
+                                                  direction: 0)
+            .extended(to: MapPoint(x: click.x + 200, y: click.y))
+            .extended(to: MapPoint(x: click.x + 200, y: click.y + 200))
+            .finished(origin: click, pixelsPerSquare: pixelsPerSquare))
+        XCTAssertEqual(try total(state), 8, accuracy: 1e-9, "precondition: 4 + 4 squares")
+
+        // The Rogue walks onto the very point the Line was begun from.
+        state.movePawn(id: rogue.id, to: click)
+
+        XCTAssertEqual(state.measurementOriginPoint, click)
+        XCTAssertEqual(state.resolvedMeasurement?.chain,
+                       [MapPoint(x: click.x + 200, y: click.y),
+                        MapPoint(x: click.x + 200, y: click.y + 200)])
+        XCTAssertEqual(try total(state), 8, accuracy: 1e-9)
+        XCTAssertEqual(state.drawableMeasurements.map(\.color), [.green],
+                       "a point's Line is no one's, even with a Pawn now standing on it")
     }
 }
