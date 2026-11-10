@@ -61,7 +61,7 @@ extension AppState {
                 return .uncounted(.monsterNotInBestiary(monsterName: monsterName))
             }
             guard let challengeRating = ChallengeRating(monster.challengeRating) else {
-                return .uncounted(.challengeRatingNotCounted(quoted(monster.challengeRating)))
+                return .uncounted(.challengeRatingNotCounted(trimmedOrNil(monster.challengeRating)))
             }
             return .challengeRating(challengeRating)
         case .player:
@@ -72,7 +72,7 @@ extension AppState {
                 return .uncounted(.noteNotFound(noteName: noteName))
             }
             guard let level = CharacterLevel(note.level) else {
-                return .uncounted(.levelNotCounted(quoted(note.level)))
+                return .uncounted(.levelNotCounted(trimmedOrNil(note.level)))
             }
             return .level(level)
         case .treasure:
@@ -80,8 +80,9 @@ extension AppState {
         }
     }
 
-    /// A note's text as the DM would want it quoted back: nil when there is nothing written.
-    private func quoted(_ text: String?) -> String? {
+    /// A note's text without the spaces around it, or nil when nothing is written: what an
+    /// uncounted reason quotes back to the DM.
+    private func trimmedOrNil(_ text: String?) -> String? {
         guard let text = text?.trimmingCharacters(in: .whitespaces), !text.isEmpty else { return nil }
         return text
     }
