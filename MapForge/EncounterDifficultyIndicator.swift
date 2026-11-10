@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// The Encounter Difficulty as the Combat tab's header shows it (ADR-0032): the bar when the
-/// party gives budgets, the Creatures' XP alone when no Player counts, and under either a
-/// note of the Pawns that could not be counted.
+/// The Encounter Difficulty above the Combat tab's controls, before Play and while the fight
+/// runs alike (ADR-0032): the bar when the party gives budgets, the Creatures' XP alone when
+/// no Player counts, and under either a note of the Pawns that could not be counted.
 ///
 /// Drawn only when a Creature counts — `CombatPanel` asks `AppState.encounterDifficultyReading`
 /// for that — because a fight with nothing to fight has nothing to rate.

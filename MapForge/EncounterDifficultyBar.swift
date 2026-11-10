@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// The Encounter Difficulty as the Combat tab's header draws it: the band and the total in
-/// words, over a bar of the party's budgets (ADR-0032).
+/// The Encounter Difficulty when the party gives budgets: the band and the total in words,
+/// over a bar of those budgets (ADR-0032). Drawn by `EncounterDifficultyIndicator`, above the
+/// Combat tab's controls before Play and while the fight runs alike.
 ///
 /// The DM's alone. It lives in `CombatPanel`, which only the Control Window shows: the
 /// players see the fight, never how hard the DM reckons it.
