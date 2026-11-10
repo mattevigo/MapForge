@@ -136,7 +136,7 @@ official word, and listed so they stay one choice:
 | Legendary Actions (heading) | Azioni leggendarie | Legendäre Aktionen | Actions Légendaires | Acciones legendarias | Ações Lendárias |
 | Spells (heading) | Incantesimi | Zauber | Sorts | Conjuros | Magias |
 | Level (a Character's) | Livello | Stufe | Niveau | Nivel | Nível |
-| Challenge Rating (CR) | GS | HG | FP | VD | ND |
+| Challenge Rating (CR) | grado di sfida (GS) | Herausforderungsgrad (HG) | facteur de puissance (FP) | valor de desafío (VD) | nível de desafio (ND) |
 | Speed (stat-block label) | Velocità | Bewegungsrate | Vitesse | Velocidad | Deslocamento |
 | Senses (stat-block label) | Sensi | Sinne | Sens | Sentidos | Sentidos |
 | Languages (stat-block label) | Lingue | Sprachen | Langues | Idiomas | Idiomas |
@@ -145,6 +145,47 @@ official word, and listed so they stay one choice:
 | radius | raggio | Radius | rayon | radio | raio |
 | Grid | Griglia | Raster *(proposed)* | Grille *(proposed)* | Cuadrícula | Grade *(proposed)* |
 | square (of the Grid) | quadretto | Quadrat | case | casilla | quadrado *(proposed)* |
+
+### Encounter Difficulty
+
+From the *Combat Encounter Difficulty* section of SRD 5.2.1: the header over the *XP Budget per
+Character* table, and the band names in its columns, which in every edition but the English
+are adjectives agreeing with the language's word for difficulty (Italian *Media*, French
+*Modérée*). Where Step 1 words a band differently ("Niedrige Schwierigkeit", "Difficulté
+faible"), the table's header form is the one used, because the indicator is a label, not a
+sentence. Beyond High is not here: no book names the end past High, so it is MapForge's own
+term, chosen in each language below.
+
+| English | it | de | fr | es | pt-BR |
+|---|---|---|---|---|---|
+| Encounter Difficulty | Difficoltà del combattimento | Begegnungsschwierigkeit | Difficulté de la rencontre | Dificultad del encuentro | Dificuldade do encontro *(proposed)* |
+| Low | Facile | Niedrig | Faible | Baja | Baixa *(proposed)* |
+| Moderate | Media | Mittel | Modérée | Moderada | Moderada *(proposed)* |
+| High | Difficile | Hoch | Élevée | Alta | Alta *(proposed)* |
+| XP (experience points) | PE | EP | PX | PX | XP *(proposed)* |
+
+- **Italian** is the book's, not a rendering of the English: *Facile / Media / Difficile*,
+  never *Bassa / Moderata / Alta*.
+- **pt-BR** has no SRD, and the 2024 *Livro do Mestre* could not be checked, so the column is
+  proposed. It must not fall back to the 2014 four bands (*Fácil / Médio / Difícil / Mortal*),
+  which name another procedure, with a multiplier the 2024 rules dropped.
+- **Greek** keeps all five in English, as it does every mechanic: *Low · 650 XP*.
+
+### Numbers
+
+A number of four digits or more is grouped the way its book prints the XP tables, through a
+locale-aware formatter, never by hand:
+
+| en | it | de | fr | es | pt-BR | el |
+|---|---|---|---|---|---|---|
+| 1,100 XP | 1.100 PE | 1.100 EP | 1 100 PX | 1100 PX | 1.100 XP | 1.100 XP |
+
+Each is macOS's own format for the language, but for Italian: macOS leaves a four-digit number
+ungrouped there ("1100"), while the Italian book groups it ("1.100 PE", the *Budget di PE per
+personaggio* table), so Italian is grouped from four digits with its own separator. French is
+grouped with the narrow no-break space macOS writes. The Spanish book leaves four digits bare,
+as macOS does, but groups larger numbers with a space ("46 800 PX") where macOS writes a point
+("46.800 PX"); macOS's form is kept *(proposed)*.
 
 ### Distances
 
@@ -211,6 +252,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Change | Variazione | *modifica* (clashes with *Modificatore* and the Edit verb) |
 | Correction | Correzione | |
 | Roll | Tiro | |
+| Beyond High (an Encounter Difficulty band) | Fuori scala | *Mortale* (the 2014 fourth band, Deadly, from a reckoning with a multiplier), *Estrema* (reads as a fourth band the book prints), *Oltre difficile* (a calque that reads as a slip) |
 
 ### Deutsch
 
@@ -255,6 +297,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Change | Änderung | |
 | Correction | Korrektur | |
 | Roll | Wurf | |
+| Beyond High (an Encounter Difficulty band) | Über Hoch *(proposed)* | *Tödlich* (the 2014 fourth band, Deadly), *Sehr hoch* (reads as a band the book prints), *Jenseits der Skala* (too long beside *Begegnungsschwierigkeit*) |
 
 ### Français
 
@@ -299,6 +342,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Change | Changement | *modification* (next to *modificateur*) |
 | Correction | Correction | |
 | Roll | Jet | |
+| Beyond High (an Encounter Difficulty band) | Hors barème *(proposed)* | *Mortelle* (the 2014 fourth band, Deadly), *Très élevée* (reads as a band the book prints), *Au-delà d’élevée* (ungrammatical) |
 
 ### Español
 
@@ -343,6 +387,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Change | Cambio | *modificación* (next to *modificador*) |
 | Correction | Corrección | |
 | Roll | Tirada | |
+| Beyond High (an Encounter Difficulty band) | Fuera de escala *(proposed)* | *Mortal* (the 2014 fourth band, Deadly), *Muy alta* (reads as a band the book prints), *Más que alta* |
 
 ### Português (Brasil)
 
@@ -387,12 +432,14 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Change | Alteração | *modificação* (next to *modificador*) |
 | Correction | Correção | |
 | Roll | Rolagem | |
+| Beyond High (an Encounter Difficulty band) | Fora da escala *(proposed)* | *Mortal* (the 2014 fourth band, Deadly), *Muito alta* (reads as a band the book prints), *Acima de alta* |
 
 ### Ελληνικά
 
 Only game *mechanics* stay in English — Conditions, Abilities, Skills, Saving Throw, Ability
 Check, Difficulty Class, Modifier, Initiative, AC, HP, Concentration, Round, Turn, Stat Block,
-Traits, Actions — because that is what a Greek table says. Rulebook words that are also
+Traits, Actions, Challenge Rating, level, Encounter Difficulty and its bands, XP — because that
+is what a Greek table says. Rulebook words that are also
 ordinary language are Greek: a Greek DM says *τέρας*, not "monster".
 
 | English | el | Rejected |
@@ -441,3 +488,4 @@ ordinary language are Greek: a Greek DM says *τέρας*, not "monster".
 | Change | Αλλαγή | |
 | Correction | Διόρθωση | |
 | Roll | Ρίψη | |
+| Beyond High (an Encounter Difficulty band) | Beyond High *(proposed)* | *Πέρα από το High* (half Greek, on a scale the table reads in English) |
