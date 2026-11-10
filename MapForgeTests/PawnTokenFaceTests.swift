@@ -131,6 +131,36 @@ final class PawnTokenFaceTests: XCTestCase {
 
     /// A Face hides nothing and reveals nothing: a Treasure wearing one is hidden from the
     /// table exactly as its token would be — by darkness, by the DM's hiding, by Solo Sight.
+    /// A library holding one fully transparent cut, as an Item's picture is around its
+    /// object, and the Face naming it.
+    private func clearFace() throws -> (FaceLibrary, PawnFace) {
+        let library = FaceLibrary(directory: root.appendingPathComponent("faces"))
+        let context = try XCTUnwrap(CGContext(
+            data: nil, width: 100, height: 100, bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        let picture = try XCTUnwrap(context.makeImage())
+        let face = try library.keep(picture, cut: CGRect(x: 0, y: 0, width: 100, height: 100))
+        return (library, face)
+    }
+
+    /// An Item's picture is often an object on a transparent ground. On a Treasure that ground
+    /// is white, never the Map showing through; a Creature's Face keeps its own ground.
+    func testATreasuresFaceIsDrawnOnWhite() throws {
+        let (library, cut) = try clearFace()
+        let face = PawnFace(file: cut.file, origin: .item)
+
+        let image = try render(PawnToken(pawn: chest(face: face), squareSide: 100,
+                                         isForPlayers: true), library: library)
+
+        XCTAssertEqual(FaceFixture.colour(of: image, x: 50, y: 50), .white)
+        var creature = chest(face: face)
+        creature.kind = .creature
+        let disc = try render(PawnToken(pawn: creature, squareSide: 100, isForPlayers: true),
+                              library: library)
+        XCTAssertNotEqual(FaceFixture.colour(of: disc, x: 50, y: 50), .white)
+    }
+
     func testATreasureWearingAFaceIsHiddenAsItsTokenIs() {
         let face = PawnFace(file: "borsa.png", origin: .item)
         let lit = VisibilityCache().regions(
