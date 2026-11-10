@@ -58,6 +58,14 @@ struct ControlView: View {
     /// The transform a middle-button drag started from, for the same reason. One for all
     /// three modes: that drag is attached to the preview itself, not to a mode's overlay.
     @State private var middlePanStart: PreviewTransform?
+    /// The primary drag on the Live View, while one is under way, as the selection rectangle
+    /// sees it: declined, or a rectangle being drawn. Nil between drags. See
+    /// `SelectionRectangle.Drag`.
+    @State private var selectionDrag: SelectionRectangle.Drag?
+    /// The primary press on the Live View: whether a token's own drag is under way, and
+    /// whether the release ends a drag rather than being a click. Fed by every drag on the
+    /// Live View and asked by the tap and the selection rectangle. See `LiveViewPress`.
+    @State private var press = LiveViewPress()
     /// The transform a pinch started from: `MagnifyGesture` reports cumulative
     /// magnification, so compounding it against the live scale would accelerate. Attached
     /// to the preview, like the middle-button drag, so every mode pinches the same way.
@@ -708,6 +716,22 @@ struct ControlView: View {
                                 .frame(width: fitted.width, height: fitted.height)
                                 .position(x: fitted.midX, y: fitted.midY)
                         }
+                        // The selection rectangle, above the tokens so the DM sees what it
+                        // covers. Held in Map space and drawn back through `fitted`, so it
+                        // stays on the same patch of artwork if the Magnifier moves mid-drag.
+                        // Here and nowhere else: the Player Display never builds this view,
+                        // and the table never learns what the DM is picking.
+                        if mode == .normal, let map = appState.mapScale,
+                           let rect = selectionDrag?.mapRect {
+                            let drawn = rect.applying(PlayerPlacement.mapToView(map: map,
+                                                                                frame: fitted))
+                            Rectangle()
+                                .fill(Color.accentColor.opacity(0.12))
+                                .overlay(Rectangle().stroke(Color.accentColor, lineWidth: 1))
+                                .frame(width: drawn.width, height: drawn.height)
+                                .position(x: drawn.midX, y: drawn.midY)
+                                .allowsHitTesting(false)
+                        }
                     }
                     // Pin to the preview and clip. Both are load-bearing: without the
                     // frame the ZStack sizes itself to the zoomed Image and the reader
@@ -749,13 +773,21 @@ struct ControlView: View {
                             measurementMenu(map: map, frame: fitted)
                         }
                     }
+                    // Heard on the Live View whether or not anything is armed. It used to be
+                    // gated on `claimsLeftClick`, out of caution that a tap here might swallow
+                    // the Pawn drag underneath — but it is simultaneous, and a Pawn has been
+                    // dragged under it every time Add or a Measurement was armed. The
+                    // Selection needs the idle click: ⇧ picks and a plain click on the bare
+                    // Map lets go. `ArmedTool.State.leftClick` says which click is whose —
+                    // and, from `press`, that a release ending a drag is none, rather than
+                    // trusting this tap to fail whenever the pointer has moved.
                     .simultaneousGesture(
                         TapGesture().onEnded {
                             if mode == .normal, let map = appState.mapScale {
                                 leftClick(map: map, frame: fitted)
                             }
                         },
-                        including: mode == .normal && claimsLeftClick ? .all : .subviews
+                        including: mode == .normal ? .all : .subviews
                     )
                     // The wheel zooms and a swipe pans — `ScrollIntent` tells the two apart —
                     // in every mode, on the one Magnifier. The Viewport is untouched even
@@ -806,6 +838,32 @@ struct ControlView: View {
                             }
                             .onEnded { _ in livePanStart = nil }
                     )
+                    // With nothing armed, a plain drag that starts on the bare Map draws the
+                    // selection rectangle, and its release picks the Pawns inside. Every
+                    // other drag here is left as it was: `SelectionRectangle.begins` declines
+                    // one with anything armed (the Viewport's drag, an armed tool's), one with
+                    // ⌥ (the pan above), and one that starts on a token or finds a token's
+                    // own drag under way (`PawnLayer`'s). Simultaneous, like the pan, so
+                    // declining costs the drag it leaves alone nothing; the middle button
+                    // never reaches a `DragGesture`. Locations are this container's own, the
+                    // space `fitted` is in — never an `NSEvent`'s.
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 3)
+                            .onChanged { value in
+                                // Every drag on the Live View passes here, whoever owns it,
+                                // so its release is known to be no click.
+                                press.dragged()
+                                guard mode == .normal, let map = appState.mapScale else { return }
+                                dragSelectionRectangle(value, map: map, frame: fitted)
+                            }
+                            .onEnded { value in
+                                if mode == .normal, let map = appState.mapScale {
+                                    endSelectionRectangle(value, map: map, frame: fitted)
+                                }
+                                selectionDrag = nil
+                                press.ended()
+                            }
+                    )
                     // The middle button pans the Magnifier in every mode, because no mode
                     // uses that button for anything else, so unlike ⌥-drag it needs no
                     // gesture to stay out of the way of. `panned` stops at the artwork's
@@ -834,9 +892,12 @@ struct ControlView: View {
                     }
                     // Digits are claimed only while a Measurement is armed, the cursor is
                     // over the Map, and no text field has focus. See MeasurementTyping.
-                    .onMeasurementKeys(isArmed: mode == .normal && claimsLeftClick,
-                                       isOverMap: mirrorCursor != nil) {
-                        handleMeasurementKey($0)
+                    // Esc alone is claimed, too, with a Selection or the Viewport to back
+                    // out of — under the same frame and text-field gates.
+                    .onLiveViewKeys(isArmed: mode == .normal && armed.claimsLeftClick,
+                                    claimsEscape: mode == .normal && claimsEscape,
+                                    isOverMap: mirrorCursor != nil) {
+                        handleLiveViewKey($0)
                     }
                     // The Viewport drag measures itself here. Without this space the
                     // gesture falls back to the dragged rectangle's own coordinates,
@@ -985,13 +1046,19 @@ struct ControlView: View {
                           isFogOverlayOn: appState.isFogOverlayOn,
                           hasVisibility: appState.hasDeclaredGrid)
                   },
-                  onMove: { appState.movePawn(id: $0, to: $1) },
+                  // Each token's drag tells `press` it is under way and when it ends, so the
+                  // selection rectangle stays out of it and its release is no click.
+                  onMove: { press.tokenDragged(); appState.movePawn(id: $0, to: $1) },
                   onCommit: { id, origin in
+                      press.ended()
                       appState.commitPawnMove(id: id, from: origin)
                   },
-                  onMoveLight: { appState.moveLight(id: $0, to: $1) },
-                  onCommitLight: { appState.commitLightMove() },
-                  hoveredPawnID: hoveredPawnID)
+                  onMoveLight: { press.tokenDragged(); appState.moveLight(id: $0, to: $1) },
+                  onCommitLight: { press.ended(); appState.commitLightMove() },
+                  onMoveSelection: { press.tokenDragged(); appState.moveSelection($0, by: $1) },
+                  onCommitSelection: { press.ended(); appState.commitSelectionMove($0) },
+                  hoveredPawnID: hoveredPawnID,
+                  selection: appState.selection)
         // Above the tokens: a Measurement is what the DM is pointing at, and a cone
         // half-hidden behind the party is unreadable.
         if let pixelsPerSquare = appState.pixelsPerSquare {
@@ -1057,6 +1124,19 @@ struct ControlView: View {
     /// step: place the Origin, settle the distance, clear it. The DM never has to remember
     /// which button does which.
     private func leftClick(map: MapScale, frame: CGRect) {
+        // The Selection first, because it is what an unarmed click is for — and with
+        // anything armed this hands the click straight on, ⇧ or not. The ⇧ is read from
+        // AppKit's modifier state, which is safe where its *location* is not: there is no
+        // coordinate space to get wrong in a flag.
+        switch armed.leftClick(isShiftDown: NSEvent.modifierFlags.contains(.shift),
+                               on: pickTarget(map: map, frame: frame),
+                               endsDrag: press.takeDragEnd()) {
+        case .armedTool: break
+        case .toggle(.pawn(let id)): appState.toggleSelection(pawn: id); return
+        case .toggle(.light(let id)): appState.toggleSelection(light: id); return
+        case .clearSelection: appState.clearSelection(); return
+        case .nothing: return
+        }
         // `Add` is armed and waiting for a point. First, and unambiguous: the two armings
         // are mutually exclusive, so this and the Measurement branch below can never both
         // want the same click.
@@ -1214,6 +1294,65 @@ struct ControlView: View {
         return PawnLayer.pawnID(under: cursor, pawns: appState.fog.pawns, map: map, frame: frame)
     }
 
+    /// What a click lands on, for the Selection: the token under the cursor as drawn — the
+    /// Pawn on top, the Pawn rather than the Light Marker it stands on, or else the marker —
+    /// or nil on the bare Map.
+    ///
+    /// Asked of `PawnLayer.token(under:)`, the area each token's own drag answers to, rather
+    /// than of `liveHit`: with no Grid declared `LiveHitTest` answers for a speck at a token's
+    /// centre, and it gives a Light Marker half the grab area the DM sees it picked up by. A
+    /// ⇧-click on either edge would pick nothing, and a plain one would end the Selection
+    /// as a click on the bare Map.
+    private func pickTarget(map: MapScale, frame: CGRect) -> LiveHitTest? {
+        guard let cursor = mirrorCursor else { return nil }
+        return PawnLayer.token(under: cursor, pawns: appState.fog.pawns,
+                               lights: appState.fog.lights, map: map, frame: frame)
+    }
+
+    /// A step of the primary drag on the Live View. The first one decides, once, whether this
+    /// drag is the selection rectangle's — `SelectionRectangle.begins` — from where the press
+    /// went down, not from where the pointer is now, and from whether a token's own drag
+    /// (`press`) has already picked something up there: that drag starts sooner and may
+    /// have carried the token off the spot. Every later step moves the far corner.
+    ///
+    /// ⌥ and ⇧ are read from AppKit's modifier state, which is safe where its location is
+    /// not: a flag has no coordinate space to get wrong.
+    private func dragSelectionRectangle(_ value: DragGesture.Value, map: MapScale,
+                                        frame: CGRect) {
+        let end = PlayerPlacement.mapPoint(value.location, map: map, frame: frame)
+        switch selectionDrag {
+        case nil:
+            let flags = NSEvent.modifierFlags
+            let token = PawnLayer.token(under: value.startLocation,
+                                        pawns: appState.fog.pawns, lights: appState.fog.lights,
+                                        map: map, frame: frame)
+            guard SelectionRectangle.begins(isArmed: armed.isArmed,
+                                            isOptionDown: flags.contains(.option),
+                                            startsOn: token,
+                                            isTokenDragging: press.isTokenDragging) else {
+                selectionDrag = .declined
+                return
+            }
+            selectionDrag = .drawing(
+                from: PlayerPlacement.mapPoint(value.startLocation, map: map, frame: frame),
+                to: end, mode: SelectionRectangle.Mode(isShiftDown: flags.contains(.shift)))
+        case .drawing(let start, _, let mode)?:
+            selectionDrag = .drawing(from: start, to: end, mode: mode)
+        case .declined?:
+            break
+        }
+    }
+
+    /// The release: the Pawns whose centres the rectangle covers replace the Selection, or
+    /// join it with ⇧ — held as the drag began or as it ends. A declined drag does nothing.
+    private func endSelectionRectangle(_ value: DragGesture.Value, map: MapScale,
+                                       frame: CGRect) {
+        guard case .drawing(let start, _, let mode)? = selectionDrag else { return }
+        let end = PlayerPlacement.mapPoint(value.location, map: map, frame: frame)
+        appState.selectPawns(inside: SelectionRectangle.mapRect(from: start, to: end),
+                             mode: NSEvent.modifierFlags.contains(.shift) ? .add : mode)
+    }
+
     private func measurementUnderCursor(map: MapScale,
                                         frame: CGRect) -> LiveMenu.MeasurementUnderCursor? {
         guard let cursor = mirrorCursor,
@@ -1315,21 +1454,24 @@ struct ControlView: View {
     /// Whether the DM is in the middle of measuring — either waiting to place an Origin,
     /// or with a Measurement on screen. The gate for the **key** handler: digits type a
     /// distance, which only a Measurement has.
-    private var isMeasuring: Bool {
-        ArmedTool.claimsDigits(hasArmedShape: armedShape != nil,
-                               hasMeasurement: appState.measurement != nil)
+    private var isMeasuring: Bool { armed.claimsDigits }
+
+    /// What is armed on the Live View, built here and nowhere else: every click and Esc is
+    /// routed by asking this one value (`ArmedTool.State`), so "which of these flags claimed
+    /// the click" — the shape of question behind this render layer's four gesture
+    /// composition defects — has one answer.
+    private var armed: ArmedTool.State {
+        ArmedTool.State(hasArmedAdd: armedAdd != nil,
+                        hasArmedShape: armedShape != nil,
+                        hasMeasurement: appState.measurement != nil,
+                        hasTypedDigits: !typedDistance.isEmpty,
+                        isViewportArmed: isShowingViewport)
     }
 
-    /// Whether the left-click belongs to the Map rather than to the Pawn drag underneath.
-    ///
-    /// Wider than `isMeasuring` by the armed `Add`, and deliberately one predicate rather
-    /// than a second condition beside the first: this render layer has four gesture
-    /// composition defects on record, and "which of these two flags claimed the click" is
-    /// exactly the shape of question that produced them.
-    private var claimsLeftClick: Bool {
-        ArmedTool.claimsLeftClick(hasArmedAdd: armedAdd != nil,
-                                  hasArmedShape: armedShape != nil,
-                                  hasMeasurement: appState.measurement != nil)
+    /// Whether the Map claims Esc with no Measurement to type into: there is the Viewport to
+    /// put away, or a Selection to let go. Never digits — see `MeasurementTyping.decide`.
+    private var claimsEscape: Bool {
+        isShowingViewport || !appState.selection.isEmpty
     }
 
     /// Follow the cursor: an armed Measurement rubber-bands as the mouse moves, so the
@@ -1346,19 +1488,25 @@ struct ControlView: View {
                                                   pixelsPerSquare: pixelsPerSquare))
     }
 
-    /// A keystroke the Map claimed while a Measurement is armed. Which keystrokes those
-    /// are is decided by `MeasurementTyping.decide`, not here.
-    private func handleMeasurementKey(_ decision: MeasurementTyping.Decision) {
-        // An armed tool has no Measurement yet, and the only key that means anything to it
-        // is the one that backs out. `Add` arms the same way and Esc backs out of it too.
-        if armedAdd != nil {
-            if decision == .abandon { armedAdd = nil }
-            return
+    /// A keystroke the Map claimed: digits, ⌫ and Return while a Measurement is armed, and
+    /// Esc whenever there is something to back out of. Which keystrokes those are is decided
+    /// by `MeasurementTyping.decide`, not here.
+    private func handleLiveViewKey(_ decision: MeasurementTyping.Decision) {
+        // Esc backs out one layer per press — the armed tool, then the Selection. Only digits
+        // typed into a Measurement keep it, and go on to their own handling below.
+        if decision == .abandon {
+            switch armed.escape {
+            case .disarmAdd: armedAdd = nil; return
+            case .disarmShape: armedShape = nil; return
+            case .putViewportAway: isShowingViewport = false; return
+            case .clearSelection: appState.clearSelection(); return
+            case .abandonDigits: break
+            }
         }
-        if armedShape != nil, appState.measurement == nil {
-            if decision == .abandon { armedShape = nil }
-            return
-        }
+        // An armed tool has no Measurement yet, and nothing to type into: Esc, the one key
+        // that means anything to it, was its own above.
+        if armedAdd != nil { return }
+        if armedShape != nil, appState.measurement == nil { return }
         guard var measurement = appState.resolvedMeasurement else { return }
         switch decision {
         case .passThrough:

@@ -75,10 +75,11 @@ extension AppState {
     ///
     /// `pawnID` is what the DM had selected when they typed, recorded beside the text rather
     /// than as a subject — a Comment is about the moment, not about anybody. **Nothing passes
-    /// one yet**: the Live View has no Pawn selection, and the Combat tab's row selection is
-    /// meaningful only during a fight, which is exactly when the Comment Bar is disabled. The
-    /// parameter stays because the line format carries the field and `CONTEXT.md` describes
-    /// it; wiring it needs a Live View selection this app does not have.
+    /// one yet**: the field holds one Pawn, and the Live View's Selection is a set — of Pawns
+    /// and Lights, picked for moving them together, which says nothing about which one a
+    /// Comment was looking at. The Combat tab's row selection is meaningful only during a
+    /// fight, which is exactly when the Comment Bar is disabled. The parameter stays because
+    /// the line format carries the field and `CONTEXT.md`, **Comment**, describes it.
     ///
     /// Silent during a fight: `SessionControl` drops it, so no caller needs an `if` about
     /// Encounters.

@@ -211,30 +211,27 @@ final class AddPlacementTests: XCTestCase {
 /// one predicate rather than as two flags read in the right order.
 final class ArmedToolTests: XCTestCase {
     func testAClickIsClaimedWhileAddIsArmed() {
-        XCTAssertTrue(ArmedTool.claimsLeftClick(hasArmedAdd: true, hasArmedShape: false,
-                                                hasMeasurement: false))
+        XCTAssertTrue(ArmedTool.State(hasArmedAdd: true).claimsLeftClick)
     }
 
     func testAClickIsClaimedWhileMeasuring() {
-        XCTAssertTrue(ArmedTool.claimsLeftClick(hasArmedAdd: false, hasArmedShape: true,
-                                                hasMeasurement: false))
-        XCTAssertTrue(ArmedTool.claimsLeftClick(hasArmedAdd: false, hasArmedShape: false,
-                                                hasMeasurement: true))
+        XCTAssertTrue(ArmedTool.State(hasArmedShape: true).claimsLeftClick)
+        XCTAssertTrue(ArmedTool.State(hasMeasurement: true).claimsLeftClick)
     }
 
     /// The default state, and the one that matters most: an idle Map must let the click
     /// through to the Pawn drag underneath, which is the commonest action on this surface.
     func testAnIdleMapLetsTheClickThroughToThePawnDrag() {
-        XCTAssertFalse(ArmedTool.claimsLeftClick(hasArmedAdd: false, hasArmedShape: false,
-                                                 hasMeasurement: false))
+        XCTAssertFalse(ArmedTool.State().claimsLeftClick)
     }
 
     /// Digits type a distance, which only a Measurement has — an armed `Add` must not eat
     /// them, or typing while placing a token would silently go nowhere.
     func testOnlyAMeasurementClaimsTypedDigits() {
-        XCTAssertFalse(ArmedTool.claimsDigits(hasArmedShape: false, hasMeasurement: false))
-        XCTAssertTrue(ArmedTool.claimsDigits(hasArmedShape: true, hasMeasurement: false))
-        XCTAssertTrue(ArmedTool.claimsDigits(hasArmedShape: false, hasMeasurement: true))
+        XCTAssertFalse(ArmedTool.State().claimsDigits)
+        XCTAssertFalse(ArmedTool.State(hasArmedAdd: true).claimsDigits)
+        XCTAssertTrue(ArmedTool.State(hasArmedShape: true).claimsDigits)
+        XCTAssertTrue(ArmedTool.State(hasMeasurement: true).claimsDigits)
     }
 }
 
