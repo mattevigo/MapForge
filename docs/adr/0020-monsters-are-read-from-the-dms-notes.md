@@ -39,6 +39,8 @@ actions in the Combat tab and to let **Add** give the next Creature the same Mon
 nothing about drawing, fog, persistence or the fight branches on it. That reference view is
 the one live read of the Bestiary, and it is right there because it is reference, not state:
 a Creature whose Monster has left the notes loses a panel and keeps every number.
+(Amended by ADR-0032: the Encounter Difficulty is a second live read, of the Challenge
+Rating, on the same terms: it is reference, not state.)
 
 A name rather than a relative path, because `<map>.fog.json` is meant to be portable and a
 path would write the DM's vault layout into it, while surviving a rename no better.
