@@ -216,3 +216,23 @@ struct MeasurementLayer: View {
         return path
     }
 }
+
+/// The colour side of a Measurement, kept here beside the layer that draws it so the model
+/// in `Measurement.swift` stays free of SwiftUI, as `Pawn`'s does — whose own colour,
+/// `tokenColor`, lives with `PawnToken` for the same reason.
+extension Measurement {
+    /// The colour the Measurement is drawn in, given the Pawn an Origin may name.
+    ///
+    /// Resolved live, like `originPoint(pawnAt:)`, and pure for the same reason: a colour
+    /// changed in the Edit Pawn sheet has to reach every Measurement of that Pawn the next
+    /// time they are drawn, which a colour copied in when the Measurement began would not.
+    func color(pawn: (Pawn.ID) -> Pawn?) -> Color {
+        guard let id = origin.pawnID else { return Self.ownColor }
+        return pawn(id).map(\.tokenColor) ?? Self.ownColor
+    }
+
+    /// The Measurement's own colour: what one that is no one's keeps — one taken from a
+    /// point, even with a Pawn standing on it. Also the armed `MeasurementCursor`'s, which
+    /// has no Origin yet.
+    static let ownColor: Color = .green
+}
