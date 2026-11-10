@@ -68,7 +68,7 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
         let (state, durga) = try makeAppState()
         state.fog.pawns = specsFight(durga)
 
-        let encounterDifficulty = try XCTUnwrap(state.encounterDifficulty)
+        let encounterDifficulty = try XCTUnwrap(state.encounterDifficultyReading.encounterDifficulty)
         XCTAssertEqual(encounterDifficulty.creatureXP, 650)
         XCTAssertEqual(encounterDifficulty.budgets,
                        EncounterDifficulty.Budgets(low: 600, moderate: 900, high: 1_600))
@@ -78,7 +78,7 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
     func testATreasureAnUntickedCreatureAndACreatureWithNoMonsterChangeNothing() throws {
         let (state, durga) = try makeAppState()
         state.fog.pawns = specsFight(durga)
-        let before = state.encounterDifficulty
+        let before = state.encounterDifficultyReading.encounterDifficulty
 
         let chest = Pawn(at: MapPoint(x: 5, y: 5), label: "Chest", colorHex: "#FFD700",
                          brightSquares: 0, kind: .treasure, monsterName: boss.name)
@@ -87,7 +87,7 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
         state.fog.pawns += [chest, unticked, byHand]
         state.setInCombat(false, for: unticked.id)
 
-        XCTAssertEqual(state.encounterDifficulty, before)
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty, before)
     }
 
     func testUntickingACountedCreatureLowersTheTotalAtOnce() throws {
@@ -97,14 +97,14 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
 
         state.setInCombat(false, for: theBoss.id)
 
-        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 200)
-        XCTAssertEqual(state.encounterDifficulty?.band, .low)
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty?.creatureXP, 200)
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty?.band, .low)
     }
 
     func testACreatureWhoseChallengeRatingCannotBeReadIsLeftOut() throws {
         let (state, durga) = try makeAppState()
         state.fog.pawns = specsFight(durga) + [creature(lair)]
-        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 650)
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty?.creatureXP, 650)
     }
 
     func testAPlayerWithNoCountedLevelGivesNoBudget() throws {
@@ -114,7 +114,7 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
         unlinked = try XCTUnwrap(state.activeParty?.characters.first { $0.name == "Brom" })
         state.fog.pawns = [player(durga), player(unlinked), player(nil), creature(goblin)]
 
-        XCTAssertEqual(state.encounterDifficulty?.budgets,
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty?.budgets,
                        EncounterDifficulty.Budgets(low: 150, moderate: 225, high: 400),
                        "Durga's alone: Brom has no note, and the third Player no Character")
     }
@@ -126,7 +126,7 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
         state.fog.pawns = [player(durga, monsterName: boss.name),
                            creature(goblin, characterID: durga.id)]
 
-        let encounterDifficulty = try XCTUnwrap(state.encounterDifficulty)
+        let encounterDifficulty = try XCTUnwrap(state.encounterDifficultyReading.encounterDifficulty)
         XCTAssertEqual(encounterDifficulty.creatureXP, 50)
         XCTAssertEqual(encounterDifficulty.budgets?.low, 150)
     }
@@ -142,7 +142,7 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
         state.characterNotes = CharacterNotes(notes: [CharacterNote(name: "Durga Pietraferma",
                                                                     level: "5")])
 
-        XCTAssertEqual(state.encounterDifficulty?.budgets?.low, 2_000)
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty?.budgets?.low, 2_000)
     }
 
     func testAMonsterThatLeftTheNotesTakesItsXPWithIt() throws {
@@ -151,7 +151,7 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
 
         state.bestiary = Bestiary(monsters: [goblin])
 
-        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 200)
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty?.creatureXP, 200)
     }
 
     // MARK: Uncounted Pawns, named
@@ -251,12 +251,12 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
     func testUncountedPawnsNeverChangeTheTotalsOrTheBudgets() throws {
         let (state, durga) = try makeAppState()
         state.fog.pawns = specsFight(durga)
-        let before = state.encounterDifficulty
+        let before = state.encounterDifficultyReading.encounterDifficulty
 
         state.fog.pawns += [creature(nil), creature(lair), player(nil),
                             player(PartyCharacter(name: "Brom"))]
 
-        XCTAssertEqual(state.encounterDifficulty, before)
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty, before)
         XCTAssertEqual(state.encounterDifficultyReading.uncounted.count, 4)
     }
 
@@ -297,11 +297,11 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
         state.fog.pawns = specsFight(durga)
         let theBoss = try XCTUnwrap(state.fog.pawns.last)
         state.startEncounter()
-        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 650)
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty?.creatureXP, 650)
 
         state.benchCombatant(theBoss.id)
 
-        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 200, "650 less the boss's 450")
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty?.creatureXP, 200, "650 less the boss's 450")
     }
 
     func testABenchedCreatureReturningToTheOrderRestoresTheTotal() throws {
@@ -313,7 +313,7 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
 
         state.unbenchCombatant(theBoss.id)
 
-        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 650)
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty?.creatureXP, 650)
     }
 
     func testAPawnJoiningMidFightCountsThoughItWasNeverTickedIn() throws {
@@ -323,11 +323,11 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
         let theBoss = try XCTUnwrap(state.fog.pawns.last)
         state.setInCombat(false, for: theBoss.id)
         state.startEncounter()
-        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 200)
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty?.creatureXP, 200)
 
         state.unbenchCombatant(theBoss.id)
 
-        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 650)
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty?.creatureXP, 650)
     }
 
     func testBenchingACountedPlayerLowersEachBudgetByThatPlayersShare() throws {
@@ -338,10 +338,10 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
 
         state.benchCombatant(aDurga.id)
 
-        XCTAssertEqual(state.encounterDifficulty?.budgets,
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty?.budgets,
                        EncounterDifficulty.Budgets(low: 450, moderate: 675, high: 1_200),
                        "Four level-3 budgets less one: 150, 225 and 400 each")
-        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 650, "the Creatures are untouched")
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty?.creatureXP, 650, "the Creatures are untouched")
     }
 
     func testOnceTheEncounterStopsTheTickedInRosterIsRatedAgain() throws {
@@ -354,7 +354,7 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
 
         state.stopEncounter()
 
-        XCTAssertEqual(state.encounterDifficulty?.creatureXP, 200,
+        XCTAssertEqual(state.encounterDifficultyReading.encounterDifficulty?.creatureXP, 200,
                        "the boss joined the fight, not the roster")
     }
 
@@ -365,9 +365,9 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
         state.startEncounter()
         let lines = state.encounter?.lines
 
-        _ = state.encounterDifficulty
+        _ = state.encounterDifficultyReading.encounterDifficulty
         state.endTurn()
-        _ = state.encounterDifficulty
+        _ = state.encounterDifficultyReading.encounterDifficulty
 
         let ended = try XCTUnwrap(state.encounter?.lines)
         XCTAssertEqual(ended.count, (lines?.count ?? 0) + 1, "only the Turn's own line")
@@ -378,6 +378,6 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
     func testWithNoCountedCreatureNothingIsRated() throws {
         let (state, durga) = try makeAppState()
         state.fog.pawns = [player(durga), creature(nil), creature(lair)]
-        XCTAssertNil(state.encounterDifficulty)
+        XCTAssertNil(state.encounterDifficultyReading.encounterDifficulty)
     }
 }

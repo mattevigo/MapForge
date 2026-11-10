@@ -6,8 +6,8 @@ import Foundation
 /// The DMG 2024's *Combat Encounter Difficulty* procedure run backwards: the Creatures' XP,
 /// added up, set against the budgets the Players' levels give. Pure, and built from numbers
 /// already read: which Pawns are in the fight, and what their notes say, is `AppState`'s
-/// business (`AppState.encounterDifficulty`). Reference, never state — nothing holds one
-/// for longer than it takes to draw it.
+/// business (`AppState.encounterDifficultyReading`). Reference, never state — nothing holds
+/// one for longer than it takes to draw it.
 struct EncounterDifficulty: Equatable {
     /// What the counted Creatures are worth, added up.
     var creatureXP: Int

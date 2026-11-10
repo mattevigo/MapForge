@@ -9,12 +9,6 @@ import Foundation
 /// Stat Block or Log depends on it.
 @MainActor
 extension AppState {
-    /// The Encounter Difficulty of the fight being rated, or nil when no Creature in it
-    /// counts — a fight with nothing to fight has nothing to rate.
-    var encounterDifficulty: EncounterDifficulty? {
-        encounterDifficultyReading.encounterDifficulty
-    }
-
     /// The fight being rated, read: its Encounter Difficulty, and every Pawn in it that could
     /// not be counted, with why.
     var encounterDifficultyReading: EncounterDifficultyReading {
@@ -31,11 +25,6 @@ extension AppState {
         }
         let order = Set(encounter.order)
         return fog.pawns.filter { $0.kind != .treasure && order.contains($0.id) }
-    }
-
-    /// What `pawns` add up to. A Pawn that cannot be counted is left out of the totals.
-    func encounterDifficulty(of pawns: [Pawn]) -> EncounterDifficulty? {
-        encounterDifficultyReading(of: pawns).encounterDifficulty
     }
 
     /// What `pawns` add up to, and which of them could not be counted. An uncounted Pawn is
@@ -57,20 +46,6 @@ extension AppState {
         let encounterDifficulty = challengeRatings.isEmpty
             ? nil : EncounterDifficulty(levels: levels, challengeRatings: challengeRatings)
         return EncounterDifficultyReading(encounterDifficulty: encounterDifficulty, uncounted: uncounted)
-    }
-
-    /// A Creature's Challenge Rating, through its Monster in the Bestiary, when its note's
-    /// `cr` counts.
-    func challengeRating(of pawn: Pawn) -> ChallengeRating? {
-        guard case .challengeRating(let challengeRating) = tally(pawn) else { return nil }
-        return challengeRating
-    }
-
-    /// A Player's level, through its Character and that Character's note, when the note's
-    /// `level` counts.
-    func level(of pawn: Pawn) -> CharacterLevel? {
-        guard case .level(let level) = tally(pawn) else { return nil }
-        return level
     }
 
     /// What one Pawn gives the reckoning.

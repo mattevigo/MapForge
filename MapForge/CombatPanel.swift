@@ -87,7 +87,7 @@ struct CombatPanel: View {
     }
 
     /// How hard the fight the DM has framed is, directly above the controls — read from the
-    /// notes each time it is drawn (`AppState.encounterDifficulty`, ADR-0032).
+    /// notes each time it is drawn (`AppState.encounterDifficultyReading`, ADR-0032).
     ///
     /// The same place before Play and while the fight runs, under "Round N" or the
     /// correcting bar: it rates the ticked-in roster first and the Order after, and the DM
