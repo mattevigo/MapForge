@@ -1278,6 +1278,9 @@
         }
       }
     },
+    "%@: %@": {
+      "comment": "A Pawn left out of the Encounter Difficulty and why: GG3: no Monster"
+    },
     "%@: a Creature — emits no Light. Click to douse the light it does not cast.": {
       "localizations": {
         "de": {
@@ -1406,6 +1409,82 @@
     },
     "%lld": {
       "shouldTranslate": false
+    },
+    "%lld Creatures not counted": {
+      "comment": "Under the Encounter Difficulty: Creatures in the fight whose Challenge Rating could not be read",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Creature not counted"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Creatures not counted"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld Creatures, %lld Players not counted": {
+      "comment": "Under the Encounter Difficulty: Creatures and Players in the fight whose numbers could not be read",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@creatures@, %#@players@ not counted"
+          },
+          "substitutions": {
+            "creatures": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg Creature"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg Creatures"
+                    }
+                  }
+                }
+              }
+            },
+            "players": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg Player"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg Players"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "%lld Items": {
       "localizations": {
@@ -1927,6 +2006,29 @@
         }
       }
     },
+    "%lld Players not counted": {
+      "comment": "Under the Encounter Difficulty: Players in the fight whose level could not be read",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Player not counted"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Players not counted"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld Walls": {
       "localizations": {
         "de": {
@@ -2056,6 +2158,9 @@
           }
         }
       }
+    },
+    "%lld XP": {
+      "comment": "The Creatures' total when no Player counts, so there is no band: 650 XP"
     },
     "%lld files skipped": {
       "localizations": {
@@ -4127,6 +4232,9 @@
           }
         }
       }
+    },
+    "Challenge Rating “%@” cannot be counted": {
+      "comment": "Why a Creature is not counted: its Monster's note writes a cr the rules give no XP for, quoted"
     },
     "Character notes the app could not take": {
       "localizations": {
@@ -9450,6 +9558,9 @@
           }
         }
       }
+    },
+    "No Player counts, so there are no budgets to rate the Creatures against.": {
+      "comment": "Over the Creatures' XP, shown alone when no Player in the fight can be counted"
     },
     "No Session running — press Start Session to begin recording.": {
       "localizations": {
@@ -16600,6 +16711,9 @@
         }
       }
     },
+    "level “%@” cannot be counted": {
+      "comment": "Why a Player is not counted: its Character's note writes a level that is not a whole number from 1 to 20, quoted"
+    },
     "name": {
       "localizations": {
         "de": {
@@ -16640,6 +16754,9 @@
         }
       }
     },
+    "no Character": {
+      "comment": "Why a Player is not counted: it was not Stamped from a Character"
+    },
     "no Map": {
       "localizations": {
         "de": {
@@ -16679,6 +16796,9 @@
           }
         }
       }
+    },
+    "no Monster": {
+      "comment": "Why a Creature is not counted: the DM never said which Monster it is"
     },
     "no note": {
       "comment": "Beside a Character whose numbers no note gives",
@@ -16807,6 +16927,15 @@
           }
         }
       }
+    },
+    "the Character has no note": {
+      "comment": "Why a Player is not counted: its Character was never linked to a note"
+    },
+    "the Character no longer exists": {
+      "comment": "Why a Player is not counted: its Character was deleted"
+    },
+    "the Monster has no Challenge Rating": {
+      "comment": "Why a Creature is not counted: its Monster's note writes no cr"
     },
     "the copied roster did not match the original": {
       "localizations": {
@@ -16967,6 +17096,12 @@
           }
         }
       }
+    },
+    "the note has no level": {
+      "comment": "Why a Player is not counted: its Character's note writes no level"
+    },
+    "the note “%@” cannot be found": {
+      "comment": "Why a Player is not counted: its Character's note is not among the notes read"
     },
     "the statblock has no name": {
       "localizations": {
@@ -17333,6 +17468,9 @@
           }
         }
       }
+    },
+    "“%@” is not in the Bestiary": {
+      "comment": "Why a Creature is not counted: its Monster has left the notes"
     },
     "“%@” is not in the Bestiary. Its numbers above are its own and are unaffected.": {
       "localizations": {

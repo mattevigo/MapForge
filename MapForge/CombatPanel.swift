@@ -89,13 +89,16 @@ struct CombatPanel: View {
     /// How hard the fight the DM has framed is, above the controls that start it — read
     /// from the notes each time it is drawn (`AppState.encounterDifficulty`, ADR-0032).
     ///
-    /// Nothing at all with no counted Creature, or no counted Player to give it budgets:
-    /// a bar with nothing to measure, or nothing to measure against, would read as a
-    /// verdict the app cannot give.
+    /// Nothing at all with no counted Creature: a fight with nothing to fight has nothing
+    /// to rate, however many Pawns in it went uncounted. With no counted Player, the
+    /// Creatures' XP alone, since there are no budgets to measure it against.
     @ViewBuilder
     private var encounterDifficulty: some View {
-        if let difficulty = appState.encounterDifficulty, let budgets = difficulty.budgets {
-            EncounterDifficultyBar(creatureXP: difficulty.creatureXP, budgets: budgets)
+        let reading = appState.encounterDifficultyReading
+        if let difficulty = reading.difficulty {
+            EncounterDifficultyIndicator(difficulty: difficulty,
+                                         uncountedNote: reading.uncountedNote,
+                                         uncountedHelp: reading.uncountedHelp)
         }
     }
 
