@@ -19,7 +19,7 @@ struct MeasurementCursor: View {
     var body: some View {
         Image(systemName: "ruler")
             .font(.system(size: side, weight: .semibold))
-            .foregroundStyle(.green)
+            .foregroundStyle(Measurement.pointColor)
             // A dark halo under the glyph: green on a lit tavern floor is otherwise
             // invisible, and this is the one thing on screen saying the tool is live.
             .shadow(color: .black.opacity(0.7), radius: 1)

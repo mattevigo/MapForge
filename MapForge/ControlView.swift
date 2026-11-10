@@ -1067,7 +1067,8 @@ struct ControlView: View {
                                  origin: $0.origin,
                                  map: map, frame: frame,
                                  pixelsPerSquare: pixelsPerSquare,
-                                 unit: appState.distanceUnit)
+                                 unit: appState.distanceUnit,
+                                 color: $0.color)
             }
         }
     }

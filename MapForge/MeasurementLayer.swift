@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// A **Measurement** drawn over the Map: a translucent green shape, a solid green border,
-/// and the distance beside it.
+/// A **Measurement** drawn over the Map: a translucent shape, a solid border, and the
+/// distance beside it — green, or the colour of the Pawn it starts at.
 ///
 /// One view for both screens, differing only in the frame handed to it — the Player
 /// Display's frame (True Scale, or fitted under Map Fit) or the Control mirror's
@@ -22,11 +22,17 @@ struct MeasurementLayer: View {
     /// The Distance Unit the readout speaks — the same on both screens, so the table and the
     /// DM never read one distance two ways.
     let unit: DistanceUnit
+    /// What the Measurement is drawn in, already resolved against an anchoring Pawn:
+    /// that Pawn's colour, so the table can tell whose it is, or
+    /// `Measurement.pointColor` for one taken from a point. Handed in rather than looked
+    /// up, so both screens draw the colour `AppState.drawableMeasurements` resolved once.
+    let color: Color
 
-    /// Green, per the feature's spec. Translucent fill, solid border — the pairing
-    /// `GridFitOverlay` and `ViewportOverlay` already use for "a region under discussion".
-    private var stroke: Color { .green }
-    private var fill: Color { .green.opacity(0.25) }
+    /// Translucent fill, solid border — the pairing `GridFitOverlay` and `ViewportOverlay`
+    /// already use for "a region under discussion". Only the colour is the Measurement's;
+    /// the opacity and the width are the layer's, whoever the Measurement belongs to.
+    private var stroke: Color { color }
+    private var fill: Color { color.opacity(0.25) }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -84,8 +90,8 @@ struct MeasurementLayer: View {
     ///
     /// Fixed size, like the readout capsule: it marks a point rather than covering an area,
     /// so it must stay legible at any zoom and on the Player Display's True Scale alike.
-    /// White-ringed because a green dot on green terrain — or on the party's own tokens —
-    /// disappears, and this is the thing being pointed at.
+    /// White-ringed because a dot on terrain of its own colour — or on the very Pawn whose
+    /// colour it is — disappears, and this is the thing being pointed at.
     private var endCap: some View {
         Circle()
             .fill(stroke)

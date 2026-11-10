@@ -707,21 +707,31 @@ final class AppState: ObservableObject {
     /// screens cannot drift — the same reason `PlayerVisibility.showsToPlayers` is one
     /// function (ADR-0004). Hiding is about what the table is shown; the DM keeps their own
     /// either way, because they asked the question and the answer is still theirs.
-    var playerMeasurements: [(measurement: Measurement, origin: MapPoint)] {
+    var playerMeasurements: [DrawableMeasurement] {
         showsMeasurementsToPlayers ? drawableMeasurements : []
     }
 
-    var drawableMeasurements: [(measurement: Measurement, origin: MapPoint)] {
-        var drawable = pinnedMeasurements.compactMap { pinned -> (Measurement, MapPoint)? in
+    /// A Measurement ready to draw: where it starts and the colour it is drawn in, both
+    /// resolved against its Pawn as it is now.
+    typealias DrawableMeasurement = (measurement: Measurement, origin: MapPoint, color: Color)
+
+    var drawableMeasurements: [DrawableMeasurement] {
+        var drawable = pinnedMeasurements.compactMap { pinned -> DrawableMeasurement? in
             guard let origin = pinned.originPoint(pawnAt: { id in
                 fog.pawns.first(where: { $0.id == id })?.at
             }) else { return nil }
-            return (pinned, origin)
+            return (pinned, origin, measurementColor(pinned))
         }
         if let measurement = resolvedMeasurement, let origin = measurementOriginPoint {
-            drawable.append((measurement, origin))
+            drawable.append((measurement, origin, measurementColor(measurement)))
         }
         return drawable
+    }
+
+    /// Read from the Pawn every time, as the Origin is, so a recoloured Pawn recolours its
+    /// Measurements — the live one and every Pinned one — the next time they are drawn.
+    private func measurementColor(_ measurement: Measurement) -> Color {
+        measurement.color { id in fog.pawns.first(where: { $0.id == id }) }
     }
 
     /// Whether measuring is offered at all on the current Map.

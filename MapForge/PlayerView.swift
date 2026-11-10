@@ -92,7 +92,8 @@ struct PlayerView: View {
                             MeasurementLayer(measurement: $0.measurement, origin: $0.origin,
                                              map: map, frame: frame,
                                              pixelsPerSquare: pixelsPerSquare,
-                                             unit: appState.distanceUnit)
+                                             unit: appState.distanceUnit,
+                                             color: $0.color)
                         }
                     }
                 }

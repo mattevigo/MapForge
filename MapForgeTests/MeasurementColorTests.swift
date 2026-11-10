@@ -46,3 +46,58 @@ final class MeasurementColorTests: XCTestCase {
         XCTAssertEqual(color(of: measurement, pawns: [pawn]), .green)
     }
 }
+
+/// The colour each screen draws a Measurement in, resolved on `AppState` next to its
+/// Origin so the Control mirror and the Player Display cannot disagree.
+@MainActor
+final class MeasurementColorAppStateTests: XCTestCase {
+    private let blue = Color(.sRGB, red: 0x33 / 255, green: 0x66 / 255, blue: 0xCC / 255)
+    private let orange = Color(.sRGB, red: 0xFF / 255, green: 0x88 / 255, blue: 0x00 / 255)
+
+    private func state(with pawn: Pawn) -> AppState {
+        let defaults = UserDefaults(suiteName: "MeasurementColorTests.\(UUID().uuidString)")!
+        let state = AppState(preferences: DisplayPreferences(defaults: defaults))
+        state.squaresWide = 20
+        state.fog.pawns = [pawn]
+        return state
+    }
+
+    private func rogue() -> Pawn {
+        Pawn(at: MapPoint(x: 500, y: 400), label: "Rogue", colorHex: "#3366CC",
+             brightSquares: 4)
+    }
+
+    private func settled(_ origin: MeasurementOrigin,
+                         _ shape: MeasurementShape = .circle) -> MapForge.Measurement {
+        var measurement = MapForge.Measurement(origin: origin, shape: shape, distance: 4,
+                                               direction: 0)
+        measurement.isDistanceSettled = true
+        return measurement
+    }
+
+    func testBothScreensDrawAPawnsMeasurementsInItsColourAndAPointsInGreen() {
+        let rogue = rogue()
+        let state = state(with: rogue)
+        state.setMeasurement(settled(.point(MapPoint(x: 10, y: 10))))
+        state.pinMeasurement()
+        state.setMeasurement(settled(.pawn(rogue.id), .cone))
+
+        XCTAssertEqual(state.drawableMeasurements.map(\.color), [.green, blue])
+        XCTAssertEqual(state.playerMeasurements.map(\.color), [.green, blue],
+                       "the table and the DM must see the same colours")
+    }
+
+    func testRecolouringAPawnRecoloursItsLiveAndPinnedMeasurements() {
+        let rogue = rogue()
+        let state = state(with: rogue)
+        state.setMeasurement(settled(.pawn(rogue.id)))
+        state.pinMeasurement()
+        state.setMeasurement(settled(.pawn(rogue.id), .cone))
+
+        var recolour = EditPawnDraft(pawn: rogue)
+        recolour.colorHex = "#FF8800"
+        state.updatePawn(id: rogue.id, with: recolour)
+
+        XCTAssertEqual(state.drawableMeasurements.map(\.color), [orange, orange])
+    }
+}
