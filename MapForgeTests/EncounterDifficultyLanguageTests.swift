@@ -30,12 +30,11 @@ final class EncounterDifficultyLanguageTests: XCTestCase {
 
     func testTheCreaturesXPAloneReadsInTheBooksAbbreviation() {
         // A CR 4 and a CR 3: 1,100 + 700 XP, with no Player to set them against.
-        let difficulty = EncounterDifficulty(levels: [],
-                                             challengeRatings: [ChallengeRating("4")!,
-                                                                ChallengeRating("3")!])
-        XCTAssertEqual(difficulty.creatureXPLabel(in: Locale(identifier: "en")), "1,800 XP")
-        XCTAssertEqual(difficulty.creatureXPLabel(in: Locale(identifier: "it")), "1.800 PE")
-        XCTAssertEqual(difficulty.creatureXPLabel(in: Locale(identifier: "es")), "1800 PX")
+        let encounterDifficulty = EncounterDifficulty(
+            levels: [], challengeRatings: [ChallengeRating("4")!, ChallengeRating("3")!])
+        XCTAssertEqual(encounterDifficulty.creatureXPLabel(in: Locale(identifier: "en")), "1,800 XP")
+        XCTAssertEqual(encounterDifficulty.creatureXPLabel(in: Locale(identifier: "it")), "1.800 PE")
+        XCTAssertEqual(encounterDifficulty.creatureXPLabel(in: Locale(identifier: "es")), "1800 PX")
     }
 
     func testTheBudgetsReadInItalianWithTheirBandsAndGrouping() {
@@ -72,7 +71,7 @@ final class EncounterDifficultyLanguageTests: XCTestCase {
         let uncounted = Array(repeating: UncountedPawn.Reason.noMonster, count: creatures)
             + Array(repeating: UncountedPawn.Reason.noCharacter, count: players)
         return EncounterDifficultyReading(
-            difficulty: nil,
+            encounterDifficulty: nil,
             uncounted: uncounted.map { UncountedPawn(id: UUID(), label: "GG", reason: $0) })
     }
 
@@ -121,7 +120,7 @@ final class EncounterDifficultyLanguageTests: XCTestCase {
     }
 
     func testTheHoverReadsInItalian() {
-        let reading = EncounterDifficultyReading(difficulty: nil, uncounted: [
+        let reading = EncounterDifficultyReading(encounterDifficulty: nil, uncounted: [
             UncountedPawn(id: UUID(), label: "GG3", reason: .challengeRatingNotCounted("14 (15 in tana)")),
             UncountedPawn(id: UUID(), label: "Durga", reason: .levelNotCounted(nil)),
         ])

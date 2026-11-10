@@ -99,8 +99,8 @@ struct CombatPanel: View {
     @ViewBuilder
     private var encounterDifficulty: some View {
         let reading = appState.encounterDifficultyReading
-        if let difficulty = reading.difficulty {
-            EncounterDifficultyIndicator(difficulty: difficulty,
+        if let encounterDifficulty = reading.encounterDifficulty {
+            EncounterDifficultyIndicator(encounterDifficulty: encounterDifficulty,
                                          uncountedNote: reading.uncountedNote,
                                          uncountedHelp: reading.uncountedHelp)
         }

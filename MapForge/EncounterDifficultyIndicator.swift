@@ -7,14 +7,14 @@ import SwiftUI
 /// Drawn only when a Creature counts — `CombatPanel` asks `AppState.encounterDifficultyReading`
 /// for that — because a fight with nothing to fight has nothing to rate.
 struct EncounterDifficultyIndicator: View {
-    var difficulty: EncounterDifficulty
+    var encounterDifficulty: EncounterDifficulty
     var uncountedNote: String?
     var uncountedHelp: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            if let budgets = difficulty.budgets {
-                EncounterDifficultyBar(creatureXP: difficulty.creatureXP, budgets: budgets)
+            if let budgets = encounterDifficulty.budgets {
+                EncounterDifficultyBar(creatureXP: encounterDifficulty.creatureXP, budgets: budgets)
             } else {
                 creatureXPAlone
             }
@@ -36,7 +36,7 @@ struct EncounterDifficultyIndicator: View {
             Text("Encounter Difficulty", comment: "The rulebook's term, over the Combat tab's bar")
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
-            Text(difficulty.creatureXPLabel())
+            Text(encounterDifficulty.creatureXPLabel())
                 .fontWeight(.semibold)
                 .monospacedDigit()
         }

@@ -16,13 +16,13 @@ final class EncounterDifficultyTests: XCTestCase {
 
     func testTheSpecsExampleIsModerate() throws {
         // Four level-3 Players against four goblins and their CR 2 boss.
-        let difficulty = EncounterDifficulty(
+        let encounterDifficulty = EncounterDifficulty(
             levels: try levels(3, 3, 3, 3),
             challengeRatings: try challengeRatings("1/4", "1/4", "1/4", "1/4", "2"))
 
-        XCTAssertEqual(difficulty.creatureXP, 650)
-        XCTAssertEqual(difficulty.budgets, EncounterDifficulty.Budgets(low: 600, moderate: 900, high: 1_600))
-        XCTAssertEqual(difficulty.band, .moderate)
+        XCTAssertEqual(encounterDifficulty.creatureXP, 650)
+        XCTAssertEqual(encounterDifficulty.budgets, EncounterDifficulty.Budgets(low: 600, moderate: 900, high: 1_600))
+        XCTAssertEqual(encounterDifficulty.band, .moderate)
     }
 
     // MARK: A budget is a ceiling
@@ -51,25 +51,25 @@ final class EncounterDifficultyTests: XCTestCase {
 
     func testNothingToFightIsStillLowAndNeverBelowIt() throws {
         // There is no band below Low: a fight that spends little of the budget is Low.
-        let difficulty = EncounterDifficulty(levels: try levels(3, 3, 3, 3), challengeRatings: [])
-        XCTAssertEqual(difficulty.creatureXP, 0)
-        XCTAssertEqual(difficulty.band, .low)
+        let encounterDifficulty = EncounterDifficulty(levels: try levels(3, 3, 3, 3), challengeRatings: [])
+        XCTAssertEqual(encounterDifficulty.creatureXP, 0)
+        XCTAssertEqual(encounterDifficulty.band, .low)
     }
 
     func testThereIsNoMultiplierForHowManyCreaturesThereAre() throws {
         // The 2014 rules multiplied a crowd's XP; the 2024 ones add it up and stop.
-        let difficulty = EncounterDifficulty(
+        let encounterDifficulty = EncounterDifficulty(
             levels: try levels(1),
             challengeRatings: try challengeRatings("1/8", "1/8", "1/8", "1/8"))
-        XCTAssertEqual(difficulty.creatureXP, 100)
-        XCTAssertEqual(difficulty.band, .high)
+        XCTAssertEqual(encounterDifficulty.creatureXP, 100)
+        XCTAssertEqual(encounterDifficulty.band, .high)
     }
 
     func testWithNoPlayerThereAreNoBudgetsAndNoBand() throws {
-        let difficulty = EncounterDifficulty(levels: [], challengeRatings: try challengeRatings("2"))
-        XCTAssertEqual(difficulty.creatureXP, 450)
-        XCTAssertNil(difficulty.budgets)
-        XCTAssertNil(difficulty.band)
+        let encounterDifficulty = EncounterDifficulty(levels: [], challengeRatings: try challengeRatings("2"))
+        XCTAssertEqual(encounterDifficulty.creatureXP, 450)
+        XCTAssertNil(encounterDifficulty.budgets)
+        XCTAssertNil(encounterDifficulty.band)
     }
 
     // MARK: Reading a Challenge Rating

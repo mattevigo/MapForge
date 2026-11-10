@@ -68,11 +68,11 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
         let (state, durga) = try makeAppState()
         state.fog.pawns = specsFight(durga)
 
-        let difficulty = try XCTUnwrap(state.encounterDifficulty)
-        XCTAssertEqual(difficulty.creatureXP, 650)
-        XCTAssertEqual(difficulty.budgets,
+        let encounterDifficulty = try XCTUnwrap(state.encounterDifficulty)
+        XCTAssertEqual(encounterDifficulty.creatureXP, 650)
+        XCTAssertEqual(encounterDifficulty.budgets,
                        EncounterDifficulty.Budgets(low: 600, moderate: 900, high: 1_600))
-        XCTAssertEqual(difficulty.band, .moderate)
+        XCTAssertEqual(encounterDifficulty.band, .moderate)
     }
 
     func testATreasureAnUntickedCreatureAndACreatureWithNoMonsterChangeNothing() throws {
@@ -126,9 +126,9 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
         state.fog.pawns = [player(durga, monsterName: boss.name),
                            creature(goblin, characterID: durga.id)]
 
-        let difficulty = try XCTUnwrap(state.encounterDifficulty)
-        XCTAssertEqual(difficulty.creatureXP, 50)
-        XCTAssertEqual(difficulty.budgets?.low, 150)
+        let encounterDifficulty = try XCTUnwrap(state.encounterDifficulty)
+        XCTAssertEqual(encounterDifficulty.creatureXP, 50)
+        XCTAssertEqual(encounterDifficulty.budgets?.low, 150)
     }
 
     // MARK: Read live
@@ -276,9 +276,9 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
         state.fog.pawns = [creature(boss), creature(goblin), creature(goblin), byHand]
 
         let reading = state.encounterDifficultyReading
-        XCTAssertEqual(reading.difficulty?.creatureXP, 550)
-        XCTAssertNil(reading.difficulty?.budgets)
-        XCTAssertNil(reading.difficulty?.band)
+        XCTAssertEqual(reading.encounterDifficulty?.creatureXP, 550)
+        XCTAssertNil(reading.encounterDifficulty?.budgets)
+        XCTAssertNil(reading.encounterDifficulty?.band)
         XCTAssertEqual(reading.uncounted.map(\.id), [byHand.id])
     }
 
@@ -286,7 +286,7 @@ final class EncounterDifficultyAppStateTests: XCTestCase {
         let (state, durga) = try makeAppState()
         state.fog.pawns = [player(durga), creature(nil), creature(lair)]
 
-        XCTAssertNil(state.encounterDifficultyReading.difficulty)
+        XCTAssertNil(state.encounterDifficultyReading.encounterDifficulty)
         XCTAssertEqual(state.encounterDifficultyReading.uncounted.count, 2)
     }
 

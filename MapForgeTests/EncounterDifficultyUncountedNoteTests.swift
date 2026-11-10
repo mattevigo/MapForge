@@ -9,7 +9,7 @@ final class EncounterDifficultyUncountedNoteTests: XCTestCase {
     }
 
     private func reading(_ uncounted: [UncountedPawn]) -> EncounterDifficultyReading {
-        EncounterDifficultyReading(difficulty: nil, uncounted: uncounted)
+        EncounterDifficultyReading(encounterDifficulty: nil, uncounted: uncounted)
     }
 
     // MARK: The note

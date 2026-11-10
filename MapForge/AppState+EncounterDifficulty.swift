@@ -12,7 +12,7 @@ extension AppState {
     /// The Encounter Difficulty of the fight being rated, or nil when no Creature in it
     /// counts — a fight with nothing to fight has nothing to rate.
     var encounterDifficulty: EncounterDifficulty? {
-        encounterDifficultyReading.difficulty
+        encounterDifficultyReading.encounterDifficulty
     }
 
     /// The fight being rated, read: its Encounter Difficulty, and every Pawn in it that could
@@ -35,7 +35,7 @@ extension AppState {
 
     /// What `pawns` add up to. A Pawn that cannot be counted is left out of the totals.
     func encounterDifficulty(of pawns: [Pawn]) -> EncounterDifficulty? {
-        encounterDifficultyReading(of: pawns).difficulty
+        encounterDifficultyReading(of: pawns).encounterDifficulty
     }
 
     /// What `pawns` add up to, and which of them could not be counted. An uncounted Pawn is
@@ -54,9 +54,9 @@ extension AppState {
             case .nothing: break
             }
         }
-        let difficulty = challengeRatings.isEmpty
+        let encounterDifficulty = challengeRatings.isEmpty
             ? nil : EncounterDifficulty(levels: levels, challengeRatings: challengeRatings)
-        return EncounterDifficultyReading(difficulty: difficulty, uncounted: uncounted)
+        return EncounterDifficultyReading(encounterDifficulty: encounterDifficulty, uncounted: uncounted)
     }
 
     /// A Creature's Challenge Rating, through its Monster in the Bestiary, when its note's
@@ -125,7 +125,7 @@ private enum Tally {
 /// that did not.
 struct EncounterDifficultyReading: Equatable {
     /// Nil when no Creature counts: a fight with nothing to fight has nothing to rate.
-    var difficulty: EncounterDifficulty?
+    var encounterDifficulty: EncounterDifficulty?
     /// In the fight's order. Never a Treasure.
     var uncounted: [UncountedPawn]
 }
