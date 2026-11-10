@@ -24,7 +24,7 @@ struct MeasurementLayer: View {
     let unit: DistanceUnit
     /// What the Measurement is drawn in, already resolved against an anchoring Pawn:
     /// that Pawn's colour, so the table can tell whose it is, or
-    /// `Measurement.pointColor` for one taken from a point. Handed in rather than looked
+    /// `Measurement.ownColor` for one taken from a point. Handed in rather than looked
     /// up, so both screens draw the colour `AppState.drawableMeasurements` resolved once.
     let color: Color
 

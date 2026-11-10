@@ -45,7 +45,7 @@ enum MeasurementOrigin: Equatable {
     /// A Line's from a Pawn: it starts where the Pawn stood when the Line was begun, and
     /// stays there. A Line is a route, and a Pawn walking the route it was given must not
     /// drag the route along behind it — following would move only the first point, since
-    /// the `chain` is in absolute Map points, and the path and its total would disagree.
+    /// the `chain` is in absolute Map points, and the chain and its total would disagree.
     ///
     /// Still the Pawn's: it is drawn in the Pawn's colour and ends when the Pawn does,
     /// which is why the ID is kept beside the point rather than decaying to `.point`.
@@ -321,13 +321,14 @@ struct Measurement: Equatable, Identifiable {
     /// changed in the Edit Pawn sheet has to reach every Measurement of that Pawn the next
     /// time they are drawn, which a colour copied in when the Measurement began would not.
     func color(pawn: (Pawn.ID) -> Pawn?) -> Color {
-        guard let id = origin.pawnID else { return Self.pointColor }
-        return pawn(id).map(\.tokenColor) ?? Self.pointColor
+        guard let id = origin.pawnID else { return Self.ownColor }
+        return pawn(id).map(\.tokenColor) ?? Self.ownColor
     }
 
-    /// The colour of a Measurement that is no one's: one taken from a point, even with a
-    /// Pawn standing on it. Also the armed `MeasurementCursor`'s, which has no Origin yet.
-    static let pointColor: Color = .green
+    /// The Measurement's own colour: what one that is no one's keeps — one taken from a
+    /// point, even with a Pawn standing on it. Also the armed `MeasurementCursor`'s, which
+    /// has no Origin yet.
+    static let ownColor: Color = .green
 
     /// Where the live end of a chain currently reaches, in image pixels.
     ///
