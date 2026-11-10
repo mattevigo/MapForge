@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// A **Measurement** drawn over the Map: a translucent green shape, a solid green border,
-/// and the distance beside it.
+/// A **Measurement** drawn over the Map: a translucent shape, a solid border, and the
+/// distance beside it — green, or the colour of the Pawn it starts at.
 ///
 /// One view for both screens, differing only in the frame handed to it — the Player
 /// Display's frame (True Scale, or fitted under Map Fit) or the Control mirror's
@@ -13,9 +13,10 @@ import SwiftUI
 /// Player Display draws only the world — see
 /// [ADR 0005](../docs/adr/0005-the-player-display-shows-the-measurement.md).
 struct MeasurementLayer: View {
-    let measurement: Measurement
-    /// Where the Measurement starts, already resolved against an anchoring Pawn.
-    let origin: MapPoint
+    /// The Measurement with its Origin and colour already resolved against an anchoring
+    /// Pawn — handed in whole rather than looked up, so both screens draw what
+    /// `AppState.drawableMeasurements` resolved once.
+    let drawable: AppState.DrawableMeasurement
     let map: MapScale
     let frame: CGRect
     let pixelsPerSquare: CGFloat
@@ -23,10 +24,18 @@ struct MeasurementLayer: View {
     /// DM never read one distance two ways.
     let unit: DistanceUnit
 
-    /// Green, per the feature's spec. Translucent fill, solid border — the pairing
-    /// `GridFitOverlay` and `ViewportOverlay` already use for "a region under discussion".
-    private var stroke: Color { .green }
-    private var fill: Color { .green.opacity(0.25) }
+    private var measurement: Measurement { drawable.measurement }
+    /// Where the Measurement starts.
+    private var origin: MapPoint { drawable.origin }
+    /// What the Measurement is drawn in: its Pawn's colour, so the table can tell whose it
+    /// is, or `Measurement.ownColor` for one taken from a point.
+    private var color: Color { drawable.color }
+
+    /// Translucent fill, solid border — the pairing `GridFitOverlay` and `ViewportOverlay`
+    /// already use for "a region under discussion". Only the colour is the Measurement's;
+    /// the opacity and the width are the layer's, whoever the Measurement belongs to.
+    private var stroke: Color { color }
+    private var fill: Color { color.opacity(0.25) }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -84,8 +93,8 @@ struct MeasurementLayer: View {
     ///
     /// Fixed size, like the readout capsule: it marks a point rather than covering an area,
     /// so it must stay legible at any zoom and on the Player Display's True Scale alike.
-    /// White-ringed because a green dot on green terrain — or on the party's own tokens —
-    /// disappears, and this is the thing being pointed at.
+    /// White-ringed because a dot on terrain of its own colour — or on the very Pawn whose
+    /// colour it is — disappears, and this is the thing being pointed at.
     private var endCap: some View {
         Circle()
             .fill(stroke)
@@ -209,4 +218,24 @@ struct MeasurementLayer: View {
         path.closeSubpath()
         return path
     }
+}
+
+/// The colour side of a Measurement, kept here beside the layer that draws it so the model
+/// in `Measurement.swift` stays free of SwiftUI, as `Pawn`'s does — whose own colour,
+/// `tokenColor`, lives with `PawnToken` for the same reason.
+extension Measurement {
+    /// The colour the Measurement is drawn in, given the Pawn an Origin may name.
+    ///
+    /// Resolved live, like `originPoint(pawnAt:)`, and pure for the same reason: a colour
+    /// changed in the Edit Pawn sheet has to reach every Measurement of that Pawn the next
+    /// time they are drawn, which a colour copied in when the Measurement began would not.
+    func color(pawn: (Pawn.ID) -> Pawn?) -> Color {
+        guard let id = origin.pawnID else { return Self.ownColor }
+        return pawn(id).map(\.tokenColor) ?? Self.ownColor
+    }
+
+    /// The Measurement's own colour: what one that is no one's keeps — one taken from a
+    /// point, even with a Pawn standing on it. Also the armed `MeasurementCursor`'s, which
+    /// has no Origin yet.
+    static let ownColor: Color = .green
 }

@@ -72,22 +72,21 @@ final class AppState: ObservableObject {
             // it here rather than at each call site is why the mode cannot outlive its
             // subject — the `be14e58` bug class, whose lesson was that a reference into a
             // document needs the document to be the thing that invalidates it.
-            if let id = soloSightPawnID, !fog.pawns.contains(where: { $0.id == id }) {
+            if let id = soloSightPawnID, pawnOnMap(id) == nil {
                 soloSightPawnID = nil
             }
             // A Measurement anchored to a Pawn is a reference into this document too, and
             // invalidates for the same reason and in the same place. Pinned ones hold the
             // same kind of reference and go the same way — a pin does not make a stale
             // anchor any less stale.
-            if case .pawn(let id) = measurement?.origin,
-               !fog.pawns.contains(where: { $0.id == id }) {
+            // A Line that stays where it was begun is still its Pawn's, and goes with it.
+            if let id = measurement?.origin.pawnID,
+               pawnOnMap(id) == nil {
                 measurement = nil
             }
             pinnedMeasurements.removeAll { pinned in
-                if case .pawn(let id) = pinned.origin {
-                    return !fog.pawns.contains(where: { $0.id == id })
-                }
-                return false
+                guard let id = pinned.origin.pawnID else { return false }
+                return pawnOnMap(id) == nil
             }
             // The Selection holds Pawn and Light IDs, so it goes the same way: a deleted
             // member leaves it and the rest stay picked. Skipped while nothing is picked,
@@ -560,7 +559,7 @@ final class AppState: ObservableObject {
     /// observer.
     var resolvedSoloSightPawnID: Pawn.ID? {
         guard let id = soloSightPawnID,
-              fog.pawns.contains(where: { $0.id == id }) else { return nil }
+              pawnOnMap(id) != nil else { return nil }
         return id
     }
 
@@ -575,7 +574,7 @@ final class AppState: ObservableObject {
     /// remembered: an ID that matches nothing is the stale reference `fog`'s `didSet`
     /// exists to prevent.
     func toggleSelection(pawn id: Pawn.ID) {
-        guard fog.pawns.contains(where: { $0.id == id }) else { return }
+        guard pawnOnMap(id) != nil else { return }
         selection.toggle(pawn: id)
     }
 
@@ -666,16 +665,17 @@ final class AppState: ObservableObject {
     /// thing a measuring tool must not give.
     var resolvedMeasurement: Measurement? {
         guard let measurement else { return nil }
-        if case .pawn(let id) = measurement.origin,
-           !fog.pawns.contains(where: { $0.id == id }) { return nil }
+        if let id = measurement.origin.pawnID,
+           pawnOnMap(id) == nil { return nil }
         return measurement
     }
 
     /// Where the on-screen Measurement currently starts, in image pixels. Follows an
-    /// anchoring Pawn as it moves, which is why this is resolved rather than stored.
+    /// anchoring Pawn as it moves, which is why this is resolved rather than stored — except
+    /// a Line's, which stays where the Pawn stood when it was begun.
     var measurementOriginPoint: MapPoint? {
         resolvedMeasurement?.originPoint { id in
-            fog.pawns.first(where: { $0.id == id })?.at
+            pawnOnMap(id)?.at
         }
     }
 
@@ -707,21 +707,48 @@ final class AppState: ObservableObject {
     /// screens cannot drift — the same reason `PlayerVisibility.showsToPlayers` is one
     /// function (ADR-0004). Hiding is about what the table is shown; the DM keeps their own
     /// either way, because they asked the question and the answer is still theirs.
-    var playerMeasurements: [(measurement: Measurement, origin: MapPoint)] {
+    var playerMeasurements: [DrawableMeasurement] {
         showsMeasurementsToPlayers ? drawableMeasurements : []
     }
 
-    var drawableMeasurements: [(measurement: Measurement, origin: MapPoint)] {
-        var drawable = pinnedMeasurements.compactMap { pinned -> (Measurement, MapPoint)? in
+    /// A Measurement ready to draw: where it starts and the colour it is drawn in, both
+    /// resolved against its Pawn as it is now. Handed to `MeasurementLayer` whole, so both
+    /// screens draw exactly what was resolved here.
+    struct DrawableMeasurement: Identifiable {
+        let measurement: Measurement
+        let origin: MapPoint
+        let color: Color
+
+        var id: Measurement.ID { measurement.id }
+    }
+
+    var drawableMeasurements: [DrawableMeasurement] {
+        var drawable = pinnedMeasurements.compactMap { pinned -> DrawableMeasurement? in
             guard let origin = pinned.originPoint(pawnAt: { id in
-                fog.pawns.first(where: { $0.id == id })?.at
+                pawnOnMap(id)?.at
             }) else { return nil }
-            return (pinned, origin)
+            return DrawableMeasurement(measurement: pinned, origin: origin,
+                                       color: measurementColor(pinned))
         }
         if let measurement = resolvedMeasurement, let origin = measurementOriginPoint {
-            drawable.append((measurement, origin))
+            drawable.append(DrawableMeasurement(measurement: measurement, origin: origin,
+                                                color: measurementColor(measurement)))
         }
         return drawable
+    }
+
+    /// Read from the Pawn every time, as the Origin is, so a recoloured Pawn recolours its
+    /// Measurements — the live one and every Pinned one — the next time they are drawn.
+    private func measurementColor(_ measurement: Measurement) -> Color {
+        measurement.color(pawn: pawnOnMap)
+    }
+
+    /// The Pawn with this ID on the current Map, or nil once it has gone — the one lookup
+    /// every Pawn reference the document invalidates (Solo Sight, the Selection, a
+    /// Measurement's Origin and colour) resolves through, so they cannot disagree about
+    /// whether a Pawn is still there.
+    private func pawnOnMap(_ id: Pawn.ID) -> Pawn? {
+        fog.pawns.first(where: { $0.id == id })
     }
 
     /// Whether measuring is offered at all on the current Map.

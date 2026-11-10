@@ -88,9 +88,8 @@ struct PlayerView: View {
                     // Measurement taken to plan a monster's next move is not one they drew
                     // to be seen. See `AppState.showsMeasurementsToPlayers`.
                     if let pixelsPerSquare = appState.pixelsPerSquare {
-                        ForEach(appState.playerMeasurements, id: \.measurement.id) {
-                            MeasurementLayer(measurement: $0.measurement, origin: $0.origin,
-                                             map: map, frame: frame,
+                        ForEach(appState.playerMeasurements) {
+                            MeasurementLayer(drawable: $0, map: map, frame: frame,
                                              pixelsPerSquare: pixelsPerSquare,
                                              unit: appState.distanceUnit)
                         }

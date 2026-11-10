@@ -113,7 +113,7 @@ final class MeasurementControlTests: XCTestCase {
         // And the Origin that click yields is that Pawn, not a bare point beside it.
         let pawn = Pawn(at: pawnAt, label: "A", colorHex: "#ff0000", brightSquares: 4)
         XCTAssertEqual(MeasurementControl.origin(forClickAt: clicked, pawns: [pawn],
-                                                 pixelsPerSquare: 50),
+                                                 pixelsPerSquare: 50, shape: .circle),
                        .pawn(pawn.id))
     }
 
@@ -130,7 +130,7 @@ final class MeasurementControlTests: XCTestCase {
         let pawn = Pawn(at: MapPoint(x: 500, y: 400), label: "A", colorHex: "#ff0000",
                         brightSquares: 4)
         let origin = MeasurementControl.origin(forClickAt: MapPoint(x: 505, y: 404),
-                                               pawns: [pawn], pixelsPerSquare: 50)
+                                               pawns: [pawn], pixelsPerSquare: 50, shape: .circle)
         XCTAssertEqual(origin, .pawn(pawn.id))
     }
 
@@ -139,7 +139,7 @@ final class MeasurementControlTests: XCTestCase {
                         brightSquares: 4)
         let click = MapPoint(x: 900, y: 700)
         XCTAssertEqual(MeasurementControl.origin(forClickAt: click, pawns: [pawn],
-                                                 pixelsPerSquare: 50),
+                                                 pixelsPerSquare: 50, shape: .circle),
                        .point(click))
     }
 
@@ -149,7 +149,7 @@ final class MeasurementControlTests: XCTestCase {
         let far = Pawn(at: MapPoint(x: 530, y: 400), label: "far", colorHex: "#00ff00",
                        brightSquares: 4)
         XCTAssertEqual(MeasurementControl.origin(forClickAt: MapPoint(x: 510, y: 400),
-                                                 pawns: [near, far], pixelsPerSquare: 50),
+                                                 pawns: [near, far], pixelsPerSquare: 50, shape: .circle),
                        .pawn(near.id))
     }
 
@@ -161,7 +161,7 @@ final class MeasurementControlTests: XCTestCase {
                         brightSquares: 4)
         let click = MapPoint(x: 526, y: 400)
         XCTAssertEqual(MeasurementControl.origin(forClickAt: click, pawns: [pawn],
-                                                 pixelsPerSquare: 50),
+                                                 pixelsPerSquare: 50, shape: .circle),
                        .point(click))
     }
 
@@ -170,7 +170,7 @@ final class MeasurementControlTests: XCTestCase {
         // pointed, which is rarely a lattice intersection.
         let click = MapPoint(x: 517.4, y: 383.9)
         XCTAssertEqual(MeasurementControl.origin(forClickAt: click, pawns: [],
-                                                 pixelsPerSquare: 50),
+                                                 pixelsPerSquare: 50, shape: .circle),
                        .point(click))
     }
 
@@ -180,7 +180,7 @@ final class MeasurementControlTests: XCTestCase {
         let big = Pawn(at: MapPoint(x: 500, y: 400), label: "ogre", colorHex: "#ff0000",
                        brightSquares: 4, isBig: true)
         XCTAssertEqual(MeasurementControl.origin(forClickAt: MapPoint(x: 540, y: 400),
-                                                 pawns: [big], pixelsPerSquare: 50),
+                                                 pawns: [big], pixelsPerSquare: 50, shape: .circle),
                        .pawn(big.id))
     }
 

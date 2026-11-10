@@ -1062,10 +1062,8 @@ struct ControlView: View {
         // Above the tokens: a Measurement is what the DM is pointing at, and a cone
         // half-hidden behind the party is unreadable.
         if let pixelsPerSquare = appState.pixelsPerSquare {
-            ForEach(appState.drawableMeasurements, id: \.measurement.id) {
-                MeasurementLayer(measurement: $0.measurement,
-                                 origin: $0.origin,
-                                 map: map, frame: frame,
+            ForEach(appState.drawableMeasurements) {
+                MeasurementLayer(drawable: $0, map: map, frame: frame,
                                  pixelsPerSquare: pixelsPerSquare,
                                  unit: appState.distanceUnit)
             }
@@ -1175,7 +1173,8 @@ struct ControlView: View {
         let mapPoint = PlayerPlacement.mapPoint(point, map: map, frame: frame)
         let origin = MeasurementControl.origin(forClickAt: mapPoint,
                                                pawns: appState.fog.pawns,
-                                               pixelsPerSquare: pixelsPerSquare)
+                                               pixelsPerSquare: pixelsPerSquare,
+                                               shape: shape)
         armedShape = nil
         typedDistance.clear()
         appState.setMeasurement(Measurement(origin: origin, shape: shape,

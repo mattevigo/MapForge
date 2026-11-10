@@ -173,7 +173,7 @@ The one Measurement Shape that is a **polygonal chain** rather than a region: a 
 _Avoid_: linear, ruler, path, polyline
 
 **Measurement Origin**:
-Where a Measurement starts: either a point on the Map, or a Pawn — in which case it starts at that Pawn's centre and follows it as the Pawn moves. A Measurement anchored to a Pawn ends when that Pawn does.
+Where a Measurement starts: either a point on the Map, or a Pawn — in which case it starts at that Pawn's centre and follows it as the Pawn moves. A Line is the exception: it starts where the Pawn stood when the Line was begun and stays there, every segment with it, because it is a route, and a Pawn walking the route it was given must not drag the route along behind it. A Measurement anchored to a Pawn ends when that Pawn does, a Line included. It is also drawn in that Pawn's colour, on both screens, so the table can tell whose it is: whatever the Pawn's Kind, and even when a Face covers the colour on the token. One taken from a point is not anyone's, and keeps the Measurement's own colour even when a Pawn stands on that point.
 _Avoid_: anchor, start point, source
 
 **Distance Unit**:
