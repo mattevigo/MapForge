@@ -22,15 +22,7 @@ struct EncounterDifficultyBar: View {
     var body: some View {
         let layout = Layout(creatureXP: creatureXP, budgets: budgets)
         VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 6) {
-                Text("Encounter Difficulty", comment: "The rulebook's term, over the Combat tab's bar")
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 0)
-                Text(band.label(creatureXP: creatureXP))
-                    .fontWeight(.semibold)
-                    .monospacedDigit()
-            }
-            .font(.caption)
+            EncounterDifficultyCaption(value: band.label(creatureXP: creatureXP))
             bar(layout)
                 .frame(height: 8)
         }
@@ -82,6 +74,24 @@ struct EncounterDifficultyBar: View {
             fill = min(Double(creatureXP) / high, 1)
             fillsBeyond = creatureXP > budgets.high
         }
+    }
+}
+
+/// The line over the Encounter Difficulty: its name, and what it comes to — the band and the
+/// total over the bar, the Creatures' XP alone when there is no bar.
+struct EncounterDifficultyCaption: View {
+    var value: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text("Encounter Difficulty", comment: "The rulebook's term, over the Combat tab's bar")
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+            Text(value)
+                .fontWeight(.semibold)
+                .monospacedDigit()
+        }
+        .font(.caption)
     }
 }
 

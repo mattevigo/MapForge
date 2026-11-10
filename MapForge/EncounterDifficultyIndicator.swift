@@ -32,19 +32,11 @@ struct EncounterDifficultyIndicator: View {
     /// No band and no bar: with no counted Player there are no budgets to draw the marks
     /// from, and a band named against nothing would be a verdict the app cannot give.
     private var creatureXPAlone: some View {
-        HStack(spacing: 6) {
-            Text("Encounter Difficulty", comment: "The rulebook's term, over the Combat tab's bar")
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 0)
-            Text(encounterDifficulty.creatureXPLabel())
-                .fontWeight(.semibold)
-                .monospacedDigit()
-        }
-        .font(.caption)
-        .help(String(localized: "No Player counts, so there are no budgets to rate the Creatures against.",
-                     comment: "Over the Creatures' XP, shown alone when no Player in the fight can be counted"))
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("encounter-difficulty")
+        EncounterDifficultyCaption(value: encounterDifficulty.creatureXPLabel())
+            .help(String(localized: "No Player counts, so there are no budgets to rate the Creatures against.",
+                         comment: "Over the Creatures' XP, shown alone when no Player in the fight can be counted"))
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("encounter-difficulty")
     }
 }
 
