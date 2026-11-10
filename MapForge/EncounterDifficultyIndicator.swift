@@ -61,29 +61,38 @@ extension EncounterDifficulty {
 extension EncounterDifficultyReading {
     /// How many Pawns on each side could not be counted — "2 Creatures, 1 Player not
     /// counted" — or nil when every one was.
-    var uncountedNote: String? {
+    var uncountedNote: String? { uncountedNote(in: .interface) }
+
+    /// The note in `locale`, each count in its own plural: "2 creature, 1 giocatore non
+    /// contati".
+    func uncountedNote(in locale: Locale) -> String? {
         let creatures = uncounted.filter { $0.reason.kind == .creature }.count
         let players = uncounted.count - creatures
+        let note: LocalizedStringResource
         switch (creatures, players) {
         case (0, 0):
             return nil
         case (_, 0):
-            return String(localized: "\(creatures) Creatures not counted",
-                          comment: "Under the Encounter Difficulty: Creatures in the fight whose Challenge Rating could not be read")
+            note = LocalizedStringResource("\(creatures) Creatures not counted", locale: locale,
+                                           comment: "Under the Encounter Difficulty: Creatures in the fight whose Challenge Rating could not be read")
         case (0, _):
-            return String(localized: "\(players) Players not counted",
-                          comment: "Under the Encounter Difficulty: Players in the fight whose level could not be read")
+            note = LocalizedStringResource("\(players) Players not counted", locale: locale,
+                                           comment: "Under the Encounter Difficulty: Players in the fight whose level could not be read")
         default:
-            return String(localized: "\(creatures) Creatures, \(players) Players not counted",
-                          comment: "Under the Encounter Difficulty: Creatures and Players in the fight whose numbers could not be read")
+            note = LocalizedStringResource("\(creatures) Creatures, \(players) Players not counted", locale: locale,
+                                           comment: "Under the Encounter Difficulty: Creatures and Players in the fight whose numbers could not be read")
         }
+        return String(localized: note)
     }
 
     /// Each uncounted Pawn by its label and why, one to a line, for the note's hover.
-    var uncountedHelp: String {
+    var uncountedHelp: String { uncountedHelp(in: .interface) }
+
+    func uncountedHelp(in locale: Locale) -> String {
         uncounted.map { pawn in
-            String(localized: "\(pawn.label): \(pawn.reason.title)",
-                   comment: "A Pawn left out of the Encounter Difficulty and why: GG3: no Monster")
+            String(localized: LocalizedStringResource(
+                "\(pawn.label): \(pawn.reason.title(in: locale))", locale: locale,
+                comment: "A Pawn left out of the Encounter Difficulty and why: GG3: no Monster"))
         }
         .joined(separator: "\n")
     }
@@ -92,38 +101,46 @@ extension EncounterDifficultyReading {
 extension UncountedPawn.Reason {
     /// Why the Pawn was not counted, said so the DM knows what to fix in the notes. Never
     /// guessing at a number, and quoting the text that could not be read.
-    var title: String {
+    var title: String { title(in: .interface) }
+
+    func title(in locale: Locale) -> String {
+        var resource = titleResource
+        resource.locale = locale
+        return String(localized: resource)
+    }
+
+    private var titleResource: LocalizedStringResource {
         switch self {
         case .noMonster:
-            return String(localized: "no Monster",
-                          comment: "Why a Creature is not counted: the DM never said which Monster it is")
+            return LocalizedStringResource("no Monster",
+                                           comment: "Why a Creature is not counted: the DM never said which Monster it is")
         case .monsterNotInBestiary(let monsterName):
-            return String(localized: "“\(monsterName)” is not in the Bestiary",
-                          comment: "Why a Creature is not counted: its Monster has left the notes")
+            return LocalizedStringResource("“\(monsterName)” is not in the Bestiary",
+                                           comment: "Why a Creature is not counted: its Monster has left the notes")
         case .challengeRatingNotCounted(let text?):
-            return String(localized: "Challenge Rating “\(text)” cannot be counted",
-                          comment: "Why a Creature is not counted: its Monster's note writes a cr the rules give no XP for, quoted")
+            return LocalizedStringResource("Challenge Rating “\(text)” cannot be counted",
+                                           comment: "Why a Creature is not counted: its Monster's note writes a cr the rules give no XP for, quoted")
         case .challengeRatingNotCounted(nil):
-            return String(localized: "the Monster has no Challenge Rating",
-                          comment: "Why a Creature is not counted: its Monster's note writes no cr")
+            return LocalizedStringResource("the Monster has no Challenge Rating",
+                                           comment: "Why a Creature is not counted: its Monster's note writes no cr")
         case .noCharacter:
-            return String(localized: "no Character",
-                          comment: "Why a Player is not counted: it was not Stamped from a Character")
+            return LocalizedStringResource("no Character",
+                                           comment: "Why a Player is not counted: it was not Stamped from a Character")
         case .characterGone:
-            return String(localized: "the Character no longer exists",
-                          comment: "Why a Player is not counted: its Character was deleted")
+            return LocalizedStringResource("the Character no longer exists",
+                                           comment: "Why a Player is not counted: its Character was deleted")
         case .noNote:
-            return String(localized: "the Character has no note",
-                          comment: "Why a Player is not counted: its Character was never linked to a note")
+            return LocalizedStringResource("the Character has no note",
+                                           comment: "Why a Player is not counted: its Character was never linked to a note")
         case .noteNotFound(let noteName):
-            return String(localized: "the note “\(noteName)” cannot be found",
-                          comment: "Why a Player is not counted: its Character's note is not among the notes read")
+            return LocalizedStringResource("the note “\(noteName)” cannot be found",
+                                           comment: "Why a Player is not counted: its Character's note is not among the notes read")
         case .levelNotCounted(let text?):
-            return String(localized: "level “\(text)” cannot be counted",
-                          comment: "Why a Player is not counted: its Character's note writes a level that is not a whole number from 1 to 20, quoted")
+            return LocalizedStringResource("level “\(text)” cannot be counted",
+                                           comment: "Why a Player is not counted: its Character's note writes a level that is not a whole number from 1 to 20, quoted")
         case .levelNotCounted(nil):
-            return String(localized: "the note has no level",
-                          comment: "Why a Player is not counted: its Character's note writes no level")
+            return LocalizedStringResource("the note has no level",
+                                           comment: "Why a Player is not counted: its Character's note writes no level")
         }
     }
 }

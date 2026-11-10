@@ -1358,7 +1358,45 @@
       }
     },
     "%@: %@": {
-      "comment": "A Pawn left out of the Encounter Difficulty and why: GG3: no Monster"
+      "comment": "A Pawn left out of the Encounter Difficulty and why: GG3: no Monster",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: %2$@"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: %2$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: %2$@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ : %2$@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: %2$@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: %2$@"
+          }
+        }
+      }
     },
     "%@: a Creature — emits no Light. Click to douse the light it does not cast.": {
       "localizations": {
@@ -1492,6 +1530,42 @@
     "%lld Creatures not counted": {
       "comment": "Under the Encounter Difficulty: Creatures in the fight whose Challenge Rating could not be read",
       "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Kreatur nicht gezählt"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Kreaturen nicht gezählt"
+                }
+              }
+            }
+          }
+        },
+        "el": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld πλάσμα δεν μετρήθηκε"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld πλάσματα δεν μετρήθηκαν"
+                }
+              }
+            }
+          }
+        },
         "en": {
           "variations": {
             "plural": {
@@ -1509,12 +1583,180 @@
               }
             }
           }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld criatura no contada"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld criaturas no contadas"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld créature non comptée"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld créatures non comptées"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld creatura non contata"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld creature non contate"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld criatura não contada"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld criaturas não contadas"
+                }
+              }
+            }
+          }
         }
       }
     },
     "%lld Creatures, %lld Players not counted": {
       "comment": "Under the Encounter Difficulty: Creatures and Players in the fight whose numbers could not be read",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@creatures@, %#@players@ nicht gezählt"
+          },
+          "substitutions": {
+            "creatures": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg Kreatur"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg Kreaturen"
+                    }
+                  }
+                }
+              }
+            },
+            "players": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg Spieler"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg Spieler"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@creatures@, %#@players@ δεν μετρήθηκαν"
+          },
+          "substitutions": {
+            "creatures": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg πλάσμα"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg πλάσματα"
+                    }
+                  }
+                }
+              }
+            },
+            "players": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg παίκτης"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg παίκτες"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -1556,6 +1798,198 @@
                     "stringUnit": {
                       "state": "translated",
                       "value": "%arg Players"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@creatures@, %#@players@ no contados"
+          },
+          "substitutions": {
+            "creatures": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg criatura"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg criaturas"
+                    }
+                  }
+                }
+              }
+            },
+            "players": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg jugador"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg jugadores"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@creatures@, %#@players@ non comptés"
+          },
+          "substitutions": {
+            "creatures": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg créature"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg créatures"
+                    }
+                  }
+                }
+              }
+            },
+            "players": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg joueur"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg joueurs"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@creatures@, %#@players@ non contati"
+          },
+          "substitutions": {
+            "creatures": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg creatura"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg creature"
+                    }
+                  }
+                }
+              }
+            },
+            "players": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg giocatore"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg giocatori"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@creatures@, %#@players@ não contados"
+          },
+          "substitutions": {
+            "creatures": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg criatura"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg criaturas"
+                    }
+                  }
+                }
+              }
+            },
+            "players": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg jogador"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg jogadores"
                     }
                   }
                 }
@@ -2088,6 +2522,42 @@
     "%lld Players not counted": {
       "comment": "Under the Encounter Difficulty: Players in the fight whose level could not be read",
       "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Spieler nicht gezählt"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Spieler nicht gezählt"
+                }
+              }
+            }
+          }
+        },
+        "el": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld παίκτης δεν μετρήθηκε"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld παίκτες δεν μετρήθηκαν"
+                }
+              }
+            }
+          }
+        },
         "en": {
           "variations": {
             "plural": {
@@ -2101,6 +2571,78 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld Players not counted"
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld jugador no contado"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld jugadores no contados"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld joueur non compté"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld joueurs non comptés"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld giocatore non contato"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld giocatori non contati"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld jogador não contado"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld jogadores não contados"
                 }
               }
             }
@@ -4348,7 +4890,45 @@
       }
     },
     "Challenge Rating “%@” cannot be counted": {
-      "comment": "Why a Creature is not counted: its Monster's note writes a cr the rules give no XP for, quoted"
+      "comment": "Why a Creature is not counted: its Monster's note writes a cr the rules give no XP for, quoted",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Herausforderungsgrad „%@“ lässt sich nicht zählen"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "το Challenge Rating «%@» δεν μπορεί να μετρηθεί"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "el valor de desafío «%@» no se puede contar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "le facteur de puissance « %@ » ne peut pas être compté"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "il grado di sfida “%@” non si può contare"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "o nível de desafio “%@” não pode ser contado"
+          }
+        }
+      }
     },
     "Character notes the app could not take": {
       "localizations": {
@@ -17054,7 +17634,45 @@
       }
     },
     "level “%@” cannot be counted": {
-      "comment": "Why a Player is not counted: its Character's note writes a level that is not a whole number from 1 to 20, quoted"
+      "comment": "Why a Player is not counted: its Character's note writes a level that is not a whole number from 1 to 20, quoted",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stufe „%@“ lässt sich nicht zählen"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "το level «%@» δεν μπορεί να μετρηθεί"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "el nivel «%@» no se puede contar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "le niveau « %@ » ne peut pas être compté"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "il livello “%@” non si può contare"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "o nível “%@” não pode ser contado"
+          }
+        }
+      }
     },
     "name": {
       "localizations": {
@@ -17097,7 +17715,45 @@
       }
     },
     "no Character": {
-      "comment": "Why a Player is not counted: it was not Stamped from a Character"
+      "comment": "Why a Player is not counted: it was not Stamped from a Character",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kein Charakter"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "κανένας χαρακτήρας"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ningún personaje"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "aucun personnage"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nessun personaggio"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nenhum personagem"
+          }
+        }
+      }
     },
     "no Map": {
       "localizations": {
@@ -17140,7 +17796,45 @@
       }
     },
     "no Monster": {
-      "comment": "Why a Creature is not counted: the DM never said which Monster it is"
+      "comment": "Why a Creature is not counted: the DM never said which Monster it is",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kein Monster"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "κανένα τέρας"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ningún monstruo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "aucun monstre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nessun mostro"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nenhum monstro"
+          }
+        }
+      }
     },
     "no note": {
       "comment": "Beside a Character whose numbers no note gives",
@@ -17271,13 +17965,127 @@
       }
     },
     "the Character has no note": {
-      "comment": "Why a Player is not counted: its Character was never linked to a note"
+      "comment": "Why a Player is not counted: its Character was never linked to a note",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "der Charakter hat keine Notiz"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ο χαρακτήρας δεν έχει σημείωση"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "el personaje no tiene nota"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "le personnage n’a pas de note"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "il personaggio non ha una nota"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "o personagem não tem nota"
+          }
+        }
+      }
     },
     "the Character no longer exists": {
-      "comment": "Why a Player is not counted: its Character was deleted"
+      "comment": "Why a Player is not counted: its Character was deleted",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "der Charakter existiert nicht mehr"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ο χαρακτήρας δεν υπάρχει πια"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "el personaje ya no existe"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "le personnage n’existe plus"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "il personaggio non esiste più"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "o personagem não existe mais"
+          }
+        }
+      }
     },
     "the Monster has no Challenge Rating": {
-      "comment": "Why a Creature is not counted: its Monster's note writes no cr"
+      "comment": "Why a Creature is not counted: its Monster's note writes no cr",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "das Monster hat keinen Herausforderungsgrad"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "το τέρας δεν έχει Challenge Rating"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "el monstruo no tiene valor de desafío"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "le monstre n’a pas de facteur de puissance"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "il mostro non ha un grado di sfida"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "o monstro não tem nível de desafio"
+          }
+        }
+      }
     },
     "the copied roster did not match the original": {
       "localizations": {
@@ -17440,10 +18248,86 @@
       }
     },
     "the note has no level": {
-      "comment": "Why a Player is not counted: its Character's note writes no level"
+      "comment": "Why a Player is not counted: its Character's note writes no level",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "die Notiz nennt keine Stufe"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "η σημείωση δεν έχει level"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "la nota no indica el nivel"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "la note n’indique pas de niveau"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "la nota non indica il livello"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "a nota não indica o nível"
+          }
+        }
+      }
     },
     "the note “%@” cannot be found": {
-      "comment": "Why a Player is not counted: its Character's note is not among the notes read"
+      "comment": "Why a Player is not counted: its Character's note is not among the notes read",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "die Notiz „%@“ ist nicht auffindbar"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "η σημείωση «%@» δεν βρέθηκε"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no se encuentra la nota «%@»"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "la note « %@ » est introuvable"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "la nota “%@” non si trova"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "a nota “%@” não foi encontrada"
+          }
+        }
+      }
     },
     "the statblock has no name": {
       "localizations": {
@@ -17812,7 +18696,45 @@
       }
     },
     "“%@” is not in the Bestiary": {
-      "comment": "Why a Creature is not counted: its Monster has left the notes"
+      "comment": "Why a Creature is not counted: its Monster has left the notes",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ ist nicht im Bestiarium"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "το «%@» δεν υπάρχει στο θηριολόγιο"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» no está en el bestiario"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %@ » n’est pas dans le bestiaire"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” non è nel bestiario"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” não está no bestiário"
+          }
+        }
+      }
     },
     "“%@” is not in the Bestiary. Its numbers above are its own and are unaffected.": {
       "localizations": {
