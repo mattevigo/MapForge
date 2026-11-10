@@ -163,13 +163,20 @@ term, chosen in each language below.
 | Moderate | Media | Mittel | Modérée | Moderada | Moderada *(proposed)* |
 | High | Difficile | Hoch | Élevée | Alta | Alta *(proposed)* |
 | XP (experience points) | PE | EP | PX | PX | XP *(proposed)* |
+| XP budget | budget di PE | EP-Budget | budget de PX | presupuesto de PX | orçamento de XP *(proposed)* |
+| budget (alone, once XP is said) | budget | Budget | budget | presupuesto | orçamento *(proposed)* |
 
 - **Italian** is the book's, not a rendering of the English: *Facile / Media / Difficile*,
   never *Bassa / Moderata / Alta*.
 - **pt-BR** has no SRD, and the 2024 *Livro do Mestre* could not be checked, so the column is
   proposed. It must not fall back to the 2014 four bands (*Fácil / Médio / Difícil / Mortal*),
   which name another procedure, with a multiplier the 2024 rules dropped.
-- **Greek** keeps all five in English, as it does every mechanic: *Low · 650 XP*.
+- **XP budget** is the table's own term, in the prose form its Step 2 uses: the header is *XP
+  Budget per Character*, *Budget di PE per personaggio*, *EP-Budget pro Charakter*, *Budget de
+  PX par personnage*, *Presupuesto de PX por personaje*. Step 3 (*Spend Your Budget*, *Spendere
+  il budget*, *Gib dein Budget aus*, *Dépenser le budget*, *Gastar el presupuesto*) drops the
+  XP once it has been said, and so may a string.
+- **Greek** keeps all of them in English, as it does every mechanic: *Low · 650 XP*.
 
 ### Numbers
 
@@ -438,8 +445,8 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 
 Only game *mechanics* stay in English — Conditions, Abilities, Skills, Saving Throw, Ability
 Check, Difficulty Class, Modifier, Initiative, AC, HP, Concentration, Round, Turn, Stat Block,
-Traits, Actions, Challenge Rating, level, Encounter Difficulty and its bands, XP — because that
-is what a Greek table says. Rulebook words that are also
+Traits, Actions, Challenge Rating, level, Encounter Difficulty and its bands, XP, XP budget —
+because that is what a Greek table says. Rulebook words that are also
 ordinary language are Greek: a Greek DM says *τέρας*, not "monster".
 
 | English | el | Rejected |
