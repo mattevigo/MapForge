@@ -106,6 +106,14 @@ final class EncounterDifficultyTests: XCTestCase {
         XCTAssertNil(CharacterLevel(nil), "a note with no level")
     }
 
+    func testALevelWithALeadingZeroIsNotCounted() {
+        // Only the form the rulebook prints, as for a Challenge Rating, which refuses "01".
+        for text in ["03", "010", "00"] {
+            XCTAssertNil(CharacterLevel(text), "\"\(text)\"")
+        }
+        XCTAssertNil(ChallengeRating("01"))
+    }
+
     // MARK: The 2024 tables, as the spec card prints them
 
     func testEveryChallengeRatingIsWorthWhatTheMonsterManualSays() {

@@ -106,12 +106,12 @@ struct ChallengeRating: Equatable {
 struct CharacterLevel: Equatable {
     let value: Int
 
-    /// Nil for anything not countable, an absent `level` included. Digits only, so "+3" and
-    /// "3/2" are not read as a 3.
+    /// Nil for anything not countable, an absent `level` included. Only the number as the
+    /// rulebook writes it, as a Challenge Rating is read: "+3", "3/2" and "03" are not a 3.
     init?(_ text: String?) {
         guard let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !trimmed.isEmpty, trimmed.allSatisfy(\.isASCIIDigit),
-              let value = Int(trimmed), Self.budgetsByLevel.indices.contains(value - 1)
+              let value = Int(trimmed), String(value) == trimmed,
+              Self.budgetsByLevel.indices.contains(value - 1)
         else { return nil }
         self.value = value
     }
@@ -142,8 +142,4 @@ struct CharacterLevel: Equatable {
         .init(low: 5_500, moderate: 10_700, high: 17_200),
         .init(low: 6_400, moderate: 13_200, high: 22_000),
     ]
-}
-
-private extension Character {
-    var isASCIIDigit: Bool { isASCII && isNumber }
 }
