@@ -95,7 +95,7 @@ have made a DM's campaign roster a property of one battle map.
 follows a Player Pawn's `characterID` to its Character, and the Character's note, to show
 the DM that Character's page (its actions, spells and traits) beside the Stat Block. That is
 the advisory read ADR-0020 allows a Creature's `monsterName`, made for Players. It reads the
-Characters' notes, not the Bestiary, so ADR-0020's one live read of the Bestiary stays one;
+Characters' notes, not the Bestiary (ADR-0032 has since added a second reader of both, the Encounter Difficulty, which reads `level`), so ADR-0020's one live read of the Bestiary stays one;
 the two pages are read the same way, each from its own reading of the Workspace.
 
 The page is looked up live, each time it is drawn, rather than from a note name copied onto
