@@ -22,6 +22,7 @@ final class WorkspaceStoreTests: XCTestCase {
     // MARK: - Adoption
 
     func testAdoptingAFolderMakesItAWorkspace() throws {
+        XCTFail("Deliberately broken to check that CI turns red")
         let workspace = try store().adopt(root)
 
         XCTAssertTrue(fileManager.fileExists(atPath: workspace.manifestURL.path))
