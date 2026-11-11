@@ -76,8 +76,15 @@ final class LiveAuthoringTests: XCTestCase {
         // is what happened. The Kind change itself is not recorded: issue 03's "a Kind
         // change is not a Change" and issue 05's "deleting removes it from the Order"
         // describe one event from two sides, and this is the record issue 05 sanctions.
-        XCTAssertTrue(appState.encounter?.pendingChanges
-            .contains(.combatantRemoved(combatantID: pawn.id)) ?? false,
+        // The goblin was the active Combatant, so leaving the Order ended its Turn and the
+        // removal is in that Turn's line rather than in the buffer.
+        let encounter = try XCTUnwrap(appState.encounter)
+        let written = encounter.lines.flatMap { line -> [Change] in
+            guard case let .turn(_, _, changes, _) = line else { return [] }
+            return changes
+        }
+        XCTAssertTrue((written + encounter.pendingChanges)
+            .contains(.combatantRemoved(combatantID: pawn.id)),
             "leaving the Order went unrecorded")
     }
 

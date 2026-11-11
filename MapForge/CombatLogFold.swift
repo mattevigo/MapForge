@@ -131,8 +131,12 @@ enum CombatLogFold {
         guard let index = state.order.firstIndex(of: combatantID) else {
             // Benched during its own Turn: it is gone from the Order, so whoever now holds
             // its old position acts next. The index cannot be trusted to name them, but it
-            // is where the fight continues from.
-            state.activeIndex = min(state.activeIndex, state.order.count - 1)
+            // is where the fight continues from — and when it was last in the Order, that
+            // place is past the end, and the fight wraps into the next Round.
+            if state.activeIndex >= state.order.count {
+                state.activeIndex = 0
+                state.round += 1
+            }
             return
         }
         let next = index + 1
