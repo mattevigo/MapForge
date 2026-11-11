@@ -6,6 +6,14 @@ Use the `trello` MCP server (`mcp__trello__*` tools). If those tools are missing
 
 `.scratch/` is the archive of everything tracked before 2026-10-07. Read it for history, and don't add to it. Its `Status:` lines are unreliable: many say `ready-for-*` for work that has long since merged.
 
+## GitHub Issues
+
+GitHub Issues is the public front door: outsiders can't open the Trello board, so they report bugs and ideas there, using the templates in `.github/ISSUE_TEMPLATE/`. The Trello board is still the tracker, and triage still happens on it.
+
+- When a GitHub issue is worth doing, make a card for it in **Needs triage**, with the issue's URL in the description. Then give the GitHub issue a link to the card, or a reply saying it's been picked up. The board is private, so the reporter can't open the link: a reply tells them more.
+- When it isn't worth doing, reply on the GitHub issue with the reason and close it. No card is needed.
+- `CONTRIBUTING.md` and the issue templates never link to the board.
+
 ## The board
 
 The list a card sits in *is* its state. There are no state labels to keep in sync.
