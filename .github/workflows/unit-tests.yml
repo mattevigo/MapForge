@@ -1,0 +1,30 @@
+name: Unit tests
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  unit-tests:
+    name: Build and run MapForgeTests
+    # The xcode-27 image is the only hosted one with Xcode 27; the project is built with it.
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      # Pinned, so a runner image update can't change the Xcode under the build.
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate the Xcode project
+        run: xcodegen generate
+
+      # The same command as the README's Building section. The UI tests are left out:
+      # they launch and drive the app on screen.
+      - name: Run the unit tests
+        run: xcodebuild -scheme MapForge -destination 'platform=macOS' test -only-testing:MapForgeTests
