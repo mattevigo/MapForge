@@ -4,6 +4,118 @@ Versions follow [Semantic Versioning](https://semver.org). `MARKETING_VERSION` a
 `CURRENT_PROJECT_VERSION` in `project.yml` are the single source of truth; the About
 panel reads them from the built app.
 
+## 2.0.0 — 2026-11-11
+
+### Upgrading from 1.2
+
+- MapForge now keeps your game in a **Workspace**: a folder you choose once, where your Maps
+  live in whatever subfolders you arrange, and where `.mapforge/` holds what the app knows
+  that is not about one Map. The app asks which Workspace you are running before anything
+  else, and returns to the last one opened —
+  [ADR 0011](docs/adr/0011-the-dms-game-lives-in-a-workspace-folder.md).
+- **Open Map…** opens only Maps inside the open Workspace. A Map from anywhere else is
+  refused, and the app says what to do: move it into the Workspace in Finder and open it
+  again — [ADR 0026](docs/adr/0026-a-map-is-opened-from-inside-the-workspace.md). This is
+  why the version is 2.0.0.
+- Your Parties come with you. The first Workspace you open takes the roster 1.2 kept in
+  `~/Library/Application Support/MapForge/`, and the app tells you it did. If the move
+  fails, nothing is deleted, and the next Workspace opened tries again.
+- A recent Workspace is reopened through a bookmark, so one renamed or moved in Finder is
+  still found — [ADR 0025](docs/adr/0025-a-workspace-is-reached-through-its-bookmark.md).
+
+### Encounters
+
+- Run a fight from the Control Window's new Combat tab. Start an **Encounter** with the
+  Pawns you tick, and **Initiative** is rolled for every Combatant, ready to overtype with
+  the numbers the players call out. Return settles the **Order**, and you step through it
+  Turn by Turn and Round by Round.
+- Each Pawn can keep a **Stat Block**: armour class, hit points, Conditions, exhaustion and
+  concentration. It is kept beside the Map, never in the fog file.
+- **Bench** a Combatant that has died, fled or stepped aside, rather than striking it
+  through. It stays listed under the Order, and benching the one whose Turn it is ends that
+  Turn.
+- Every Turn goes into the Encounter's **Combat Log**, along with the Pawns' moves on the
+  Map. Nothing in it is rewritten: a mistake is fixed by a **Correction** appended after it —
+  [ADR 0010](docs/adr/0010-corrections-are-appended-never-edited.md). A fight left
+  unfinished is still open when the app returns.
+- The **Encounter Difficulty** rates the fight from your notes, live: the Creatures' XP set
+  against the party's XP budgets, drawn as a bar before Play and kept above the controls
+  while the fight runs. It names every Pawn it could not count, and why —
+  [ADR 0032](docs/adr/0032-the-encounter-difficulty-is-reckoned-from-the-notes-live.md).
+
+### The evening's record
+
+- A **Session** is one evening at the table, started from the Live Toolbar. It runs until
+  you stop it, even if the app quits. Its **Session Log** records the Pawns' moves and the
+  **Comments** you type in the **Comment Bar**, each naming the Map it happened on. During
+  an Encounter the Session Log falls silent and the Combat Log takes over —
+  [ADR 0014](docs/adr/0014-the-session-log-falls-silent-during-an-encounter.md).
+- The **Log View** reads the evening back, with the Session Log and each Combat Log spliced
+  in order — [ADR 0016](docs/adr/0016-the-log-view-splices-it-does-not-merge.md).
+- Record a **Roll**, a Saving Throw or an Ability Check against its Difficulty Class, as the
+  dice fell. MapForge records it and never rolls it for you —
+  [ADR 0017](docs/adr/0017-a-roll-is-recorded-not-resolved.md). A Pawn's Rolls are on its
+  right-click menu, and the **Modifier** is offered from its note: the Saving Throws of a
+  Character or a Monster, and Ability Checks from the note's Skills —
+  [ADR 0029](docs/adr/0029-the-modifier-is-offered-from-the-note.md).
+
+### Your notes
+
+- The **Bestiary** reads Monsters from the `statblock` blocks in your markdown notes,
+  anywhere in the Workspace, in the format of the Obsidian Fantasy Statblocks plugin —
+  [ADR 0020](docs/adr/0020-monsters-are-read-from-the-dms-notes.md). A Monster that
+  extends another is its base with the changes. Search it from the Edit Pawn sheet: OK
+  stamps the Monster onto the Pawn, and the next Pawn added is the same Monster.
+- A **Character** can be tied to its note and takes its numbers from it —
+  [ADR 0024](docs/adr/0024-a-characters-numbers-are-read-from-its-note.md). A Pawn's page
+  opens in a popover beside its name, and can be pinned into a panel of its own.
+- The **Treasury** reads every note whose frontmatter says `item: true` —
+  [ADR 0031](docs/adr/0031-an-item-says-so-in-its-frontmatter.md). A **Treasure** can be
+  told which **Item** it is, and is relabelled from the Item's initials.
+- A note that could not be read is reported beside the search. MapForge never changes your
+  notes.
+
+### Faces
+
+- A Pawn can wear a **Face**: a square cut from a picture, drawn in place of its colour on
+  both screens. You can cut one by hand, or take the one a Monster's, Character's or Item's
+  note gives. The cut is kept in the Workspace —
+  [ADR 0028](docs/adr/0028-a-face-is-a-cut-kept-in-the-workspace.md). Re-cutting asks
+  whether it is for this Pawn or every one.
+
+### On the Map
+
+- Pawns and Lights are added, edited, moved and deleted in the **Live View**, without
+  leaving the table's view. **Add** arms one placement, and the next click lands it,
+  inheriting from the last one of its Kind. The Wall Editor is left for Walls alone.
+- A **Selection**: ⇧-click Pawns and Lights, or drag a rectangle on the bare Map, then drag
+  any member to move them all. Esc lets go.
+- One **Magnifier** for the whole Control Window, kept across every mode: two fingers pan, a
+  pinch zooms, and what the table sees does not move.
+- The Control Window shows the whole Map, with the **Viewport** drawn on it in green, and
+  the Viewport can be panned from the Live View.
+- **Map Fit** shows the whole Map on the Player Display, letterboxed, as a live departure
+  from True Scale — [ADR 0030](docs/adr/0030-map-fit-is-a-live-departure-from-true-scale.md).
+- A Measurement can be kept to yourself. One begun from a Pawn is drawn in the Pawn's
+  colour, and a Line begun from a Pawn stays where it was drawn when the Pawn moves on.
+- A Light can be given a name, which you see and the table never does.
+- Your Pawns are drawn on the Control Window even with no Player Display connected.
+
+### Distances and languages
+
+- The **Distance Unit** is metres, at 1.5 m per square, or feet, at 5 ft, and every
+  distance the app writes or asks for is in it, sight and Light radii included. Notes
+  written in the other unit are flagged —
+  [ADR 0027](docs/adr/0027-the-distance-unit-is-the-macs-the-notes-are-checked-against-it.md).
+- The **Interface Language** can be English, Italian, German, French, Spanish, Brazilian
+  Portuguese or Greek. Rulebook terms are the ones the official edition prints in that
+  language, and stay in English where there is none —
+  [ADR 0022](docs/adr/0022-rulebook-terms-are-the-tables-not-ours.md).
+
+### Mac App Store
+
+- The app declares what it accesses, ready for the Mac App Store.
+
 ## 1.2.0 — 2026-09-11
 
 ### Party
