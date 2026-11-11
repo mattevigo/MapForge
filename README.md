@@ -56,11 +56,7 @@ record joins a Session's notes.
 
 ## Getting it
 
-MapForge is coming to the Mac App Store.
-
-> **Mac App Store link:** _not available yet._
-
-Until then, build it from source.
+There is no download, and MapForge is not on the App Store. Build it from source, as below.
 
 ## Building
 

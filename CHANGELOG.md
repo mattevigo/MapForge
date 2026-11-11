@@ -112,10 +112,6 @@ panel reads them from the built app.
   language, and stay in English where there is none —
   [ADR 0022](docs/adr/0022-rulebook-terms-are-the-tables-not-ours.md).
 
-### Mac App Store
-
-- The app declares what it accesses, ready for the Mac App Store.
-
 ## 1.2.0 — 2026-09-11
 
 ### Party
