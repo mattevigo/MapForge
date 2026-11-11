@@ -34,7 +34,7 @@ final class PartyAppStateTests: XCTestCase {
     }
 
     private let thorin = PartyCharacter(name: "Thorin", colorHex: "#C81E1E",
-                                        sightSquares: 6, isBig: false)
+                                        sightSquares: 6)
 
     // MARK: The roster reaches disk
 
@@ -119,6 +119,35 @@ final class PartyAppStateTests: XCTestCase {
         XCTAssertEqual(app.fog.pawns.count, 1)
         XCTAssertEqual(app.fog.pawns.first?.label, "Thorin")
         XCTAssertEqual(app.fog.pawns.first?.characterID, thorin.id)
+    }
+
+    // MARK: The drop
+
+    /// What the Map's drop target hands over: the pasteboard's payload, not a Character.
+    ///
+    /// This door exists because the drop target was once deleted along with the view it was
+    /// attached to (`9767de0`), and nothing noticed: `stamp` kept all its tests, having lost
+    /// its only caller. The part of a drop that can be tested is the part kept out of the
+    /// view, so as much of it as possible lives here.
+    func testADroppedPayloadStampsTheCharacterItNames() throws {
+        let app = makeAppState()
+        let frame = try openMap(app)
+        app.addParty(named: "Heroes")
+        app.addCharacter(thorin)
+
+        XCTAssertTrue(app.stampDropped([CharacterDragPayload(characterID: thorin.id)],
+                                       at: CGPoint(x: 100, y: 80), frame: frame))
+        XCTAssertEqual(app.fog.pawns.map(\.label), ["Thorin"])
+    }
+
+    func testAPayloadNamingNobodyIsRefused() throws {
+        // A drag that outlived its Character: deleted mid-drag, or from another Workspace.
+        let app = makeAppState()
+        let frame = try openMap(app)
+        XCTAssertFalse(app.stampDropped([CharacterDragPayload(characterID: UUID())],
+                                        at: CGPoint(x: 100, y: 80), frame: frame))
+        XCTAssertFalse(app.stampDropped([], at: CGPoint(x: 100, y: 80), frame: frame))
+        XCTAssertEqual(app.fog.pawns, [])
     }
 
     func testStampingIsNotUndoable() throws {

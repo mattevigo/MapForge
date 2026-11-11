@@ -3,7 +3,7 @@
 // overflowing mirror Image that participates in hit-testing swallows clicks on
 // every control above the preview (only for maps that overflow the Player
 // Display, which is why small maps were immune). The app loads a fixture map and
-// presents on the built-in screen via the --test-map / --test-player-screen seams,
+// presents on the built-in screen via the --test-map= / --test-player-screen seams,
 // so these run without a TV attached.
 import XCTest
 import AppKit
@@ -43,10 +43,10 @@ final class ModeButtonsUITests: XCTestCase {
     private func launchApp(squares: Double, pixelsWide: Int, pixelsHigh: Int) throws -> XCUIApplication {
         let map = try fixturePNG(pixelsWide: pixelsWide, pixelsHigh: pixelsHigh)
         let app = XCUIApplication()
-        app.launchArguments = ["--test-map", map.path, "--test-squares", String(squares),
-                               "--test-player-screen", "auto",
+        app.launchArguments = ["--test-map=\(map.path)", "--test-squares=\(squares)",
+                               "--test-player-screen",
                                "--test-fresh-preferences"]
-        app.launch()
+        app.launchInEnglish()
         return app
     }
 
@@ -58,24 +58,26 @@ final class ModeButtonsUITests: XCTestCase {
     }
 
     /// A map that overflows the Player Display on both axes (60 squares = 60 in
-    /// wide) renders the mirror with an Image frame far larger than the preview;
-    /// both mode buttons must still respond.
+    /// wide) renders an Image frame far larger than the preview; the controls above it
+    /// must still respond.
     func testModeButtonsClickableWithOverflowingMap() throws {
         let app = try launchApp(squares: 60, pixelsWide: 3000, pixelsHigh: 2000)
 
-        let pan = app.buttons["Pan Viewport…"]
-        XCTAssertTrue(pan.waitForExistence(timeout: 5), "Pan Viewport… button not found")
-        XCTAssertTrue(pan.isEnabled, "Pan Viewport… disabled with an overflowing map")
-        pan.click()
-        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2),
-                      "Pan Viewport… click did not enter Viewport mode")
-        app.buttons["Cancel"].click()
+        // "Pan Viewport…" was a mode with a Cancel and a Done; it is a toggle now, which a
+        // `.button`-styled Toggle publishes as a checkBox rather than a button.
+        let viewport = app.checkBoxes["Viewport"]
+        XCTAssertTrue(viewport.waitForExistence(timeout: 5), "Viewport toggle not found")
+        XCTAssertTrue(viewport.isEnabled, "Viewport disabled with an overflowing map")
+        viewport.click()
+        XCTAssertEqual(app.checkBoxes["Viewport"].value as? Int, 1,
+                       "the toggle did not show the rectangle")
+        app.checkBoxes["Viewport"].click()
 
-        let fit = app.buttons["Fit Grid…"]
-        XCTAssertTrue(fit.waitForExistence(timeout: 2), "Fit Grid… button not found")
+        let fit = app.buttons["grid-fit"]
+        XCTAssertTrue(fit.waitForExistence(timeout: 2), "Grid Fit… button not found")
         fit.click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2),
-                      "Fit Grid… click did not enter Grid Fit mode")
+                      "Grid Fit… click did not enter Grid Fit mode")
         app.buttons["Cancel"].click()
     }
 
@@ -88,15 +90,17 @@ final class ModeButtonsUITests: XCTestCase {
     func testScrollZoomChangesThePreview() throws {
         let app = try launchApp(squares: 30, pixelsWide: 3000, pixelsHigh: 2000)
 
-        let fit = app.buttons["Fit Grid…"]
-        XCTAssertTrue(fit.waitForExistence(timeout: 5), "Fit Grid… button not found")
+        let fit = app.buttons["grid-fit"]
+        XCTAssertTrue(fit.waitForExistence(timeout: 5), "Grid Fit… button not found")
         fit.click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 3),
-                      "Fit Grid… click did not enter Grid Fit mode")
+                      "Grid Fit… click did not enter Grid Fit mode")
 
         let window = controlWindow(app)
         let before = window.screenshot().pngRepresentation
-        window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
+        // Over the Map, not the window's centre — the live panel holds the left third now.
+        app.descendants(matching: .any).matching(identifier: "map-preview").firstMatch
+            .coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
             .scroll(byDeltaX: 0, deltaY: 200)
         Thread.sleep(forTimeInterval: 1.0)
 
@@ -104,7 +108,7 @@ final class ModeButtonsUITests: XCTestCase {
                           "scrolling did not change the preview — zoom is not wired up")
 
         app.buttons["Cancel"].click()
-        XCTAssertTrue(app.buttons["Fit Grid…"].waitForExistence(timeout: 2),
+        XCTAssertTrue(app.buttons["grid-fit"].waitForExistence(timeout: 2),
                       "Cancel did not leave Grid Fit mode after zooming")
     }
 
@@ -113,10 +117,10 @@ final class ModeButtonsUITests: XCTestCase {
     func testFitGridClickableWithSmallMap() throws {
         let app = try launchApp(squares: 10, pixelsWide: 1000, pixelsHigh: 750)
 
-        let fit = app.buttons["Fit Grid…"]
-        XCTAssertTrue(fit.waitForExistence(timeout: 5), "Fit Grid… button not found")
+        let fit = app.buttons["grid-fit"]
+        XCTAssertTrue(fit.waitForExistence(timeout: 5), "Grid Fit… button not found")
         fit.click()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2),
-                      "Fit Grid… click did not enter Grid Fit mode")
+                      "Grid Fit… click did not enter Grid Fit mode")
     }
 }

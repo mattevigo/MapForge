@@ -26,6 +26,20 @@ final class FogStoreTests: XCTestCase {
         XCTAssertEqual(FogStore().load(forMapAt: mapURL), document)
     }
 
+    /// The only test that goes through a real file on disk, so it is where a name has to
+    /// survive the encoder, the file, and the decoder rather than just a round trip in memory.
+    func testALightsNameSurvivesARelaunch() throws {
+        var document = FogDocument()
+        document.lights = [Light(at: MapPoint(x: 200, y: 200), brightSquares: 4,
+                                 name: "trapped brazier"),
+                           Light(at: MapPoint(x: 500, y: 500), brightSquares: 2)]
+        try FogStore().save(document, forMapAt: mapURL)
+
+        let loaded = FogStore().load(forMapAt: mapURL)
+        XCTAssertEqual(loaded?.lights.first?.name, "trapped brazier")
+        XCTAssertNil(loaded?.lights.last?.name, "an unnamed Light came back named")
+    }
+
     func testFileSitsBesideTheImage() throws {
         // Moving the image and its fog file together must preserve the Walls, so the
         // fog file has to be a sibling with a predictable name.

@@ -7,11 +7,12 @@ import AppKit
 /// placed in Grid Fit's `.position()`-based ZStack never gets a non-zero frame, so it
 /// never reaches a window and never receives events at all.
 ///
-/// Reports the vertical delta together with the cursor's location in the modified
-/// view's own coordinates — Grid Fit's zoom is cursor-anchored, so the location is as
-/// much the point as the delta. Events outside the view are passed through untouched.
+/// Reports what the scroll asks for — a `ScrollIntent`, zoom or pan — together with the
+/// cursor's location in the modified view's own coordinates: the zoom is cursor-anchored,
+/// so the location is as much the point as the delta. Events outside the view are passed
+/// through untouched.
 struct ScrollWheelModifier: ViewModifier {
-    let onScroll: (CGFloat, CGPoint) -> Void
+    let onScroll: (ScrollIntent, CGPoint) -> Void
 
     /// The live handler, read by the monitor at event time.
     ///
@@ -27,7 +28,7 @@ struct ScrollWheelModifier: ViewModifier {
     /// capture the zero rect it had at install time and reject every event as outside
     /// the view.
     private final class Handler {
-        var onScroll: (CGFloat, CGPoint) -> Void = { _, _ in }
+        var onScroll: (ScrollIntent, CGPoint) -> Void = { _, _ in }
         var frame: CGRect = .zero
     }
 
@@ -59,8 +60,12 @@ struct ScrollWheelModifier: ViewModifier {
             let inWindow = event.locationInWindow
             let flipped = CGPoint(x: inWindow.x, y: window.contentLayoutRect.height - inWindow.y)
             guard handler.frame.contains(flipped) else { return event }
-            let delta = event.hasPreciseScrollingDeltas ? event.scrollingDeltaY : event.scrollingDeltaY * 10
-            handler.onScroll(delta, CGPoint(x: flipped.x - handler.frame.minX,
+            // A trackpad's momentum phase arrives here too, as more precise deltas, so a
+            // flicked pan glides to a stop with nothing special done for it.
+            let intent = ScrollIntent(dx: event.scrollingDeltaX, dy: event.scrollingDeltaY,
+                                      isPrecise: event.hasPreciseScrollingDeltas,
+                                      isCommandHeld: event.modifierFlags.contains(.command))
+            handler.onScroll(intent, CGPoint(x: flipped.x - handler.frame.minX,
                                             y: flipped.y - handler.frame.minY))
             return nil
         }
@@ -72,8 +77,51 @@ struct ScrollWheelModifier: ViewModifier {
     }
 }
 
+/// What one scroll event asks of the Magnifier: to zoom, to pan, or — from a wheel moved
+/// on both axes — both.
+///
+/// A trackpad swipe and a mouse wheel arrive as the same event and mean different things.
+/// Fingers on glass expect the artwork to follow them, so a **precise** scroll (a trackpad,
+/// or a Magic Mouse's surface) pans on both axes; a trackpad zooms by pinching instead. A
+/// **wheel** zooms on its vertical axis and pans on its horizontal one — a tilt, or ⇧ +
+/// wheel. **⌘** makes any scroll a zoom, which is the only way a Magic Mouse zooms at all.
+///
+/// `zoom` is in points, positive to zoom in; `pan` is a translation in SwiftUI's y-down
+/// sense, as `DragGesture` reports one. Precise deltas already carry the DM's scroll
+/// direction setting, so under natural scrolling the artwork follows the fingers.
+struct ScrollIntent: Equatable {
+    var zoom: CGFloat
+    var pan: CGSize
+
+    init(zoom: CGFloat, pan: CGSize) {
+        self.zoom = zoom
+        self.pan = pan
+    }
+
+    init(dx: CGFloat, dy: CGFloat, isPrecise: Bool, isCommandHeld: Bool) {
+        let scale = isPrecise ? 1 : Self.pointsPerLine
+        if isCommandHeld {
+            self.init(zoom: dy * scale, pan: .zero)
+        } else if isPrecise {
+            self.init(zoom: 0, pan: CGSize(width: dx, height: dy))
+        } else {
+            self.init(zoom: dy * scale, pan: CGSize(width: dx * scale, height: 0))
+        }
+    }
+
+    /// How much `zoom` multiplies the scale by. Exponential, so each notch is the same
+    /// proportional step whatever the current magnification instead of crawling when close
+    /// in; and small, so a single flick does not cross the whole range from the whole Map
+    /// to 1:1.
+    var zoomFactor: CGFloat { exp(zoom * Self.zoomPerPoint) }
+
+    private static let zoomPerPoint: CGFloat = 0.01
+    /// A wheel reports lines, a trackpad points.
+    private static let pointsPerLine: CGFloat = 10
+}
+
 extension View {
-    func onScrollWheel(_ onScroll: @escaping (CGFloat, CGPoint) -> Void) -> some View {
+    func onScrollWheel(_ onScroll: @escaping (ScrollIntent, CGPoint) -> Void) -> some View {
         modifier(ScrollWheelModifier(onScroll: onScroll))
     }
 }

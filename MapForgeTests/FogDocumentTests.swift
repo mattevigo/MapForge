@@ -90,6 +90,83 @@ final class FogDocumentTests: XCTestCase {
         XCTAssertEqual(decoded.walls.count, 1, "the Walls did not survive")
     }
 
+    // MARK: A Light's name
+
+    /// **Keep this test.** It is the one that would have caught the `Pawn` break documented
+    /// at `FogDocument.swift:222-231`: Swift's synthesised `decode` requires every key unless
+    /// the property is optional, so a defaulted non-optional `name` would make every
+    /// `.fog.json` written before Light names existed fail to load outright — a DM's authored
+    /// fog, unreadable, with the store correctly refusing to overwrite what it could not read.
+    ///
+    /// `testAVersionOneFileDecodesWithNoGrid` cannot catch it: its `"lights"` array is empty,
+    /// so no `Light` is ever decoded from raw JSON there.
+    func testALightWithNoNameKeyStillDecodes() throws {
+        let json = Data("""
+        {
+          "version": 2,
+          "squaresWide": 30,
+          "walls": [],
+          "lights": [{"id": "\(UUID().uuidString)",
+                      "at": {"imagePixels": {"x": 200, "y": 200}},
+                      "brightSquares": 4, "dimSquares": 8, "isOn": true}],
+          "pawns": []
+        }
+        """.utf8)
+        let decoded = try JSONDecoder().decode(FogDocument.self, from: json)
+        XCTAssertEqual(decoded.lights.count, 1, "a Light with no name key failed to decode")
+        XCTAssertNil(decoded.lights[0].name, "an absent name became something other than nil")
+        XCTAssertEqual(decoded.lights[0].brightSquares, 4, "the rest of the Light was lost")
+    }
+
+    /// The same for a Pawn, whose own Light is nested inside it — a break there would take
+    /// every Pawn with it, not just the Map's own Lights.
+    func testAPawnsNestedLightWithNoNameKeyStillDecodes() throws {
+        let json = Data("""
+        {
+          "version": 2,
+          "walls": [],
+          "lights": [],
+          "pawns": [{"id": "\(UUID().uuidString)",
+                     "label": "Kara", "colorHex": "#3366CC",
+                     "light": {"id": "\(UUID().uuidString)",
+                               "at": {"imagePixels": {"x": 300, "y": 300}},
+                               "brightSquares": 6, "dimSquares": 7, "isOn": true},
+                     "kind": "player"}]
+        }
+        """.utf8)
+        let decoded = try JSONDecoder().decode(FogDocument.self, from: json)
+        XCTAssertEqual(decoded.pawns.count, 1, "a Pawn whose Light has no name failed to decode")
+        XCTAssertEqual(decoded.pawns[0].label, "Kara")
+    }
+
+    func testANamedLightSurvivesARoundTrip() throws {
+        var document = FogDocument()
+        document.lights = [Light(at: MapPoint(x: 10, y: 20), brightSquares: 4, name: "trapped brazier")]
+        XCTAssertEqual(try roundTrip(document).lights.first?.name, "trapped brazier")
+    }
+
+    /// A named Light and an unnamed one are different documents, so the name is genuinely
+    /// carried rather than dropped on the way through.
+    func testANamedLightAndAnUnnamedOneRoundTripDistinguishably() throws {
+        var named = FogDocument()
+        named.lights = [Light(at: MapPoint(x: 10, y: 20), brightSquares: 4, name: "brazier")]
+        var unnamed = FogDocument()
+        unnamed.lights = [Light(at: MapPoint(x: 10, y: 20), brightSquares: 4)]
+
+        XCTAssertNotEqual(try roundTrip(named), try roundTrip(unnamed))
+        XCTAssertNil(try roundTrip(unnamed).lights.first?.name)
+    }
+
+    /// An unnamed Light writes no `name` key at all, rather than `"name": null` in every
+    /// entry — the reasoning `Pawn.encode(to:)` gives for `characterID`.
+    func testAnUnnamedLightWritesNoNameKey() throws {
+        var document = FogDocument()
+        document.lights = [Light(at: MapPoint(x: 10, y: 20), brightSquares: 4)]
+        let json = String(data: try JSONEncoder().encode(document), encoding: .utf8)!
+        XCTAssertFalse(json.contains("\"name\""),
+                       "an unnamed Light wrote a name key: \(json)")
+    }
+
     func testTheDocumentDeclaresVersionTwo() throws {
         let json = String(data: try JSONEncoder().encode(FogDocument()), encoding: .utf8)!
         XCTAssertEqual(FogDocument().version, 2)

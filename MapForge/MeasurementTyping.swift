@@ -29,9 +29,18 @@ enum MeasurementTyping {
     ///   than as `DeleteKey` does, because the Control Window is full of other controls.
     /// - `isEditingText` — nothing is taking text input. The gate `DeleteKey` learned the
     ///   hard way; a DM typing into "Grid squares wide" must not also be sizing a cone.
-    static func decide(for key: Character, isArmed: Bool, isInFrame: Bool,
-                       isEditingText: Bool) -> Decision {
-        guard isArmed, isInFrame, !isEditingText else { return .passThrough }
+    ///
+    /// Asked of every key the Live View hears (`onLiveViewKeys`), not only a Measurement's:
+    /// `claimsEscape` opens the first gate for Esc alone: with a Selection or the Viewport to
+    /// back out of and no Measurement, Esc means something on the Map and nothing else does,
+    /// so every digit still goes back to AppKit. What the claimed Esc backs out of is
+    /// `ArmedTool.State.escape`'s to say.
+    static func decide(for key: Character, isArmed: Bool, claimsEscape: Bool = false,
+                       isInFrame: Bool, isEditingText: Bool) -> Decision {
+        guard isInFrame, !isEditingText else { return .passThrough }
+        if !isArmed {
+            return claimsEscape && key == "\u{1B}" ? .abandon : .passThrough
+        }
         switch key {
         case "0"..."9": return .digit(key)
         case "\u{7F}", "\u{F728}": return .backspace
@@ -72,7 +81,7 @@ enum MeasurementTyping {
         /// The typed distance in Grid squares.
         ///
         /// Deliberately **not** snapped, unlike a dragged distance: you typed it, you meant
-        /// it — and the common metric distances are not whole numbers of 1.5 m squares.
+        /// it — and a homebrew "10 m" or "32 ft" is not a whole number of squares.
         func squares(in unit: DistanceUnit) -> CGFloat? {
             guard let value, value > 0 else { return nil }
             return unit.squares(fromDisplay: value)

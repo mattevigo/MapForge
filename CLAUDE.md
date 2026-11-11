@@ -4,7 +4,11 @@
 
 ### Issue tracker
 
-Issues live as local markdown files under `.scratch/<feature>/` in this repo. See `docs/agents/issue-tracker.md`.
+Issues live on the Trello board https://trello.com/b/73ALJwqf/mapforge-development, reached through the `trello` MCP server; `.scratch/` is the read-only archive of what came before. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles are board lists, not labels: a card's list is its triage state. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

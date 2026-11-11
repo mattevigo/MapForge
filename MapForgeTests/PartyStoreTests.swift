@@ -24,7 +24,9 @@ final class PartyStoreTests: XCTestCase {
         let book = PartyBook(parties: [
             Party(name: "Eroi delle Terre di Confine",
                   characters: [PartyCharacter(name: "Thorin", colorHex: "#C81E1E",
-                                              sightSquares: 6, isBig: false)])
+                                              sightSquares: 6,
+                                              noteName: "Thorin Scudodiquercia"),
+                               PartyCharacter(name: "Ospite")])
         ])
         try store().save(book)
         XCTAssertEqual(store().load(), book)
@@ -83,5 +85,63 @@ final class PartyStoreTests: XCTestCase {
 
         let json = try JSONSerialization.jsonObject(with: Data(contentsOf: store.fileURL))
         XCTAssertEqual((json as? [String: Any])?["version"] as? Int, PartyBook.current)
+    }
+
+    func testARosterWrittenBeforeNotesOpensWithEveryCharacterUnlinked() throws {
+        // The real "Lost Boys" roster: typed numbers, no note. It must open, link nothing by
+        // guessing from the name, and lose the typed numbers at the next write (ADR-0024).
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try Data(#"""
+        {"version": 1, "parties": [{"id": "\#(UUID().uuidString)", "name": "Lost Boys",
+          "characters": [{"id": "\#(UUID().uuidString)", "name": "Durga",
+                          "colorHex": "#FC4DE5", "sightSquares": 6, "isBig": false,
+                          "initiativeBonus": -1, "armorClass": 14, "maxHP": 36}]}]}
+        """#.utf8).write(to: store().fileURL)
+
+        let durga = try XCTUnwrap(store().load().parties.first?.characters.first)
+        XCTAssertEqual(durga.name, "Durga")
+        XCTAssertEqual(durga.colorHex, "#FC4DE5")
+        XCTAssertNil(durga.noteName, "linked by guessing")
+
+        try store().save(store().load())
+        let written = try String(contentsOf: store().fileURL, encoding: .utf8)
+        for key in ["isBig", "initiativeBonus", "armorClass", "maxHP"] {
+            XCTAssertFalse(written.contains(key), "\(key) survived the write")
+        }
+    }
+
+    // MARK: A Character's Face
+
+    func testACharactersFaceSurvivesARelaunch() throws {
+        let book = PartyBook(parties: [
+            Party(name: "Eroi", characters: [
+                PartyCharacter(name: "Durga", face: PawnFace(file: "durga.png", origin: .hand)),
+            ]),
+        ])
+        try store().save(book)
+
+        XCTAssertEqual(store().load().parties.first?.characters.first?.face,
+                       PawnFace(file: "durga.png", origin: .hand))
+    }
+
+    func testARosterWrittenBeforeFacesOpensWithNone() throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try Data(#"""
+        {"version": 1, "parties": [{"id": "\#(UUID().uuidString)", "name": "Eroi",
+          "characters": [{"id": "\#(UUID().uuidString)", "name": "Durga",
+                          "colorHex": "#FC4DE5", "sightSquares": 6}]}]}
+        """#.utf8).write(to: store().fileURL)
+
+        let durga = try XCTUnwrap(store().load().parties.first?.characters.first)
+        XCTAssertNil(durga.face)
+        XCTAssertEqual(durga.name, "Durga")
+    }
+
+    func testACharacterWithoutAFaceWritesNoFaceKey() throws {
+        try store().save(PartyBook(parties: [Party(name: "Eroi",
+                                                   characters: [PartyCharacter(name: "Durga")])]))
+
+        let written = try String(contentsOf: store().fileURL, encoding: .utf8)
+        XCTAssertFalse(written.contains("face"))
     }
 }

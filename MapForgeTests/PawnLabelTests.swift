@@ -57,6 +57,68 @@ final class PawnLabelTests: XCTestCase {
         XCTAssertFalse(PawnToken.showsLabel(atDiameter: 6))
     }
 
+    // MARK: Who the label is for
+
+    func testTheTableNeverReadsALabel() {
+        // A label is the DM's own bookkeeping — "Goblin B", "3", "Ambusher (hidden)". The
+        // Player Display is the world, and the world does not caption itself.
+        for diameter in [10.0, 12.0, 14.0, 40.0] as [CGFloat] {
+            XCTAssertFalse(PawnToken.showsLabel(atDiameter: diameter, toPlayers: true),
+                           "a \(diameter) pt token captioned itself at the table")
+        }
+    }
+
+    func testTheDMStillReadsLabelsAtEverySizeTheyUsedTo() {
+        // The suppression is about who is looking, not about giving up the legibility
+        // floor that `testALabelIsDrawnAtTheSizesAMapActuallyProduces` bought.
+        for diameter in [10.0, 12.0, 14.0, 40.0] as [CGFloat] {
+            XCTAssertTrue(PawnToken.showsLabel(atDiameter: diameter, toPlayers: false),
+                          "the DM lost the label on a \(diameter) pt token")
+        }
+    }
+
+    func testWhetherTheTableReadsLabelsIsSettledWhereEveryOtherLeakIs() {
+        // `PlayerVisibility` is the one place that answers "what do the players get to
+        // see", and a label crossing the room is that kind of leak. Asking it here means
+        // the rule cannot be lost by someone editing a view.
+        XCTAssertFalse(PlayerVisibility.showsPawnLabelToPlayers)
+    }
+
+    func testTheDMIsWhoTheTokenDrawsForUnlessToldOtherwise() {
+        // Three of the four call sites are DM chrome — the preview, the live row, the
+        // roster. Defaulting to the DM means none of them can silently lose their labels,
+        // and the one screen that must stay silent says so explicitly.
+        XCTAssertEqual(PawnToken.showsLabel(atDiameter: 12),
+                       PawnToken.showsLabel(atDiameter: 12, toPlayers: false))
+    }
+
+    // MARK: Over a Face
+
+    func testAFaceCoversTheLabelWhileNothingPointsAtIt() {
+        // Four Goblins wearing one Face look alike, and that is the point: the Face is
+        // what the table identifies them by. The label stays off it until the DM asks.
+        XCTAssertFalse(PawnToken.showsLabel(atDiameter: 40, hasFace: true))
+    }
+
+    func testTheDMReadsAFacesLabelWhileThePointerRestsOnIt() {
+        XCTAssertTrue(PawnToken.showsLabel(atDiameter: 40, hasFace: true, isHovered: true))
+    }
+
+    func testTheTableNeverReadsAFacesLabelHoverOrNot() {
+        XCTAssertFalse(PawnToken.showsLabel(atDiameter: 40, toPlayers: true,
+                                            hasFace: true, isHovered: true))
+    }
+
+    func testHoveringAFaceKeepsTheLegibilityFloor() {
+        XCTAssertFalse(PawnToken.showsLabel(atDiameter: 6, hasFace: true, isHovered: true))
+    }
+
+    func testAPawnWithoutAFaceIsLabelledHoverOrNot() {
+        for isHovered in [false, true] {
+            XCTAssertTrue(PawnToken.showsLabel(atDiameter: 40, isHovered: isHovered))
+        }
+    }
+
     // MARK: Helpers
 
     private func pawn(_ label: String) -> Pawn {

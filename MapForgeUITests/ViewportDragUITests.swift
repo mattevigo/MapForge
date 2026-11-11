@@ -33,10 +33,10 @@ final class ViewportDragUITests: XCTestCase {
     private func launchApp(squares: Double, pixelsWide: Int, pixelsHigh: Int) throws -> XCUIApplication {
         let map = try fixturePNG(pixelsWide: pixelsWide, pixelsHigh: pixelsHigh)
         let app = XCUIApplication()
-        app.launchArguments = ["--test-map", map.path, "--test-squares", String(squares),
-                               "--test-player-screen", "auto",
+        app.launchArguments = ["--test-map=\(map.path)", "--test-squares=\(squares)",
+                               "--test-player-screen",
                                "--test-fresh-preferences"]
-        app.launch()
+        app.launchInEnglish()
         return app
     }
 
@@ -47,25 +47,30 @@ final class ViewportDragUITests: XCTestCase {
         app.windows["control"]
     }
 
-    /// Enter Viewport mode and drag the rectangle a short, deliberate distance in
+    /// Arm the Viewport toggle and drag the rectangle a short, deliberate distance in
     /// several steps - the way a hand does. The app logs every viewportOrigin it is
     /// asked for; the assertion is on that trace.
     func testViewportRectangleDragTracksTheCursor() throws {
         let app = try launchApp(squares: 60, pixelsWide: 3000, pixelsHigh: 2000)
 
-        let pan = app.buttons["Pan Viewport…"]
-        XCTAssertTrue(pan.waitForExistence(timeout: 5), "Pan Viewport… button not found")
-        pan.click()
-        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 3), "did not enter Viewport mode")
+        // "Pan Viewport…" was a mode; it is a toggle now, and the rectangle is drawn either
+        // way — the toggle decides whether it can be *dragged*. A `.button`-styled Toggle
+        // publishes as a checkBox.
+        let viewport = app.checkBoxes["Viewport"]
+        XCTAssertTrue(viewport.waitForExistence(timeout: 5), "Viewport toggle not found")
+        viewport.click()
+        XCTAssertEqual(app.checkBoxes["Viewport"].value as? Int, 1, "the toggle did not arm")
 
         let window = controlWindow(app)
-        // The Viewport rectangle is centred in the preview on entry; the preview
-        // occupies the lower part of the window.
-        let start = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
+        // The rectangle sits over the whole Map. Aimed at the Map itself rather than at a
+        // fraction of the window: the old offset dodged a live panel on the right, and the
+        // panel is on the left now, so it would land on the panel instead.
+        let map = app.descendants(matching: .any).matching(identifier: "map-preview").firstMatch
+        let start = map.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.5))
 
         // A multi-step drag: press, move in increments, release.
         start.press(forDuration: 0.1,
-                    thenDragTo: window.coordinate(withNormalizedOffset: CGVector(dx: 0.58, dy: 0.72)),
+                    thenDragTo: map.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)),
                     withVelocity: .slow,
                     thenHoldForDuration: 0.3)
         Thread.sleep(forTimeInterval: 0.5)

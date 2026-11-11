@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// A **Measurement** drawn over the Map: a translucent green shape, a solid green border,
-/// and the distance beside it.
+/// A **Measurement** drawn over the Map: a translucent shape, a solid border, and the
+/// distance beside it — green, or the colour of the Pawn it starts at.
 ///
 /// One view for both screens, differing only in the frame handed to it — the Player
-/// Display's True Scale frame or the Control mirror's rebased one. Two drawing paths is how
+/// Display's frame (True Scale, or fitted under Map Fit) or the Control mirror's
+/// rebased one. Two drawing paths is how
 /// the screens drift, which is the divergence `PawnToken` and
 /// `PlayerVisibility.showsToPlayers` both exist to prevent.
 ///
@@ -12,17 +13,29 @@ import SwiftUI
 /// Player Display draws only the world — see
 /// [ADR 0005](../docs/adr/0005-the-player-display-shows-the-measurement.md).
 struct MeasurementLayer: View {
-    let measurement: Measurement
-    /// Where the Measurement starts, already resolved against an anchoring Pawn.
-    let origin: MapPoint
+    /// The Measurement with its Origin and colour already resolved against an anchoring
+    /// Pawn — handed in whole rather than looked up, so both screens draw what
+    /// `AppState.drawableMeasurements` resolved once.
+    let drawable: AppState.DrawableMeasurement
     let map: MapScale
     let frame: CGRect
     let pixelsPerSquare: CGFloat
+    /// The Distance Unit the readout speaks — the same on both screens, so the table and the
+    /// DM never read one distance two ways.
+    let unit: DistanceUnit
 
-    /// Green, per the feature's spec. Translucent fill, solid border — the pairing
-    /// `GridFitOverlay` and `ViewportOverlay` already use for "a region under discussion".
-    private var stroke: Color { .green }
-    private var fill: Color { .green.opacity(0.25) }
+    private var measurement: Measurement { drawable.measurement }
+    /// Where the Measurement starts.
+    private var origin: MapPoint { drawable.origin }
+    /// What the Measurement is drawn in: its Pawn's colour, so the table can tell whose it
+    /// is, or `Measurement.ownColor` for one taken from a point.
+    private var color: Color { drawable.color }
+
+    /// Translucent fill, solid border — the pairing `GridFitOverlay` and `ViewportOverlay`
+    /// already use for "a region under discussion". Only the colour is the Measurement's;
+    /// the opacity and the width are the layer's, whoever the Measurement belongs to.
+    private var stroke: Color { color }
+    private var fill: Color { color.opacity(0.25) }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -80,8 +93,8 @@ struct MeasurementLayer: View {
     ///
     /// Fixed size, like the readout capsule: it marks a point rather than covering an area,
     /// so it must stay legible at any zoom and on the Player Display's True Scale alike.
-    /// White-ringed because a green dot on green terrain — or on the party's own tokens —
-    /// disappears, and this is the thing being pointed at.
+    /// White-ringed because a dot on terrain of its own colour — or on the very Pawn whose
+    /// colour it is — disappears, and this is the thing being pointed at.
     private var endCap: some View {
         Circle()
             .fill(stroke)
@@ -95,7 +108,7 @@ struct MeasurementLayer: View {
     /// map-scaled text on a True Scale display is illegible on a large Map and enormous on
     /// a small one.
     private var readout: some View {
-        Text(measurement.readout(in: DistanceUnit.current))
+        Text(measurement.readout(in: unit))
             .font(.caption.weight(.semibold))
             .foregroundStyle(.primary)
             .padding(.horizontal, 6)
@@ -155,14 +168,36 @@ struct MeasurementLayer: View {
     /// perpendicular keeps it beside the end it names. Always to the upper side, so the
     /// number sits above a horizontal measurement rather than under the DM's cursor.
     private var nudge: CGVector {
+        Self.readoutNudge(shape: measurement.shape, direction: measurement.direction,
+                          map: map, frame: frame)
+    }
+
+    /// `nudge` for a shape aimed at `direction` (radians, Map space), drawn on `frame`.
+    ///
+    /// Perpendicular to the line **as drawn**, not to `direction`. When the frame scales the
+    /// Map alike on both axes the two are the same. They part on a display whose pixels are
+    /// not square — True Scale reads `pointsPerInch` per axis — where the uneven scale turns
+    /// the line, and a Map-space perpendicular would slide the capsule along the drawn line
+    /// rather than stand it beside it.
+    static func readoutNudge(shape: MeasurementShape, direction: CGFloat,
+                             map: MapScale, frame: CGRect) -> CGVector {
         // 22, not less: at 14 the capsule's own half-height overlapped the end cap and
         // partly hid the marker it exists to point at. Checked by rendering the layer at
         // four angles rather than by eye.
         let gap: CGFloat = 22
-        switch measurement.shape {
+        switch shape {
         case .cone, .line:
-            let normal = CGVector(dx: -sin(measurement.direction),
-                                  dy: cos(measurement.direction))
+            let mapToView = PlayerPlacement.mapToView(map: map, frame: frame)
+            var drawn = CGVector(dx: cos(direction) * mapToView.a,
+                                 dy: sin(direction) * mapToView.d)
+            var length = (drawn.dx * drawn.dx + drawn.dy * drawn.dy).squareRoot()
+            if length == 0 {
+                // A surface with no size draws no line to sit beside; the Map-space
+                // direction is the only one there is.
+                drawn = CGVector(dx: cos(direction), dy: sin(direction))
+                length = 1
+            }
+            let normal = CGVector(dx: -drawn.dy / length, dy: drawn.dx / length)
             let side: CGFloat = normal.dy > 0 ? -1 : 1
             return CGVector(dx: normal.dx * gap * side, dy: normal.dy * gap * side)
         case .circle, .square:
@@ -183,4 +218,24 @@ struct MeasurementLayer: View {
         path.closeSubpath()
         return path
     }
+}
+
+/// The colour side of a Measurement, kept here beside the layer that draws it so the model
+/// in `Measurement.swift` stays free of SwiftUI, as `Pawn`'s does — whose own colour,
+/// `tokenColor`, lives with `PawnToken` for the same reason.
+extension Measurement {
+    /// The colour the Measurement is drawn in, given the Pawn an Origin may name.
+    ///
+    /// Resolved live, like `originPoint(pawnAt:)`, and pure for the same reason: a colour
+    /// changed in the Edit Pawn sheet has to reach every Measurement of that Pawn the next
+    /// time they are drawn, which a colour copied in when the Measurement began would not.
+    func color(pawn: (Pawn.ID) -> Pawn?) -> Color {
+        guard let id = origin.pawnID else { return Self.ownColor }
+        return pawn(id).map(\.tokenColor) ?? Self.ownColor
+    }
+
+    /// The Measurement's own colour: what one that is no one's keeps — one taken from a
+    /// point, even with a Pawn standing on it. Also the armed `MeasurementCursor`'s, which
+    /// has no Origin yet.
+    static let ownColor: Color = .green
 }

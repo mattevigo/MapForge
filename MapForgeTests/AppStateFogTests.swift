@@ -542,11 +542,13 @@ final class AppStateFogTests: XCTestCase {
         XCTAssertTrue(appState.fog.walls.isEmpty, "Cancel did not discard the Wall")
     }
 
-    func testCancellingFogEditingDiscardsARenameMadeInsideTheMode() throws {
-        // The mirror of the live-rename case. A rename through the in-mode inspector goes
-        // through FogEdits and IS undoable, so Cancel must discard it like any other
-        // in-mode edit — pulling every label back out of `fog` would make the inspector's
-        // renames survive a Cancel that discarded everything else about the Pawn.
+    func testCancellingFogEditingCannotRevertAPawnAtAll() throws {
+        // Was `testCancellingFogEditingDiscardsARenameMadeInsideTheMode`, which asserted
+        // that an in-mode inspector rename was discarded by Cancel. There is no in-mode
+        // inspector any more (ADR-0013): a Pawn is only ever renamed live, so the rule it
+        // held has no case left to apply to. What replaces it is the stronger statement
+        // that made the old one moot — Cancel touches the Walls and nothing else, so a
+        // Pawn cannot be reverted by it however it was edited.
         let map = try makeMap(named: "dungeon")
         let appState = AppState(preferences: isolatedPreferences())
         appState.loadMap(image: map.image, at: map.url)
@@ -554,17 +556,76 @@ final class AppStateFogTests: XCTestCase {
                         colorHex: Pawn.defaultColorHex, brightSquares: 6)
         appState.fog.pawns = [pawn]
 
-        appState.beginFogEditing()                     // as the mode opens
+        appState.beginFogEditing()
         var edits = FogEdits(document: appState.fog)
-        edits.setPawnLabel(id: pawn.id, "Inspector Name")
+        edits.addWalls([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 50, y: 0))])
         appState.applyFogEdits(edits)
-        XCTAssertEqual(appState.fog.pawns.first?.label, "Inspector Name",
-                       "precondition: the in-mode rename applied")
+        appState.setPawnLabel(id: pawn.id, "Goblin B")
 
         appState.cancelFogEditing(edits)
 
-        XCTAssertEqual(appState.fog.pawns.first?.label, "3",
-                       "Cancel kept a rename made inside the mode")
+        XCTAssertEqual(appState.fog.pawns.first?.label, "Goblin B")
+        XCTAssertTrue(appState.fog.walls.isEmpty, "Cancel still discards the mode's Walls")
+    }
+
+    // MARK: Moving a Light
+
+    /// A Light is dragged in the Live View, as a Pawn is: the DM carries the lantern down the
+    /// corridor and the table watches the dark move with it.
+    func testALightMovesWhereItIsDragged() throws {
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let brazier = Light(at: MapPoint(x: 10, y: 10), brightSquares: 4)
+        let sconce = Light(at: MapPoint(x: 30, y: 20), brightSquares: 2)
+        appState.fog.lights = [brazier, sconce]
+
+        appState.moveLight(id: brazier.id, to: MapPoint(x: 25, y: 12))
+
+        XCTAssertEqual(appState.fog.lights.first?.at, MapPoint(x: 25, y: 12))
+        XCTAssertEqual(appState.fog.lights.last?.at, MapPoint(x: 30, y: 20), "the other Light moved")
+        // Everything that is not where it stands comes through untouched.
+        XCTAssertEqual(appState.fog.lights.first?.brightSquares, 4)
+        XCTAssertEqual(appState.fog.lights.first?.id, brazier.id)
+    }
+
+    func testALightDraggedPastTheEdgeStopsAtTheEdge() throws {
+        // As a Pawn does, and for a sharper reason: a Light beyond the image can never be
+        // clicked again, so it could not be dragged back, edited or deleted.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        // Read back rather than assumed: `lockFocus` draws at the screen's scale, so the
+        // fixture's 40 points are 80 pixels on a Retina Mac and 40 on a CI box.
+        let width = try XCTUnwrap(appState.mapImage?.pixelSize.width)
+        let brazier = Light(at: MapPoint(x: 10, y: 10), brightSquares: 4)
+        appState.fog.lights = [brazier]
+
+        appState.moveLight(id: brazier.id, to: MapPoint(x: width + 500, y: -20))
+
+        XCTAssertEqual(appState.fog.lights.first?.at, MapPoint(x: width, y: 0))
+    }
+
+    func testMovingALightNobodyHasIsNothing() throws {
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        appState.moveLight(id: UUID(), to: MapPoint(x: 5, y: 5))
+        XCTAssertEqual(appState.fog.lights, [])
+    }
+
+    func testADraggedLightReachesDiskWhenTheDragEnds() throws {
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let brazier = Light(at: MapPoint(x: 10, y: 10), brightSquares: 4)
+        appState.addLight(brazier)
+
+        appState.moveLight(id: brazier.id, to: MapPoint(x: 25, y: 12))
+        appState.commitLightMove()
+
+        let onDisk = try XCTUnwrap(FogStore().load(forMapAt: map.url))
+        XCTAssertEqual(onDisk.lights.first?.at, MapPoint(x: 25, y: 12))
     }
 
     func testApplyingFogEditsKeepsALivePawnMoveAndTorchToggle() throws {
@@ -580,20 +641,23 @@ final class AppStateFogTests: XCTestCase {
 
         appState.beginFogEditing()                     // as the mode opens
         var edits = FogEdits(document: appState.fog)
-        appState.movePawn(id: pawn.id, to: MapPoint(x: 80, y: 60))
+        // Inside the 40×30 Map on any display: on a 1× screen the image is 40×30 pixels,
+        // and a move past its edge is clamped.
+        appState.movePawn(id: pawn.id, to: MapPoint(x: 35, y: 25))
         appState.setPawnLight(id: pawn.id, isOn: false)
         edits.addWalls([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 50, y: 0))])
         appState.applyFogEdits(edits)
 
-        XCTAssertEqual(appState.fog.pawns.first?.at, MapPoint(x: 80, y: 60),
+        XCTAssertEqual(appState.fog.pawns.first?.at, MapPoint(x: 35, y: 25),
                        "drawing a Wall snapped the Pawn back")
         XCTAssertEqual(appState.fog.pawns.first?.light.isOn, false,
                        "drawing a Wall relit a doused torch")
     }
 
-    func testAnInModePawnMoveStillApplies() throws {
-        // The other side: dragging a Pawn with the Pawns tool inside the mode is an edit,
-        // and must not be overridden by the live value it is changing.
+    func testFogEditsCannotMoveAPawn() throws {
+        // Was `testAnInModePawnMoveStillApplies`. The Pawn tool is gone, so `FogEdits` has
+        // no `movePawn` to call — the guarantee is now that the mode's document cannot
+        // reach a Pawn at all, which is what lets `applyFogEdits` copy only Walls.
         let map = try makeMap(named: "dungeon")
         let appState = AppState(preferences: isolatedPreferences())
         appState.loadMap(image: map.image, at: map.url)
@@ -603,11 +667,12 @@ final class AppStateFogTests: XCTestCase {
 
         appState.beginFogEditing()
         var edits = FogEdits(document: appState.fog)
-        edits.movePawn(id: pawn.id, to: MapPoint(x: 200, y: 150))
+        edits.addWalls([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 50, y: 0))])
         appState.applyFogEdits(edits)
 
-        XCTAssertEqual(appState.fog.pawns.first?.at, MapPoint(x: 200, y: 150),
-                       "an in-mode Pawn move was discarded")
+        XCTAssertEqual(appState.fog.pawns.first?.at, MapPoint(x: 20, y: 15),
+                       "the Wall Editor moved a Pawn")
+        XCTAssertEqual(appState.fog.walls.count, 1)
     }
 
     func testRestoringAGridNeverPublishesTheCancelledValue() throws {

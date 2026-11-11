@@ -1,26 +1,50 @@
 import Foundation
 
-/// App-level settings. The app's first persistence of any kind.
+/// What this **machine** knows, as opposed to what a Workspace knows.
+///
+/// ADR-0012 draws the line: `.mapforge/` travels with the game, `UserDefaults` stays with the
+/// Mac. The active Party and the Player Display choice moved into `WorkspaceSettings`, so what
+/// is left here is state that cannot travel — which Workspaces this Mac has opened, and, when
+/// it is built, Calibration keyed by `DisplayIdentity`. Calibration is a ruler held against a
+/// physical screen: the same reading whichever game is open, and meaningless on another Mac.
 ///
 /// A named type rather than `@AppStorage` because the selection policy runs inside
-/// `AppState.presentIfPossible()`, which is not a view context. Shaped so issue 04's
-/// Calibration factor joins it keyed by the same `DisplayIdentity` — not built here.
+/// `AppState.presentIfPossible()`, which is not a view context.
 ///
-/// It began as per-display settings and now also remembers the active Party. The name is
-/// kept rather than churn every call site: what these have in common is that they are small
-/// choices a DM can remake with one click, which is exactly what distinguishes them from the
-/// authored data `FogStore` and `PartyStore` guard.
+/// The name is a holdover twice over — it holds no per-display setting at all until
+/// Calibration arrives. Kept rather than churn every call site, and because Calibration is
+/// what it is shaped for.
 final class DisplayPreferences {
     private enum Key {
-        static let playerDisplayUUID = "playerDisplayUUID"
-        static let playerDisplayName = "playerDisplayName"
-        static let activePartyID = "activePartyID"
+        static let recentWorkspaces = "recentWorkspaces"
+        static let recentWorkspaceBookmarks = "recentWorkspaceBookmarks"
+        static let appleLanguages = "AppleLanguages"
+        static let distanceUnit = "distanceUnit"
     }
+
+    /// Enough to recognise a campaign in the picker, few enough to stay a list and not a
+    /// history.
+    static let recentsLimit = 20
 
     private let defaults: UserDefaults
 
-    init(defaults: UserDefaults = .standard) {
+    /// The name of the domain `defaults` writes to: the app's bundle identifier for the real
+    /// preferences, the suite's name for a throwaway one.
+    private let domain: String
+
+    private let bookmarks: WorkspaceBookmarks
+
+    /// The Mac's region, which decides the Distance Unit until the DM does.
+    private let region: Locale
+
+    init(defaults: UserDefaults = .standard,
+         domain: String = Bundle.main.bundleIdentifier ?? "com.mattevigo.MapForge",
+         bookmarks: WorkspaceBookmarks = .securityScoped,
+         region: Locale = .autoupdatingCurrent) {
         self.defaults = defaults
+        self.domain = domain
+        self.bookmarks = bookmarks
+        self.region = region
     }
 
     /// The preferences this launch should use: the real ones, or a throwaway suite when
@@ -31,39 +55,125 @@ final class DisplayPreferences {
     /// screen the test never asked for, the Control Window is relocated out from under it,
     /// and every control reports as "not hittable". The suite has to start from a machine
     /// that has never chosen a display, exactly as the unit tests do.
+    ///
+    /// It now also keeps the suite's *recent Workspaces* empty, which matters more: a test
+    /// inheriting the developer's list would open their real game folder and edit their real
+    /// roster. `AppState` pairs this with a throwaway Workspace — see
+    /// `openWorkspaceFromLaunchArgumentsIfPresent`.
     static var forThisLaunch: DisplayPreferences {
+        let name = "MapForgeUITests.\(UUID().uuidString)"
         guard CommandLine.arguments.contains("--test-fresh-preferences"),
-              let suite = UserDefaults(suiteName: "MapForgeUITests.\(UUID().uuidString)")
+              let suite = UserDefaults(suiteName: name)
         else { return DisplayPreferences() }
-        return DisplayPreferences(defaults: suite)
+        return DisplayPreferences(defaults: suite, domain: name)
     }
 
-    /// The Player Display chosen in an earlier session, if any. The name is a label
-    /// only — matching is by UUID, so a renamed display still resolves.
-    var rememberedPlayerDisplay: DisplayIdentity? {
+    /// The Workspaces this Mac has opened, most recent first.
+    ///
+    /// The bootstrap pointer, and the one thing that cannot live inside a Workspace: it is how
+    /// the app finds one at all. Nothing is ever removed automatically — a folder on an
+    /// unplugged drive stays listed, so the DM sees an entry marked unavailable rather than a
+    /// campaign that has silently vanished.
+    var recentWorkspaces: [URL] {
         get {
-            guard let uuid = defaults.string(forKey: Key.playerDisplayUUID) else { return nil }
-            return DisplayIdentity(uuid: uuid,
-                                   name: defaults.string(forKey: Key.playerDisplayName) ?? "")
+            (defaults.array(forKey: Key.recentWorkspaces) as? [String] ?? [])
+                .map { URL(fileURLWithPath: $0) }
         }
         set {
-            defaults.set(newValue?.uuid, forKey: Key.playerDisplayUUID)
-            defaults.set(newValue?.name, forKey: Key.playerDisplayName)
+            let paths = newValue.map(\.path)
+            defaults.set(paths, forKey: Key.recentWorkspaces)
+            // A bookmark lives exactly as long as its entry, so forgetting and the cap
+            // drop it without either having to know it exists.
+            recentBookmarks = recentBookmarks.filter { paths.contains($0.key) }
         }
     }
 
-    /// The Party the Control Window offers, remembered across launches — a DM runs one
-    /// campaign per sitting, so the choice is made rarely and should not be remade daily.
+    /// Each recent Workspace's bookmark, keyed by the path `recentWorkspaces` lists it under.
     ///
-    /// An ID rather than the Party itself: the roster lives in `PartyStore`, and duplicating
-    /// it here would give the app two answers to "what is this Party called". An ID naming a
-    /// Party that no longer exists resolves to nil at the point of use, not here — deleting a
-    /// Party must not have to reach into preferences to stay consistent.
-    var activePartyID: UUID? {
+    /// Beside the list rather than inside it, so the list keeps the shape every earlier
+    /// version wrote: a downgrade still finds its recents, and an entry from before bookmarks
+    /// is simply a path with nothing beside it.
+    private var recentBookmarks: [String: Data] {
+        get { defaults.dictionary(forKey: Key.recentWorkspaceBookmarks) as? [String: Data] ?? [:] }
+        set { defaults.set(newValue, forKey: Key.recentWorkspaceBookmarks) }
+    }
+
+    /// Where a recent Workspace can be reached now, or nil when it cannot.
+    ///
+    /// Through its bookmark when it has one, which follows a folder the DM has moved. An
+    /// entry from before bookmarks has only a path, and is upgraded here, quietly, if a
+    /// bookmark can be made from it: always, unsandboxed, for a folder that exists; never,
+    /// under the sandbox, which grants nothing for a path the DM has not chosen this launch.
+    /// Then it reads as unavailable, and choosing the folder again stores its bookmark.
+    func locateWorkspace(_ url: URL) -> URL? {
+        let path = Workspace(url: url).url.path
+        if let data = recentBookmarks[path] { return try? bookmarks.resolve(data) }
+        guard recentWorkspaces.contains(where: { $0.path == path }),
+              let data = try? bookmarks.make(url) else { return nil }
+        recentBookmarks[path] = data
+        return url
+    }
+
+    /// The Interface Language chosen on this Mac.
+    ///
+    /// Stored as the app's own `AppleLanguages`, which is what macOS reads to pick a
+    /// localisation at launch — and what System Settings writes when a language is chosen for
+    /// MapForge there, so either place reads the other's choice. Read from the app's own
+    /// domain only: through `defaults` the key always answers, from the Mac's global language
+    /// list or a launch argument, and "System" could never be told apart from a choice.
+    var interfaceLanguage: InterfaceLanguage {
         get {
-            guard let string = defaults.string(forKey: Key.activePartyID) else { return nil }
-            return UUID(uuidString: string)
+            (defaults.persistentDomain(forName: domain)?[Key.appleLanguages] as? [String])?
+                .first.flatMap(InterfaceLanguage.init(code:)) ?? .system
         }
-        set { defaults.set(newValue?.uuidString, forKey: Key.activePartyID) }
+        set {
+            if newValue == .system {
+                defaults.removeObject(forKey: Key.appleLanguages)
+            } else {
+                defaults.set([newValue.rawValue], forKey: Key.appleLanguages)
+            }
+        }
+    }
+
+    /// The Distance Unit chosen on this Mac (ADR-0027), or the region's until one is.
+    ///
+    /// The region decides only until the DM does (`DistanceUnit.init(region:)`). The choice,
+    /// once made, is stored and outranks the region from then on — a DM who moves their Mac
+    /// to another country has not changed the table they play at.
+    var distanceUnit: DistanceUnit {
+        get {
+            defaults.string(forKey: Key.distanceUnit).flatMap(DistanceUnit.init(rawValue:))
+                ?? DistanceUnit(region: region)
+        }
+        set { defaults.set(newValue.rawValue, forKey: Key.distanceUnit) }
+    }
+
+    /// Moves a Workspace to the front of the list, deduplicating and capping, and stores a
+    /// fresh bookmark to it.
+    ///
+    /// `url` is the URL the app was handed the folder by — the open panel's, or a resolved
+    /// bookmark's — which under the sandbox is the one carrying the grant. A fresh bookmark
+    /// on every open is the refresh a stale one needs; when one cannot be made, the last one
+    /// stored is kept. `previous` is the entry it was opened from, when that entry's folder
+    /// has since moved: the list follows the folder rather than keeping both.
+    func noteWorkspaceOpened(_ workspace: Workspace,
+                             reachedThrough url: URL? = nil,
+                             replacing previous: URL? = nil) {
+        let replaced = previous.map(Workspace.init(url:))
+        var recents = recentWorkspaces.filter {
+            Workspace(url: $0) != workspace && Workspace(url: $0) != replaced
+        }
+        recents.insert(workspace.url, at: 0)
+        recentWorkspaces = Array(recents.prefix(Self.recentsLimit))
+        if let data = try? bookmarks.make(url ?? workspace.url) {
+            recentBookmarks[workspace.url.path] = data
+        }
+    }
+
+    /// Forgets a Workspace. The DM's gesture, never the app's: an unreachable folder stays
+    /// listed until they say otherwise.
+    func forgetWorkspace(_ url: URL) {
+        let target = Workspace(url: url)
+        recentWorkspaces = recentWorkspaces.filter { Workspace(url: $0) != target }
     }
 }

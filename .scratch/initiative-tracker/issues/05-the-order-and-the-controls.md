@@ -1,0 +1,123 @@
+# 05 — The Order and the combat controls
+
+Status: done
+
+The tracker itself: the list of Combatants and the buttons that drive a fight. Depends on
+01, 02, 03 and 04.
+
+## Build
+
+**The header.** Round number, prominent — a DM glances at it mid-sentence. Beside it:
+
+| Control | Icon | Behaviour |
+|---|---|---|
+| Play | `play.fill` | Rolls, settles the Order, opens a Combat Log. Only before an Encounter. |
+| Next | `forward.fill` | Ends the Turn. Refused while correcting (issue 03) — disable it and say why. |
+| Previous | `backward.fill` | Walks the correction cursor back one ended Turn. |
+| Stop | `stop.fill` | Ends the Encounter. Confirms first — it closes the Log. |
+| Re-roll | `dice.fill` | Re-rolls every Initiative. **Confirms first**: it destroys the settled Order. |
+
+Icons were asked for explicitly. SF Symbols throughout, with accessibility labels, because
+the UI tests will need to find these by name.
+
+**The Order list.** One row per Combatant, in `order`. Compact enough that eight fit without
+scrolling in 320 points:
+
+- **Initiative** — leading, fixed-width, the number the row sorts by
+- **Kind mark** — Players and Creatures must be distinguishable at a glance. Use the Pawn's
+  own colour swatch plus a shape difference, matching how `PawnToken` already draws a Player
+  as a disc and Treasure as a rounded square. Do not rely on colour alone.
+- **Name** — the Pawn's label
+- **Hit points** — `14/32`, with temporary hit points shown additively (`14+5/32`) when
+  non-zero. An incomplete Stat Block shows a dash and a subtle warning mark, per the spec's
+  rule that a missing stat block never drops a monster from the fight.
+- **AC** — small, trailing
+- **Conditions** — icons, not text. Fourteen of them will not fit as words. Overflow to a
+  count badge past three or four.
+
+**The active Turn is unmistakable**: a filled background, not a thin border. A DM reads this
+from across a table at a glance.
+
+**A removed Combatant** stays in the list, struck through and dimmed. It takes no Turns.
+
+**Selecting a row** drives the editor in issue 06. Selection is independent of whose Turn it
+is — a DM edits the monster the party just hit, not the one acting.
+
+**Drag to reorder.** Ties are the DM's to break (ADR-0008 and the spec), so the rows reorder
+by drag and each reorder records `orderChanged`. Reordering does not change anyone's
+Initiative number — the Order and the numbers are allowed to disagree, because the Order is
+what is real.
+
+**The correcting state must be loud.** When the correction cursor is set, the header changes
+to something like *◀ correcting Round 2 — Grog* on a distinctly coloured bar, and the Order
+list dims. ADR-0010 names this the most dangerous interaction in the feature: an edit made in
+the wrong mode is silent and wrong. Over-signal it.
+
+## Tests
+
+UI tests for the flows, unit tests for anything computable:
+
+- Play with three Pawns produces three rows in descending Initiative order.
+- A Treasure Pawn on the Map produces no row.
+- Next moves the active highlight and wraps, incrementing the displayed Round.
+- Previous shows the correcting bar; Next from there eventually returns to live.
+- Next is disabled while correcting.
+- Re-roll asks first, and cancelling changes nothing.
+- Stop asks first.
+- A Pawn with no hit points shows the incomplete mark and still appears.
+- A removed Combatant is struck through and is skipped by Next.
+- Dragging a row records a reorder and the new order survives a Next.
+- Players and Creatures are distinguishable without reference to colour.
+
+## Done when
+
+A whole fight can be run from the panel: play, several Rounds of Next, a trip backwards and
+forwards, a re-roll, a stop — with the Log on disk matching what happened.
+
+## Amendment — the bench replaces the struck-through row
+
+Asked for after the issue was built, and it reverses one of its rules. A Combatant taken out
+of the fight no longer stays in the Order struck through: it moves to a **Not in combat**
+list below the Order, and comes back by rolling Initiative afresh.
+
+`CONTEXT.md` gains **Benched** and the **Combatant** entry is corrected — it used to say a
+removed Combatant "stays listed", which is now wrong.
+
+The list holds everything on the Map that is not taking Turns, not only what was benched out
+of the Order: a Treasure, and anything placed since the fight began. One honest list of
+"here but not fighting" beats two that mean nearly the same thing. A Treasure is shown
+without a way back in, having nothing to do on its turn.
+
+Returning is a join and nothing else — same rules, same fresh roll, never ahead of the Turn
+already running. Hit points and Conditions come back untouched: the bench is not a rest. A
+Pawn the Order has never seen joins by the same button, which is why `unbenchCombatant` falls
+back to the Map when the Log cannot name it.
+
+`combatantRemoved` keeps its name on the wire. It has always meant "out of the Order", which
+is what Benched now names, and renaming it would make every Log already beside a DM's Maps
+unreadable.
+
+## Amendment — a fight starts with the Pawns the DM ticked
+
+A Pawn is on the Map whether or not it is in the next fight: the innkeeper behind the bar
+while the party brawls in front of it is still a Pawn. Each Scene-tab row gains a shield
+toggle on the right, and `play` rolls for the ticked ones only.
+
+Default is in-combat, so a Map nobody has set up behaves as the app did before the roster
+existed. The flag lives on `StatBlock` — beside the hit points, in `stats.json`, remembered
+per Map — because both answer "what is this Pawn in a fight", and only the exception is
+written, so a file stays small and the default stays implicit. A block written before this
+existed reads as in-combat, there having been no way to say otherwise.
+
+Read **only when a fight starts**. Once one is running the toggle is hidden and Pawns come
+and go through the bench: two controls for two moments, rather than one control whose
+meaning changes halfway. A Pawn left off the roster lands on the bench when the fight begins,
+so the same button that returns a Benched Pawn brings it in.
+
+The Combat tab shows the roster before play — "2 Pawns ready to roll", and their names —
+because the roster is set in the other tab and a DM should not have to switch back to find
+out who is in.
+
+## Comments
+
+- 2026-09-14: verified at the table on real hardware. Closed.

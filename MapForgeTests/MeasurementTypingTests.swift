@@ -107,6 +107,17 @@ final class MeasurementTypingTests: XCTestCase {
         XCTAssertNotEqual(squares!, Measurement.snap(squares: squares!))
     }
 
+    func testTheSameDigitsAreReadInTheUnitTheTableSpeaks() {
+        // 9 m and 30 ft are both six squares: the digits are the table's, the squares ours.
+        var metres = MeasurementTyping.Buffer()
+        metres.append("9")
+        var feet = MeasurementTyping.Buffer()
+        feet.append("3")
+        feet.append("0")
+        XCTAssertEqual(metres.squares(in: .metres)!, 6, accuracy: 1e-9)
+        XCTAssertEqual(feet.squares(in: .feet)!, 6, accuracy: 1e-9)
+    }
+
     func testTheMouseCannotOverwriteASettledDistance() {
         // The failure this feature would most likely ship with, because it only shows up
         // between reading a distance and moving the mouse: the next hover tick resizes the

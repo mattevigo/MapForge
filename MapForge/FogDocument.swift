@@ -133,14 +133,61 @@ struct Light: Codable, Equatable, Identifiable {
     /// Zero is legal: a sharp-edged source with no falloff band.
     var dimSquares: CGFloat
     var isOn = true
+    /// The DM's own name for this Light — "trapped brazier", "goes out in round 3".
+    ///
+    /// **Never drawn on the Player Display**, exactly as a Pawn's label is not: a Light named
+    /// for the DM's notes must not cross the room. `PlayerVisibility.showsLightNameToPlayers`
+    /// is where that is settled, beside every other rule about what the table sees.
+    ///
+    /// Optional, and that is load-bearing rather than stylistic. `Light`'s conformance is
+    /// synthesised, and Swift's synthesised `decode` requires every key unless the property
+    /// is optional — a defaulted `String` here would make every `.fog.json` written before
+    /// today fail to load outright, which is the `Pawn` break documented below at length.
+    /// "Unnamed" is also a real state: a Light placed before this feature has no name, and
+    /// the roster falls back to its position.
+    var name: String?
 
     init(id: UUID = UUID(), at: MapPoint, brightSquares: CGFloat,
-         dimSquares: CGFloat? = nil, isOn: Bool = true) {
+         dimSquares: CGFloat? = nil, isOn: Bool = true, name: String? = nil) {
         self.id = id
         self.at = at
         self.brightSquares = brightSquares
         self.dimSquares = dimSquares ?? brightSquares * 2
         self.isOn = isOn
+        self.name = name
+    }
+
+    /// Hand-written for one reason: `encodeIfPresent`, so an unnamed Light writes no `name`
+    /// key rather than `"name": null` in every entry of every file. The precedent and the
+    /// reasoning are `Pawn.encode(to:)`'s treatment of `characterID`.
+    ///
+    /// Decoding stays synthesised. An optional key is exactly what the synthesised decoder
+    /// handles correctly, and hand-writing it would add a second place for the two halves to
+    /// disagree.
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(at, forKey: .at)
+        try container.encode(brightSquares, forKey: .brightSquares)
+        try container.encode(dimSquares, forKey: .dimSquares)
+        try container.encode(isOn, forKey: .isOn)
+        try container.encodeIfPresent(name, forKey: .name)
+    }
+
+    /// The next name for a Light placed on a Map that already holds these.
+    ///
+    /// Mirrors `Pawn.nextLabel(after:)`, and exists for the same defect: numbering from
+    /// `count + 1` reuses a number after a delete. Lights had that defect and could not fix
+    /// it, because there was no stored value to hold the answer — the roster numbered them by
+    /// position, so deleting Light 2 silently renamed Light 3.
+    static func nextName(after lights: [Light]) -> String {
+        let used = Set(lights.compactMap(\.name))
+        var n = 1
+        // In the Interface Language of the moment it is placed; from then on the name is the
+        // DM's, and is never translated again.
+        func name(_ n: Int) -> String { String(localized: "Light \(n)") }
+        while used.contains(name(n)) { n += 1 }
+        return name(n)
     }
 }
 
@@ -199,15 +246,56 @@ struct Pawn: Codable, Equatable, Identifiable {
 
     /// Which `PartyCharacter` Stamped this Pawn, when one did.
     ///
-    /// **Advisory, and read by exactly one thing**: the Party panel's count of how many of a
-    /// Character's Pawns stand on this Map. Nothing about drawing, lighting, discovery or
-    /// persistence may branch on it, and a Pawn whose Character has been deleted is in no way
-    /// diminished — it simply stops being counted.
+    /// **Advisory, and read by exactly four things**: the Party panel's count of how many of a
+    /// Character's Pawns stand on this Map, the Combat tab's Character page, looked up
+    /// through it (`AppState.characterPage(for:)`, ADR-0007 amended), the Roll sheet's
+    /// offered Modifier, read from the same note (`AppState.modifierSource(for:)`, ADR-0029),
+    /// and the Encounter Difficulty, which reads the note's level
+    /// (`AppState.encounterDifficultyReading`, ADR-0032). Nothing about drawing, lighting,
+    /// discovery or persistence may branch on it, and a Pawn whose Character has been deleted
+    /// is in no way diminished — it stops being counted and loses a page, a suggestion and its
+    /// share of the party's budgets.
     ///
     /// This is not a link. The Pawn holds its own label, colour and sight, copied at the
     /// moment of the drag, so `<map>.fog.json` stays readable with no roster present. See
     /// `docs/adr/0007-characters-are-stamped-not-linked.md` for why a reference was rejected.
     var characterID: UUID?
+
+    /// Which `Monster` this Creature was said to be, by the `name:` its note gives it.
+    ///
+    /// **Advisory**, in `characterID`'s sense, and read by exactly five things: the Combat
+    /// tab's reference view, which looks the Monster's actions up by it, `AddPlacement`,
+    /// which gives the next Creature the same Monster, `FaceSource`, which tells which
+    /// Pawns re-cutting the Monster's Face for every one reaches (ADR-0028), the Roll
+    /// sheet's offered Modifier, read from the same note (`AppState.modifierSource(for:)`,
+    /// ADR-0029), and the Encounter Difficulty, which reads the note's Challenge Rating
+    /// (`AppState.encounterDifficultyReading`, ADR-0032). The Pawn's numbers were *copied*
+    /// into its Stat Block when the Monster was chosen (`MonsterStamp`), so a Creature whose
+    /// note has been renamed or deleted loses a page of reference, a suggestion and its XP in
+    /// the Encounter Difficulty, and nothing else.
+    ///
+    /// A name, not a path and not an ID: the notes carry no IDs, a path would write the DM's
+    /// vault layout into a file meant to be portable, and a name is something a DM opening
+    /// this file can read. See `docs/adr/0020-monsters-are-read-from-the-dms-notes.md`.
+    var monsterName: String?
+
+    /// Which `Item` this Treasure was said to be, by the name its note gives it — its first
+    /// `#` heading, or its file name.
+    ///
+    /// **Advisory**, exactly as `monsterName` is, and for the same reasons a name: the label
+    /// was copied from the Item when it was chosen, so a Treasure whose note has been renamed
+    /// or deleted loses nothing it shows. See
+    /// `docs/adr/0031-an-item-says-so-in-its-frontmatter.md`.
+    var itemName: String?
+
+    /// The **Face** this Pawn is drawn as, in place of its colour, or nil for the coloured
+    /// token. The colour is kept underneath, so removing the Face shows it again.
+    ///
+    /// Names a cut kept in the Workspace (`FaceLibrary`), never the picture it was cut from,
+    /// so a picture moved or deleted afterwards changes nothing here. A Face whose cut has gone
+    /// missing draws the colour, and the Pawn is otherwise in no way diminished. See
+    /// `docs/adr/0028-a-face-is-a-cut-kept-in-the-workspace.md`.
+    var face: PawnFace?
 
     /// How many Grid squares a token spans. The one place the 2 lives, so every surface
     /// that sizes a token agrees.
@@ -243,7 +331,8 @@ struct Pawn: Codable, Equatable, Identifiable {
     init(id: UUID = UUID(), at: MapPoint, label: String, colorHex: String,
          brightSquares: CGFloat,
          kind: PawnKind = .player, isHidden: Bool = false, isBig: Bool = false,
-         characterID: UUID? = nil) {
+         characterID: UUID? = nil, monsterName: String? = nil, itemName: String? = nil,
+         face: PawnFace? = nil) {
         self.id = id
         self.label = label
         self.colorHex = colorHex
@@ -253,6 +342,9 @@ struct Pawn: Codable, Equatable, Identifiable {
         self.isHidden = isHidden
         self.isBig = isBig
         self.characterID = characterID
+        self.monsterName = monsterName
+        self.itemName = itemName
+        self.face = face
     }
 
     /// Written by hand for the three flags, which decode as false when absent.
@@ -278,6 +370,9 @@ struct Pawn: Codable, Equatable, Identifiable {
         isHidden = try container.decodeIfPresent(Bool.self, forKey: .isHidden) ?? false
         isBig = try container.decodeIfPresent(Bool.self, forKey: .isBig) ?? false
         characterID = try container.decodeIfPresent(UUID.self, forKey: .characterID)
+        monsterName = try container.decodeIfPresent(String.self, forKey: .monsterName)
+        itemName = try container.decodeIfPresent(String.self, forKey: .itemName)
+        face = try container.decodeIfPresent(PawnFace.self, forKey: .face)
     }
 
     /// Written by hand because `CodingKeys` carries the legacy `isCreature` key that has
@@ -300,6 +395,12 @@ struct Pawn: Codable, Equatable, Identifiable {
         // should see no trace of the feature in their map files, and `"characterID": null`
         // in every Pawn would be exactly that.
         try container.encodeIfPresent(characterID, forKey: .characterID)
+        // Omitted when absent for the same reason.
+        try container.encodeIfPresent(monsterName, forKey: .monsterName)
+        // Omitted when absent for the same reason.
+        try container.encodeIfPresent(itemName, forKey: .itemName)
+        // Omitted when absent for the same reason.
+        try container.encodeIfPresent(face, forKey: .face)
     }
 
     /// Reads `kind`, falling back to the `isCreature` boolean it replaces.
@@ -321,7 +422,8 @@ struct Pawn: Codable, Equatable, Identifiable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, label, colorHex, light, kind, isCreature, isHidden, isBig, characterID
+        case id, label, colorHex, light, kind, isCreature, isHidden, isBig, characterID,
+             monsterName, itemName, face
     }
 }
 
@@ -341,6 +443,17 @@ enum PawnKind: String, Codable, CaseIterable, Equatable {
     /// in being listed apart, because a DM reasons about loot and monsters separately.
     case treasure
 
+    /// Whether this Pawn makes Saving Throws and Ability Checks. A chest makes no
+    /// Dexterity saves. Read by the Pawn's row and by the Live View's right-click menu, so
+    /// the two offer the Rolls to the same Pawns. A `switch` with no `default`, like
+    /// `isDiscovered`, so a fourth kind has to decide.
+    var makesRolls: Bool {
+        switch self {
+        case .player, .creature: true
+        case .treasure: false
+        }
+    }
+
     /// Whether the players have to discover this, rather than carrying it.
     ///
     /// The single rule behind both branches that exist: a discovered Pawn emits no Light
@@ -354,21 +467,46 @@ enum PawnKind: String, Codable, CaseIterable, Equatable {
         }
     }
 
+    /// Whether a Pawn of this kind can be said to be a `Monster`.
+    ///
+    /// Only a Creature (`CONTEXT.md`, **Monster**): a Player's numbers come from its
+    /// Character, and a Treasure has none. One place, so the search box, the draft and `Add`
+    /// cannot come to disagree about it. A `switch` with no `default`, as above.
+    var canBeMonster: Bool {
+        switch self {
+        case .creature: return true
+        case .player, .treasure: return false
+        }
+    }
+
+    /// Whether a Pawn of this kind can be said to be an `Item`.
+    ///
+    /// Only a Treasure (`CONTEXT.md`, **Item**): an Item is to a Treasure what a Monster is
+    /// to a Creature. One place, as `canBeMonster` is, and a `switch` with no `default`.
+    var canBeItem: Bool {
+        switch self {
+        case .treasure: return true
+        case .player, .creature: return false
+        }
+    }
+
     /// The heading this kind is listed under in the live panel.
     var pluralTitle: String {
         switch self {
-        case .player: return "Players"
-        case .creature: return "Creatures"
-        case .treasure: return "Treasure"
+        case .player: return String(localized: "Players")
+        case .creature: return String(localized: "Creatures")
+        // Its own key: English says "Treasure" for the heading and for one of them, where
+        // Italian says *Tesori* and *Tesoro*.
+        case .treasure: return String(localized: "pawn-kind.treasure.heading", defaultValue: "Treasure")
         }
     }
 
     /// What the inspector calls this kind in its picker.
     var title: String {
         switch self {
-        case .player: return "Player"
-        case .creature: return "Creature"
-        case .treasure: return "Treasure"
+        case .player: return String(localized: "Player")
+        case .creature: return String(localized: "Creature")
+        case .treasure: return String(localized: "Treasure")
         }
     }
 }

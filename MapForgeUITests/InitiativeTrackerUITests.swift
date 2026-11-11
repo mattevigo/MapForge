@@ -1,0 +1,193 @@
+import XCTest
+import AppKit
+
+/// The Initiative Tracker driven as a DM drives it.
+///
+/// Everything here lives in the live panel, whose `ScrollView` publishes as Disabled in the
+/// accessibility tree — so `isHittable` is always false and `element.click()` refuses. The
+/// controls are genuinely live; see `.scratch/initiative-tracker/issues/04-the-combat-tab.md`.
+/// Clicks go through `clickByCoordinate`.
+final class InitiativeTrackerUITests: XCTestCase {
+
+    override func setUp() {
+        continueAfterFailure = false
+    }
+
+    private func fixturePNG() throws -> URL {
+        let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 1200, pixelsHigh: 900,
+                                   bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                   colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        NSColor.systemTeal.setFill()
+        NSRect(x: 0, y: 0, width: 1200, height: 900).fill()
+        NSGraphicsContext.restoreGraphicsState()
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mapforge-combat-\(UUID().uuidString).png")
+        try rep.representation(using: .png, properties: [:])!.write(to: url)
+        return url
+    }
+
+    private func controlWindow(_ app: XCUIApplication) -> XCUIElement { app.windows["control"] }
+
+    /// The Map, which is what a Pawn is placed on.
+    ///
+    /// The placements below were fractions of the whole window, which only ever worked
+    /// because the Map held its left edge. The live panel holds that edge now, so `dx: 0.2`
+    /// landed on the Party list and the Pawns were never placed — "both Pawns should be in
+    /// the Order" failed with one.
+    private func mapPreview(_ app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: "map-preview").firstMatch
+    }
+
+    private func clickByCoordinate(_ app: XCUIApplication, _ element: XCUIElement) {
+        let frame = controlWindow(app).frame
+        let dx = (element.frame.midX - frame.minX) / frame.width
+        let dy = (element.frame.midY - frame.minY) / frame.height
+        controlWindow(app).coordinate(withNormalizedOffset: CGVector(dx: dx, dy: dy)).click()
+    }
+
+    /// A Map with two Pawns on it and the Encounter tab showing.
+    private func launchWithCombatants() throws -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
+                               "--test-player-screen", "--test-fresh-preferences"]
+        app.launchInEnglish()
+
+        // Two Pawns, placed from the Live View's Add menu. They were placed in the fog
+        // editing mode until ADR-0013 moved authoring out of it; the fixture is shorter for
+        // it, since there is no mode to enter and leave.
+        //
+        // Armed once per Pawn: one click places one thing and disarms, so a DM adding two
+        // goblins opens the menu twice. The fixture mirrors that rather than working round
+        // it.
+        for dx in [0.35, 0.5] {
+            let menu = app.menuButtons["Add"]
+            XCTAssertTrue(menu.waitForExistence(timeout: 3), "no Add menu")
+            menu.click()
+            let item = app.menuItems["Creature"]
+            XCTAssertTrue(item.waitForExistence(timeout: 2), "Add offers no Creature")
+            item.click()
+            mapPreview(app).coordinate(withNormalizedOffset: CGVector(dx: dx, dy: 0.5)).click()
+        }
+
+        // The evening, before the fight: Play is refused until a Session is running.
+        let session = app.windows["control"].buttons["session-toggle"]
+        XCTAssertTrue(session.waitForExistence(timeout: 3), "no Session control")
+        session.click()
+
+        app.radioButtons["Encounter"].click()
+        return app
+    }
+
+    func testPlayWaitsForTheEveningToStart() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
+                               "--test-player-screen", "--test-fresh-preferences"]
+        app.launchInEnglish()
+        let menu = app.menuButtons["Add"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 3), "no Add menu")
+        menu.click()
+        app.menuItems["Creature"].click()
+        mapPreview(app).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+        app.radioButtons["Encounter"].click()
+
+        // Somebody to fight and no Session: grey, and saying why.
+        let play = app.buttons["encounter-play"]
+        XCTAssertTrue(play.waitForExistence(timeout: 2), "no play button")
+        XCTAssertFalse(play.isEnabled, "a fight could be started before the evening had")
+        XCTAssertTrue(app.staticTexts["encounter-refusal"].exists, "Play is grey without a word")
+
+        app.windows["control"].buttons["session-toggle"].click()
+        XCTAssertTrue(app.buttons["encounter-play"].isEnabled,
+                      "starting the Session did not free Play")
+    }
+
+    func testPlayRollsInitiativeAndShowsTheOrder() throws {
+        let app = try launchWithCombatants()
+
+        let play = app.buttons["encounter-play"]
+        XCTAssertTrue(play.waitForExistence(timeout: 2), "no play button")
+        clickByCoordinate(app, play)
+
+        XCTAssertTrue(app.staticTexts["round-number"].waitForExistence(timeout: 2),
+                      "the Round is not shown")
+        XCTAssertEqual(app.staticTexts["round-number"].value as? String, "Round 1")
+        // `.any` counts a row's nested labels and images too; the rows themselves are the
+        // elements carrying the identifier, so match on the type that publishes it.
+        // The rows are combined into single accessibility elements, so this counts rows
+        // rather than every Text and Image inside them.
+        XCTAssertEqual(app.descendants(matching: .any)
+            .matching(identifier: "combatant-row").count, 2,
+                       "both Pawns should be in the Order")
+    }
+
+    func testNextAdvancesTheTurnAndTheRound() throws {
+        let app = try launchWithCombatants()
+        clickByCoordinate(app, app.buttons["encounter-play"])
+        XCTAssertTrue(app.staticTexts["round-number"].waitForExistence(timeout: 2))
+
+        // Two Combatants, so two Nexts wrap into Round 2.
+        clickByCoordinate(app, app.buttons["encounter-next"])
+        XCTAssertEqual(app.staticTexts["round-number"].value as? String, "Round 1",
+                       "one Turn of two should not end the Round")
+        clickByCoordinate(app, app.buttons["encounter-next"])
+        XCTAssertEqual(app.staticTexts["round-number"].value as? String, "Round 2",
+                       "the Round did not advance when the Order wrapped")
+    }
+
+    func testPreviousShowsTheCorrectingBarAndNextReturnsToLive() throws {
+        let app = try launchWithCombatants()
+        clickByCoordinate(app, app.buttons["encounter-play"])
+        XCTAssertTrue(app.staticTexts["round-number"].waitForExistence(timeout: 2))
+        clickByCoordinate(app, app.buttons["encounter-next"])
+
+        clickByCoordinate(app, app.buttons["encounter-previous"])
+        XCTAssertTrue(app.staticTexts["correcting-bar"].waitForExistence(timeout: 2),
+                      "going back did not announce that it is a correction")
+
+        // Next walks back towards live rather than ending a Turn.
+        clickByCoordinate(app, app.buttons["encounter-next"])
+        XCTAssertFalse(app.staticTexts["correcting-bar"].exists,
+                       "Next did not return to live play")
+        XCTAssertEqual(app.staticTexts["round-number"].value as? String, "Round 1",
+                       "returning to live must not have ended a Turn")
+    }
+
+    func testStoppingAsksFirstAndCancellingKeepsTheFight() throws {
+        let app = try launchWithCombatants()
+        clickByCoordinate(app, app.buttons["encounter-play"])
+        XCTAssertTrue(app.staticTexts["round-number"].waitForExistence(timeout: 2))
+
+        clickByCoordinate(app, app.buttons["encounter-stop"])
+        // The sheet's Cancel, not the fog editing mode's — both exist in this window.
+        let sheet = app.sheets.firstMatch
+        XCTAssertTrue(sheet.waitForExistence(timeout: 2), "stopping did not confirm first")
+        sheet.buttons["Cancel"].click()
+        XCTAssertTrue(app.staticTexts["round-number"].exists, "Cancel ended the fight anyway")
+    }
+
+    func testThePlayButtonIsUnavailableWithNobodyToFight() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--test-map=\(try fixturePNG().path)", "--test-squares=30",
+                               "--test-player-screen", "--test-fresh-preferences"]
+        app.launchInEnglish()
+        // A Light, so the panel appears at all, but no Pawn to take a Turn. Placed from
+        // the Live View's Add menu — the fog editor's tool picker is gone (ADR-0013), and a
+        // `Menu` publishes as a MenuButton carrying a title.
+        //
+        // dx well left of centre: the live panel takes 320 of the window's width, so
+        // anything past about a third of the way across lands on the panel, not the preview.
+        let add = app.menuButtons["Add"]
+        XCTAssertTrue(add.waitForExistence(timeout: 3), "no Add menu")
+        add.click()
+        let light = app.menuItems["Light"]
+        XCTAssertTrue(light.waitForExistence(timeout: 2), "Add offers no Light")
+        light.click()
+        mapPreview(app).coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click()
+
+        app.radioButtons["Encounter"].click()
+        XCTAssertTrue(app.staticTexts["Nobody on the Map to fight"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.buttons["encounter-play"].isEnabled)
+    }
+}

@@ -20,6 +20,23 @@ enum PlayerPlacement {
                        y: frame.minY + point.y / map.imagePixelSize.height * frame.height)
     }
 
+    /// `viewPoint` as a transform: image pixels to that surface's points, each axis scaled
+    /// on its own. For drawing that has to scale exactly as the artwork does — a Light's
+    /// falloff on a frame scaled unevenly (non-square pixels at True Scale) must stay on its
+    /// polygon, where a radius scaled by one axis would not.
+    ///
+    /// A Map with no pixels has no Map space: everything collapses onto the frame's origin,
+    /// as `viewPoint` does, so a caller draws nothing rather than dividing by zero. This is
+    /// the one place that case is handled; callers need not guard it again.
+    static func mapToView(map: MapScale, frame: CGRect) -> CGAffineTransform {
+        guard map.imagePixelSize.width > 0, map.imagePixelSize.height > 0 else {
+            return CGAffineTransform(a: 0, b: 0, c: 0, d: 0, tx: frame.minX, ty: frame.minY)
+        }
+        return CGAffineTransform(a: frame.width / map.imagePixelSize.width, b: 0,
+                                 c: 0, d: frame.height / map.imagePixelSize.height,
+                                 tx: frame.minX, ty: frame.minY)
+    }
+
     /// The inverse: which Map point a click on that surface landed on.
     ///
     /// The mirror had no absolute inverse until measuring needed one — `PawnLayer` only

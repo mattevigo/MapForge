@@ -1,0 +1,23 @@
+name: Feature
+description: An idea for something MapForge could do at the table.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        MapForge is shaped around one DM's table, so not every idea will fit. Telling us about the moment at the table it's for helps most.
+  - type: textarea
+    id: situation
+    attributes:
+      label: The situation at the table
+      description: What's happening in the game when you need this? What gets in the way today?
+      placeholder: e.g. The party walks into a new room, and I have to stop and set things up while everyone waits.
+    validations:
+      required: true
+  - type: textarea
+    id: wish
+    attributes:
+      label: What you'd like to happen
+      description: What would MapForge do, on the Control Window, the Player Display, or both?
+    validations:
+      required: true

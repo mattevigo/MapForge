@@ -37,6 +37,9 @@ is not one: no drawing, no fog, no persistence and no behaviour reads it. It exi
 Party roster can show that three of five Characters have Pawns on this Map — the glance a DM
 takes at the start of a session. A Pawn whose `characterID` names a deleted Character loses
 a badge and nothing else, which is exactly the blast radius an advisory field should have.
+ADR-0028 adds the one reader the DM triggers: re-cutting a Character's Face for *every* one of
+its Pawns reaches those on the open Map by this field. A Pawn whose Character is gone is then
+re-cut for itself alone.
 
 Matching on the label instead would have avoided the field entirely, and was rejected because
 renaming a Pawn live is a thing the sidebar already lets you do; the count would silently go
@@ -79,7 +82,28 @@ have made a DM's campaign roster a property of one battle map.
   makes "can I undo this?" depend on invisible state.
 - **The Party lives next to the campaign folder the DM chose** — rejected: it needs a file
   picker and a persisted security-scoped bookmark, the same machinery that made the Library
-  issue `wontfix`.
+  issue `wontfix`. **Reversed by ADR-0011**: the app is not sandboxed, so the bookmark was
+  never needed and this rejection rested on a cost that did not exist.
 - **Characters carry a portrait** — deferred, not rejected. It reaches into token rendering,
   True Scale sizing and the sidecar format, and deserves its own decision rather than riding
-  along with reuse.
+  along with reuse. **Settled by ADR-0028**: a Character may carry a Face, which the Stamp
+  copies like everything else.
+
+## Amended: the Combat tab reads it too
+
+`characterID` is now read by **two** things: the roster's count, and the Combat tab, which
+follows a Player Pawn's `characterID` to its Character, and the Character's note, to show
+the DM that Character's page (its actions, spells and traits) beside the Stat Block. That is
+the advisory read ADR-0020 allows a Creature's `monsterName`, made for Players. It reads the
+Characters' notes, not the Bestiary (ADR-0032 has since added a second reader of both, the Encounter Difficulty, which reads `level`), so ADR-0020's one live read of the Bestiary stays one;
+the two pages are read the same way, each from its own reading of the Workspace.
+
+The page is looked up live, each time it is drawn, rather than from a note name copied onto
+the Pawn at the Stamp. A copy would have left every Pawn already on a Map without a page:
+they were stamped before Characters had notes, and ADR-0024 starts every Character unlinked.
+A Character the DM links tonight should reach the Pawns already standing on tonight's Map.
+
+The blast radius is unchanged in kind. A Pawn whose Character is deleted, unlinked, or whose
+note has gone loses a page of reference and nothing else. Its label, colour, sight and Stat
+Block are still its own, `<map>.fog.json` still reads without a roster, and nothing about
+drawing, lighting, discovery or persistence branches on the field.

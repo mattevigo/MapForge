@@ -21,7 +21,11 @@ struct LightMarker: View {
     /// Floored like `PawnToken`'s side is, and for the same reason: a Map with no declared
     /// physical size yields a zero-width square, and an invisible marker is worse than an
     /// approximately-sized one.
-    private var diameter: CGFloat { max(squareSide / 2, 9) }
+    private var diameter: CGFloat { Self.diameter(squareSide: squareSide) }
+
+    /// The dot's width on a surface whose square is `squareSide` — for whatever is drawn
+    /// around it, as the Control Window's Selection ring is.
+    static func diameter(squareSide: CGFloat) -> CGFloat { max(squareSide / 2, 9) }
 
     var body: some View {
         Circle()
