@@ -19,7 +19,7 @@ body:
     attributes:
       label: MapForge version
       description: MapForge menu > About MapForge.
-      placeholder: e.g. Version 1.2.0 (12)
+      placeholder: e.g. Version 1.2.0 (3)
     validations:
       required: true
   - type: dropdown

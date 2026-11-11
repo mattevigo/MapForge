@@ -7,7 +7,7 @@ Window on the Mac's own screen. The players see only the Map.
 
 What it does:
 
-- **Player Display.** The Map fills the second screen, with no controls on it. You choose
+- **Player Display.** The Map fills the Player Display, with no controls on it. You choose
   which part of a large Map the table sees, or show the whole Map with Map Fit. Blackout hides
   it in one click.
 - **Fog Overlay.** Trace Walls and place Lights, and the Player Display hides what no light
@@ -17,16 +17,16 @@ What it does:
   one character alone lights it.
 - **Measurements.** Measure a Cone, Square, Circle or Line on the Map. The table sees the
   shape and its distance.
-- **Encounters and Initiative.** Start a fight, roll Initiative, and step through Turns and
-  Rounds while you track hit points and Conditions. Every Turn goes into a Combat Log. The
-  Encounter Difficulty shows how hard the fight is for the Party.
+- **Encounters and Initiative.** Start an Encounter, roll Initiative, and step through Turns
+  and Rounds while you track hit points and Conditions. Every Turn goes into a Combat Log. The
+  Encounter Difficulty shows how hard the Encounter is for the Party.
 - **Bestiary and Characters, read from your notes.** MapForge reads Monsters and Characters
   from the markdown notes in your Workspace. You keep writing them where you already do, and
   the app never changes them.
 - **Rolls and the Session Log.** Record a Saving Throw or an Ability Check as the dice fell.
-  Outside a fight, Pawn moves, Rolls and your Comments go into the evening's Session Log.
-  During one, they go into the Combat Log.
-- **Translations.** The app speaks English, Italian, German, French, Spanish, Brazilian
+  Outside an Encounter, Pawn moves, Rolls and your Comments go into the evening's Session
+  Log. During one, Rolls go into the Combat Log.
+- **Interface Language.** The app speaks English, Italian, German, French, Spanish, Brazilian
   Portuguese and Greek. Rulebook terms use the words of the official edition in that
   language, and stay in English where there is none.
 
@@ -63,8 +63,9 @@ xcodebuild -scheme MapForge -destination 'platform=macOS' build
 xcodebuild -scheme MapForge -destination 'platform=macOS' test
 ```
 
-The `test` command runs the UI tests too, and they need a real second display connected. To
-run only the unit tests, add `-only-testing:MapForgeTests`:
+The `test` command runs the UI tests too. They launch the app and drive it on screen, so they
+are slow and need the Mac to yourself while they run. To run only the unit tests, add
+`-only-testing:MapForgeTests`:
 
 ```sh
 xcodebuild -scheme MapForge -destination 'platform=macOS' test -only-testing:MapForgeTests
@@ -103,5 +104,4 @@ MapForge uses material from the System Reference Document 5.2.1, credited in
 
 ## Unofficial content
 
-MapForge is unofficial and is not affiliated with or endorsed by Wizards of the Coast LLC, the
-publisher of Dungeons & Dragons.
+MapForge is unofficial and is not affiliated with or endorsed by Wizards of the Coast LLC.

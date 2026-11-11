@@ -11,7 +11,10 @@ This work includes material from the System Reference Document 5.2.1 (“SRD 5.2
 
 MapForge uses SRD 5.2.1 material in two places: the Encounter Difficulty (its
 difficulty bands and the experience-point budgets they are reckoned from), and the
-rulebook terms used in its translations.
+Italian, German, French and Spanish rulebook terms, taken from Wizards of the Coast's
+translations of the SRD 5.2.1. The Brazilian Portuguese rulebook terms come from the
+Livro do Jogador (Galápagos, Asmodee), not from the SRD, and Greek keeps the English
+terms.
 
 
 Name and icon
@@ -25,8 +28,7 @@ a different icon.
 Unofficial content
 ------------------
 
-MapForge is unofficial and is not affiliated with or endorsed by Wizards of the Coast
-LLC, the publisher of Dungeons & Dragons.
+MapForge is unofficial and is not affiliated with or endorsed by Wizards of the Coast LLC.
 
 
 Third-party code

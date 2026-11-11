@@ -23,8 +23,10 @@ are also sold in a store.
 
 ## Consequences
 
-- The SRD 5.2.1 material the app reckons with (the encounter difficulty bands and XP
-  budgets of ADR-0032, the rulebook terms of ADR-0022) is CC-BY-4.0, not MIT. `NOTICE`
-  carries the attribution that licence requires.
+- The SRD 5.2.1 material the app reckons with (the Encounter Difficulty bands and XP
+  budgets of ADR-0032, and the Italian, German, French and Spanish rulebook terms of
+  ADR-0022, from WotC's translated SRD 5.2.1) is CC-BY-4.0, not MIT. `NOTICE` carries the
+  attribution that licence requires. The Brazilian Portuguese terms come from the
+  Galápagos/Asmodee *Livro do Jogador*, not the SRD, and Greek keeps the English terms.
 - Changing the licence later needs the agreement of everyone who has contributed code.
   Until there are outside contributions, that is only the author.

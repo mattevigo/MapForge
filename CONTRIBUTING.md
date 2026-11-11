@@ -39,7 +39,3 @@ Issues are welcome:
 
 How to generate the Xcode project, build the app and run the unit tests is in the README's
 [Building](README.md#building) section.
-
-The test command there runs the UI tests too, and they need a real second display. To run only
-the unit tests, add `-only-testing:MapForgeTests` to it. Those are the tests a PR is expected
-to pass.
