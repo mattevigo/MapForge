@@ -99,7 +99,8 @@ enum MonsterReference {
     }
 }
 
-/// A Monster's page under the Stat Block editor, for the Combatant the editor is pointed at.
+/// A Monster's page, in the popover beside the Stat Block editor's name, for the Combatant
+/// the editor is pointed at.
 ///
 /// **The one live read of the Bestiary** (ADR-0020): looked up by the name the Pawn
 /// remembers, each time it is drawn. Right here and nowhere else, because this is reference
@@ -134,7 +135,7 @@ struct MonsterReferenceView: View {
     }
 }
 
-/// A page of the DM's notes under the Stat Block editor — a Monster's or a Character's, laid
+/// A page of the DM's notes beside the Stat Block editor — a Monster's or a Character's, laid
 /// out alike so the DM reads both the same way mid-fight.
 ///
 /// At body size, not caption size: this is read at arm's length while six people wait, and
@@ -193,11 +194,9 @@ struct ReferencePageView: View {
             .fixedSize(horizontal: false, vertical: true)
             .textSelection(.enabled)
         }
-        // Takes whatever the tab has left under the editor, and scrolls inside that. It was
-        // capped at 240 once, to keep a Caos Orb's page from pushing the Order off the top
-        // of the tab — which left a tall window half empty under a page the DM was
-        // scrolling three lines at a time. A ScrollView cannot push anything: it shares
-        // the height with the Order's instead.
+        // Takes whatever height its popover gives it, up to `PawnPage.maxHeight`, and
+        // scrolls inside that. It lived under the editor once, sharing the tab with the
+        // list above, and a long roster left it nothing; a popover has no list to share with.
         .frame(maxHeight: .infinity)
     }
 

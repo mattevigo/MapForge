@@ -12012,6 +12012,46 @@
         }
       }
     },
+    "Pin this page in its own window, to keep it open": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Seite in einem eigenen Fenster anheften, damit sie offen bleibt"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Καρφίτσωμα αυτής της σελίδας σε δικό της παράθυρο, ώστε να μένει ανοιχτή"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fijar esta página en su propia ventana para mantenerla abierta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Épingler cette page dans sa propre fenêtre, pour la garder ouverte"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fissa questa pagina in una finestra a sé, per tenerla aperta"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fixar esta página em uma janela própria, para mantê-la aberta"
+          }
+        }
+      }
+    },
     "Play": {
       "localizations": {
         "de": {
@@ -14142,6 +14182,46 @@
         }
       }
     },
+    "Show this Pawn's page from your notes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Seite dieser Spielfigur aus deinen Notizen zeigen"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εμφάνιση της σελίδας αυτού του πιονιού από τις σημειώσεις σας"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar la página de esta ficha en tus notas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher la page de ce pion dans vos notes"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra la pagina di questa pedina dalle tue note"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar a página desta peça nas suas notas"
+          }
+        }
+      }
+    },
     "Sight": {
       "localizations": {
         "de": {
@@ -15701,6 +15781,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "As notas são lidas quando o espaço de trabalho é aberto."
+          }
+        }
+      }
+    },
+    "This Character is no longer in the Party.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Charakter ist nicht mehr in der Gruppe."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Αυτός ο χαρακτήρας δεν είναι πλέον στην ομάδα."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este personaje ya no está en el grupo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce personnage ne fait plus partie du groupe."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo personaggio non è più nel gruppo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este personagem não está mais no grupo."
           }
         }
       }

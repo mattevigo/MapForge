@@ -219,6 +219,9 @@ final class AppState: ObservableObject {
     @Published private(set) var chosenDisplay: DisplayIdentity?
 
     private let playerWindow = PlayerWindowController()
+    /// The pages of the DM's notes pinned out of the Stat Block editor's popover, each in
+    /// its own panel.
+    let pinnedPages = PinnedPages()
     private let preferences: DisplayPreferences
     private let workspaceStore: WorkspaceStore
     private let fogStore: FogStore
@@ -1145,7 +1148,13 @@ final class AppState: ObservableObject {
     /// Character's note (ADR-0007, amended) — never from a name copied at the Stamp, so a
     /// Character the DM links tonight reaches the Pawns already on tonight's Map.
     func characterPage(for pawn: Pawn) -> CharacterPage? {
-        switch characterNote(for: pawn) {
+        characterPage(forCharacter: pawn.characterID)
+    }
+
+    /// The page of the Character `id` names, as `characterPage(for:)` reaches it — for a page
+    /// pinned in its own panel, which outlives the Pawn it was opened from.
+    func characterPage(forCharacter id: UUID?) -> CharacterPage? {
+        switch characterNote(forCharacter: id) {
         case .noCharacter, .characterGone:
             return nil
         case .unlinked(let character):
@@ -1162,7 +1171,12 @@ final class AppState: ObservableObject {
     /// of its note, the note — and where it stopped, if it did. Shared by the Character page
     /// and the Encounter Difficulty, which each say a different thing at each stop.
     func characterNote(for pawn: Pawn) -> CharacterNoteLookup {
-        guard let id = pawn.characterID else { return .noCharacter }
+        characterNote(forCharacter: pawn.characterID)
+    }
+
+    /// The same walk, from the Character's ID rather than from one of its Pawns.
+    func characterNote(forCharacter id: UUID?) -> CharacterNoteLookup {
+        guard let id else { return .noCharacter }
         guard let character = character(id: id) else { return .characterGone }
         guard let noteName = character.noteName else { return .unlinked(character) }
         guard let note = characterNotes.note(named: noteName) else {
@@ -1388,6 +1402,9 @@ final class AppState: ObservableObject {
         chosenDisplay = nil
         playerWindow.hide()
         playerScreen = nil
+        // A page is read from the Workspace's notes: left open, the next Workspace's Monster
+        // of the same name would take its place under the old one's title.
+        pinnedPages.closeAll()
     }
 
     /// Reads the Workspace's Monsters, Characters' notes and Items, off the main thread.

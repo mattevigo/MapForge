@@ -65,7 +65,8 @@ enum CharacterReference {
     }
 }
 
-/// A Character's page under the Stat Block editor, for a Pawn Stamped from it.
+/// A Character's page, in the popover beside the Stat Block editor's name, for a Pawn
+/// Stamped from it.
 ///
 /// `MonsterReferenceView`'s twin, and like it reference and not state: every number the fight
 /// depends on was copied into the Stat Block at the Stamp. What is shown is decided by

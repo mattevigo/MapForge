@@ -21,19 +21,7 @@ struct StatEditor: View {
         VStack(alignment: .leading, spacing: 8) {
             if let combatant, let pawn = pawn(combatant) {
                 Divider()
-                editor(for: combatant, named: pawn.label)
-                // The Monster's page, for a Creature that is one — so the DM reads its
-                // actions here rather than alt-tabbing to their notes mid-fight.
-                if let monsterName = pawn.monsterName {
-                    Divider()
-                    MonsterReferenceView(monsterName: monsterName, bestiary: appState.bestiary,
-                                         unit: appState.distanceUnit)
-                } else if let page = appState.characterPage(for: pawn) {
-                    // And the Character's, for a Pawn Stamped from one: "what's my spell
-                    // save DC again?" without asking the player (ADR-0007, amended).
-                    Divider()
-                    CharacterReferenceView(page: page, unit: appState.distanceUnit)
-                }
+                editor(for: pawn)
             }
             if appState.encounter != nil {
                 Divider()
@@ -52,12 +40,17 @@ struct StatEditor: View {
 
     // MARK: The editor
 
-    private func editor(for id: Pawn.ID, named name: String) -> some View {
+    private func editor(for pawn: Pawn) -> some View {
+        let id = pawn.id
         let current = block(id)
         return VStack(alignment: .leading, spacing: 6) {
-            Text(name)
-                .font(.caption.weight(.semibold))
-                .lineLimit(1)
+            HStack(spacing: 4) {
+                Text(pawn.label)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                pageButton(for: pawn)
+            }
 
             HStack(spacing: 6) {
                 field(String(localized: "HP", comment: "Hit points, as narrow as the field"), value: current.currentHP, id: "hp") { new in
@@ -119,6 +112,43 @@ struct StatEditor: View {
             conditionGrid(for: id, current: current)
         }
     }
+
+    /// The Pawn's page of the DM's notes, a click away beside its name: the Monster's for a
+    /// Creature that is one, so the DM reads its actions here rather than alt-tabbing to
+    /// their notes mid-fight; the Character's for a Pawn Stamped from one, so "what's my
+    /// spell save DC again?" is answered without asking the player (ADR-0007, amended).
+    ///
+    /// In a popover, not under the editor. Under it, the page shared the tab's height with
+    /// the list above, and a long roster before Play — or a long Order — left it a sliver
+    /// or nothing at all. A popover has the height it needs whatever the list holds, and is
+    /// gone with an outside click; a page the DM wants kept open is pinned from it into a
+    /// panel of its own (`PinnedPages`).
+    @ViewBuilder
+    private func pageButton(for pawn: Pawn) -> some View {
+        if let page = PawnPage(pawn: pawn, appState: appState) {
+            Button {
+                isShowingPage.toggle()
+            } label: {
+                Image(systemName: "book.pages")
+            }
+            .buttonStyle(.borderless)
+            .accessibilityIdentifier("pawn-page")
+            .help("Show this Pawn's page from your notes")
+            .popover(isPresented: $isShowingPage, arrowEdge: .trailing) {
+                // The screen the DM is looking at: the key window's, which is this one at
+                // the moment its button is clicked.
+                let screen = NSApp.keyWindow?.screen ?? NSScreen.main
+                page.inPopover(onScreenOfHeight: screen?.visibleFrame.height) {
+                    // Into a panel the DM can resize and keep beside the fight; the popover
+                    // goes, since the panel now holds what it showed.
+                    isShowingPage = false
+                    appState.pinnedPages.pin(page.source, appState: appState)
+                }
+            }
+        }
+    }
+
+    @State private var isShowingPage = false
 
     /// One labelled number field, committing on Return and on focus loss.
     ///
