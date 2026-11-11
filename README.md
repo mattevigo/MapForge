@@ -25,7 +25,7 @@ What it does:
   the app never changes them.
 - **Rolls and the Session Log.** Record a Saving Throw or an Ability Check as the dice fell.
   Outside an Encounter, Pawn moves, Rolls and your Comments go into the evening's Session
-  Log. During one, Rolls go into the Combat Log.
+  Log. During one, Pawn moves and Rolls go into the Combat Log.
 - **Interface Language.** The app speaks English, Italian, German, French, Spanish, Brazilian
   Portuguese and Greek. Rulebook terms use the words of the official edition in that
   language, and stay in English where there is none.
