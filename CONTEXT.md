@@ -189,7 +189,7 @@ A Pawn taking part in the live Encounter: one with an Initiative and a place in 
 _Avoid_: participant, actor, entity, fighter
 
 **Benched**:
-On the Map but not in the Order: a Creature that has died or fled, a summon that has not been added yet, a Treasure, a Pawn the DM has simply set aside. Benched Pawns are listed under the Order rather than hidden, because a DM needs to see the whole room and not only the part of it taking Turns. Being Benched says nothing about being alive — a Combatant at 0 hit points is Unconscious whether it is Benched or not, and the two are decided separately. A Benched Pawn returns to the Order by rolling Initiative afresh, exactly as one joining for the first time does.
+On the Map but not in the Order: a Creature that has died or fled, a summon that has not been added yet, a Treasure, a Pawn the DM has simply set aside. Benched Pawns are listed under the Order rather than hidden, because a DM needs to see the whole room and not only the part of it taking Turns. Being Benched says nothing about being alive — a Combatant at 0 hit points is Unconscious whether it is Benched or not, and the two are decided separately. A Benched Pawn returns to the Order by rolling Initiative afresh, exactly as one joining for the first time does. Benching the Combatant whose Turn it is — or deleting its Pawn from the Map — ends that Turn under its name, and the fight moves to whoever comes next in the Order, into the next Round if it was last.
 _Avoid_: removed, inactive, sidelined, out, reserve
 
 **Entrant**:

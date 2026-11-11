@@ -142,14 +142,7 @@ enum EncounterControl {
             return []
         }
         guard let active = encounter.activeCombatantID else { return [] }
-
-        let line = LogLine.turn(round: encounter.round,
-                                combatantID: active,
-                                changes: encounter.pendingChanges,
-                                endedAt: date)
-        encounter.append(line)
-        encounter.clearBuffer()
-        return [line]
+        return [endTurn(of: active, in: &encounter, at: date)]
     }
 
     /// Walks the correction cursor back one ended Turn.
@@ -231,10 +224,21 @@ enum EncounterControl {
     ///
     /// Not a deletion: its name and numbers stay, so the Log can still describe it and the
     /// DM can still heal it before sending it back. See `CONTEXT.md`, **Benched**.
+    ///
+    /// Benching the Combatant whose Turn it is ends that Turn, under its own name: its last
+    /// blow and its fall are what happened during it, and a Turn cannot stay open for
+    /// somebody no longer in the Order. Left open, it pointed at a place in the Order that
+    /// no longer existed when the Combatant was last, and the fight had nobody to advance.
     @discardableResult
-    static func bench(_ combatantID: UUID, in encounter: inout Encounter) -> [LogLine] {
+    static func bench(_ combatantID: UUID, in encounter: inout Encounter,
+                      at date: Date = Date()) -> [LogLine] {
         guard encounter.order.contains(combatantID) else { return [] }
-        return record([.combatantRemoved(combatantID: combatantID)], in: &encounter)
+        let endsTheTurn = !encounter.isCorrecting
+            && encounter.activeCombatantID == combatantID
+        var lines = record([.combatantRemoved(combatantID: combatantID)],
+                           in: &encounter, at: date)
+        if endsTheTurn { lines.append(endTurn(of: combatantID, in: &encounter, at: date)) }
+        return lines
     }
 
     /// Returns a Benched Pawn to the Order, rolling Initiative afresh.
@@ -336,6 +340,19 @@ enum EncounterControl {
     }
 
     // MARK: - Recording
+
+    /// Writes the Turn in progress as `combatantID`'s and clears the buffer. The fold
+    /// advances from whoever the line names.
+    private static func endTurn(of combatantID: UUID, in encounter: inout Encounter,
+                                at date: Date) -> LogLine {
+        let line = LogLine.turn(round: encounter.round,
+                                combatantID: combatantID,
+                                changes: encounter.pendingChanges,
+                                endedAt: date)
+        encounter.append(line)
+        encounter.clearBuffer()
+        return line
+    }
 
     /// Records several Changes as one step, so a join or a re-roll cannot half-happen.
     @discardableResult
