@@ -1,8 +1,8 @@
 # MapForge
 
-MapForge is a macOS app for running fifth-edition games on a screen at the table. It shows
-your Map on a second display, a TV or monitor at the table, at True Scale: one inch of Map is
-one inch of screen, so the players' miniatures fit the Grid. You run it from the Control
+MapForge is a virtual tabletop (VTT) for macOS, made for fifth-edition games played in person.
+It shows your Map on a second display, a TV or monitor at the table, at True Scale: one inch
+of Map is one inch of screen, so the players' miniatures fit the Grid. You run it from the Control
 Window on the Mac's own screen. The players see only the Map.
 
 What it does:
