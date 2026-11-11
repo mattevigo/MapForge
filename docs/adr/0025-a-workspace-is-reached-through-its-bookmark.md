@@ -7,6 +7,10 @@ every app there runs in the **App Sandbox**. Inside the sandbox, a folder the DM
 reachable only for the launch it was chosen in. A recents list of paths would come back the
 next morning listing every campaign, none of them openable.
 
+**The App Store was dropped in ADR-0034**: MapForge is built from source, with no sandbox. The
+bookmarks stay. They work the same way unsandboxed, and they still find a Workspace that has
+been moved.
+
 The Workspace stays where ADR-0011 put it. What changes is how the app gets back to it.
 
 ## A bookmark beside every recent
