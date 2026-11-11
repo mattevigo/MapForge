@@ -641,12 +641,14 @@ final class AppStateFogTests: XCTestCase {
 
         appState.beginFogEditing()                     // as the mode opens
         var edits = FogEdits(document: appState.fog)
-        appState.movePawn(id: pawn.id, to: MapPoint(x: 80, y: 60))
+        // Inside the 40×30 Map on any display: on a 1× screen the image is 40×30 pixels,
+        // and a move past its edge is clamped.
+        appState.movePawn(id: pawn.id, to: MapPoint(x: 35, y: 25))
         appState.setPawnLight(id: pawn.id, isOn: false)
         edits.addWalls([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 50, y: 0))])
         appState.applyFogEdits(edits)
 
-        XCTAssertEqual(appState.fog.pawns.first?.at, MapPoint(x: 80, y: 60),
+        XCTAssertEqual(appState.fog.pawns.first?.at, MapPoint(x: 35, y: 25),
                        "drawing a Wall snapped the Pawn back")
         XCTAssertEqual(appState.fog.pawns.first?.light.isOn, false,
                        "drawing a Wall relit a doused torch")
