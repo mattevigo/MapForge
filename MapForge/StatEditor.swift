@@ -81,7 +81,9 @@ struct StatEditor: View {
             }
             .font(.caption)
 
-            HStack(spacing: 6) {
+            // On the fields' line rather than the stack's middle: centred against caption and
+            // box together, the toggle sat half a caption above the boxes beside it.
+            HStack(alignment: .fieldLine, spacing: 6) {
                 field(String(localized: "AC", comment: "Armour Class, abbreviated"), value: current.armorClass, id: "ac") { new in
                     appState.editStatBlock(for: id) {
                         $0.armorClass = new ?? StatBlock.defaultArmorClass
@@ -105,8 +107,21 @@ struct StatEditor: View {
                     Image(systemName: "circle.hexagonpath.fill")
                 }
                 .toggleStyle(.button)
+                .alignmentGuide(.fieldLine) { $0[VerticalAlignment.center] }
                 .accessibilityIdentifier("concentration-toggle")
-                .help("Concentrating")
+                .help("Concentration")
+                .namesOnHover(String(localized: "Concentration"), into: $hoveredName)
+                Spacer(minLength: 6)
+                // The name of the icon under the mouse, read out at once at the row's end:
+                // the Conditions and Concentration are icons alone, and a tooltip takes a
+                // second to come. Empty when the mouse is over none of them.
+                Text(hoveredName ?? "")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .alignmentGuide(.fieldLine) { $0[VerticalAlignment.center] }
+                    .accessibilityHidden(true)
+                    .accessibilityIdentifier("hovered-name")
             }
 
             conditionGrid(for: id, current: current)
@@ -150,6 +165,9 @@ struct StatEditor: View {
 
     @State private var isShowingPage = false
 
+    /// The name of the Condition or Concentration button the mouse is over, if any.
+    @State private var hoveredName: String?
+
     /// One labelled number field, committing on Return and on focus loss.
     ///
     /// Commit-on-keystroke would record 2, then 24, for a DM typing "24" — two Changes for
@@ -161,6 +179,7 @@ struct StatEditor: View {
         VStack(alignment: .leading, spacing: 1) {
             Text(label).font(.system(size: 9)).foregroundStyle(.secondary)
             NumberField(value: value, identifier: id, commit: commit)
+                .alignmentGuide(.fieldLine) { $0[VerticalAlignment.center] }
         }
     }
 
@@ -193,6 +212,7 @@ struct StatEditor: View {
                 .tint(isOn ? .accentColor : .secondary)
                 .accessibilityIdentifier("condition-\(condition.rawValue)")
                 .help(condition.title)
+                .namesOnHover(condition.title, into: $hoveredName)
             }
         }
     }
@@ -240,6 +260,32 @@ struct StatEditor: View {
         appState.addNote(note)
         note = ""
     }
+}
+
+private extension View {
+    /// Writes `name` into `hovered` while the mouse is over this view, and clears it on the
+    /// way out — unless the mouse has already entered a neighbour, whose name then stays.
+    func namesOnHover(_ name: String, into hovered: Binding<String?>) -> some View {
+        onHover { inside in
+            if inside {
+                hovered.wrappedValue = name
+            } else if hovered.wrappedValue == name {
+                hovered.wrappedValue = nil
+            }
+        }
+    }
+}
+
+private extension VerticalAlignment {
+    /// The middle of a Stat Block field's box, under its caption — what a control set in a
+    /// row of fields lines up with, rather than the middle of caption and box together.
+    enum FieldLine: AlignmentID {
+        static func defaultValue(in context: ViewDimensions) -> CGFloat {
+            context[VerticalAlignment.center]
+        }
+    }
+
+    static let fieldLine = VerticalAlignment(FieldLine.self)
 }
 
 /// A number field that commits once, on Return or on losing focus.
