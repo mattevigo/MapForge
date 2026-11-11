@@ -42,6 +42,18 @@ Capitalised words such as Map, Pawn and Workspace have exact meanings. They are 
   Monsters and Characters from `statblock` code blocks, in the format of the Obsidian
   Fantasy Statblocks plugin.
 
+## With DM Realm
+
+[DM Realm](https://github.com/mattevigo/DM-Realm) is a Claude Code plugin that keeps a
+fifth-edition campaign as markdown notes for Obsidian. It works in the same Workspace as
+MapForge. After a Session, it brings MapForge's record of the evening, the Session Log and
+each Encounter's Combat Log, into that Session's notes.
+
+To start with DM Realm, follow its guide at
+[mattevigo.github.io/DM-Realm](https://mattevigo.github.io/DM-Realm/guide/). Its
+[At the table](https://mattevigo.github.io/DM-Realm/guide/play/) lesson shows how MapForge's
+record joins a Session's notes.
+
 ## Getting it
 
 MapForge is coming to the Mac App Store.
