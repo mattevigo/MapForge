@@ -11,7 +11,8 @@ import Foundation
 /// Two halves. The three optional numbers are what a Stamp copies into a Stat Block, and they
 /// are optional because a hand-written note may simply lack one — such a Monster is still
 /// offered and stamps what it has. Everything else is text the DM reads mid-fight, kept as
-/// the note wrote it: the app never computes with a speed or a sense.
+/// the note wrote it: the app never computes with a speed or a sense. The one exception is
+/// `challengeRating`, read for the Encounter Difficulty and never stamped (ADR-0032).
 struct Monster: Equatable, Identifiable {
     /// What the DM searches for, and what a Pawn remembers. Unique within a `Bestiary`.
     var name: String
@@ -30,6 +31,10 @@ struct Monster: Equatable, Identifiable {
     var speed: String?
     var senses: String?
     var languages: String?
+    /// The note's `cr`, as written, for the page. Also what the Encounter Difficulty reads a
+    /// Creature's worth from, live and only when it is one the rulebook prints
+    /// (`ChallengeRating`, ADR-0032) — never copied into a Stat Block, so a fight does not
+    /// change because the note did.
     var challengeRating: String?
     var source: String?
     var saves: [Proficiency] = []

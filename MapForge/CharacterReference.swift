@@ -1,5 +1,18 @@
 import SwiftUI
 
+/// How far `AppState.characterNote(for:)` got from a Pawn to its Character's note.
+enum CharacterNoteLookup: Equatable {
+    /// The Pawn was not Stamped from a Character.
+    case noCharacter
+    /// The Character that Stamped it has been deleted from every Party since.
+    case characterGone
+    /// The Character was never linked to a note.
+    case unlinked(PartyCharacter)
+    /// The Character's note is not among the notes read.
+    case missing(noteName: String)
+    case found(CharacterNote)
+}
+
 /// What the Combat tab shows under a Player Pawn's Stat Block editor — `AppState.characterPage(for:)`.
 enum CharacterPage: Equatable {
     /// The Character's note, read from the Workspace.
@@ -52,7 +65,8 @@ enum CharacterReference {
     }
 }
 
-/// A Character's page under the Stat Block editor, for a Pawn Stamped from it.
+/// A Character's page, in the popover beside the Stat Block editor's name, for a Pawn
+/// Stamped from it.
 ///
 /// `MonsterReferenceView`'s twin, and like it reference and not state: every number the fight
 /// depends on was copied into the Stat Block at the Stamp. What is shown is decided by

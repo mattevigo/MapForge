@@ -47,9 +47,9 @@ struct CombatPanel: View {
             StatEditor(combatant: selection ?? appState.encounter?.activeCombatantID)
                 .padding(8)
         }
-        // The whole height of the tab, fight or no fight. The Order's ScrollView used to
-        // be the only thing here that stretched, so before Play the panel ended where its
-        // content did and the Monster's page below had nowhere to grow into.
+        // The whole height of the tab, fight or no fight, so the panel's ground does not end
+        // where its content does. Before Play nothing here stretches: the roster is capped
+        // at its rows and the editor sits right under them.
         .frame(maxHeight: .infinity, alignment: .top)
         .background(Color(nsColor: .textBackgroundColor),
                     in: RoundedRectangle(cornerRadius: 6))
@@ -80,9 +80,30 @@ struct CombatPanel: View {
                     }
                 }
             }
+            encounterDifficulty
             controls
         }
         .padding(8)
+    }
+
+    /// How hard the fight the DM has framed is, directly above the controls — read from the
+    /// notes each time it is drawn (`AppState.encounterDifficultyReading`, ADR-0032).
+    ///
+    /// The same place before Play and while the fight runs, under "Round N" or the
+    /// correcting bar: it rates the ticked-in roster first and the Order after, and the DM
+    /// should not have to look for it twice.
+    ///
+    /// Nothing at all with no counted Creature: a fight with nothing to fight has nothing
+    /// to rate, however many Pawns in it went uncounted. With no counted Player, the
+    /// Creatures' XP alone, since there are no budgets to measure it against.
+    @ViewBuilder
+    private var encounterDifficulty: some View {
+        let reading = appState.encounterDifficultyReading
+        if let encounterDifficulty = reading.encounterDifficulty {
+            EncounterDifficultyIndicator(encounterDifficulty: encounterDifficulty,
+                                         uncountedNote: reading.uncountedNote,
+                                         uncountedHelp: reading.uncountedHelp)
+        }
     }
 
     /// The correcting state, over-signalled on purpose.
@@ -530,15 +551,30 @@ struct CombatPanel: View {
                 Text("^[\(rostered.count) Pawn](inflect: true) ready to roll")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                VStack(alignment: .leading, spacing: 2) {
-                    ForEach(rostered) { pawn in
-                        rosterRow(pawn)
+                // Scrolled, as the Order is once the fight starts. A plain stack could not
+                // give up a point: with 34 Pawns ticked in it already filled the tab, so
+                // selecting one put the editor under it and the panel overflowed — Play
+                // clipped off the top, the editor off the bottom. Capped at the rows' own
+                // height, so the editor sits right under a short roster rather than at the
+                // foot of a tab of empty rows.
+                ScrollView(.vertical) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(rostered) { pawn in
+                            rosterRow(pawn)
+                        }
+                    }
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                        rosterHeight = $0
                     }
                 }
+                .frame(maxHeight: rosterHeight)
                 .accessibilityIdentifier("roster-preview")
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)
     }
+
+    /// The idle roster's rows laid out in full — the most its ScrollView is given.
+    @State private var rosterHeight: CGFloat?
 }

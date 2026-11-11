@@ -20,10 +20,14 @@ struct CharacterNote: Equatable, Identifiable {
     var size: String?
 
     // The page the Combat tab shows while the Character's Pawn fights (ADR-0007, amended):
-    // the note's own words, never computed from. Read with the numbers, in the same pass.
+    // the note's own words, never computed from — `level` aside. Read with the numbers, in
+    // the same pass.
     var species: String?
     /// The note's `class`, subclass and all: "Chierico (Dominio dell'Inganno)".
     var characterClass: String?
+    /// As the note writes it, for the page. Also the one word here computed from: when it is
+    /// a whole number from 1 to 20 it gives the party its budgets for the Encounter
+    /// Difficulty (`CharacterLevel`, ADR-0032). "Guerriero 3 / Ladro 2" is shown and not counted.
     var level: String?
     var speed: String?
     var senses: String?
