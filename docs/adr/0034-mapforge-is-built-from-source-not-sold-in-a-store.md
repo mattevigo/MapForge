@@ -8,6 +8,9 @@ Three decisions leaned on the Mac App Store:
 On 2026-11-11 the App Store was dropped. MapForge is published as source on GitHub, and
 there is no download. A DM who wants it builds it, as the README's Building section says.
 
+**Amended by ADR-0035**: each GitHub Release now carries an ad-hoc signed build, made by CI.
+Building from source stays possible. The rest of this decision stands.
+
 ## What a release is
 
 A release is a tag on `main`, `v<version>`, and a GitHub Release whose notes are that
