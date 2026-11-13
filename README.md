@@ -56,7 +56,27 @@ record joins a Session's notes.
 
 ## Getting it
 
-There is no download, and MapForge is not on the App Store. Build it from source, as below.
+MapForge is not on the App Store. Download it from GitHub, or build it from source as in
+[Building](#building).
+
+1. From the [latest release](https://github.com/mattevigo/MapForge/releases/latest), download
+   `MapForge-<version>.zip` and double-click it to unzip it.
+2. Move `MapForge.app` into your Applications folder **before** opening it.
+3. Open it. macOS says it can't check the app for malicious software and won't open it,
+   because the app isn't signed with an Apple developer certificate. Click **Done**.
+4. Open **System Settings → Privacy & Security**, scroll down to the message about
+   MapForge, and click **Open Anyway**. Confirm with your password or Touch ID.
+
+macOS remembers the choice, so you do this once per version. If you prefer the terminal,
+this one command replaces steps 3 and 4:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/MapForge.app
+```
+
+To update, download the new version's zip and replace the app in Applications. Your
+Workspaces, Maps and notes are in your own folders and are not touched. Each release also
+lists the zip's SHA-256, if you want to check the download.
 
 ## Building
 
@@ -90,7 +110,11 @@ Releases follow git flow:
 5. Tag the release commit on `main` as `v<version>`.
 6. Publish a GitHub Release for that tag. Its notes are the version's CHANGELOG entry.
 
-No build is attached to the release.
+Publishing the release starts the [Release build](.github/workflows/release.yml) workflow,
+which builds the app, signs it ad-hoc and attaches `MapForge-<version>.zip` and its SHA-256
+to the release ([ADR-0035](docs/adr/0035-each-release-carries-an-ad-hoc-signed-build.md)). It
+fails if the tag doesn't match `MARKETING_VERSION`. To build a release that already exists,
+run the workflow by hand from the Actions tab with its tag.
 
 ## Learn more
 
