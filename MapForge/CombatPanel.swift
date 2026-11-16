@@ -40,16 +40,19 @@ struct CombatPanel: View {
                 order(encounter)
             } else {
                 idle
+                // The idle roster stops at its rows; this takes the rest, so the editor
+                // stands at the foot of the tab before Play as it does during the fight.
+                Spacer(minLength: 0)
             }
-            // Below the list, as the spec asks: the numbers a DM changes mid-fight, and
-            // the box they type a note into. Edits reflect into the rows above because
-            // both read the same folded state.
+            // At the foot of the tab, fight or no fight: the numbers a DM changes mid-fight,
+            // and the box they type a note into, always in the same place, so the hand goes
+            // to them without looking. Edits reflect into the rows above because both read
+            // the same folded state.
             StatEditor(combatant: selection ?? appState.encounter?.activeCombatantID)
                 .padding(8)
         }
         // The whole height of the tab, fight or no fight, so the panel's ground does not end
-        // where its content does. Before Play nothing here stretches: the roster is capped
-        // at its rows and the editor sits right under them.
+        // where its content does, and the editor has a foot to stand at.
         .frame(maxHeight: .infinity, alignment: .top)
         .background(Color(nsColor: .textBackgroundColor),
                     in: RoundedRectangle(cornerRadius: 6))
@@ -555,8 +558,8 @@ struct CombatPanel: View {
                 // give up a point: with 34 Pawns ticked in it already filled the tab, so
                 // selecting one put the editor under it and the panel overflowed — Play
                 // clipped off the top, the editor off the bottom. Capped at the rows' own
-                // height, so the editor sits right under a short roster rather than at the
-                // foot of a tab of empty rows.
+                // height, so a short roster is not drawn as a tab of empty rows; the space
+                // left over goes between it and the editor at the foot of the tab.
                 ScrollView(.vertical) {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(rostered) { pawn in
