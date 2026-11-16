@@ -53,6 +53,17 @@ final class NumberFieldFocusTests: XCTestCase {
         RunLoop.main.run(until: Date().addingTimeInterval(0.2))
     }
 
+    /// Runs the main loop until `condition` holds, or `timeout` passes. SwiftUI applies a
+    /// focus or value change on its next update, not inside the call that caused it: one
+    /// frame on a warm window, close to the 0.2 s of `spin()` on a test's first window, and
+    /// past it on a loaded CI runner. A fixed wait races that update.
+    private func spin(until condition: () -> Bool, timeout: TimeInterval = 5) {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition() && Date() < deadline {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        }
+    }
+
     /// The user's symptom: the DC field was clicked into, then a common DC chosen from the
     /// segmented control beside it. The field must show the chosen DC.
     func testAValueChosenElsewhereShowsWhileTheFieldHasFocus() {
@@ -64,7 +75,7 @@ final class NumberFieldFocusTests: XCTestCase {
         spin()
 
         box.value = 10
-        spin()
+        spin(until: { field.stringValue == "10" })
 
         XCTAssertEqual(field.stringValue, "10")
     }
@@ -108,7 +119,9 @@ final class NumberFieldFocusTests: XCTestCase {
 
         let beside = CGPoint(x: center(of: field).x + 70, y: center(of: field).y)
         ClickDeselects.handle(mouseDown(at: beside))
-        spin()
+        // The commit lands on SwiftUI's next update, not inside the click.
+        spin(until: { !box.writes.isEmpty })
+        XCTAssertEqual(box.writes, [13], "the click should have committed the typed number")
         box.value = 10
         spin()
 
