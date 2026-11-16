@@ -188,7 +188,7 @@ struct ReferencePageView: View {
     private func text(_ line: PageText.Line) -> Text {
         line.beside.reduce(Text(line.label + " ").fontWeight(.semibold)
             .foregroundStyle(Color.pageHeading) + Text(line.value)) {
-            $0 + Text("   ") + text($1)
+            $0 + Text(verbatim: "   ") + text($1)
         }
     }
 
