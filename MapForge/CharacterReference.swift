@@ -27,7 +27,7 @@ enum CharacterPage: Equatable {
     case unavailable(String)
 }
 
-/// A Character's page, as the DM reads it mid-fight — the text, apart from the view that lays
+/// A Character's Page, as the DM reads it mid-fight — the text, apart from the view that lays
 /// it out. `MonsterReference` for a Player: the note's own words and, as there, nothing
 /// computed from them but an ability score's modifier, so "what's my spell save DC again?" is
 /// answered without asking the player.

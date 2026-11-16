@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A Monster's page, as the DM reads it mid-fight — the text, apart from the view that lays
+/// A Monster's Page, as the DM reads it mid-fight — the text, apart from the view that lays
 /// it out.
 ///
 /// The note's own words and nothing computed from them beyond what a rulebook prints beside
@@ -278,7 +278,7 @@ struct MonsterReferenceView: View {
     }
 }
 
-/// A page of the DM's notes beside the Stat Block editor — a Monster's or a Character's, laid
+/// A Page of the DM's notes beside the Stat Block editor — a Monster's or a Character's, laid
 /// out alike so the DM reads both the same way mid-fight.
 ///
 /// Drawn as a rulebook prints a creature — as the Fantasy Statblocks plugin draws one in the
@@ -489,7 +489,7 @@ private struct AbilityBlock: View {
     }
 }
 
-/// Whether what a page's holder — the popover, a pinned panel — shows is a Page, which wants
+/// Whether what a Page's holder — the popover, a pinned panel — shows is one, which wants
 /// the parchment to the holder's edges. A caption standing in for one does not.
 struct PageSurface: PreferenceKey {
     static let defaultValue = false

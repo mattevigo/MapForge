@@ -19,7 +19,7 @@ final class AbilityTableLayoutTests: XCTestCase {
 
     @MainActor
     func testInThePopoverTheBlocksSitSideBySide() {
-        // As tall as one block of three: as tall as on a page with all the room it wants.
+        // As tall as one block of three: as tall as on a Page with all the room it wants.
         XCTAssertEqual(height(at: PawnPage.width), height(at: 2000), accuracy: 0.5)
     }
 
