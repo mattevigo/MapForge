@@ -44,10 +44,20 @@ struct StatEditor: View {
         let id = pawn.id
         let current = block(id)
         return VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 4) {
+            // Who is being edited, large enough to be read at a glance mid-fight: the
+            // Pawn's numbers moved into its Page, so its name is what this header is for.
+            // Its Face beside it, when it has one, drawn as the Map draws the token, so the
+            // DM matches the editor to the disc they are looking at.
+            HStack(spacing: 8) {
+                if pawn.face != nil {
+                    PawnToken(pawn: pawn, squareSide: Self.faceSide, scalesWithFootprint: false)
+                        .frame(width: Self.faceSide, height: Self.faceSide)
+                        .accessibilityHidden(true)
+                }
                 Text(pawn.label)
-                    .font(.caption.weight(.semibold))
+                    .font(.title3.weight(.semibold))
                     .lineLimit(1)
+                    .accessibilityIdentifier("stat-editor-name")
                 Spacer(minLength: 0)
                 pageButton(for: pawn)
             }
@@ -164,6 +174,10 @@ struct StatEditor: View {
     }
 
     @State private var isShowingPage = false
+
+    /// The Face beside the name: about two lines of the name's text, so it is recognisable
+    /// without pushing the fields below it down.
+    private static let faceSide: CGFloat = 36
 
     /// The name of the Condition or Concentration button the mouse is over, if any.
     @State private var hoveredName: String?
