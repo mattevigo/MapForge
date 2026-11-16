@@ -54,6 +54,37 @@ final class MonsterReferenceTests: XCTestCase {
                                   .init(label: "HP", value: "(2d6)")])
     }
 
+    func testTheLinesUseThe2024BooksLabelsInItsOrder() {
+        var monster = Monster(name: "Test", speed: "9 m", senses: "Scurovisione 18 m",
+                              languages: "Comune", challengeRating: "1/2")
+        monster.skills = [.init(name: "Furtività", bonus: 6)]
+        monster.damageVulnerabilities = "Radiante"
+        monster.damageResistances = "Freddo"
+        monster.damageImmunities = "Veleno"
+        XCTAssertEqual(MonsterReference.lines(of: monster).map(\.label),
+                       ["Speed", "Skills", "Vulnerabilities", "Resistances", "Immunities",
+                        "Senses", "Languages", "CR"])
+    }
+
+    func testDamageAndConditionImmunitiesAreOneLine() {
+        func immunities(_ damage: String?, _ conditions: String?) -> String? {
+            var monster = Monster(name: "Test")
+            monster.damageImmunities = damage
+            monster.conditionImmunities = conditions
+            return MonsterReference.lines(of: monster).first { $0.label == "Immunities" }?.value
+        }
+        XCTAssertEqual(immunities("Poison", "Poisoned"), "Poison; Poisoned")
+        XCTAssertEqual(immunities("Poison", nil), "Poison")
+        XCTAssertEqual(immunities(nil, "Poisoned"), "Poisoned")
+        XCTAssertNil(immunities(nil, nil))
+    }
+
+    func testTheChallengeRatingIsTheNotesAlone() {
+        // No XP and no proficiency bonus: the note's value as written.
+        let monster = Monster(name: "Test", challengeRating: "1/2")
+        XCTAssertEqual(MonsterReference.lines(of: monster), [.init(label: "CR", value: "1/2")])
+    }
+
     // MARK: The ability table
 
     func testTheTableGivesEachScoreItsModifierAndTheNotesSaveOrElseTheModifier() throws {

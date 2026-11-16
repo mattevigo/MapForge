@@ -49,10 +49,11 @@ enum MonsterReference {
             (speedLabel, monster.speed),
             (String(localized: "Saves"), bonuses(savesOffTable(monster.saves, monster.abilityScores))),
             (String(localized: "Skills"), bonuses(monster.skills)),
-            (String(localized: "Vulnerable"), monster.damageVulnerabilities),
-            (String(localized: "Resists"), monster.damageResistances),
-            (String(localized: "Immune"), monster.damageImmunities),
-            (String(localized: "Cond. immune"), monster.conditionImmunities),
+            (String(localized: "Vulnerabilities"), monster.damageVulnerabilities),
+            (String(localized: "Resistances"), monster.damageResistances),
+            // The 2024 book's one line: damage, then conditions.
+            (String(localized: "Immunities"),
+             joined([monster.damageImmunities, monster.conditionImmunities], by: "; ")),
             (String(localized: "Senses"), monster.senses),
             (String(localized: "Languages"), monster.languages),
             (String(localized: "CR"), monster.challengeRating),
@@ -77,11 +78,16 @@ enum MonsterReference {
         } else if let initiative {
             lines.append(initiative)
         }
-        let hp = [hitPoints.map { "\($0)" }, hitDice.map { "(\($0))" }].compactMap { $0 }
-        if !hp.isEmpty {
-            lines.append(Line(label: hitPointsLabel, value: hp.joined(separator: " ")))
+        if let hp = joined([hitPoints.map { "\($0)" }, hitDice.map { "(\($0))" }], by: " ") {
+            lines.append(Line(label: hitPointsLabel, value: hp))
         }
         return lines
+    }
+
+    /// The parts the note has, `separator` between them; nil when it has none.
+    private static func joined(_ parts: [String?], by separator: String) -> String? {
+        let present = parts.compactMap { $0 }
+        return present.isEmpty ? nil : present.joined(separator: separator)
     }
 
     private static var armorClassLabel: String {
