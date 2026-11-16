@@ -465,10 +465,10 @@ private struct AbilityBlock: View {
             GridRow {
                 Text(verbatim: "")
                 Text(verbatim: "")
-                Text("MOD", comment: "The ability table's column of modifiers, as the stat block heads it")
+                Text("MOD", comment: "The ability table's column of modifiers, as the rulebook heads it")
                 // Its own key: "Save" alone is the verb that saves a file.
                 Text(String(localized: "ability-table.save", defaultValue: "SAVE",
-                            comment: "The ability table's column of saving throws, as the stat block heads it"))
+                            comment: "The ability table's column of saving throws, as the rulebook heads it"))
             }
             .font(.caption.weight(.semibold))
             .foregroundStyle(Color.pageHeading)

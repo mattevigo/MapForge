@@ -9482,7 +9482,7 @@
       }
     },
     "MOD": {
-      "comment": "The ability table's column of modifiers, as the stat block heads it",
+      "comment": "The ability table's column of modifiers, as the rulebook heads it",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -17355,7 +17355,7 @@
       }
     },
     "ability-table.save": {
-      "comment": "The ability table's column of saving throws, as the stat block heads it",
+      "comment": "The ability table's column of saving throws, as the rulebook heads it",
       "localizations": {
         "de": {
           "stringUnit": {
