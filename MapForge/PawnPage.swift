@@ -98,6 +98,7 @@ struct PawnPage: View {
         frame(width: Self.width)
             .frame(maxHeight: Self.maxHeight(onScreenOfHeight: visibleHeight))
             .padding(Self.padding)
+            .pageSurface()
             .overlay(alignment: .topTrailing) {
                 if let pin {
                     Button(action: pin) {
@@ -123,6 +124,7 @@ struct PawnPage: View {
               minHeight: Self.minimumPanelSize.height, maxHeight: .infinity,
               alignment: .topLeading)
             .padding(Self.padding)
+            .pageSurface()
     }
 }
 

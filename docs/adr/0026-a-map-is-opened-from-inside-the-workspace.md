@@ -12,6 +12,9 @@ file, not the folder it sits in. The only grant that reaches a Map's folder is t
 Workspace's (ADR-0025). A Map opened from elsewhere would show on screen, and then fail every
 write: the first Wall traced, the first hit point taken.
 
+**The sandbox's reason is gone since ADR-0034**, which dropped the App Store. The rule below
+stays, because 2.0.0 shipped with it. Lifting it is a decision of its own.
+
 ## Inside, or refused
 
 **Open Map…** opens images inside the open Workspace, at any depth, in whatever subfolders the

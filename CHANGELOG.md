@@ -4,6 +4,37 @@ Versions follow [Semantic Versioning](https://semver.org). `MARKETING_VERSION` a
 `CURRENT_PROJECT_VERSION` in `project.yml` are the single source of truth; the About
 panel reads them from the built app.
 
+## 2.1.0 — 2026-11-16
+
+### Getting it
+
+- Every release now comes with the app ready to run: download `MapForge-<version>.zip` from
+  the GitHub Release, move the app to Applications, and allow it once in **System Settings →
+  Privacy & Security → Open Anyway**. It is signed ad-hoc rather than notarised, so macOS
+  asks again after each update. Building from source works as before —
+  [ADR 0035](docs/adr/0035-each-release-carries-an-ad-hoc-signed-build.md).
+- MapForge is not sold in an app store —
+  [ADR 0034](docs/adr/0034-mapforge-is-built-from-source-not-sold-in-a-store.md).
+
+### The Page
+
+- A Monster's or a Character's **Page** is laid out as the 2024 rulebook prints a creature:
+  the name in small caps, red rules between its parts, on parchment, or on a dark page when
+  the Mac is in dark mode.
+- It now gives the armour class, Initiative and hit points the note gives, with the hit
+  dice. These are the Monster's own numbers; what a wounded Pawn has left stays in its Stat
+  Block.
+- The six ability scores sit in a table with each one's modifier and Saving Throw, and the
+  damage and Condition immunities share one Immunities line. The labels are the ones each
+  language's 2024 edition prints —
+  [ADR 0022](docs/adr/0022-rulebook-terms-are-the-tables-not-ours.md).
+
+### Encounters
+
+- The Stat Block editor names the selected Pawn in large type, with its Face beside it when
+  it has one. It stays at the foot of the Combat tab before Play, as it does during the
+  fight.
+
 ## 2.0.0 — 2026-11-11
 
 ### Upgrading from 1.2
@@ -111,10 +142,6 @@ panel reads them from the built app.
   Portuguese or Greek. Rulebook terms are the ones the official edition prints in that
   language, and stay in English where there is none —
   [ADR 0022](docs/adr/0022-rulebook-terms-are-the-tables-not-ours.md).
-
-### Mac App Store
-
-- The app declares what it accesses, ready for the Mac App Store.
 
 ## 1.2.0 — 2026-09-11
 

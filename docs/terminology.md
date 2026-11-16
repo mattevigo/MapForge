@@ -140,11 +140,24 @@ official word, and listed so they stay one choice:
 | Speed (stat-block label) | Velocità | Bewegungsrate | Vitesse | Velocidad | Deslocamento |
 | Senses (stat-block label) | Sensi | Sinne | Sens | Sentidos | Sentidos |
 | Languages (stat-block label) | Lingue | Sprachen | Langues | Idiomas | Idiomas |
+| Skills (stat-block label) | Abilità | Fertigkeiten | Compétences | Habilidades | Perícias *(proposed)* |
+| Vulnerabilities (stat-block label) | Vulnerabilità | Anfälligkeiten | Vulnérabilités | Vulnerabilidades | Vulnerabilidades *(proposed)* |
+| Resistances (stat-block label) | Resistenze | Resistenzen | Résistances | Resistencias | Resistências *(proposed)* |
+| Immunities (stat-block label, damage; conditions) | Immunità | Immunitäten | Immunités | Inmunidades | Imunidades *(proposed)* |
+| MOD (ability-table column heading) | MOD | MOD | MOD | MOD. | MOD *(proposed)* |
+| SAVE (ability-table column heading) | SALV | RW | JS | SALV. | TR *(proposed)* |
 | Cone | Cono | Kegel | Cône | Cono | Cone |
 | Line | Linea | Linie | Ligne | Línea | Linha |
 | radius | raggio | Radius | rayon | radio | raio |
 | Grid | Griglia | Raster *(proposed)* | Grille *(proposed)* | Cuadrícula | Grade *(proposed)* |
 | square (of the Grid) | quadretto | Quadrat | case | casilla | quadrado *(proposed)* |
+
+The stat-block labels are the 2024 Monster stat block's, from SRD 5.2.1 (the Aboleth, checked
+in each language); no 2024 Portuguese stat block could be checked, so pt-BR's are proposed. The
+ability table's headings are in capitals, as every edition sets them; German's *RW* and
+French's *JS* abbreviate their word for Saving Throw. The Spanish edition ends every stat-block
+label with a colon (*CA:*, *Velocidad:*); the colon is layout, not the term, and is left out
+there as in every other language.
 
 ### Encounter Difficulty
 
@@ -445,7 +458,8 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 
 Only game *mechanics* stay in English — Conditions, Abilities, Skills, Saving Throw, Ability
 Check, Difficulty Class, Modifier, Initiative, AC, HP, Concentration, Round, Turn, Stat Block,
-Traits, Actions, Challenge Rating, level, Encounter Difficulty and its bands, XP, XP budget —
+Traits, Actions, Challenge Rating, level, Encounter Difficulty and its bands, XP, XP budget,
+the ability table's MOD and SAVE —
 because that is what a Greek table says. Rulebook words that are also
 ordinary language are Greek: a Greek DM says *τέρας*, not "monster".
 

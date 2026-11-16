@@ -89,20 +89,55 @@ final class CharacterReferenceTests: XCTestCase {
 
     // MARK: The page
 
-    func testOnlyWhatTheNoteHasIsListedAndNeverItsArmourOrHitPoints() {
-        // The Stat Block editor above shows the Pawn's own, which are the ones true now.
-        let note = CharacterNote(name: "Test", armorClass: 14, maxHP: 48, speed: "9 metri",
-                                 languages: "Comune")
-        XCTAssertEqual(CharacterReference.lines(of: note).map(\.label), ["Speed", "Languages"])
+    func testOnlyWhatTheNoteHasIsListed() {
+        let note = CharacterNote(name: "Test", speed: "9 metri", languages: "Comune")
+        XCTAssertEqual(lines(of: note).map(\.label), ["Speed", "Languages"])
     }
 
-    func testAProficientSaveKeepsTheNotesMark() {
+    func testTheNotesArmourClassAndMaximumHitPointsComeBeforeSpeedWithNoHitDice() {
+        // The definition's numbers, not the Pawn's: a pinned Page has no Stat Block above it.
+        let note = CharacterNote(name: "Test", armorClass: 14, maxHP: 48, initiativeBonus: -1,
+                                 speed: "9 metri")
+        XCTAssertEqual(lines(of: note), [
+            .init(label: "AC", value: "14", beside: [.init(label: "Initiative", value: "−1")]),
+            .init(label: "HP", value: "48"),
+            .init(label: "Speed", value: "9 metri"),
+        ])
+    }
+
+    func testTheTableGivesTheNotesSavesWithTheirProficiencyMarkAndNoSavesLine() throws {
+        let durga = try note(durga)
+        let table = try XCTUnwrap(CharacterReference.abilities(of: durga))
+        XCTAssertEqual(table.rows.map(\.score), [11, 8, 18, 12, 17, 12])
+        XCTAssertEqual(table.rows.map(\.modifier), ["+0", "−1", "+4", "+1", "+3", "+1"])
+        XCTAssertEqual(table.rows.map(\.save), ["+0", "−1", "+4", "+1", "● +6", "+1"])
+        XCTAssertFalse(lines(of: durga).contains { $0.label == "Saves" })
+    }
+
+    func testWithoutAllSixScoresThereIsNoTableAndAProficientSaveKeepsTheNotesMark() {
         var note = CharacterNote(name: "Test")
         note.saves = [.init(name: "Forza", bonus: 0), .init(name: "Saggezza ●", bonus: 6)]
         note.skills = [.init(name: "Arcano", bonus: 7)]
-        let lines = CharacterReference.lines(of: note)
-        XCTAssertEqual(lines.first { $0.label == "Saves" }?.value, "Forza +0, Saggezza ● +6")
-        XCTAssertEqual(lines.first { $0.label == "Skills" }?.value, "Arcano +7")
+        XCTAssertNil(CharacterReference.abilities(of: note))
+        let printed = lines(of: note)
+        XCTAssertEqual(printed.first { $0.label == "Saves" }?.value, "Forza +0, Saggezza ● +6")
+        XCTAssertEqual(printed.first { $0.label == "Skills" }?.value, "Arcano +7")
+    }
+
+    func testTheBlocksARuleIsDrawnBetweenAreAMonstersWithSpellsForItsSections() throws {
+        XCTAssertEqual(CharacterReference.blocks(of: CharacterNote(name: "Test", speed: "9 metri")),
+                       [.heading, .armorClassToSpeed([.init(label: "Speed", value: "9 metri")])])
+        var note = CharacterNote(name: "Test", languages: "Comune")
+        note.spells = ["CD 12"]
+        XCTAssertEqual(CharacterReference.blocks(of: note), [
+            .heading,
+            .skillsToChallengeRating([.init(label: "Languages", value: "Comune")]),
+            .groups([.init(title: "Spells", paragraphs: [.plain("CD 12")])]),
+        ])
+    }
+
+    private func lines(of note: CharacterNote) -> [PageText.Line] {
+        CharacterReference.blocks(of: note).lines
     }
 
     func testTheHeadingSaysWhoTheCharacterIsWithWhatTheNoteHas() throws {

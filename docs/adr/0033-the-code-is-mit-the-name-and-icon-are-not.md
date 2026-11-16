@@ -14,6 +14,10 @@ It is also the licence of Yams, the only dependency (ADR-0019), so the repo carr
 kind of licence throughout. What MIT gives up is that anyone may take the code into a
 closed app. For a tool shaped around one DM's table, that is an acceptable cost.
 
+**Amended by ADR-0034**: the App Store was dropped, and MapForge is built from source. MIT
+stays, for the reasons that remain: it is Yams's licence, and changing it needs every
+contributor's agreement.
+
 ## Why the name and the icon are kept back
 
 A licence file that covered the icon would let anyone ship a fork to the App Store that

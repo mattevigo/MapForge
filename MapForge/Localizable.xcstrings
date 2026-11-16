@@ -5651,46 +5651,6 @@
         }
       }
     },
-    "Cond. immune": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zustandsimmunitäten"
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ανοσία σε Conditions"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inm. a estados"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Immunités (états)"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Imm. condizioni"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Imun. a condições"
-          }
-        }
-      }
-    },
     "Cone": {
       "localizations": {
         "de": {
@@ -8554,7 +8514,7 @@
         }
       }
     },
-    "Immune": {
+    "Immunities": {
       "localizations": {
         "de": {
           "stringUnit": {
@@ -8672,6 +8632,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inic"
+          }
+        }
+      }
+    },
+    "Initiative": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Initiative"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Initiative"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iniciativa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Initiative"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iniziativa"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iniciativa"
           }
         }
       }
@@ -9477,6 +9477,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "Baixa até %1$@ XP, Moderada até %2$@ XP, Alta até %3$@ XP."
+          }
+        }
+      }
+    },
+    "MOD": {
+      "comment": "The ability table's column of modifiers, as the rulebook heads it",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MOD"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MOD"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MOD."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MOD"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MOD"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MOD"
           }
         }
       }
@@ -13174,7 +13215,7 @@
         }
       }
     },
-    "Resists": {
+    "Resistances": {
       "localizations": {
         "de": {
           "stringUnit": {
@@ -16872,7 +16913,7 @@
         }
       }
     },
-    "Vulnerable": {
+    "Vulnerabilities": {
       "localizations": {
         "de": {
           "stringUnit": {
@@ -17309,6 +17350,53 @@
           "stringUnit": {
             "state": "translated",
             "value": "bônus de atributo, proficiência, efeitos ativos"
+          }
+        }
+      }
+    },
+    "ability-table.save": {
+      "comment": "The ability table's column of saving throws, as the rulebook heads it",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RW"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SAVE"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SAVE"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SALV."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "JS"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SALV"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TR"
           }
         }
       }

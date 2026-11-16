@@ -1,0 +1,74 @@
+name: Release build
+
+# Attaches an ad-hoc signed build of the app to a GitHub Release (ADR-0035). It runs when a
+# Release is published, and can be run by hand for a tag that is already released.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The release tag to build and attach to, e.g. v2.0.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and attach MapForge.zip
+    # The xcode-27 image is the only hosted one with Xcode 27; the project is built with it.
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      # Pinned, so a runner image update can't change the Xcode under the build.
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TAG }}
+
+      # The version is in `project.yml` alone (CHANGELOG.md). A tag that disagrees with it
+      # would attach a zip whose name and About panel say something else.
+      - name: Check the tag matches the version
+        run: |
+          version=$(sed -n 's/.*MARKETING_VERSION: "\(.*\)"/\1/p' project.yml)
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match MARKETING_VERSION $version in project.yml"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate the Xcode project
+        run: xcodegen generate
+
+      # A generic destination builds for both Apple silicon and Intel. The signature is the
+      # ad-hoc one `project.yml` asks for: no certificate is involved.
+      - name: Build the app
+        run: |
+          xcodebuild -scheme MapForge -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath build/DerivedData build
+
+      - name: Check the signature and architectures
+        run: |
+          app=build/DerivedData/Build/Products/Release/MapForge.app
+          codesign --verify --deep --strict --verbose=2 "$app"
+          lipo -info "$app/Contents/MacOS/MapForge"
+
+      # `ditto` keeps the signature intact; `zip` would break it.
+      - name: Zip the app
+        run: |
+          cd build/DerivedData/Build/Products/Release
+          ditto -c -k --keepParent MapForge.app "$GITHUB_WORKSPACE/MapForge-$VERSION.zip"
+          cd "$GITHUB_WORKSPACE"
+          shasum -a 256 "MapForge-$VERSION.zip" > "MapForge-$VERSION.zip.sha256"
+
+      # --clobber, so running it again for the same tag replaces the build instead of failing.
+      - name: Attach the build to the Release
+        run: gh release upload "$TAG" "MapForge-$VERSION.zip" "MapForge-$VERSION.zip.sha256" --clobber
