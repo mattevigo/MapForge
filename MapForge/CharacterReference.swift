@@ -40,8 +40,9 @@ enum CharacterReference {
             .joined(separator: " · ")
     }
 
-    /// The one-line facts above the Traits. Only what the note has. Armour class and hit
-    /// points are not repeated: the Stat Block editor directly above shows the Pawn's own.
+    /// The one-line facts above the Traits, as a Monster's Page gives them. Only what the note
+    /// has. Its armour class and hit points are the note's — the maximum, with no hit dice —
+    /// never its Pawn's.
     static func lines(of note: CharacterNote) -> [MonsterReference.Line] {
         let candidates: [(String, String?)] = [
             (String(localized: "Speed"), note.speed),
@@ -50,9 +51,12 @@ enum CharacterReference {
             (String(localized: "Senses"), note.senses),
             (String(localized: "Languages"), note.languages),
         ]
-        return candidates.compactMap { label, value in
-            value.map { MonsterReference.Line(label: label, value: $0) }
-        }
+        return MonsterReference.numbers(armorClass: note.armorClass,
+                                        initiativeBonus: note.initiativeBonus,
+                                        hitPoints: note.maxHP, hitDice: nil)
+            + candidates.compactMap { label, value in
+                value.map { MonsterReference.Line(label: label, value: $0) }
+            }
     }
 
     /// Traits and Actions as a Monster's are; Spells as the plain lines the note writes.

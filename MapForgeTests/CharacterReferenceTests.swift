@@ -89,11 +89,20 @@ final class CharacterReferenceTests: XCTestCase {
 
     // MARK: The page
 
-    func testOnlyWhatTheNoteHasIsListedAndNeverItsArmourOrHitPoints() {
-        // The Stat Block editor above shows the Pawn's own, which are the ones true now.
-        let note = CharacterNote(name: "Test", armorClass: 14, maxHP: 48, speed: "9 metri",
-                                 languages: "Comune")
+    func testOnlyWhatTheNoteHasIsListed() {
+        let note = CharacterNote(name: "Test", speed: "9 metri", languages: "Comune")
         XCTAssertEqual(CharacterReference.lines(of: note).map(\.label), ["Speed", "Languages"])
+    }
+
+    func testTheNotesArmourClassAndMaximumHitPointsComeBeforeSpeedWithNoHitDice() {
+        // The definition's numbers, not the Pawn's: a pinned Page has no Stat Block above it.
+        let note = CharacterNote(name: "Test", armorClass: 14, maxHP: 48, initiativeBonus: -1,
+                                 speed: "9 metri")
+        XCTAssertEqual(CharacterReference.lines(of: note), [
+            .init(label: "AC", value: "14", beside: [.init(label: "Initiative", value: "−1")]),
+            .init(label: "HP", value: "48"),
+            .init(label: "Speed", value: "9 metri"),
+        ])
     }
 
     func testAProficientSaveKeepsTheNotesMark() {
