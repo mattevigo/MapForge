@@ -125,7 +125,7 @@ struct ReferencePageView: View {
         // scrolls inside that. It lived under the editor once, sharing the tab with the
         // list above, and a long roster left it nothing; a popover has no list to share with.
         .frame(maxHeight: .infinity)
-        .preference(key: PageSurface.self, value: true)
+        .preference(key: HoldsPage.self, value: true)
     }
 
     @ViewBuilder
@@ -289,7 +289,7 @@ private struct AbilityBlock: View {
 
 /// Whether what a Page's holder — the popover, a pinned panel — shows is one, which wants
 /// the parchment to the holder's edges. A caption standing in for one does not.
-struct PageSurface: PreferenceKey {
+struct HoldsPage: PreferenceKey {
     static let defaultValue = false
 
     static func reduce(value: inout Bool, nextValue: () -> Bool) {
@@ -300,7 +300,7 @@ struct PageSurface: PreferenceKey {
 extension View {
     /// The parchment beneath, edge to edge, when what this holds is a Page.
     func pageSurface() -> some View {
-        backgroundPreferenceValue(PageSurface.self) { isPage in
+        backgroundPreferenceValue(HoldsPage.self) { isPage in
             if isPage {
                 Color.page.ignoresSafeArea()
             }
