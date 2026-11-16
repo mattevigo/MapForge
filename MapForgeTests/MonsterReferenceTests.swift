@@ -158,4 +158,22 @@ final class MonsterReferenceTests: XCTestCase {
         monster.actions = [.init(name: "Morso", desc: "")]
         XCTAssertEqual(MonsterReference.groups(of: monster).map(\.title), ["Actions", "Reactions"])
     }
+
+    // MARK: The blocks a rule is drawn between
+
+    func testAFullPageHasEveryBlockInTheBooksOrder() {
+        var monster = Monster(name: "Test", armorClass: 15, languages: "Comune")
+        monster.abilityScores = AbilityScores([10, 14, 12, 8, 13, 9])
+        monster.actions = [.init(name: "Morso", desc: "")]
+        XCTAssertEqual(MonsterReference.blocks(of: monster),
+                       [.heading, .numbers, .abilities, .lines, .groups])
+    }
+
+    func testABlockTheNoteLeavesEmptyIsNotThereToDrawARuleAfter() {
+        // So two rules never sit one on the other where a block would have been.
+        var monster = Monster(name: "Test", challengeRating: "1/2")
+        monster.actions = [.init(name: "Morso", desc: "")]
+        XCTAssertEqual(MonsterReference.blocks(of: monster), [.heading, .lines, .groups])
+        XCTAssertEqual(MonsterReference.blocks(of: Monster(name: "Test")), [.heading])
+    }
 }

@@ -155,6 +155,33 @@ enum MonsterReference {
         "\(bonus < 0 ? "−" : "+")\(abs(bonus))"
     }
 
+    /// A Page's parts as the rulebook divides a creature, a red rule between each and the next.
+    enum Block: Equatable {
+        /// The name, what it is, and the warnings.
+        case heading
+        /// `Lines.numbers`.
+        case numbers
+        case abilities
+        /// `Lines.rest`.
+        case lines
+        /// Traits, Actions, …: each heading has its own rule beneath it.
+        case groups
+    }
+
+    /// The blocks the note fills, in order: one it leaves empty is not there, so no two rules
+    /// sit one on the other where it would have been.
+    static func blocks(_ lines: Lines, _ abilities: AbilityTable?, _ groups: [Group]) -> [Block] {
+        let filled: [(Block, Bool)] = [(.numbers, !lines.numbers.isEmpty),
+                                       (.abilities, abilities != nil),
+                                       (.lines, !lines.rest.isEmpty),
+                                       (.groups, !groups.isEmpty)]
+        return [.heading] + filled.filter(\.1).map(\.0)
+    }
+
+    static func blocks(of monster: Monster) -> [Block] {
+        blocks(lines(of: monster), abilities(of: monster), groups(of: monster))
+    }
+
     static func groups(of monster: Monster) -> [Group] {
         [features(String(localized: "Traits"), monster.traits),
          features(String(localized: "Actions"), monster.actions),

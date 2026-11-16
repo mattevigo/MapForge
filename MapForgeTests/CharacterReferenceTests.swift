@@ -124,6 +124,14 @@ final class CharacterReferenceTests: XCTestCase {
         XCTAssertEqual(lines.first { $0.label == "Skills" }?.value, "Arcano +7")
     }
 
+    func testTheBlocksARuleIsDrawnBetweenAreAMonstersWithSpellsForItsSections() throws {
+        XCTAssertEqual(CharacterReference.blocks(of: CharacterNote(name: "Test", speed: "9 metri")),
+                       [.heading, .numbers])
+        var note = CharacterNote(name: "Test", languages: "Comune")
+        note.spells = ["CD 12"]
+        XCTAssertEqual(CharacterReference.blocks(of: note), [.heading, .lines, .groups])
+    }
+
     func testTheHeadingSaysWhoTheCharacterIsWithWhatTheNoteHas() throws {
         XCTAssertEqual(CharacterReference.heading(of: try note(durga)),
                        "Umano · Chierico (Dominio dell'Inganno) · Level 5")

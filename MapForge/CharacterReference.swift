@@ -65,6 +65,11 @@ enum CharacterReference {
         MonsterReference.abilities(note.abilityScores, saves: note.saves)
     }
 
+    /// The blocks a rule is drawn between, as a Monster's Page divides them.
+    static func blocks(of note: CharacterNote) -> [MonsterReference.Block] {
+        MonsterReference.blocks(lines(of: note), abilities(of: note), groups(of: note))
+    }
+
     /// Traits and Actions as a Monster's are; Spells as the plain lines the note writes.
     static func groups(of note: CharacterNote) -> [MonsterReference.Group] {
         [MonsterReference.features(String(localized: "Traits"), note.traits),
