@@ -30,27 +30,25 @@ final class MonsterReferenceTests: XCTestCase {
 
     func testOnlyWhatTheNoteHasIsListed() {
         let monster = Monster(name: "Test", speed: "9 m", challengeRating: "1/2")
-        XCTAssertEqual(MonsterReference.lines(of: monster).all.map(\.label), ["Speed", "CR"])
+        XCTAssertEqual(lines(of: monster).map(\.label), ["Speed", "CR"])
     }
 
     func testArmourClassWithInitiativeAndHitPointsWithHitDiceComeBeforeSpeed() {
         // The definition's numbers, read from the note: a pinned Page has no Stat Block above it.
         let monster = Monster(name: "Test", armorClass: 15, hitPoints: 45, initiativeBonus: 2,
                               hitDice: "6d10 + 12", speed: "9 m")
-        let lines = MonsterReference.lines(of: monster).all
-        XCTAssertEqual(lines.map(\.label), ["AC", "HP", "Speed"])
-        XCTAssertEqual(lines[0].value, "15")
-        XCTAssertEqual(lines[0].beside, [.init(label: "Initiative", value: "+2")])
-        XCTAssertEqual(lines[1].value, "45 (6d10 + 12)")
+        let printed = lines(of: monster)
+        XCTAssertEqual(printed.map(\.label), ["AC", "HP", "Speed"])
+        XCTAssertEqual(printed[0].value, "15")
+        XCTAssertEqual(printed[0].beside, [.init(label: "Initiative", value: "+2")])
+        XCTAssertEqual(printed[1].value, "45 (6d10 + 12)")
     }
 
     func testANumberTheNoteLacksLeavesOutOnlyThatPart() {
-        let noInitiative = MonsterReference.lines(of: Monster(name: "Test", armorClass: 12,
-                                                              hitPoints: 7)).all
+        let noInitiative = lines(of: Monster(name: "Test", armorClass: 12, hitPoints: 7))
         XCTAssertEqual(noInitiative, [.init(label: "AC", value: "12"), .init(label: "HP", value: "7")])
 
-        let noArmour = MonsterReference.lines(of: Monster(name: "Test", initiativeBonus: -1,
-                                                          hitDice: "2d6")).all
+        let noArmour = lines(of: Monster(name: "Test", initiativeBonus: -1, hitDice: "2d6"))
         XCTAssertEqual(noArmour, [.init(label: "Initiative", value: "−1"),
                                   .init(label: "HP", value: "(2d6)")])
     }
@@ -62,7 +60,7 @@ final class MonsterReferenceTests: XCTestCase {
         monster.damageVulnerabilities = "Radiante"
         monster.damageResistances = "Freddo"
         monster.damageImmunities = "Veleno"
-        XCTAssertEqual(MonsterReference.lines(of: monster).all.map(\.label),
+        XCTAssertEqual(lines(of: monster).map(\.label),
                        ["Speed", "Skills", "Vulnerabilities", "Resistances", "Immunities",
                         "Senses", "Languages", "CR"])
     }
@@ -72,7 +70,7 @@ final class MonsterReferenceTests: XCTestCase {
             var monster = Monster(name: "Test")
             monster.damageImmunities = damage
             monster.conditionImmunities = conditions
-            return MonsterReference.lines(of: monster).all.first { $0.label == "Immunities" }?.value
+            return lines(of: monster).first { $0.label == "Immunities" }?.value
         }
         XCTAssertEqual(immunities("Poison", "Poisoned"), "Poison; Poisoned")
         XCTAssertEqual(immunities("Poison", nil), "Poison")
@@ -83,7 +81,7 @@ final class MonsterReferenceTests: XCTestCase {
     func testTheChallengeRatingIsTheNotesAlone() {
         // No XP and no proficiency bonus: the note's value as written.
         let monster = Monster(name: "Test", challengeRating: "1/2")
-        XCTAssertEqual(MonsterReference.lines(of: monster).all, [.init(label: "CR", value: "1/2")])
+        XCTAssertEqual(lines(of: monster), [.init(label: "CR", value: "1/2")])
     }
 
     // MARK: The ability table
@@ -105,7 +103,7 @@ final class MonsterReferenceTests: XCTestCase {
 
     func testTheTableIsTwoBlocksOfThreeAsTheBookPrintsIt() throws {
         let table = try XCTUnwrap(PageText.abilities(AbilityScores([10, 14, 12, 8, 13, 9]),
-                                                             saves: []))
+                                                     saves: []))
         XCTAssertEqual(table.blocks.map { $0.map(\.ability) },
                        [[.strength, .dexterity, .constitution],
                         [.intelligence, .wisdom, .charisma]])
@@ -115,7 +113,7 @@ final class MonsterReferenceTests: XCTestCase {
         var monster = Monster(name: "Test", speed: "9 m")
         monster.abilityScores = AbilityScores([10, 14, 12, 8, 13, 9])
         monster.saves = [.init(name: "Destrezza", bonus: 5), .init(name: "Saggezza", bonus: 3)]
-        XCTAssertEqual(MonsterReference.lines(of: monster).all.map(\.label), ["Speed"])
+        XCTAssertEqual(lines(of: monster).map(\.label), ["Speed"])
     }
 
     func testTheTableGoesAfterSpeedAndBeforeTheRest() {
@@ -124,20 +122,26 @@ final class MonsterReferenceTests: XCTestCase {
         var monster = Monster(name: "Test", armorClass: 15, hitPoints: 45, speed: "9 m",
                               languages: "Comune")
         monster.skills = [.init(name: "Furtività", bonus: 6)]
-        let lines = MonsterReference.lines(of: monster)
-        XCTAssertEqual(lines.numbers.map(\.label), ["AC", "HP", "Speed"])
-        XCTAssertEqual(lines.rest.map(\.label), ["Skills", "Languages"])
+        monster.abilityScores = AbilityScores([10, 14, 12, 8, 13, 9])
+        let blocks = MonsterReference.blocks(of: monster)
+        XCTAssertEqual(blocks.count, 4)
+        XCTAssertEqual(blocks[1], .armorClassToSpeed([.init(label: "AC", value: "15"),
+                                                      .init(label: "HP", value: "45"),
+                                                      .init(label: "Speed", value: "9 m")]))
+        guard case .abilities = blocks[2] else { return XCTFail("\(blocks[2]) is not the table") }
+        XCTAssertEqual(blocks[3], .skillsToChallengeRating([
+            .init(label: "Skills", value: "Furtività +6"), .init(label: "Languages", value: "Comune"),
+        ]))
 
-        let bare = MonsterReference.lines(of: Monster(name: "Test", languages: "Comune"))
-        XCTAssertEqual(bare.numbers.map(\.label), [])
-        XCTAssertEqual(bare.rest.map(\.label), ["Languages"])
+        XCTAssertEqual(MonsterReference.blocks(of: Monster(name: "Test", languages: "Comune")),
+                       [.heading, .skillsToChallengeRating([.init(label: "Languages", value: "Comune")])])
     }
 
     func testWithoutAllSixScoresThereIsNoTableAndTheSavesKeepTheirLine() {
         var monster = Monster(name: "Test")
         monster.saves = [.init(name: "Destrezza", bonus: 5)]
         XCTAssertNil(MonsterReference.abilities(of: monster))
-        XCTAssertEqual(MonsterReference.lines(of: monster).all.first { $0.label == "Saves" }?.value,
+        XCTAssertEqual(lines(of: monster).first { $0.label == "Saves" }?.value,
                        "Destrezza +5")
     }
 
@@ -147,7 +151,7 @@ final class MonsterReferenceTests: XCTestCase {
         monster.abilityScores = AbilityScores([10, 14, 12, 8, 13, 9])
         monster.saves = [.init(name: "Des", bonus: 5), .init(name: "Saggezza", bonus: 3)]
         XCTAssertEqual(MonsterReference.abilities(of: monster)?.rows[1].save, "+2")
-        XCTAssertEqual(MonsterReference.lines(of: monster).all.first { $0.label == "Saves" }?.value,
+        XCTAssertEqual(lines(of: monster).first { $0.label == "Saves" }?.value,
                        "Des +5")
     }
 
@@ -155,9 +159,9 @@ final class MonsterReferenceTests: XCTestCase {
         var monster = Monster(name: "Test")
         monster.saves = [.init(name: "Des", bonus: 3), .init(name: "Sag", bonus: -1)]
         monster.skills = [.init(name: "Furtività", bonus: 6)]
-        let lines = MonsterReference.lines(of: monster).all
-        XCTAssertEqual(lines.first { $0.label == "Saves" }?.value, "Des +3, Sag −1")
-        XCTAssertEqual(lines.first { $0.label == "Skills" }?.value, "Furtività +6")
+        let printed = lines(of: monster)
+        XCTAssertEqual(printed.first { $0.label == "Saves" }?.value, "Des +3, Sag −1")
+        XCTAssertEqual(printed.first { $0.label == "Skills" }?.value, "Furtività +6")
     }
 
     func testTheGroupsKeepTheBooksOrderAndDropTheEmptyOnes() {
@@ -167,21 +171,35 @@ final class MonsterReferenceTests: XCTestCase {
         XCTAssertEqual(MonsterReference.groups(of: monster).map(\.title), ["Actions", "Reactions"])
     }
 
+    private func lines(of monster: Monster) -> [PageText.Line] {
+        MonsterReference.blocks(of: monster).lines
+    }
+
     // MARK: The blocks a rule is drawn between
 
-    func testAFullPageHasEveryBlockInTheBooksOrder() {
+    func testAFullPageHasEveryBlockInTheBooksOrder() throws {
         var monster = Monster(name: "Test", armorClass: 15, languages: "Comune")
         monster.abilityScores = AbilityScores([10, 14, 12, 8, 13, 9])
         monster.actions = [.init(name: "Morso", desc: "")]
-        XCTAssertEqual(MonsterReference.blocks(of: monster),
-                       [.heading, .numbers, .abilities, .lines, .groups])
+        let table = try XCTUnwrap(MonsterReference.abilities(of: monster))
+        XCTAssertEqual(MonsterReference.blocks(of: monster), [
+            .heading,
+            .armorClassToSpeed([.init(label: "AC", value: "15")]),
+            .abilities(table),
+            .skillsToChallengeRating([.init(label: "Languages", value: "Comune")]),
+            .groups([.init(title: "Actions", paragraphs: [.feature(.init(name: "Morso", desc: ""))])]),
+        ])
     }
 
     func testABlockTheNoteLeavesEmptyIsNotThereToDrawARuleAfter() {
         // So two rules never sit one on the other where a block would have been.
         var monster = Monster(name: "Test", challengeRating: "1/2")
         monster.actions = [.init(name: "Morso", desc: "")]
-        XCTAssertEqual(MonsterReference.blocks(of: monster), [.heading, .lines, .groups])
+        XCTAssertEqual(MonsterReference.blocks(of: monster), [
+            .heading,
+            .skillsToChallengeRating([.init(label: "CR", value: "1/2")]),
+            .groups([.init(title: "Actions", paragraphs: [.feature(.init(name: "Morso", desc: ""))])]),
+        ])
         XCTAssertEqual(MonsterReference.blocks(of: Monster(name: "Test")), [.heading])
     }
 }

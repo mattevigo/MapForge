@@ -7,11 +7,11 @@ import SwiftUI
 /// them — an ability score's modifier: the app never reasons about a speed or an attack bonus,
 /// it only spares the DM an alt-tab to their vault while six people wait.
 enum MonsterReference {
-    /// The one-line facts above the actions, in the order the rulebook prints them.
-    /// Only what the note has. Armour class and hit points are the definition's, read from
-    /// the note — never a Pawn's, which four wounded gnolls sharing one Page do not share.
-    static func lines(of monster: Monster) -> PageText.Lines {
-        let rest: [(String, String?)] = [
+    /// The blocks of the Monster's Page, in the order the rulebook prints them: only what the
+    /// note has. Armour class and hit points are the definition's, read from the note — never
+    /// a Pawn's, which four wounded gnolls sharing one Page do not share.
+    static func blocks(of monster: Monster) -> [PageText.Block] {
+        let skillsToChallengeRating: [(String, String?)] = [
             (String(localized: "Saves"),
              PageText.bonuses(PageText.savesOffTable(monster.saves, monster.abilityScores))),
             (String(localized: "Skills"), PageText.bonuses(monster.skills)),
@@ -24,20 +24,18 @@ enum MonsterReference {
             (String(localized: "Languages"), monster.languages),
             (String(localized: "CR"), monster.challengeRating),
         ]
-        return PageText.Lines(
-            numbers: PageText.numbers(armorClass: monster.armorClass,
-                                      initiativeBonus: monster.initiativeBonus,
-                                      hitPoints: monster.hitPoints, hitDice: monster.hitDice,
-                                      speed: monster.speed),
-            rest: PageText.present(rest))
+        return PageText.blocks(
+            armorClassToSpeed: PageText.numbers(armorClass: monster.armorClass,
+                                                initiativeBonus: monster.initiativeBonus,
+                                                hitPoints: monster.hitPoints,
+                                                hitDice: monster.hitDice, speed: monster.speed),
+            abilities: abilities(of: monster),
+            skillsToChallengeRating: PageText.present(skillsToChallengeRating),
+            groups: groups(of: monster))
     }
 
     static func abilities(of monster: Monster) -> PageText.AbilityTable? {
         PageText.abilities(monster.abilityScores, saves: monster.saves)
-    }
-
-    static func blocks(of monster: Monster) -> [PageText.Block] {
-        PageText.blocks(lines(of: monster), abilities(of: monster), groups(of: monster))
     }
 
     static func groups(of monster: Monster) -> [PageText.Group] {
@@ -72,9 +70,7 @@ struct MonsterReferenceView: View {
                                   .compactMap { $0 }.joined(separator: " · "),
                               warning: monster.warning(current: unit),
                               pictureProblem: monster.picture?.problem,
-                              lines: MonsterReference.lines(of: monster),
-                              abilities: MonsterReference.abilities(of: monster),
-                              groups: MonsterReference.groups(of: monster))
+                              blocks: MonsterReference.blocks(of: monster))
                 .accessibilityIdentifier("monster-reference")
         } else if let unavailable = bestiary.unavailable {
             // Still being read, or not configured: not the same thing as this Monster
@@ -108,16 +104,13 @@ struct ReferencePageView: View {
     /// Under the heading too, when the note names a picture that gives no Face — so the DM
     /// learns why this Monster's Pawns wear their colour, and which link to fix.
     var pictureProblem: String?
-    let lines: PageText.Lines
-    /// Drawn between the two blocks of `lines`. Nil when the note lacks a score.
-    let abilities: PageText.AbilityTable?
-    let groups: [PageText.Group]
+    /// What the Page says, from `.heading` on: only the blocks the note fills.
+    let blocks: [PageText.Block]
 
     var body: some View {
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 8) {
-                let blocks = PageText.blocks(lines, abilities, groups)
-                ForEach(Array(blocks.enumerated()), id: \.element) { index, block in
+                ForEach(Array(blocks.enumerated()), id: \.offset) { index, block in
                     if index > 0 {
                         PageRule()
                     }
@@ -164,15 +157,11 @@ struct ReferencePageView: View {
                         .accessibilityIdentifier("reference-picture-problem")
                 }
             }
-        case .numbers:
-            lineBlock(lines.numbers)
-        case .abilities:
-            if let abilities {
-                AbilityTableView(table: abilities)
-            }
-        case .lines:
-            lineBlock(lines.rest)
-        case .groups:
+        case .armorClassToSpeed(let lines), .skillsToChallengeRating(let lines):
+            lineBlock(lines)
+        case .abilities(let table):
+            AbilityTableView(table: table)
+        case .groups(let groups):
             VStack(alignment: .leading, spacing: 12) {
                 ForEach(groups, id: \.title) { group in
                     VStack(alignment: .leading, spacing: 6) {

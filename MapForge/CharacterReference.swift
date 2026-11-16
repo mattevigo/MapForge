@@ -41,33 +41,30 @@ enum CharacterReference {
             .joined(separator: " · ")
     }
 
-    /// The one-line facts above the Traits, as a Monster's Page gives them. Only what the note
-    /// has. Its armour class and hit points are the note's — the maximum, with no hit dice —
-    /// never its Pawn's.
-    static func lines(of note: CharacterNote) -> PageText.Lines {
-        let rest: [(String, String?)] = [
+    /// The blocks a rule is drawn between, as a Monster's Page divides them. Only what the
+    /// note has. Its armour class and hit points are the note's — the maximum, with no hit
+    /// dice — never its Pawn's.
+    static func blocks(of note: CharacterNote) -> [PageText.Block] {
+        let skillsToLanguages: [(String, String?)] = [
             (String(localized: "Saves"),
              PageText.bonuses(PageText.savesOffTable(note.saves, note.abilityScores))),
             (String(localized: "Skills"), PageText.bonuses(note.skills)),
             (String(localized: "Senses"), note.senses),
             (String(localized: "Languages"), note.languages),
         ]
-        return PageText.Lines(
-            numbers: PageText.numbers(armorClass: note.armorClass,
-                                      initiativeBonus: note.initiativeBonus,
-                                      hitPoints: note.maxHP, hitDice: nil,
-                                      speed: note.speed),
-            rest: PageText.present(rest))
+        return PageText.blocks(
+            armorClassToSpeed: PageText.numbers(armorClass: note.armorClass,
+                                                initiativeBonus: note.initiativeBonus,
+                                                hitPoints: note.maxHP, hitDice: nil,
+                                                speed: note.speed),
+            abilities: abilities(of: note),
+            skillsToChallengeRating: PageText.present(skillsToLanguages),
+            groups: groups(of: note))
     }
 
     /// The ability table, as a Monster's Page gives it.
     static func abilities(of note: CharacterNote) -> PageText.AbilityTable? {
         PageText.abilities(note.abilityScores, saves: note.saves)
-    }
-
-    /// The blocks a rule is drawn between, as a Monster's Page divides them.
-    static func blocks(of note: CharacterNote) -> [PageText.Block] {
-        PageText.blocks(lines(of: note), abilities(of: note), groups(of: note))
     }
 
     /// Traits and Actions as a Monster's are; Spells as the plain lines the note writes.
@@ -98,9 +95,7 @@ struct CharacterReferenceView: View {
                               heading: CharacterReference.heading(of: note),
                               warning: note.warning(current: unit),
                               pictureProblem: note.picture?.problem,
-                              lines: CharacterReference.lines(of: note),
-                              abilities: CharacterReference.abilities(of: note),
-                              groups: CharacterReference.groups(of: note))
+                              blocks: CharacterReference.blocks(of: note))
                 .accessibilityIdentifier("character-reference")
         case .unlinked(let characterName):
             ReferenceCaption(text: Text("“\(characterName)” has no note. Choose one with Edit… in the Party panel."))

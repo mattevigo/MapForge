@@ -11,18 +11,6 @@ enum PageText {
         var beside: [Line] = []
     }
 
-    /// The one-line facts, in the two blocks the rulebook prints them in, with the ability
-    /// table between: each line built into its block, never placed there by its label.
-    struct Lines: Equatable {
-        /// `AC 15   Initiative +2`, `HP 45 (6d10 + 12)`, Speed.
-        var numbers: [Line]
-        /// Saves (when the table cannot hold them), Skills, …, CR.
-        var rest: [Line]
-
-        /// Both blocks, in the rulebook's order.
-        var all: [Line] { numbers + rest }
-    }
-
     /// The six Abilities as the rulebook prints them under Speed: each score, its modifier
     /// and its saving throw. Only for a note that gives all six scores.
     struct AbilityTable: Equatable {
@@ -125,27 +113,34 @@ enum PageText {
         return saves.filter { Ability.named($0.name) == nil }
     }
 
-    /// A Page's parts as the rulebook divides a creature, a red rule between each and the next.
-    enum Block: Hashable {
+    /// A Page's parts as the rulebook divides a creature, a red rule between each and the next:
+    /// each with what it holds, so a block is there only when the note fills it.
+    enum Block: Equatable {
         /// The name, what it is, and the warnings.
         case heading
-        /// `Lines.numbers`.
-        case numbers
-        case abilities
-        /// `Lines.rest`.
-        case lines
+        /// `AC 15   Initiative +2`, `HP 45 (6d10 + 12)`, Speed.
+        case armorClassToSpeed([Line])
+        case abilities(AbilityTable)
+        /// Skills, …, CR, as many as the note has — led by a Saves line when the table cannot
+        /// hold a save the note lists. A Character's ends at Languages.
+        case skillsToChallengeRating([Line])
         /// Traits, Actions, …: each heading has its own rule beneath it.
-        case groups
+        case groups([Group])
     }
 
     /// The blocks the note fills, in order: one it leaves empty is not there, so no two rules
-    /// sit one on the other where it would have been.
-    static func blocks(_ lines: Lines, _ abilities: AbilityTable?, _ groups: [Group]) -> [Block] {
-        let filled: [(Block, Bool)] = [(.numbers, !lines.numbers.isEmpty),
-                                       (.abilities, abilities != nil),
-                                       (.lines, !lines.rest.isEmpty),
-                                       (.groups, !groups.isEmpty)]
-        return [.heading] + filled.filter(\.1).map(\.0)
+    /// sit one on the other where it would have been. Each line is built into its block,
+    /// never placed there by its label.
+    static func blocks(armorClassToSpeed: [Line], abilities: AbilityTable?,
+                       skillsToChallengeRating: [Line], groups: [Group]) -> [Block] {
+        var blocks: [Block] = [.heading]
+        if !armorClassToSpeed.isEmpty { blocks.append(.armorClassToSpeed(armorClassToSpeed)) }
+        if let abilities { blocks.append(.abilities(abilities)) }
+        if !skillsToChallengeRating.isEmpty {
+            blocks.append(.skillsToChallengeRating(skillsToChallengeRating))
+        }
+        if !groups.isEmpty { blocks.append(.groups(groups)) }
+        return blocks
     }
 
     static func features(_ title: String, _ features: [Monster.Feature]) -> Group {
