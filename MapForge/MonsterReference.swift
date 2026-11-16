@@ -93,7 +93,7 @@ enum MonsterReference {
                         hitPoints: Int?, hitDice: String?, speed: String?) -> [Line] {
         var lines: [Line] = []
         let initiative = initiativeBonus.map {
-            Line(label: initiativeLabel, value: signed($0))
+            Line(label: initiativeLabel, value: $0.signed)
         }
         if let armorClass {
             lines.append(Line(label: armorClassLabel, value: "\(armorClass)",
@@ -135,7 +135,7 @@ enum MonsterReference {
     static func abilities(_ scores: AbilityScores?, saves: [Monster.Proficiency]) -> AbilityTable? {
         guard let scores else { return nil }
         return AbilityTable(rows: Ability.allCases.map { ability in
-            let modifier = signed(scores.modifier(ability))
+            let modifier = scores.modifier(ability).signed
             let listed = saves.first { Ability.named($0.name) == ability }
             return AbilityTable.Row(ability: ability, score: scores[ability], modifier: modifier,
                                     save: listed.map(save) ?? modifier)
@@ -144,7 +144,7 @@ enum MonsterReference {
 
     /// A listed save, with the `●` a Character's note marks a proficient one with kept.
     private static func save(_ listed: Monster.Proficiency) -> String {
-        (listed.name.contains("●") ? "● " : "") + signed(listed.bonus)
+        (listed.name.contains("●") ? "● " : "") + listed.bonus.signed
     }
 
     /// The saves still to be given on a Saves line: all of them with no table, else those
@@ -153,11 +153,6 @@ enum MonsterReference {
                               _ scores: AbilityScores?) -> [Monster.Proficiency] {
         guard scores != nil else { return saves }
         return saves.filter { Ability.named($0.name) == nil }
-    }
-
-    /// A bonus as the rulebook prints it: always signed, with the true minus.
-    static func signed(_ bonus: Int) -> String {
-        "\(bonus < 0 ? "−" : "+")\(abs(bonus))"
     }
 
     /// A Page's parts as the rulebook divides a creature, a red rule between each and the next.
@@ -203,7 +198,7 @@ enum MonsterReference {
     static func bonuses(_ proficiencies: [Monster.Proficiency]) -> String? {
         guard !proficiencies.isEmpty else { return nil }
         return proficiencies
-            .map { "\($0.name) \(signed($0.bonus))" }
+            .map { "\($0.name) \($0.bonus.signed)" }
             .joined(separator: ", ")
     }
 
