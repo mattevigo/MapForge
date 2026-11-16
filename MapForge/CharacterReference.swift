@@ -27,9 +27,10 @@ enum CharacterPage: Equatable {
     case unavailable(String)
 }
 
-/// A Character's page, as the DM reads it mid-fight — the text, apart from the view that lays
-/// it out. `MonsterReference` for a Player: the note's own words and nothing computed from
-/// them, so "what's my spell save DC again?" is answered without asking the player.
+/// A Character's Page, as the DM reads it mid-fight — the text, apart from the view that lays
+/// it out. `MonsterReference` for a Player: the note's own words and, as there, nothing
+/// computed from them but an ability score's modifier, so "what's my spell save DC again?" is
+/// answered without asking the player.
 enum CharacterReference {
     /// Under the name, as a Monster's page gives size · type · alignment: who this is.
     static func heading(of note: CharacterNote) -> String {
@@ -40,27 +41,38 @@ enum CharacterReference {
             .joined(separator: " · ")
     }
 
-    /// The one-line facts above the Traits. Only what the note has. Armour class and hit
-    /// points are not repeated: the Stat Block editor directly above shows the Pawn's own.
-    static func lines(of note: CharacterNote) -> [MonsterReference.Line] {
-        let candidates: [(String, String?)] = [
-            (String(localized: "Speed"), note.speed),
-            (String(localized: "Saves"), MonsterReference.bonuses(note.saves)),
-            (String(localized: "Skills"), MonsterReference.bonuses(note.skills)),
+    /// The blocks a rule is drawn between, as a Monster's Page divides them. Only what the
+    /// note has. Its armour class and hit points are the note's — the maximum, with no hit
+    /// dice — never its Pawn's.
+    static func blocks(of note: CharacterNote) -> [PageText.Block] {
+        let skillsToLanguages: [(String, String?)] = [
+            (String(localized: "Saves"),
+             PageText.bonuses(PageText.savesOffTable(note.saves, note.abilityScores))),
+            (String(localized: "Skills"), PageText.bonuses(note.skills)),
             (String(localized: "Senses"), note.senses),
             (String(localized: "Languages"), note.languages),
         ]
-        return candidates.compactMap { label, value in
-            value.map { MonsterReference.Line(label: label, value: $0) }
-        }
+        return PageText.blocks(
+            armorClassToSpeed: PageText.numbers(armorClass: note.armorClass,
+                                                initiativeBonus: note.initiativeBonus,
+                                                hitPoints: note.maxHP, hitDice: nil,
+                                                speed: note.speed),
+            abilities: abilities(of: note),
+            skillsToChallengeRating: PageText.present(skillsToLanguages),
+            groups: groups(of: note))
+    }
+
+    /// The ability table, as a Monster's Page gives it.
+    static func abilities(of note: CharacterNote) -> PageText.AbilityTable? {
+        PageText.abilities(note.abilityScores, saves: note.saves)
     }
 
     /// Traits and Actions as a Monster's are; Spells as the plain lines the note writes.
-    static func groups(of note: CharacterNote) -> [MonsterReference.Group] {
-        [MonsterReference.features(String(localized: "Traits"), note.traits),
-         MonsterReference.features(String(localized: "Actions"), note.actions),
-         MonsterReference.Group(title: String(localized: "Spells"),
-                                paragraphs: note.spells.map(MonsterReference.Paragraph.plain))]
+    static func groups(of note: CharacterNote) -> [PageText.Group] {
+        [PageText.features(String(localized: "Traits"), note.traits),
+         PageText.features(String(localized: "Actions"), note.actions),
+         PageText.Group(title: String(localized: "Spells"),
+                        paragraphs: note.spells.map(PageText.Paragraph.plain))]
             .filter { !$0.paragraphs.isEmpty }
     }
 }
@@ -83,8 +95,7 @@ struct CharacterReferenceView: View {
                               heading: CharacterReference.heading(of: note),
                               warning: note.warning(current: unit),
                               pictureProblem: note.picture?.problem,
-                              lines: CharacterReference.lines(of: note),
-                              groups: CharacterReference.groups(of: note))
+                              blocks: CharacterReference.blocks(of: note))
                 .accessibilityIdentifier("character-reference")
         case .unlinked(let characterName):
             ReferenceCaption(text: Text("“\(characterName)” has no note. Choose one with Edit… in the Party panel."))

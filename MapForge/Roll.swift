@@ -34,7 +34,8 @@ enum Ability: String, Codable, CaseIterable, LocalizedTitle {
     }
 }
 
-/// The six scores a note's `stats:` writes, read only to offer a Modifier (ADR-0029).
+/// The six scores a note's `stats:` writes, read to offer a Modifier (ADR-0029) and shown on
+/// the note's Page.
 ///
 /// A Pawn never has these. They live on the `Monster` or `CharacterNote` they were read from,
 /// are rebuilt with it each time the notes are read, and never reach a `StatBlock`, a Roll or
