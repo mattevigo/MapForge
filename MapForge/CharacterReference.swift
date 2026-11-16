@@ -44,21 +44,20 @@ enum CharacterReference {
     /// The one-line facts above the Traits, as a Monster's Page gives them. Only what the note
     /// has. Its armour class and hit points are the note's — the maximum, with no hit dice —
     /// never its Pawn's.
-    static func lines(of note: CharacterNote) -> [MonsterReference.Line] {
-        let candidates: [(String, String?)] = [
-            (MonsterReference.speedLabel, note.speed),
+    static func lines(of note: CharacterNote) -> MonsterReference.Lines {
+        let rest: [(String, String?)] = [
             (String(localized: "Saves"),
              MonsterReference.bonuses(MonsterReference.savesOffTable(note.saves, note.abilityScores))),
             (String(localized: "Skills"), MonsterReference.bonuses(note.skills)),
             (String(localized: "Senses"), note.senses),
             (String(localized: "Languages"), note.languages),
         ]
-        return MonsterReference.numbers(armorClass: note.armorClass,
-                                        initiativeBonus: note.initiativeBonus,
-                                        hitPoints: note.maxHP, hitDice: nil)
-            + candidates.compactMap { label, value in
-                value.map { MonsterReference.Line(label: label, value: $0) }
-            }
+        return MonsterReference.Lines(
+            numbers: MonsterReference.numbers(armorClass: note.armorClass,
+                                              initiativeBonus: note.initiativeBonus,
+                                              hitPoints: note.maxHP, hitDice: nil,
+                                              speed: note.speed),
+            rest: MonsterReference.present(rest))
     }
 
     /// The ability table, as a Monster's Page gives it.

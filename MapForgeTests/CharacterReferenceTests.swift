@@ -91,14 +91,14 @@ final class CharacterReferenceTests: XCTestCase {
 
     func testOnlyWhatTheNoteHasIsListed() {
         let note = CharacterNote(name: "Test", speed: "9 metri", languages: "Comune")
-        XCTAssertEqual(CharacterReference.lines(of: note).map(\.label), ["Speed", "Languages"])
+        XCTAssertEqual(CharacterReference.lines(of: note).all.map(\.label), ["Speed", "Languages"])
     }
 
     func testTheNotesArmourClassAndMaximumHitPointsComeBeforeSpeedWithNoHitDice() {
         // The definition's numbers, not the Pawn's: a pinned Page has no Stat Block above it.
         let note = CharacterNote(name: "Test", armorClass: 14, maxHP: 48, initiativeBonus: -1,
                                  speed: "9 metri")
-        XCTAssertEqual(CharacterReference.lines(of: note), [
+        XCTAssertEqual(CharacterReference.lines(of: note).all, [
             .init(label: "AC", value: "14", beside: [.init(label: "Initiative", value: "−1")]),
             .init(label: "HP", value: "48"),
             .init(label: "Speed", value: "9 metri"),
@@ -111,7 +111,7 @@ final class CharacterReferenceTests: XCTestCase {
         XCTAssertEqual(table.rows.map(\.score), [11, 8, 18, 12, 17, 12])
         XCTAssertEqual(table.rows.map(\.modifier), ["+0", "−1", "+4", "+1", "+3", "+1"])
         XCTAssertEqual(table.rows.map(\.save), ["+0", "−1", "+4", "+1", "● +6", "+1"])
-        XCTAssertFalse(CharacterReference.lines(of: durga).contains { $0.label == "Saves" })
+        XCTAssertFalse(CharacterReference.lines(of: durga).all.contains { $0.label == "Saves" })
     }
 
     func testWithoutAllSixScoresThereIsNoTableAndAProficientSaveKeepsTheNotesMark() {
@@ -119,7 +119,7 @@ final class CharacterReferenceTests: XCTestCase {
         note.saves = [.init(name: "Forza", bonus: 0), .init(name: "Saggezza ●", bonus: 6)]
         note.skills = [.init(name: "Arcano", bonus: 7)]
         XCTAssertNil(CharacterReference.abilities(of: note))
-        let lines = CharacterReference.lines(of: note)
+        let lines = CharacterReference.lines(of: note).all
         XCTAssertEqual(lines.first { $0.label == "Saves" }?.value, "Forza +0, Saggezza ● +6")
         XCTAssertEqual(lines.first { $0.label == "Skills" }?.value, "Arcano +7")
     }

@@ -14,6 +14,18 @@ enum MonsterReference {
         var beside: [Line] = []
     }
 
+    /// The one-line facts, in the two blocks the rulebook prints them in, with the ability
+    /// table between: each line built into its block, never placed there by its label.
+    struct Lines: Equatable {
+        /// `AC 15   Initiative +2`, `HP 45 (6d10 + 12)`, Speed.
+        var numbers: [Line]
+        /// Saves (when the table cannot hold them), Skills, …, CR.
+        var rest: [Line]
+
+        /// Both blocks, in the rulebook's order.
+        var all: [Line] { numbers + rest }
+    }
+
     /// The six Abilities as the rulebook prints them under Speed: each score, its modifier
     /// and its saving throw. Only for a note that gives all six scores.
     struct AbilityTable: Equatable {
@@ -45,9 +57,8 @@ enum MonsterReference {
     /// The one-line facts above the actions, in the order the rulebook prints them.
     /// Only what the note has. Armour class and hit points are the definition's, read from
     /// the note — never a Pawn's, which four wounded gnolls sharing one Page do not share.
-    static func lines(of monster: Monster) -> [Line] {
-        let candidates: [(String, String?)] = [
-            (speedLabel, monster.speed),
+    static func lines(of monster: Monster) -> Lines {
+        let rest: [(String, String?)] = [
             (String(localized: "Saves"), bonuses(savesOffTable(monster.saves, monster.abilityScores))),
             (String(localized: "Skills"), bonuses(monster.skills)),
             (String(localized: "Vulnerabilities"), monster.damageVulnerabilities),
@@ -59,16 +70,22 @@ enum MonsterReference {
             (String(localized: "Languages"), monster.languages),
             (String(localized: "CR"), monster.challengeRating),
         ]
-        return numbers(armorClass: monster.armorClass, initiativeBonus: monster.initiativeBonus,
-                       hitPoints: monster.hitPoints, hitDice: monster.hitDice)
-            + candidates.compactMap { label, value in
-                value.map { Line(label: label, value: $0) }
-            }
+        return Lines(numbers: numbers(armorClass: monster.armorClass,
+                                      initiativeBonus: monster.initiativeBonus,
+                                      hitPoints: monster.hitPoints, hitDice: monster.hitDice,
+                                      speed: monster.speed),
+                     rest: present(rest))
     }
 
-    /// `AC 15   Initiative +2`, then `HP 45 (6d10 + 12)`: each part only when the note has it.
+    /// A Line for each label whose value the note has, in order.
+    static func present(_ candidates: [(String, String?)]) -> [Line] {
+        candidates.compactMap { label, value in value.map { Line(label: label, value: $0) } }
+    }
+
+    /// `AC 15   Initiative +2`, then `HP 45 (6d10 + 12)`, then Speed: each part only when the
+    /// note has it.
     static func numbers(armorClass: Int?, initiativeBonus: Int?,
-                        hitPoints: Int?, hitDice: String?) -> [Line] {
+                        hitPoints: Int?, hitDice: String?, speed: String?) -> [Line] {
         var lines: [Line] = []
         let initiative = initiativeBonus.map {
             Line(label: initiativeLabel, value: signed($0))
@@ -81,6 +98,9 @@ enum MonsterReference {
         }
         if let hp = joined([hitPoints.map { "\($0)" }, hitDice.map { "(\($0))" }], by: " ") {
             lines.append(Line(label: hitPointsLabel, value: hp))
+        }
+        if let speed {
+            lines.append(Line(label: speedLabel, value: speed))
         }
         return lines
     }
@@ -98,14 +118,7 @@ enum MonsterReference {
     private static var hitPointsLabel: String {
         String(localized: "HP", comment: "Hit points, as narrow as the field")
     }
-    static var speedLabel: String { String(localized: "Speed") }
-
-    /// `lines` cut where the ability table goes: after AC, HP and Speed, before the rest.
-    static func split(_ lines: [Line]) -> (above: ArraySlice<Line>, below: ArraySlice<Line>) {
-        let head = [armorClassLabel, initiativeLabel, hitPointsLabel, speedLabel]
-        let cut = lines.firstIndex { !head.contains($0.label) } ?? lines.endIndex
-        return (lines[..<cut], lines[cut...])
-    }
+    private static var speedLabel: String { String(localized: "Speed") }
 
     static func abilities(of monster: Monster) -> AbilityTable? {
         abilities(monster.abilityScores, saves: monster.saves)
@@ -248,8 +261,8 @@ struct ReferencePageView: View {
     /// Under the heading too, when the note names a picture that gives no Face — so the DM
     /// learns why this Monster's Pawns wear their colour, and which link to fix.
     var pictureProblem: String?
-    let lines: [MonsterReference.Line]
-    /// Drawn after Speed, before the rest of `lines`. Nil when the note lacks a score.
+    let lines: MonsterReference.Lines
+    /// Drawn between the two blocks of `lines`. Nil when the note lacks a score.
     let abilities: MonsterReference.AbilityTable?
     let groups: [MonsterReference.Group]
 
@@ -276,14 +289,13 @@ struct ReferencePageView: View {
                             .accessibilityIdentifier("reference-picture-problem")
                     }
                 }
-                let (above, below) = MonsterReference.split(lines)
-                ForEach(above, id: \.label) { line in
+                ForEach(lines.numbers, id: \.label) { line in
                     text(line).font(.body)
                 }
                 if let abilities {
                     AbilityTableView(table: abilities)
                 }
-                ForEach(below, id: \.label) { line in
+                ForEach(lines.rest, id: \.label) { line in
                     text(line).font(.body)
                 }
                 ForEach(groups, id: \.title) { group in
