@@ -3,8 +3,9 @@ import SwiftUI
 /// A Monster's page, as the DM reads it mid-fight — the text, apart from the view that lays
 /// it out.
 ///
-/// The note's own words and nothing computed from them: the app never reasons about a speed
-/// or an attack bonus, it only spares the DM an alt-tab to their vault while six people wait.
+/// The note's own words and nothing computed from them beyond what a rulebook prints beside
+/// them — an ability score's modifier: the app never reasons about a speed or an attack bonus,
+/// it only spares the DM an alt-tab to their vault while six people wait.
 enum MonsterReference {
     struct Line: Equatable {
         var label: String

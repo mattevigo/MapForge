@@ -28,8 +28,9 @@ enum CharacterPage: Equatable {
 }
 
 /// A Character's page, as the DM reads it mid-fight — the text, apart from the view that lays
-/// it out. `MonsterReference` for a Player: the note's own words and nothing computed from
-/// them, so "what's my spell save DC again?" is answered without asking the player.
+/// it out. `MonsterReference` for a Player: the note's own words and, as there, nothing
+/// computed from them but an ability score's modifier, so "what's my spell save DC again?" is
+/// answered without asking the player.
 enum CharacterReference {
     /// Under the name, as a Monster's page gives size · type · alignment: who this is.
     static func heading(of note: CharacterNote) -> String {
