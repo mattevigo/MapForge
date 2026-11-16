@@ -8,22 +8,22 @@ final class MonsterReferenceTests: XCTestCase {
 
     func testWikilinksAreFlattenedToWhatTheDMWouldRead() {
         // Obsidian's links mean nothing outside Obsidian, and `[[` mid-sentence is noise.
-        XCTAssertEqual(MonsterReference.plain("attacca con [[Squartare]]."),
+        XCTAssertEqual(PageText.plain("attacca con [[Squartare]]."),
                        "attacca con Squartare.")
-        XCTAssertEqual(MonsterReference.plain("secondo il [[Tomo_del_Ferro]]"),
+        XCTAssertEqual(PageText.plain("secondo il [[Tomo_del_Ferro]]"),
                        "secondo il Tomo del Ferro")
-        XCTAssertEqual(MonsterReference.plain("vedi [[03_Bestiario/Lich|il Lich]] e [[Wraith#Azioni]]"),
+        XCTAssertEqual(PageText.plain("vedi [[03_Bestiario/Lich|il Lich]] e [[Wraith#Azioni]]"),
                        "vedi il Lich e Wraith")
     }
 
     func testEmphasisIsRenderedRatherThanShown() {
-        let text = MonsterReference.attributed("*Colpito:* 5 danni, **terreno difficile**.")
+        let text = PageText.attributed("*Colpito:* 5 danni, **terreno difficile**.")
         XCTAssertEqual(String(text.characters), "Colpito: 5 danni, terreno difficile.")
     }
 
     func testTextThatIsNotValidMarkdownIsShownAsWritten() {
         // Never blank: a description the parser dislikes is still the description.
-        XCTAssertEqual(String(MonsterReference.attributed("5 * 3 [oops").characters), "5 * 3 [oops")
+        XCTAssertEqual(String(PageText.attributed("5 * 3 [oops").characters), "5 * 3 [oops")
     }
 
     // MARK: The lines above the actions
@@ -104,7 +104,7 @@ final class MonsterReferenceTests: XCTestCase {
     }
 
     func testTheTableIsTwoBlocksOfThreeAsTheBookPrintsIt() throws {
-        let table = try XCTUnwrap(MonsterReference.abilities(AbilityScores([10, 14, 12, 8, 13, 9]),
+        let table = try XCTUnwrap(PageText.abilities(AbilityScores([10, 14, 12, 8, 13, 9]),
                                                              saves: []))
         XCTAssertEqual(table.blocks.map { $0.map(\.ability) },
                        [[.strength, .dexterity, .constitution],

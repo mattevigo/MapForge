@@ -8,7 +8,7 @@ import XCTest
 /// Measured at the two widths the Page is drawn at, read off the views that draw it, so the
 /// popover or the panel cannot change width without these noticing.
 final class AbilityTableLayoutTests: XCTestCase {
-    private let table = MonsterReference.abilities(AbilityScores([18, 14, 16, 10, 13, 8]),
+    private let table = PageText.abilities(AbilityScores([18, 14, 16, 10, 13, 8]),
                                                    saves: [.init(name: "Saggezza ●", bonus: 13)])!
 
     @MainActor
