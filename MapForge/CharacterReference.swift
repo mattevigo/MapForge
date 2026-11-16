@@ -45,8 +45,9 @@ enum CharacterReference {
     /// never its Pawn's.
     static func lines(of note: CharacterNote) -> [MonsterReference.Line] {
         let candidates: [(String, String?)] = [
-            (String(localized: "Speed"), note.speed),
-            (String(localized: "Saves"), MonsterReference.bonuses(note.saves)),
+            (MonsterReference.speedLabel, note.speed),
+            (String(localized: "Saves"),
+             MonsterReference.bonuses(MonsterReference.savesOffTable(note.saves, note.abilityScores))),
             (String(localized: "Skills"), MonsterReference.bonuses(note.skills)),
             (String(localized: "Senses"), note.senses),
             (String(localized: "Languages"), note.languages),
@@ -57,6 +58,11 @@ enum CharacterReference {
             + candidates.compactMap { label, value in
                 value.map { MonsterReference.Line(label: label, value: $0) }
             }
+    }
+
+    /// The ability table, as a Monster's Page gives it.
+    static func abilities(of note: CharacterNote) -> MonsterReference.AbilityTable? {
+        MonsterReference.abilities(note.abilityScores, saves: note.saves)
     }
 
     /// Traits and Actions as a Monster's are; Spells as the plain lines the note writes.
@@ -88,6 +94,7 @@ struct CharacterReferenceView: View {
                               warning: note.warning(current: unit),
                               pictureProblem: note.picture?.problem,
                               lines: CharacterReference.lines(of: note),
+                              abilities: CharacterReference.abilities(of: note),
                               groups: CharacterReference.groups(of: note))
                 .accessibilityIdentifier("character-reference")
         case .unlinked(let characterName):

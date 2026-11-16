@@ -34,7 +34,7 @@ struct CharacterNote: Equatable, Identifiable {
     var languages: String?
     var saves: [Monster.Proficiency] = []
     var skills: [Monster.Proficiency] = []
-    /// The note's `stats:`, as `Monster.abilityScores` is: for the Roll sheet's offer alone.
+    /// The note's `stats:`, as `Monster.abilityScores` is: for the Page and the Roll sheet's offer.
     var abilityScores: AbilityScores?
     var traits: [Monster.Feature] = []
     var actions: [Monster.Feature] = []

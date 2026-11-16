@@ -105,10 +105,20 @@ final class CharacterReferenceTests: XCTestCase {
         ])
     }
 
-    func testAProficientSaveKeepsTheNotesMark() {
+    func testTheTableGivesTheNotesSavesWithTheirProficiencyMarkAndNoSavesLine() throws {
+        let durga = try note(durga)
+        let table = try XCTUnwrap(CharacterReference.abilities(of: durga))
+        XCTAssertEqual(table.rows.map(\.score), [11, 8, 18, 12, 17, 12])
+        XCTAssertEqual(table.rows.map(\.modifier), ["+0", "−1", "+4", "+1", "+3", "+1"])
+        XCTAssertEqual(table.rows.map(\.save), ["+0", "−1", "+4", "+1", "● +6", "+1"])
+        XCTAssertFalse(CharacterReference.lines(of: durga).contains { $0.label == "Saves" })
+    }
+
+    func testWithoutAllSixScoresThereIsNoTableAndAProficientSaveKeepsTheNotesMark() {
         var note = CharacterNote(name: "Test")
         note.saves = [.init(name: "Forza", bonus: 0), .init(name: "Saggezza ●", bonus: 6)]
         note.skills = [.init(name: "Arcano", bonus: 7)]
+        XCTAssertNil(CharacterReference.abilities(of: note))
         let lines = CharacterReference.lines(of: note)
         XCTAssertEqual(lines.first { $0.label == "Saves" }?.value, "Forza +0, Saggezza ● +6")
         XCTAssertEqual(lines.first { $0.label == "Skills" }?.value, "Arcano +7")

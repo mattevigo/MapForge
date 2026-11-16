@@ -54,6 +54,62 @@ final class MonsterReferenceTests: XCTestCase {
                                   .init(label: "HP", value: "(2d6)")])
     }
 
+    // MARK: The ability table
+
+    func testTheTableGivesEachScoreItsModifierAndTheNotesSaveOrElseTheModifier() throws {
+        var monster = Monster(name: "Test")
+        monster.abilityScores = AbilityScores([10, 14, 12, 8, 13, 9])
+        monster.saves = [.init(name: "Destrezza", bonus: 5), .init(name: "wisdom", bonus: 3)]
+        let table = try XCTUnwrap(MonsterReference.abilities(of: monster))
+        XCTAssertEqual(table.rows, [
+            .init(ability: .strength, score: 10, modifier: "+0", save: "+0"),
+            .init(ability: .dexterity, score: 14, modifier: "+2", save: "+5"),
+            .init(ability: .constitution, score: 12, modifier: "+1", save: "+1"),
+            .init(ability: .intelligence, score: 8, modifier: "−1", save: "−1"),
+            .init(ability: .wisdom, score: 13, modifier: "+1", save: "+3"),
+            .init(ability: .charisma, score: 9, modifier: "−1", save: "−1"),
+        ])
+    }
+
+    func testWithATableTheSavesAreInItAndNotOnALine() {
+        var monster = Monster(name: "Test", speed: "9 m")
+        monster.abilityScores = AbilityScores([10, 14, 12, 8, 13, 9])
+        monster.saves = [.init(name: "Destrezza", bonus: 5), .init(name: "Saggezza", bonus: 3)]
+        XCTAssertEqual(MonsterReference.lines(of: monster).map(\.label), ["Speed"])
+    }
+
+    func testTheTableGoesAfterSpeedAndBeforeTheRest() {
+        var monster = Monster(name: "Test", armorClass: 15, hitPoints: 45, speed: "9 m",
+                              languages: "Comune")
+        monster.skills = [.init(name: "Furtività", bonus: 6)]
+        let (above, below) = MonsterReference.split(MonsterReference.lines(of: monster))
+        XCTAssertEqual(above.map(\.label), ["AC", "HP", "Speed"])
+        XCTAssertEqual(below.map(\.label), ["Skills", "Languages"])
+
+        let bare = Monster(name: "Test", languages: "Comune")
+        let (none, all) = MonsterReference.split(MonsterReference.lines(of: bare))
+        XCTAssertEqual(none.map(\.label), [])
+        XCTAssertEqual(all.map(\.label), ["Languages"])
+    }
+
+    func testWithoutAllSixScoresThereIsNoTableAndTheSavesKeepTheirLine() {
+        var monster = Monster(name: "Test")
+        monster.saves = [.init(name: "Destrezza", bonus: 5)]
+        XCTAssertNil(MonsterReference.abilities(of: monster))
+        XCTAssertEqual(MonsterReference.lines(of: monster).first { $0.label == "Saves" }?.value,
+                       "Destrezza +5")
+    }
+
+    func testASaveTheTableCannotPlaceKeepsItsLineSoNothingInTheNoteIsLost() {
+        // An abbreviation is not the rulebook's name (ADR-0029), so "Des" has no row to go in.
+        var monster = Monster(name: "Test")
+        monster.abilityScores = AbilityScores([10, 14, 12, 8, 13, 9])
+        monster.saves = [.init(name: "Des", bonus: 5), .init(name: "Saggezza", bonus: 3)]
+        XCTAssertEqual(MonsterReference.abilities(of: monster)?.rows[1].save, "+2")
+        XCTAssertEqual(MonsterReference.lines(of: monster).first { $0.label == "Saves" }?.value,
+                       "Des +5")
+    }
+
     func testSavesAndSkillsReadAsSignedBonuses() {
         var monster = Monster(name: "Test")
         monster.saves = [.init(name: "Des", bonus: 3), .init(name: "Sag", bonus: -1)]

@@ -13,6 +13,21 @@ enum MonsterReference {
         var beside: [Line] = []
     }
 
+    /// The six Abilities as the rulebook prints them under Speed: each score, its modifier
+    /// and its saving throw. Only for a note that gives all six scores.
+    struct AbilityTable: Equatable {
+        struct Row: Equatable {
+            var ability: Ability
+            var score: Int
+            var modifier: String
+            /// The note's save for this Ability, as it writes it, or else the modifier.
+            var save: String
+        }
+
+        /// STR, DEX, CON, INT, WIS, CHA.
+        var rows: [Row]
+    }
+
     /// A heading on the page — Traits, Actions — and what it holds.
     struct Group: Equatable {
         var title: String
@@ -31,8 +46,8 @@ enum MonsterReference {
     /// the note — never a Pawn's, which four wounded gnolls sharing one Page do not share.
     static func lines(of monster: Monster) -> [Line] {
         let candidates: [(String, String?)] = [
-            (String(localized: "Speed"), monster.speed),
-            (String(localized: "Saves"), bonuses(monster.saves)),
+            (speedLabel, monster.speed),
+            (String(localized: "Saves"), bonuses(savesOffTable(monster.saves, monster.abilityScores))),
             (String(localized: "Skills"), bonuses(monster.skills)),
             (String(localized: "Vulnerable"), monster.damageVulnerabilities),
             (String(localized: "Resists"), monster.damageResistances),
@@ -54,20 +69,65 @@ enum MonsterReference {
                         hitPoints: Int?, hitDice: String?) -> [Line] {
         var lines: [Line] = []
         let initiative = initiativeBonus.map {
-            Line(label: String(localized: "Initiative"), value: signed($0))
+            Line(label: initiativeLabel, value: signed($0))
         }
         if let armorClass {
-            lines.append(Line(label: String(localized: "AC", comment: "Armour Class, abbreviated"),
-                              value: "\(armorClass)", beside: initiative.map { [$0] } ?? []))
+            lines.append(Line(label: armorClassLabel, value: "\(armorClass)",
+                              beside: initiative.map { [$0] } ?? []))
         } else if let initiative {
             lines.append(initiative)
         }
         let hp = [hitPoints.map { "\($0)" }, hitDice.map { "(\($0))" }].compactMap { $0 }
         if !hp.isEmpty {
-            lines.append(Line(label: String(localized: "HP", comment: "Hit points, as narrow as the field"),
-                              value: hp.joined(separator: " ")))
+            lines.append(Line(label: hitPointsLabel, value: hp.joined(separator: " ")))
         }
         return lines
+    }
+
+    private static var armorClassLabel: String {
+        String(localized: "AC", comment: "Armour Class, abbreviated")
+    }
+    private static var initiativeLabel: String { String(localized: "Initiative") }
+    private static var hitPointsLabel: String {
+        String(localized: "HP", comment: "Hit points, as narrow as the field")
+    }
+    static var speedLabel: String { String(localized: "Speed") }
+
+    /// `lines` cut where the ability table goes: after AC, HP and Speed, before the rest.
+    static func split(_ lines: [Line]) -> (above: ArraySlice<Line>, below: ArraySlice<Line>) {
+        let head = [armorClassLabel, initiativeLabel, hitPointsLabel, speedLabel]
+        let cut = lines.firstIndex { !head.contains($0.label) } ?? lines.endIndex
+        return (lines[..<cut], lines[cut...])
+    }
+
+    static func abilities(of monster: Monster) -> AbilityTable? {
+        abilities(monster.abilityScores, saves: monster.saves)
+    }
+
+    /// The table, from the note's six scores and the saves it lists. A save is matched onto
+    /// its Ability by the rulebook's name, in any language, as the Roll sheet matches it
+    /// (ADR-0029); the first wins a repeat.
+    static func abilities(_ scores: AbilityScores?, saves: [Monster.Proficiency]) -> AbilityTable? {
+        guard let scores else { return nil }
+        return AbilityTable(rows: Ability.allCases.map { ability in
+            let modifier = signed(scores.modifier(ability))
+            let listed = saves.first { Ability.named($0.name) == ability }
+            return AbilityTable.Row(ability: ability, score: scores[ability], modifier: modifier,
+                                    save: listed.map(save) ?? modifier)
+        })
+    }
+
+    /// A listed save, with the `●` a Character's note marks a proficient one with kept.
+    private static func save(_ listed: Monster.Proficiency) -> String {
+        (listed.name.contains("●") ? "● " : "") + signed(listed.bonus)
+    }
+
+    /// The saves still to be given on a Saves line: all of them with no table, else those
+    /// whose name matches no Ability — so nothing the note says is lost.
+    static func savesOffTable(_ saves: [Monster.Proficiency],
+                              _ scores: AbilityScores?) -> [Monster.Proficiency] {
+        guard scores != nil else { return saves }
+        return saves.filter { Ability.named($0.name) == nil }
     }
 
     /// A bonus as the rulebook prints it: always signed, with the true minus.
@@ -152,6 +212,7 @@ struct MonsterReferenceView: View {
                               warning: monster.warning(current: unit),
                               pictureProblem: monster.picture?.problem,
                               lines: MonsterReference.lines(of: monster),
+                              abilities: MonsterReference.abilities(of: monster),
                               groups: MonsterReference.groups(of: monster))
                 .accessibilityIdentifier("monster-reference")
         } else if let unavailable = bestiary.unavailable {
@@ -181,6 +242,8 @@ struct ReferencePageView: View {
     /// learns why this Monster's Pawns wear their colour, and which link to fix.
     var pictureProblem: String?
     let lines: [MonsterReference.Line]
+    /// Drawn after Speed, before the rest of `lines`. Nil when the note lacks a score.
+    let abilities: MonsterReference.AbilityTable?
     let groups: [MonsterReference.Group]
 
     var body: some View {
@@ -206,7 +269,14 @@ struct ReferencePageView: View {
                             .accessibilityIdentifier("reference-picture-problem")
                     }
                 }
-                ForEach(lines, id: \.label) { line in
+                let (above, below) = MonsterReference.split(lines)
+                ForEach(above, id: \.label) { line in
+                    text(line).font(.body)
+                }
+                if let abilities {
+                    AbilityTableView(table: abilities)
+                }
+                ForEach(below, id: \.label) { line in
                     text(line).font(.body)
                 }
                 ForEach(groups, id: \.title) { group in
@@ -244,6 +314,39 @@ struct ReferencePageView: View {
         case .plain(let line):
             return Text(MonsterReference.attributed(line))
         }
+    }
+}
+
+/// The six Abilities as a plain grid, each with its score, Mod and Save — the numbers where
+/// the DM will read them, without yet the rulebook's look.
+struct AbilityTableView: View {
+    let table: MonsterReference.AbilityTable
+
+    var body: some View {
+        Grid(alignment: .trailing, horizontalSpacing: 12, verticalSpacing: 2) {
+            GridRow {
+                Text(verbatim: "")
+                Text(verbatim: "")
+                Text("Mod", comment: "The ability table's column of modifiers, as the stat block heads it")
+                // Its own key: "Save" alone is the verb that saves a file.
+                Text(String(localized: "ability-table.save", defaultValue: "Save",
+                            comment: "The ability table's column of saving throws, as the stat block heads it"))
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            ForEach(table.rows, id: \.ability) { row in
+                GridRow {
+                    Text(row.ability.abbreviation)
+                        .fontWeight(.semibold)
+                        .gridColumnAlignment(.leading)
+                    Text(verbatim: "\(row.score)")
+                    Text(verbatim: row.modifier)
+                    Text(verbatim: row.save)
+                }
+                .font(.body.monospacedDigit())
+            }
+        }
+        .accessibilityIdentifier("reference-abilities")
     }
 }
 
