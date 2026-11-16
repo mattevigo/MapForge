@@ -9,6 +9,8 @@ enum MonsterReference {
     struct Line: Equatable {
         var label: String
         var value: String
+        /// What the rulebook prints on the same line after it: Initiative beside AC.
+        var beside: [Line] = []
     }
 
     /// A heading on the page — Traits, Actions — and what it holds.
@@ -25,8 +27,8 @@ enum MonsterReference {
     }
 
     /// The one-line facts above the actions, in the order the rulebook prints them.
-    /// Only what the note has. Armour class and hit points are not repeated: the Stat Block
-    /// editor directly above shows the Pawn's own, which are the ones that are true now.
+    /// Only what the note has. Armour class and hit points are the definition's, read from
+    /// the note — never a Pawn's, which four wounded gnolls sharing one Page do not share.
     static func lines(of monster: Monster) -> [Line] {
         let candidates: [(String, String?)] = [
             (String(localized: "Speed"), monster.speed),
@@ -40,9 +42,37 @@ enum MonsterReference {
             (String(localized: "Languages"), monster.languages),
             (String(localized: "CR"), monster.challengeRating),
         ]
-        return candidates.compactMap { label, value in
-            value.map { Line(label: label, value: $0) }
+        return numbers(armorClass: monster.armorClass, initiativeBonus: monster.initiativeBonus,
+                       hitPoints: monster.hitPoints, hitDice: monster.hitDice)
+            + candidates.compactMap { label, value in
+                value.map { Line(label: label, value: $0) }
+            }
+    }
+
+    /// `AC 15   Initiative +2`, then `HP 45 (6d10 + 12)`: each part only when the note has it.
+    static func numbers(armorClass: Int?, initiativeBonus: Int?,
+                        hitPoints: Int?, hitDice: String?) -> [Line] {
+        var lines: [Line] = []
+        let initiative = initiativeBonus.map {
+            Line(label: String(localized: "Initiative"), value: signed($0))
         }
+        if let armorClass {
+            lines.append(Line(label: String(localized: "AC", comment: "Armour Class, abbreviated"),
+                              value: "\(armorClass)", beside: initiative.map { [$0] } ?? []))
+        } else if let initiative {
+            lines.append(initiative)
+        }
+        let hp = [hitPoints.map { "\($0)" }, hitDice.map { "(\($0))" }].compactMap { $0 }
+        if !hp.isEmpty {
+            lines.append(Line(label: String(localized: "HP", comment: "Hit points, as narrow as the field"),
+                              value: hp.joined(separator: " ")))
+        }
+        return lines
+    }
+
+    /// A bonus as the rulebook prints it: always signed, with the true minus.
+    static func signed(_ bonus: Int) -> String {
+        "\(bonus < 0 ? "−" : "+")\(abs(bonus))"
     }
 
     static func groups(of monster: Monster) -> [Group] {
@@ -61,7 +91,7 @@ enum MonsterReference {
     static func bonuses(_ proficiencies: [Monster.Proficiency]) -> String? {
         guard !proficiencies.isEmpty else { return nil }
         return proficiencies
-            .map { "\($0.name) \($0.bonus < 0 ? "−" : "+")\(abs($0.bonus))" }
+            .map { "\($0.name) \(signed($0.bonus))" }
             .joined(separator: ", ")
     }
 
@@ -177,8 +207,7 @@ struct ReferencePageView: View {
                     }
                 }
                 ForEach(lines, id: \.label) { line in
-                    (Text(line.label + " ").fontWeight(.semibold) + Text(line.value))
-                        .font(.body)
+                    text(line).font(.body)
                 }
                 ForEach(groups, id: \.title) { group in
                     Text(group.title.uppercased())
@@ -198,6 +227,13 @@ struct ReferencePageView: View {
         // scrolls inside that. It lived under the editor once, sharing the tab with the
         // list above, and a long roster left it nothing; a popover has no list to share with.
         .frame(maxHeight: .infinity)
+    }
+
+    /// `AC 15   Initiative +2`: each label in bold, what stands beside it three spaces on.
+    private func text(_ line: MonsterReference.Line) -> Text {
+        line.beside.reduce(Text(line.label + " ").fontWeight(.semibold) + Text(line.value)) {
+            $0 + Text("   ") + text($1)
+        }
     }
 
     private func text(_ paragraph: MonsterReference.Paragraph) -> Text {

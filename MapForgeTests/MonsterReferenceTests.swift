@@ -29,9 +29,29 @@ final class MonsterReferenceTests: XCTestCase {
     // MARK: The lines above the actions
 
     func testOnlyWhatTheNoteHasIsListed() {
-        let monster = Monster(name: "Test", armorClass: 15, hitPoints: 27, speed: "9 m",
-                              challengeRating: "1/2")
+        let monster = Monster(name: "Test", speed: "9 m", challengeRating: "1/2")
         XCTAssertEqual(MonsterReference.lines(of: monster).map(\.label), ["Speed", "CR"])
+    }
+
+    func testArmourClassWithInitiativeAndHitPointsWithHitDiceComeBeforeSpeed() {
+        // The definition's numbers, read from the note: a pinned Page has no Stat Block above it.
+        let monster = Monster(name: "Test", armorClass: 15, hitPoints: 45, initiativeBonus: 2,
+                              hitDice: "6d10 + 12", speed: "9 m")
+        let lines = MonsterReference.lines(of: monster)
+        XCTAssertEqual(lines.map(\.label), ["AC", "HP", "Speed"])
+        XCTAssertEqual(lines[0].value, "15")
+        XCTAssertEqual(lines[0].beside, [.init(label: "Initiative", value: "+2")])
+        XCTAssertEqual(lines[1].value, "45 (6d10 + 12)")
+    }
+
+    func testANumberTheNoteLacksLeavesOutOnlyThatPart() {
+        let noInitiative = MonsterReference.lines(of: Monster(name: "Test", armorClass: 12, hitPoints: 7))
+        XCTAssertEqual(noInitiative, [.init(label: "AC", value: "12"), .init(label: "HP", value: "7")])
+
+        let noArmour = MonsterReference.lines(of: Monster(name: "Test", initiativeBonus: -1,
+                                                          hitDice: "2d6"))
+        XCTAssertEqual(noArmour, [.init(label: "Initiative", value: "−1"),
+                                  .init(label: "HP", value: "(2d6)")])
     }
 
     func testSavesAndSkillsReadAsSignedBonuses() {
