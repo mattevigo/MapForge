@@ -103,6 +103,14 @@ final class MonsterReferenceTests: XCTestCase {
         ])
     }
 
+    func testTheTableIsTwoBlocksOfThreeAsTheBookPrintsIt() throws {
+        let table = try XCTUnwrap(MonsterReference.abilities(AbilityScores([10, 14, 12, 8, 13, 9]),
+                                                             saves: []))
+        XCTAssertEqual(table.blocks.map { $0.map(\.ability) },
+                       [[.strength, .dexterity, .constitution],
+                        [.intelligence, .wisdom, .charisma]])
+    }
+
     func testWithATableTheSavesAreInItAndNotOnALine() {
         var monster = Monster(name: "Test", speed: "9 m")
         monster.abilityScores = AbilityScores([10, 14, 12, 8, 13, 9])

@@ -39,6 +39,11 @@ enum MonsterReference {
 
         /// STR, DEX, CON, INT, WIS, CHA.
         var rows: [Row]
+
+        /// STR DEX CON, then INT WIS CHA: the two blocks of three the book prints side by side.
+        var blocks: [ArraySlice<Row>] {
+            stride(from: 0, to: rows.count, by: 3).map { rows[$0..<min($0 + 3, rows.count)] }
+        }
     }
 
     /// A heading on the page — Traits, Actions — and what it holds.
@@ -156,7 +161,7 @@ enum MonsterReference {
     }
 
     /// A Page's parts as the rulebook divides a creature, a red rule between each and the next.
-    enum Block: Equatable {
+    enum Block: Hashable {
         /// The name, what it is, and the warnings.
         case heading
         /// `Lines.numbers`.
@@ -276,7 +281,13 @@ struct MonsterReferenceView: View {
 /// A page of the DM's notes beside the Stat Block editor — a Monster's or a Character's, laid
 /// out alike so the DM reads both the same way mid-fight.
 ///
-/// At body size, not caption size: this is read at arm's length while six people wait, and
+/// Drawn as a rulebook prints a creature — as the Fantasy Statblocks plugin draws one in the
+/// DM's Obsidian notes, so nothing is re-learned between the two: the name in red serif small
+/// caps, a red rule between each block and the next, serif section headings ruled beneath,
+/// on parchment (`Color.page`). The look never costs the reading: body text stays in the
+/// system font, at body size, in the scheme's text colour, and stays selectable.
+///
+/// Body size, not caption size: this is read at arm's length while six people wait, and
 /// the 10-point captions it was first set in were a squint. It scrolls, so size costs no room.
 struct ReferencePageView: View {
     let name: String
@@ -296,43 +307,12 @@ struct ReferencePageView: View {
     var body: some View {
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 8) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(name).font(.headline)
-                    if !heading.isEmpty {
-                        Text(heading)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                let blocks = MonsterReference.blocks(lines, abilities, groups)
+                ForEach(Array(blocks.enumerated()), id: \.element) { index, block in
+                    if index > 0 {
+                        PageRule()
                     }
-                    if let warning {
-                        Label(warning, systemImage: "ruler")
-                            .font(.subheadline)
-                            .foregroundStyle(.orange)
-                            .accessibilityIdentifier("reference-other-unit")
-                    }
-                    if let pictureProblem {
-                        Label(pictureProblem, systemImage: "photo")
-                            .font(.subheadline)
-                            .foregroundStyle(.orange)
-                            .accessibilityIdentifier("reference-picture-problem")
-                    }
-                }
-                ForEach(lines.numbers, id: \.label) { line in
-                    text(line).font(.body)
-                }
-                if let abilities {
-                    AbilityTableView(table: abilities)
-                }
-                ForEach(lines.rest, id: \.label) { line in
-                    text(line).font(.body)
-                }
-                ForEach(groups, id: \.title) { group in
-                    Text(group.title.uppercased())
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 4)
-                    ForEach(Array(group.paragraphs.enumerated()), id: \.offset) { _, paragraph in
-                        text(paragraph).font(.body)
-                    }
+                    content(of: block)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -343,11 +323,73 @@ struct ReferencePageView: View {
         // scrolls inside that. It lived under the editor once, sharing the tab with the
         // list above, and a long roster left it nothing; a popover has no list to share with.
         .frame(maxHeight: .infinity)
+        .preference(key: PageSurface.self, value: true)
     }
 
-    /// `AC 15   Initiative +2`: each label in bold, what stands beside it three spaces on.
+    @ViewBuilder
+    private func content(of block: MonsterReference.Block) -> some View {
+        switch block {
+        case .heading:
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name)
+                    .font(.system(.title2, design: .serif, weight: .bold).smallCaps())
+                    .foregroundStyle(Color.pageAccent)
+                if !heading.isEmpty {
+                    // In the body's colour, not a secondary grey: grey on parchment is a squint.
+                    Text(heading)
+                        .font(.subheadline)
+                        .italic()
+                }
+                // Warnings keep their colour on the parchment as off it: they are the app
+                // speaking, not the rulebook.
+                if let warning {
+                    Label(warning, systemImage: "ruler")
+                        .font(.subheadline)
+                        .foregroundStyle(.orange)
+                        .accessibilityIdentifier("reference-other-unit")
+                }
+                if let pictureProblem {
+                    Label(pictureProblem, systemImage: "photo")
+                        .font(.subheadline)
+                        .foregroundStyle(.orange)
+                        .accessibilityIdentifier("reference-picture-problem")
+                }
+            }
+        case .numbers:
+            lineBlock(lines.numbers)
+        case .abilities:
+            if let abilities {
+                AbilityTableView(table: abilities)
+            }
+        case .lines:
+            lineBlock(lines.rest)
+        case .groups:
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(groups, id: \.title) { group in
+                    VStack(alignment: .leading, spacing: 6) {
+                        SectionHeading(title: group.title)
+                        ForEach(Array(group.paragraphs.enumerated()), id: \.offset) { _, paragraph in
+                            text(paragraph).font(.body)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func lineBlock(_ lines: [MonsterReference.Line]) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(lines, id: \.label) { line in
+                text(line).font(.body)
+            }
+        }
+    }
+
+    /// `AC 15   Initiative +2`: each label in semibold in the heading colour, what stands
+    /// beside it three spaces on.
     private func text(_ line: MonsterReference.Line) -> Text {
-        line.beside.reduce(Text(line.label + " ").fontWeight(.semibold) + Text(line.value)) {
+        line.beside.reduce(Text(line.label + " ").fontWeight(.semibold)
+            .foregroundStyle(Color.pageHeading) + Text(line.value)) {
             $0 + Text("   ") + text($1)
         }
     }
@@ -355,7 +397,7 @@ struct ReferencePageView: View {
     private func text(_ paragraph: MonsterReference.Paragraph) -> Text {
         switch paragraph {
         case .feature(let feature):
-            return Text(feature.name + ". ").fontWeight(.semibold).italic()
+            return Text(feature.name + ". ").bold().italic()
                 + Text(MonsterReference.attributed(feature.desc))
         case .plain(let line):
             return Text(MonsterReference.attributed(line))
@@ -363,10 +405,60 @@ struct ReferencePageView: View {
     }
 }
 
-/// The six Abilities as a plain grid, each with its score, Mod and Save — the numbers where
-/// the DM will read them, without yet the rulebook's look.
+/// Traits, Actions, …: in the serif, in the heading colour, at least the body's size, with a
+/// thin red rule beneath.
+private struct SectionHeading: View {
+    let title: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.system(.title3, design: .serif, weight: .semibold))
+                .foregroundStyle(Color.pageHeading)
+            Rectangle()
+                .fill(Color.pageAccent)
+                .frame(height: 1)
+        }
+    }
+}
+
+/// The red rule between a Page's blocks.
+private struct PageRule: View {
+    var body: some View {
+        Rectangle()
+            .fill(Color.pageAccent)
+            .frame(height: 1.5)
+            .padding(.vertical, 2)
+    }
+}
+
+/// The six Abilities as the 2024 book prints them: two blocks of three, STR DEX CON beside
+/// INT WIS CHA, each Ability with its score, Mod and Save.
+///
+/// Side by side where the Page is wide enough for both at body size — the popover is — and
+/// one above the other where it is not, as a pinned panel narrowed to its minimum: never
+/// shrunk or truncated to fit, since a squinted-at save is the one the DM misreads.
 struct AbilityTableView: View {
     let table: MonsterReference.AbilityTable
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 24) { halves }
+            VStack(alignment: .leading, spacing: 8) { halves }
+        }
+        .accessibilityIdentifier("reference-abilities")
+    }
+
+    private var halves: some View {
+        ForEach(Array(table.blocks.enumerated()), id: \.offset) { _, rows in
+            AbilityBlock(rows: rows)
+        }
+    }
+}
+
+/// Three Abilities under their MOD and SAVE headings.
+private struct AbilityBlock: View {
+    let rows: ArraySlice<MonsterReference.AbilityTable.Row>
 
     var body: some View {
         Grid(alignment: .trailing, horizontalSpacing: 12, verticalSpacing: 2) {
@@ -379,11 +471,12 @@ struct AbilityTableView: View {
                             comment: "The ability table's column of saving throws, as the stat block heads it"))
             }
             .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
-            ForEach(table.rows, id: \.ability) { row in
+            .foregroundStyle(Color.pageHeading)
+            ForEach(rows, id: \.ability) { row in
                 GridRow {
                     Text(row.ability.abbreviation)
                         .fontWeight(.semibold)
+                        .foregroundStyle(Color.pageHeading)
                         .gridColumnAlignment(.leading)
                     Text(verbatim: "\(row.score)")
                     Text(verbatim: row.modifier)
@@ -392,8 +485,40 @@ struct AbilityTableView: View {
                 .font(.body.monospacedDigit())
             }
         }
-        .accessibilityIdentifier("reference-abilities")
+        .fixedSize()
     }
+}
+
+/// Whether what a page's holder — the popover, a pinned panel — shows is a Page, which wants
+/// the parchment to the holder's edges. A caption standing in for one does not.
+struct PageSurface: PreferenceKey {
+    static let defaultValue = false
+
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = value || nextValue()
+    }
+}
+
+extension View {
+    /// The parchment beneath, edge to edge, when what this holds is a Page.
+    func pageSurface() -> some View {
+        backgroundPreferenceValue(PageSurface.self) { isPage in
+            if isPage {
+                Color.page.ignoresSafeArea()
+            }
+        }
+    }
+}
+
+/// The Page's colours: named in the asset catalogue, each with a light and a dark appearance,
+/// so the DM can tune them at the table without touching code.
+extension Color {
+    /// Parchment in light mode, a dark page in dark mode.
+    static let page = Color("PageSurface")
+    /// The name, the rules between blocks and under headings.
+    static let pageAccent = Color("PageAccent")
+    /// Section headings and line labels.
+    static let pageHeading = Color("PageHeading")
 }
 
 /// What stands where a page would be, when there is none to show: one quiet line.
