@@ -4,6 +4,14 @@ Versions follow [Semantic Versioning](https://semver.org). `MARKETING_VERSION` a
 `CURRENT_PROJECT_VERSION` in `project.yml` are the single source of truth; the About
 panel reads them from the built app.
 
+## 2.1.1 — 2026-11-16
+
+### Development
+
+- The unit tests no longer fail at random on a busy machine. Two of the number field's
+  tests waited a fixed fifth of a second for a click or a new value to reach the field;
+  they now wait for it to arrive. The app itself is unchanged.
+
 ## 2.1.0 — 2026-11-16
 
 ### Getting it
