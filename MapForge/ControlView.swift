@@ -1760,8 +1760,7 @@ struct ControlView: View {
                 if pawn.kind != .treasure {
                     // TODO(pawns-health-bar-02): pass AppState's Health Bars switch
                     HealthBarReadout(kind: pawn.kind,
-                                     stats: appState.encounter?.blocks[pawn.id]
-                                         ?? appState.statBlock(for: pawn.id),
+                                     stats: appState.liveStatBlock(for: pawn.id),
                                      areHealthBarsOn: true,
                                      flagsIncompleteStatBlock: false)
                         .padding(.leading, 4)

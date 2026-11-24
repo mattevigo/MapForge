@@ -262,7 +262,7 @@ struct CombatPanel: View {
     }
 
     private func benchRow(_ encounter: Encounter, id: Pawn.ID) -> some View {
-        let block = encounter.blocks[id] ?? appState.statBlock(for: id)
+        let block = appState.liveStatBlock(for: id)
         let kind = kind(of: id, in: encounter)
         return HStack(spacing: 6) {
             Button {
@@ -302,7 +302,9 @@ struct CombatPanel: View {
     }
 
     private func row(_ encounter: Encounter, id: Pawn.ID) -> some View {
-        let block = encounter.blocks[id] ?? StatBlock()
+        // The fight's numbers, with the Health Bar's setting from beside the Map: the Log's
+        // copy of that is whatever it was when the Pawn joined (`liveStatBlock`).
+        let block = encounter.blocks[id] == nil ? StatBlock() : appState.liveStatBlock(for: id)
         let isActive = encounter.activeCombatantID == id && !encounter.isCorrecting
 
         return HStack(spacing: 6) {
