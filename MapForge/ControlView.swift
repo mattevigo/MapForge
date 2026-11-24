@@ -1744,11 +1744,29 @@ struct ControlView: View {
 
             // Fills the column rather than a fixed 72 pt: names like "Goblin B" need the
             // room, and the panel has a known width to give them.
-            TextField("label", text: Binding(
-                get: { pawn.label },
-                set: { appState.setPawnLabel(id: pawn.id, $0) }
-            ))
-            .textFieldStyle(.roundedBorder)
+            //
+            // The hit points go under the name, not beside it: the name is this row's only
+            // flexible member, and the buttons already leave it little room. The Health Bar
+            // is the DM's only view of what the table is shown (ADR-0036). Read from the Encounter's blocks
+            // while a fight runs, as the Stat Block editor does, so the two tabs agree.
+            // Not for a Treasure, whose Scene row is left as it was.
+            VStack(alignment: .leading, spacing: 2) {
+                TextField("label", text: Binding(
+                    get: { pawn.label },
+                    set: { appState.setPawnLabel(id: pawn.id, $0) }
+                ))
+                .textFieldStyle(.roundedBorder)
+
+                if pawn.kind != .treasure {
+                    // TODO(pawns-health-bar-02): pass AppState's Health Bars switch
+                    HealthBarReadout(kind: pawn.kind,
+                                     stats: appState.encounter?.blocks[pawn.id]
+                                         ?? appState.statBlock(for: pawn.id),
+                                     areHealthBarsOn: true,
+                                     flagsIncompleteStatBlock: false)
+                        .padding(.leading, 4)
+                }
+            }
             .frame(minWidth: 0)
 
             // Take it off the Player Display without deleting it. The eye is filled when

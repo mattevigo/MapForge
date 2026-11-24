@@ -91,11 +91,29 @@ enum PlayerVisibility {
                                         isFogOverlayOn: Bool, hasVisibility: Bool,
                                         soloSightPawnID: Pawn.ID?,
                                         areHealthBarsOn: Bool) -> Bool {
-        guard areHealthBarsOn, let stats, stats.showsHealthBarToPlayers,
+        guard let stats, healthBarWithholding(stats: stats, areHealthBarsOn: areHealthBarsOn) == nil,
               HealthBar(kind: pawn.kind, stats: stats) != nil else { return false }
         return showsToPlayers(pawn: pawn, regions: regions,
                               isFogOverlayOn: isFogOverlayOn, hasVisibility: hasVisibility,
                               soloSightPawnID: soloSightPawnID)
+    }
+
+    /// Which of the DM's two switches is keeping a Pawn's Health Bar from the table, or nil
+    /// when neither is — rules 3 and 4 above, on their own.
+    ///
+    /// Split out for the DM's rows, which have to say the table sees nothing *and why*: the
+    /// two switches live in different places, the Live Toolbar and Edit Pawn, and a row
+    /// that only said "withheld" would send the DM looking in the wrong one. The evening's
+    /// switch is named first because it is what every row is saying at once; turned back
+    /// on, the row then names this Pawn's own setting if that is still off.
+    ///
+    /// Silent on whether the Pawn is drawn at all — hidden, dark, out of Solo Sight. The
+    /// row already shows those, with the eye and the Solo Sight switch beside it.
+    static func healthBarWithholding(stats: StatBlock,
+                                     areHealthBarsOn: Bool) -> HealthBar.Withholding? {
+        if !areHealthBarsOn { return .allBars }
+        if !stats.showsHealthBarToPlayers { return .thisPawn }
+        return nil
     }
 
     /// Whether a **Light Marker** is drawn on the Player Display.

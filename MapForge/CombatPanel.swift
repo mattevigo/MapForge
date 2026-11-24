@@ -286,7 +286,7 @@ struct CombatPanel: View {
                 .lineLimit(1)
 
             Spacer(minLength: 0)
-            hitPoints(block)
+            hitPoints(block, kind: kind)
             conditions(block)
         }
         .padding(.horizontal, 6)
@@ -339,7 +339,7 @@ struct CombatPanel: View {
 
             Spacer(minLength: 0)
 
-            hitPoints(block)
+            hitPoints(block, kind: encounter.kind(of: id) ?? .creature)
             armourClass(block)
             conditions(block)
 
@@ -417,7 +417,7 @@ struct CombatPanel: View {
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .help("Initiative bonus")
-            hitPoints(block)
+            hitPoints(block, kind: pawn.kind)
         }
         .font(.caption)
         .padding(.horizontal, 6)
@@ -452,28 +452,12 @@ struct CombatPanel: View {
         .help(kind.title)
     }
 
-    @ViewBuilder
-    private func hitPoints(_ block: StatBlock) -> some View {
-        if let current = block.currentHP, let max = block.maxHP {
-            HStack(spacing: 1) {
-                Text("\(current)")
-                    .foregroundStyle(current <= 0 ? Color.red : .primary)
-                if block.temporaryHP > 0 {
-                    Text("+\(block.temporaryHP)").foregroundStyle(Color.teal)
-                }
-                Text("/\(max)").foregroundStyle(.secondary)
-            }
-            .font(.caption)
-            .monospacedDigit()
-        } else {
-            // Flagged, never hidden: a forgotten Stat Block must not silently drop a
-            // monster from the fight.
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.caption)
-                .foregroundStyle(.orange)
-                .help("No hit points yet — fill them in below.")
-                .accessibilityIdentifier("incomplete-stat-block")
-        }
+    /// The numbers, the exact Health Bar under them, and the ⚠️ when there are none —
+    /// `HealthBarReadout`, shared with the Scene tab's rows so the two cannot disagree.
+    private func hitPoints(_ block: StatBlock, kind: PawnKind) -> some View {
+        // TODO(pawns-health-bar-02): pass AppState's Health Bars switch
+        HealthBarReadout(kind: kind, stats: block, areHealthBarsOn: true,
+                         flagsIncompleteStatBlock: true)
     }
 
     private func armourClass(_ block: StatBlock) -> some View {
