@@ -94,18 +94,34 @@ final class SetupToolbarWidthTests: XCTestCase {
     /// And the Live Toolbar specifically, because it is the row that failed visibly: its
     /// labels are words, not glyphs, and a word that does not fit wraps rather than
     /// truncating — four stacked lines where there should be one.
+    ///
+    /// The real `LiveToolbar`, hosted with everything it can draw drawn: a Pawn on the Map so
+    /// the Fog switch appears, and the Live View so the Viewport and Map Fit do. This test
+    /// used to measure a hand-built copy of the row, which had no Map Fit and drew the Fog
+    /// switch as a checkbox; it kept passing while the real row, with a "Health Bars"
+    /// checkbox added, ran some 60 pt past the column.
     @MainActor
-    func testTheLiveToolbarsLabelsFitTheColumnOnOneLine() {
-        // The row as `ControlView` builds it, minus the state it needs a live AppState for:
-        // three labelled switches, a button, and the Session button pushed to the far end.
-        let row = HStack(spacing: 16) {
-            Toggle("Fog", isOn: .constant(true))
-            Toggle("Measurements", isOn: .constant(true))
-            Toggle("Health Bars", isOn: .constant(true))
-            Button("Viewport") {}
-            Spacer()
-            Button("Start Session") {}
+    func testTheLiveToolbarsLabelsFitTheColumnOnOneLine() throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("SetupToolbarWidthTests.\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let suiteName = "MapForgeTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+            try? FileManager.default.removeItem(at: directory)
         }
+        let state = AppState(preferences: DisplayPreferences(defaults: defaults),
+                             fogStore: FogStore(),
+                             partyStore: PartyStore(directory: directory))
+        state.fog.pawns = [Pawn(at: MapPoint(x: 100, y: 100), label: "Goblin", colorHex: "#C81E1E",
+                                brightSquares: 0, kind: .creature)]
+
+        let row = LiveToolbar(isLiveView: true,
+                              isShowingViewport: .constant(false),
+                              mapOverflowsViewport: false,
+                              confirmStopSession: .constant(false))
+            .environmentObject(state)
 
         let needed = width(of: row)
         XCTAssertLessThanOrEqual(
