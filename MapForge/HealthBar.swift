@@ -35,7 +35,7 @@ struct HealthBar: Equatable {
     enum Withholding: Equatable {
         /// The Live Toolbar's **Health Bars** switch is off: no bar reaches the table tonight.
         case allBars
-        /// This Pawn's **Show health bar to players** is off, in its Stat Block.
+        /// This Pawn's **Show Health Bar to players** is off, in its Stat Block.
         case thisPawn
     }
 

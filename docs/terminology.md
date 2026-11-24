@@ -276,6 +276,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Beyond High (an Encounter Difficulty band) | Fuori scala | *Mortale* (the 2014 fourth band, Deadly, from a reckoning with a multiplier), *Estrema* (reads as a fourth band the book prints), *Oltre difficile* (a calque that reads as a slip) |
 | Health Bar | Barra della salute *(proposed)* | *barra vita* (the glossary avoids life bar), *barra dei PF* (the table never sees the number) |
 | Healthy / Critical (Health Bar tiers) | In salute / Critico *(proposed)* | |
+| withhold (a Health Bar, from the table) | trattenere — "è trattenuta" *(proposed)* | *nascondere* (a hidden Pawn is another thing, `CONTEXT.md`) |
 
 ### Deutsch
 
@@ -323,6 +324,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Beyond High (an Encounter Difficulty band) | Über Hoch *(proposed)* | *Tödlich* (the 2014 fourth band, Deadly), *Sehr hoch* (reads as a band the book prints), *Jenseits der Skala* (too long beside *Begegnungsschwierigkeit*) |
 | Health Bar | Lebensbalken *(proposed)* | *TP-Balken* (the table never sees the number) |
 | Healthy / Critical (Health Bar tiers) | Gesund / Kritisch *(proposed)* | |
+| withhold (a Health Bar, from the table) | zurückhalten — „ist zurückgehalten“ *(proposed)* | *verstecken*, *ausblenden* (a hidden Pawn is another thing, `CONTEXT.md`) |
 
 ### Français
 
@@ -370,6 +372,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Beyond High (an Encounter Difficulty band) | Hors barème *(proposed)* | *Mortelle* (the 2014 fourth band, Deadly), *Très élevée* (reads as a band the book prints), *Au-delà d’élevée* (ungrammatical) |
 | Health Bar | Barre de vie *(proposed)* | *barre de Pv* (the table never sees the number) |
 | Healthy / Critical (Health Bar tiers) | En forme / Critique *(proposed)* | |
+| withhold (a Health Bar, from the table) | retenir — « est retenue » *(proposed)* | *masquer*, *cacher* (a hidden Pawn is another thing, `CONTEXT.md`) |
 
 ### Español
 
@@ -417,6 +420,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Beyond High (an Encounter Difficulty band) | Fuera de escala *(proposed)* | *Mortal* (the 2014 fourth band, Deadly), *Muy alta* (reads as a band the book prints), *Más que alta* |
 | Health Bar | Barra de salud *(proposed)* | *barra de PG* (the table never sees the number) |
 | Healthy / Critical (Health Bar tiers) | Sano / Crítico *(proposed)* | |
+| withhold (a Health Bar, from the table) | retener — "está retenida" *(proposed)* | *ocultar* (a hidden Pawn is another thing, `CONTEXT.md`) |
 
 ### Português (Brasil)
 
@@ -464,6 +468,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Beyond High (an Encounter Difficulty band) | Fora da escala *(proposed)* | *Mortal* (the 2014 fourth band, Deadly), *Muito alta* (reads as a band the book prints), *Acima de alta* |
 | Health Bar | Barra de vida *(proposed)* | *barra de PV* (the table never sees the number) |
 | Healthy / Critical (Health Bar tiers) | Saudável / Crítico *(proposed)* | |
+| withhold (a Health Bar, from the table) | reter — "está retida" *(proposed)* | *ocultar* (a hidden Pawn is another thing, `CONTEXT.md`) |
 
 ### Ελληνικά
 
@@ -523,3 +528,4 @@ ordinary language are Greek: a Greek DM says *τέρας*, not "monster".
 | Beyond High (an Encounter Difficulty band) | Beyond High *(proposed)* | *Πέρα από το High* (half Greek, on a scale the table reads in English) |
 | Health Bar | Μπάρα υγείας *(proposed)* | *HP bar* (the table never sees the number) |
 | Healthy / Critical (Health Bar tiers) | Υγιής / Κρίσιμο *(proposed)* | |
+| withhold (a Health Bar, from the table) | παρακρατώ — «είναι παρακρατημένη» *(proposed)* | *κρύβω* (a hidden Pawn is another thing, `CONTEXT.md`) |

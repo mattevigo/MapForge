@@ -11411,12 +11411,12 @@
         }
       }
     },
-    "Off, the Player Display never draws this Pawn's health bar. Its row on this window still shows it.": {
+    "Off, the Player Display never draws this Pawn's Health Bar. Its row on this window still shows it.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ist dies aus, zeigt der Spielerbildschirm die Lebensleiste dieser Spielfigur nie. Ihre Zeile in diesem Fenster zeigt sie weiterhin."
+            "value": "Ist dies aus, zeigt der Spielerbildschirm den Lebensbalken dieser Spielfigur nie. Ihre Zeile in diesem Fenster zeigt ihn weiterhin."
           }
         },
         "el": {
@@ -14223,6 +14223,46 @@
         }
       }
     },
+    "Show Health Bar to players": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lebensbalken den Spielern zeigen"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εμφάνιση μπάρας υγείας στους παίκτες"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar la barra de salud a los jugadores"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Montrer la barre de vie aux joueurs"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra la barra della salute ai giocatori"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar a barra de vida aos jogadores"
+          }
+        }
+      }
+    },
     "Show Measurements on the Player Display. Off, the shape and its distance stay on this window only.": {
       "localizations": {
         "de": {
@@ -14299,46 +14339,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostra a barra de vida de cada peça na tela dos jogadores. Desligado, a mesa não vê nenhuma barra."
-          }
-        }
-      }
-    },
-    "Show health bar to players": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lebensleiste den Spielern zeigen"
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Εμφάνιση μπάρας υγείας στους παίκτες"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostrar la barra de salud a los jugadores"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Montrer la barre de vie aux joueurs"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostra la barra della salute ai giocatori"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostrar a barra de vida aos jogadores"
           }
         }
       }
@@ -16037,31 +16037,31 @@
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Το τραπέζι δεν βλέπει αυτή την μπάρα υγείας: είναι κρυμμένη στην Επεξεργασία πιονιού."
+            "value": "Το τραπέζι δεν βλέπει αυτή την μπάρα υγείας: είναι παρακρατημένη στην Επεξεργασία πιονιού."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La mesa no ve esta barra de salud: está oculta en Editar ficha."
+            "value": "La mesa no ve esta barra de salud: está retenida en Editar ficha."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "La table ne voit pas cette barre de vie : elle est masquée dans Modifier le pion."
+            "value": "La table ne voit pas cette barre de vie : elle est retenue dans Modifier le pion."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Il tavolo non vede questa barra della salute: è nascosta in Modifica pedina."
+            "value": "Il tavolo non vede questa barra della salute: è trattenuta in Modifica pedina."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "A mesa não vê esta barra de vida: está oculta em Editar peça."
+            "value": "A mesa não vê esta barra de vida: está retida em Editar peça."
           }
         }
       }

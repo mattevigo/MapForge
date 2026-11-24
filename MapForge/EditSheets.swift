@@ -132,9 +132,9 @@ struct EditPawnSheet: View {
                 if draft.offersHealthBar {
                     GridRow {
                         Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-                        Toggle("Show health bar to players", isOn: $draft.showsHealthBarToPlayers)
+                        Toggle("Show Health Bar to players", isOn: $draft.showsHealthBarToPlayers)
                             .accessibilityIdentifier("edit-pawn-shows-health-bar")
-                            .help("Off, the Player Display never draws this Pawn's health bar. Its row on this window still shows it.")
+                            .help("Off, the Player Display never draws this Pawn's Health Bar. Its row on this window still shows it.")
                             .gridCellColumns(2)
                     }
                 }
