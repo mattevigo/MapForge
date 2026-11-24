@@ -127,7 +127,8 @@ file so a shared Map with its Walls traced does not carry a party's wounds (ADR-
     { "pawnID": "…",
       "block": { "initiativeBonus": 2, "armorClass": 16, "currentHP": 19, "maxHP": 27,
                  "temporaryHP": 0, "conditions": ["poisoned"], "exhaustion": 0,
-                 "isConcentrating": false, "isInCombat": true } }
+                 "isConcentrating": false, "isInCombat": true,
+                 "showsHealthBarToPlayers": true } }
   ]
 }
 ```
@@ -143,13 +144,21 @@ file so a shared Map with its Walls traced does not carry a party's wounds (ADR-
 - `exhaustion` is 0–6 and is clamped on read, because this file can be hand-edited.
 - `isInCombat` is the roster: whether this Pawn rolls when the *next* fight starts. Read only
   at that moment. Absent in older files, meaning `true`.
+- `showsHealthBarToPlayers` is whether this Pawn's Health Bar reaches the Player Display
+  (ADR-0036) — false when the DM withheld it in Edit Pawn. The table-wide Health Bars switch is
+  not saved anywhere. Absent in older files, meaning `true`.
 - Every field has a default, so any subset of keys decodes.
 
 **When it is written.** Outside a fight, an edit goes straight here (debounced 0.5 s).
 *During* a fight the Combat Log is authoritative: the tracker's numbers are folded from the
 Log, and after every recorded Change the folded blocks are copied back here so the fight's
-damage outlives the fight. Flushed when the fight stops, the Map is switched, or a Monster
-is stamped.
+damage outlives the fight. Flushed when the fight stops, the Map is switched, a Monster is
+stamped, or Edit Pawn's OK changes whether the table sees the Pawn's Health Bar.
+
+`showsHealthBarToPlayers` is the exception to the Log's authority. It is not a Change, so it
+never goes through the Combat Log, during a fight or outside one: it is written straight here.
+The Log's copy of it is only what it was when the Pawn joined, so when the folded blocks are
+copied back the value already here is kept over the fold's.
 
 ### `<map>.combat/<timestamp>.jsonl` — one Combat Log per Encounter
 
@@ -475,7 +484,7 @@ What follows from the shape:
 | File | Written when | How | On unreadable |
 |---|---|---|---|
 | `.fog.json` | every fog edit, 0.5 s debounce, last wins; flushed on Map switch, quit, Pawn add/remove | atomic replace, pretty | warned in UI; the next edit **replaces** it |
-| `stats.json` | prep edits (debounced); every fold during a fight; flushed on fight stop, Map switch, Monster stamp | atomic replace, pretty | reported, **writes refused** |
+| `stats.json` | prep edits (debounced); every fold during a fight; flushed on fight stop, Map switch, Monster stamp, Edit Pawn OK that changes the Health Bar setting | atomic replace, pretty | reported, **writes refused** |
 | `<map>.combat/*.jsonl` | every Turn end, Correction, join/bench/reorder/re-roll, fight start/stop | append + fsync, one line | truncated tail dropped |
 | `sessions/*.jsonl` | every Comment, move, Roll, pointer, start/stop | append + fsync, one line | truncated tail dropped |
 | `parties.json` | every roster edit | atomic replace, pretty | reported, writes refused |
