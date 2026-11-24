@@ -29,10 +29,8 @@ extension AppState {
     /// The numbers a Pawn's bar is drawn from: the Encounter's, while it holds the Pawn, or
     /// the ones beside the Map — `liveStatBlock`. The Encounter's first because during a
     /// fight the Log is the authority (ADR-0008) and the copy beside the Map only follows
-    /// it, and the Encounter tab reads its numbers the same way. Whether the bar is shown at
-    /// all comes from beside the Map, though: the Log's copy of that setting is frozen at
-    /// the moment the Pawn joined, and a bar the DM withheld mid-fight would come back.
-    /// Nil when the DM has given the Pawn no numbers at all.
+    /// it, and the Encounter tab reads its numbers the same way. Nil when the DM has given
+    /// the Pawn no numbers at all.
     private func healthBarStats(for pawn: Pawn.ID) -> StatBlock? {
         guard encounter?.blocks[pawn] != nil || statsDocument.blocks[pawn] != nil
         else { return nil }

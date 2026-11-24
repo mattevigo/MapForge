@@ -166,17 +166,24 @@ extension AppState {
     // MARK: The Health Bar
 
     /// A Pawn's Stat Block as it stands right now: the fight's copy while one runs, folded
-    /// from the Log, and the one beside the Map otherwise — with whether the table sees its
-    /// Health Bar always from beside the Map.
-    ///
-    /// What a screen drawing a Health Bar reads. The Log's copy of that setting is whatever
-    /// it was when the Pawn joined, because changing it is not a Change (ADR-0036); a bar
-    /// read from the fight's block alone would come back the moment the DM withheld it.
+    /// from the Log, and the one beside the Map otherwise — `keepingHealthBarSetting` either
+    /// way. What a screen drawing a Health Bar reads.
     func liveStatBlock(for pawn: Pawn.ID) -> StatBlock {
-        let kept = statBlock(for: pawn)
-        guard var live = encounter?.blocks[pawn] else { return kept }
-        live.showsHealthBarToPlayers = kept.showsHealthBarToPlayers
-        return live
+        guard let folded = encounter?.blocks[pawn] else { return statBlock(for: pawn) }
+        return keepingHealthBarSetting(folded, for: pawn)
+    }
+
+    /// A block folded from the Combat Log, with whether the table sees its Health Bar taken
+    /// from beside the Map instead.
+    ///
+    /// The one place that owns this rule. The Log is authoritative over the numbers during a
+    /// fight (ADR-0008) but not over this setting: changing it is not a Change (ADR-0036), so
+    /// the Log holds only what it was when the Pawn joined, and a bar the DM withheld
+    /// mid-fight would come back the moment anything trusted the fight's copy of it.
+    private func keepingHealthBarSetting(_ folded: StatBlock, for pawn: Pawn.ID) -> StatBlock {
+        var block = folded
+        block.showsHealthBarToPlayers = statBlock(for: pawn).showsHealthBarToPlayers
+        return block
     }
 
     /// Shows or withholds one Pawn's Health Bar at the table, for good (ADR-0036).
@@ -512,17 +519,11 @@ extension AppState {
     /// Copies the folded Stat Blocks onto the ones that live beside the Map.
     ///
     /// The Log stays authoritative during a fight; this is what makes its result outlive
-    /// the fight, so next week's Encounter starts where this one left off.
-    ///
-    /// Authoritative over the numbers, not over whether the table sees a Health Bar: that is
-    /// no Change, so the Log holds only what it was when the Pawn joined, and the setting
-    /// beside the Map — where `setShowsHealthBarToPlayers` writes it — is kept over it.
+    /// the fight, so next week's Encounter starts where this one left off — the numbers, not
+    /// the Health Bar setting (`keepingHealthBarSetting`).
     private func syncStatsFromEncounter(_ live: Encounter) {
         for (id, folded) in live.blocks {
-            var block = folded
-            if let kept = statsDocument.blocks[id] {
-                block.showsHealthBarToPlayers = kept.showsHealthBarToPlayers
-            }
+            let block = keepingHealthBarSetting(folded, for: id)
             guard statsDocument.blocks[id] != block else { continue }
             statsDocument.blocks[id] = block
         }
