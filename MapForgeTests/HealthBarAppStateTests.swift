@@ -159,6 +159,26 @@ final class HealthBarAppStateTests: XCTestCase {
         XCTAssertEqual(state.playerHealthBars[goblin.id]?.tier, .critical)
     }
 
+    /// The fight's numbers, but the DM's setting: the Log's copy of it is frozen at the
+    /// moment the Pawn joined, because withholding a bar is not a Change (ADR-0036). Read
+    /// from that copy, the bar would stay on the table after the DM withheld it — or come
+    /// back with the next wound.
+    func testABarWithheldMidEncounterLeavesTheTableAndStaysGoneAfterAHit() {
+        let state = makeAppState()
+        let goblin = pawn("Goblin", kind: .creature)
+        state.fog.pawns = [goblin]
+        state.setStatBlock(StatBlock(currentHP: 8, maxHP: 8), for: goblin.id)
+        state.startEncounter()
+        XCTAssertNotNil(state.playerHealthBars[goblin.id], "precondition")
+
+        state.setShowsHealthBarToPlayers(false, for: goblin.id)
+        XCTAssertNil(state.playerHealthBars[goblin.id], "withholding it left the bar up")
+
+        state.editStatBlock(for: goblin.id) { $0.currentHP = 3 }
+        XCTAssertEqual(state.liveStatBlock(for: goblin.id).currentHP, 3, "precondition: the hit landed")
+        XCTAssertNil(state.playerHealthBars[goblin.id], "a Change gave the bar back")
+    }
+
     func testOutsideAnEncounterTheBarFollowsTheDMsEditsToo() {
         let state = makeAppState()
         let goblin = pawn("Goblin", kind: .creature)
