@@ -1751,11 +1751,10 @@ struct ControlView: View {
                 .textFieldStyle(.roundedBorder)
 
                 if pawn.kind != .treasure {
-                    // TODO(pawns-health-bar-02): pass AppState's Health Bars switch
                     HealthBarReadout(kind: pawn.kind,
                                      stats: appState.encounter?.blocks[pawn.id]
                                          ?? appState.statBlock(for: pawn.id),
-                                     areHealthBarsOn: true,
+                                     areHealthBarsOn: appState.showsHealthBarsToPlayers,
                                      flagsIncompleteStatBlock: false)
                         .padding(.leading, 4)
                 }
