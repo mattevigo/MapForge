@@ -68,6 +68,36 @@ enum PlayerVisibility {
         return Visibility.level(at: pawn.at, in: regions) != .unlit
     }
 
+    /// Whether a Pawn's **Health Bar** is drawn at the table — ADR-0036. Only when all of
+    /// these hold:
+    ///
+    /// 1. **The Pawn itself is drawn.** The bar goes wherever its Pawn goes: hidden, dark or
+    ///    out of Solo Sight, it is gone with it. A bar floating where nothing stands would
+    ///    give away exactly what the darkness is hiding. Asked of `showsToPlayers` rather
+    ///    than restated, so the two cannot come to disagree.
+    /// 2. **The Pawn has a bar** (`HealthBar`): a Player or a Creature whose Stat Block has
+    ///    both totals. No numbers, no bar — never a guessed one — and no Stat Block at all
+    ///    is no numbers.
+    /// 3. **The DM has not withheld this Pawn's bar** for good, in its Stat Block.
+    /// 4. **The DM has not withheld every bar** for the evening, with the Live Toolbar's
+    ///    switch.
+    ///
+    /// The table is entitled to the impression of how hurt a Pawn is, under ADR-0005's rule,
+    /// and never to the number — which is why this answers whether a bar is drawn and
+    /// nothing about the hit points in it. `areHealthBarsOn` has no default for the reason
+    /// `soloSightPawnID` has none: a call site that forgot the switch would compile and
+    /// draw bars the DM had turned off.
+    static func showsHealthBarToPlayers(pawn: Pawn, stats: StatBlock?, regions: [LitRegion],
+                                        isFogOverlayOn: Bool, hasVisibility: Bool,
+                                        soloSightPawnID: Pawn.ID?,
+                                        areHealthBarsOn: Bool) -> Bool {
+        guard areHealthBarsOn, let stats, stats.showsHealthBarToPlayers,
+              HealthBar(kind: pawn.kind, stats: stats) != nil else { return false }
+        return showsToPlayers(pawn: pawn, regions: regions,
+                              isFogOverlayOn: isFogOverlayOn, hasVisibility: hasVisibility,
+                              soloSightPawnID: soloSightPawnID)
+    }
+
     /// Whether a **Light Marker** is drawn on the Player Display.
     ///
     /// The same shape as the Pawn rules, and deliberately so: a marker is the only thing
