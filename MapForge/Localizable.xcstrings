@@ -15866,6 +15866,206 @@
         }
       }
     },
+    "The table does not see this Health Bar: it is withheld in Edit Pawn.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Tisch sieht diesen Lebensbalken nicht: Er ist unter „Spielfigur bearbeiten“ zurückgehalten."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το τραπέζι δεν βλέπει αυτή την μπάρα υγείας: είναι κρυμμένη στην Επεξεργασία πιονιού."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La mesa no ve esta barra de salud: está oculta en Editar ficha."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La table ne voit pas cette barre de vie : elle est masquée dans Modifier le pion."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tavolo non vede questa barra della salute: è nascosta in Modifica pedina."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A mesa não vê esta barra de vida: está oculta em Editar peça."
+          }
+        }
+      }
+    },
+    "The table sees no Health Bars: the Health Bars switch is off.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Tisch sieht keine Lebensbalken: Der Schalter „Lebensbalken“ ist aus."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το τραπέζι δεν βλέπει μπάρες υγείας: ο διακόπτης «Μπάρες υγείας» είναι ανενεργός."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La mesa no ve barras de salud: el interruptor Barras de salud está desactivado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La table ne voit aucune barre de vie : l’interrupteur Barres de vie est désactivé."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tavolo non vede barre della salute: l’interruttore Barre della salute è spento."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A mesa não vê barras de vida: o interruptor Barras de vida está desligado."
+          }
+        }
+      }
+    },
+    "The table sees this Health Bar — Bloodied.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Tisch sieht diesen Lebensbalken — Blutend."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το τραπέζι βλέπει αυτή την μπάρα υγείας — Bloodied."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La mesa ve esta barra de salud — Ensangrentado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La table voit cette barre de vie — En sang."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tavolo vede questa barra della salute — Sanguinante."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A mesa vê esta barra de vida — Sangrando."
+          }
+        }
+      }
+    },
+    "The table sees this Health Bar — Critical.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Tisch sieht diesen Lebensbalken — Kritisch."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το τραπέζι βλέπει αυτή την μπάρα υγείας — Κρίσιμο."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La mesa ve esta barra de salud — Crítico."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La table voit cette barre de vie — Critique."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tavolo vede questa barra della salute — Critico."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A mesa vê esta barra de vida — Crítico."
+          }
+        }
+      }
+    },
+    "The table sees this Health Bar — Healthy.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Tisch sieht diesen Lebensbalken — Gesund."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το τραπέζι βλέπει αυτή την μπάρα υγείας — Υγιής."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La mesa ve esta barra de salud — Sano."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La table voit cette barre de vie — En forme."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tavolo vede questa barra della salute — In salute."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A mesa vê esta barra de vida — Saudável."
+          }
+        }
+      }
+    },
     "This Character is no longer in the Party.": {
       "localizations": {
         "de": {
