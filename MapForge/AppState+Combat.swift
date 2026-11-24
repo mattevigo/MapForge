@@ -163,6 +163,34 @@ extension AppState {
         setStatBlock(block, for: pawn)
     }
 
+    // MARK: The Health Bar
+
+    /// A Pawn's Stat Block as it stands right now: the fight's copy while one runs, folded
+    /// from the Log, and the one beside the Map otherwise — with whether the table sees its
+    /// Health Bar always from beside the Map.
+    ///
+    /// What a screen drawing a Health Bar reads. The Log's copy of that setting is whatever
+    /// it was when the Pawn joined, because changing it is not a Change (ADR-0036); a bar
+    /// read from the fight's block alone would come back the moment the DM withheld it.
+    func liveStatBlock(for pawn: Pawn.ID) -> StatBlock {
+        let kept = statBlock(for: pawn)
+        guard var live = encounter?.blocks[pawn] else { return kept }
+        live.showsHealthBarToPlayers = kept.showsHealthBarToPlayers
+        return live
+    }
+
+    /// Shows or withholds one Pawn's Health Bar at the table, for good (ADR-0036).
+    ///
+    /// Straight to `stats.json`, never through the Log, during a fight as outside one: it is
+    /// not a Change — whether the table could see a bar is not something that happened in
+    /// the fight — so neither the Combat Log nor the Session Log hears of it.
+    func setShowsHealthBarToPlayers(_ shows: Bool, for pawn: Pawn.ID) {
+        var block = statBlock(for: pawn)
+        guard block.showsHealthBarToPlayers != shows else { return }
+        block.showsHealthBarToPlayers = shows
+        setStatBlock(block, for: pawn)
+    }
+
     /// Pawns on the Map that are not taking Turns: left off the roster, Benched during the
     /// fight, or Treasure. What the tracker lists under the Order.
     var notInCombat: Set<Pawn.ID> {
@@ -350,12 +378,17 @@ extension AppState {
     ///
     /// A Treasure that arrives already an Item takes the Item's Face here by the same rule.
     /// It has no numbers to stamp.
-    func addPawnToMap(_ pawn: Pawn) {
+    ///
+    /// `showingHealthBar` false places it with its Health Bar withheld from the table — what
+    /// `AddPlacement` passes on from the last of its Kind. After the stamp, which keeps it,
+    /// and before the join, so the fight's snapshot agrees.
+    func addPawnToMap(_ pawn: Pawn, showingHealthBar: Bool = true) {
         var pawn = pawn
         if let monster = bestiary.monster(named: pawn.monsterName),
            statsDocument.blocks[pawn.id] == nil {
             setStatBlock(MonsterStamp.statBlock(from: monster, over: StatBlock()), for: pawn.id)
         }
+        setShowsHealthBarToPlayers(showingHealthBar, for: pawn.id)
         // Fresh from the Monster or the Item, as its numbers are, never copied from a sibling.
         pawn.face = definitionFace(over: pawn.face, becoming: pawn.monsterName, or: pawn.itemName)
         fog.pawns.append(pawn)
@@ -480,8 +513,17 @@ extension AppState {
     ///
     /// The Log stays authoritative during a fight; this is what makes its result outlive
     /// the fight, so next week's Encounter starts where this one left off.
+    ///
+    /// Authoritative over the numbers, not over whether the table sees a Health Bar: that is
+    /// no Change, so the Log holds only what it was when the Pawn joined, and the setting
+    /// beside the Map — where `setShowsHealthBarToPlayers` writes it — is kept over it.
     private func syncStatsFromEncounter(_ live: Encounter) {
-        for (id, block) in live.blocks where statsDocument.blocks[id] != block {
+        for (id, folded) in live.blocks {
+            var block = folded
+            if let kept = statsDocument.blocks[id] {
+                block.showsHealthBarToPlayers = kept.showsHealthBarToPlayers
+            }
+            guard statsDocument.blocks[id] != block else { continue }
             statsDocument.blocks[id] = block
         }
         statsAutosave.schedule(statsDocument)

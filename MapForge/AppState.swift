@@ -899,8 +899,8 @@ final class AppState: ObservableObject {
                                          or: draft.itemToBecome)
         }
         fog.pawns[index] = edited
-        // The one thing this sheet does to a Stat Block: a Monster that *changed* is stamped,
-        // whole (ADR-0021). Through `editStatBlock`, so mid-fight the stamp is recorded as
+        // The one thing this sheet does to a Stat Block's numbers: a Monster that *changed* is
+        // stamped, whole (ADR-0021). Through `editStatBlock`, so mid-fight the stamp is recorded as
         // Changes like any other edit (ADR-0008); the rolled Initiative is not among them,
         // because changing a bonus does not by itself move anyone. A Monster that left the
         // Bestiary while the sheet was open stamps nothing, and the Pawn simply remembers
@@ -908,6 +908,12 @@ final class AppState: ObservableObject {
         if let monster = bestiary.monster(named: draft.monsterToStamp) {
             editStatBlock(for: id) { $0 = MonsterStamp.statBlock(from: monster, over: $0) }
             // OK commits both files, so neither waits out a debounce.
+            flushPendingStatWrites()
+        }
+        // And whether the table sees its Health Bar, when the DM changed that: after the stamp,
+        // which keeps it, and never through the Log, which has no business with it (ADR-0036).
+        if let shows = draft.healthBarToWrite {
+            setShowsHealthBarToPlayers(shows, for: id)
             flushPendingStatWrites()
         }
         // A Treasure has nothing to do on its turn (`CONTEXT.md`, **Combatant**), so a

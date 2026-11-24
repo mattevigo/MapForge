@@ -127,6 +127,17 @@ struct EditPawnSheet: View {
                     Toggle("Big", isOn: $draft.isBig)
                         .help("Occupies 2×2 squares instead of 1×1. Visual only — its light and sight are unchanged.")
                 }
+                // Not for a Treasure, which carries no bar to withhold. Applied on OK like
+                // every field here, and recorded in neither Log (ADR-0036).
+                if draft.offersHealthBar {
+                    GridRow {
+                        Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
+                        Toggle("Show health bar to players", isOn: $draft.showsHealthBarToPlayers)
+                            .accessibilityIdentifier("edit-pawn-shows-health-bar")
+                            .help("Off, the Player Display never draws this Pawn's health bar. Its row on this window still shows it.")
+                            .gridCellColumns(2)
+                    }
+                }
                 GridRow(alignment: .top) {
                     Text("Face")
                     FaceEditor(face: $draft.face, kind: draft.kind, library: faceLibrary,

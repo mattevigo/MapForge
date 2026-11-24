@@ -11371,6 +11371,46 @@
         }
       }
     },
+    "Off, the Player Display never draws this Pawn's health bar. Its row on this window still shows it.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ist dies aus, zeigt der Spielerbildschirm die Lebensleiste dieser Spielfigur nie. Ihre Zeile in diesem Fenster zeigt sie weiterhin."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Όταν είναι ανενεργό, η οθόνη παικτών δεν δείχνει ποτέ τη μπάρα υγείας αυτού του πιονιού. Η γραμμή του σε αυτό το παράθυρο τη δείχνει ακόμα."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si está desactivado, la pantalla de jugadores nunca muestra la barra de salud de esta ficha. Su fila en esta ventana la sigue mostrando."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactivé, l’écran des joueurs n’affiche jamais la barre de vie de ce pion. Sa ligne dans cette fenêtre l’affiche toujours."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se disattivato, lo schermo dei giocatori non mostra mai la barra della salute di questa pedina. La sua riga in questa finestra la mostra ancora."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desligado, a tela dos jogadores nunca mostra a barra de vida desta peça. A linha dela nesta janela continua mostrando."
+          }
+        }
+      }
+    },
     "Only This Pawn": {
       "localizations": {
         "de": {
@@ -14179,6 +14219,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostra as medidas na tela dos jogadores. Desligado, a forma e a distância ficam só nesta janela."
+          }
+        }
+      }
+    },
+    "Show health bar to players": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lebensleiste den Spielern zeigen"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εμφάνιση μπάρας υγείας στους παίκτες"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar la barra de salud a los jugadores"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Montrer la barre de vie aux joueurs"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra la barra della salute ai giocatori"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar a barra de vida aos jogadores"
           }
         }
       }

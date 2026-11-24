@@ -56,6 +56,24 @@ enum AddPlacement {
                     face: inherited(previous?.face))
     }
 
+    /// Whether a new Pawn of `kind` shows its **Health Bar** to the table: as the last of its
+    /// Kind placed does, or yes when there is none (ADR-0036).
+    ///
+    /// Inherited, unlike a doused torch, because withholding a bar is a choice about the
+    /// *kind* of Pawn the DM is placing and not a live state: the DM who withheld the first
+    /// mimic's bar wants the second one's withheld too, and placing four of them is four
+    /// chances to forget one and tell the table which chest bites. The last of its Kind for
+    /// the colour's reason — a withheld boss must not make the next Player a mystery.
+    ///
+    /// Asked of `stats`, the Stat Blocks beside the Map, because that is where the flag is
+    /// kept: beside the hit points it is about. A previous Pawn with no block has never been
+    /// withheld, since withholding is what would have given it one.
+    static func showsHealthBarToPlayers(kind: PawnKind, existing: [Pawn],
+                                        stats: [Pawn.ID: StatBlock]) -> Bool {
+        guard let previous = existing.last(where: { $0.kind == kind }) else { return true }
+        return stats[previous.id]?.showsHealthBarToPlayers ?? true
+    }
+
     /// The Face a new Pawn takes from the last of its Kind.
     ///
     /// The new Pawn shares the kept file rather than having it written again: `FaceLibrary`

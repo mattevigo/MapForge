@@ -1257,7 +1257,11 @@ struct ControlView: View {
         switch target {
         case .pawn(let id):
             guard let pawn = appState.fog.pawns.first(where: { $0.id == id }) else { return }
-            editing = .pawn(id, EditPawnDraft(pawn: pawn))
+            // The Health Bar's setting from beside the Map, where it is kept — never the
+            // fight's copy, which the Log froze when the Pawn joined.
+            editing = .pawn(id, EditPawnDraft(
+                pawn: pawn,
+                showsHealthBarToPlayers: appState.statBlock(for: id).showsHealthBarToPlayers))
         case .light(let id):
             guard let light = appState.fog.lights.first(where: { $0.id == id }) else { return }
             editing = .light(id, EditLightDraft(light: light))
@@ -1407,8 +1411,12 @@ struct ControlView: View {
             else { return }   // outside the image: refused, and still armed
             // Through `addPawnToMap` rather than appending here, so a Creature placed while
             // a fight is running rolls Initiative and joins the Order. A Treasure is refused
-            // by `joinEncounter` itself, having nothing to do on its turn.
-            appState.addPawnToMap(pawn)
+            // by `joinEncounter` itself, having nothing to do on its turn. Asked of the Map
+            // before the new Pawn is on it, so the last of its Kind is the one before it.
+            let showsHealthBar = AddPlacement.showsHealthBarToPlayers(
+                kind: pawnKind, existing: appState.fog.pawns,
+                stats: appState.statsDocument.blocks)
+            appState.addPawnToMap(pawn, showingHealthBar: showsHealthBar)
         }
         // One click places one thing. The Kind stays on the menu, not on the cursor.
         armedAdd = nil

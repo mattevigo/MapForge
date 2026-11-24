@@ -39,12 +39,9 @@ struct HealthBar: Equatable {
     /// none when the Stat Block lacks either total, or has a maximum with nothing to be a
     /// fraction of: a guessed bar would tell the table something the DM never said.
     init?(kind: PawnKind, stats: StatBlock) {
-        // A `switch` with no `default`, as `PawnKind`'s own rules are, so a fourth kind has
-        // to decide whether the table sees how hurt it is.
-        switch kind {
-        case .player, .creature: break
-        case .treasure: return nil
-        }
+        // `PawnKind`'s own rule, so the bar and the sheet's toggle cannot disagree about who
+        // carries one, and a fourth kind has to decide.
+        guard kind.carriesHealthBar else { return nil }
         guard let current = stats.currentHP, let max = stats.maxHP, max > 0 else { return nil }
         fill = Swift.min(Swift.max(Double(current) / Double(max), 0), 1)
         temporary = Swift.min(Swift.max(Double(stats.temporaryHP) / Double(max), 0), 1 - fill)
