@@ -57,7 +57,7 @@ struct HealthBarReadout: View {
         }
     }
 
-    private var withholding: HealthBar.Withholding? {
+    private var withholding: PlayerVisibility.HealthBarWithholding? {
         PlayerVisibility.healthBarWithholding(stats: stats, areHealthBarsOn: areHealthBarsOn)
     }
 
@@ -85,7 +85,7 @@ struct HealthBarReadout: View {
     /// never as one the table sees: the row cannot know that, and does not need to. A hidden,
     /// unlit or switched-out Pawn takes its bar with it, and the eye and the Solo Sight switch
     /// beside the row already say so.
-    static func tooltip(for tier: HealthBar.Tier, withholding: HealthBar.Withholding?) -> String {
+    static func tooltip(for tier: HealthBar.Tier, withholding: PlayerVisibility.HealthBarWithholding?) -> String {
         switch withholding {
         case .allBars:
             return String(localized: "The table sees no Health Bars: the Health Bars switch is off.")

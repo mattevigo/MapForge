@@ -29,16 +29,6 @@ struct HealthBar: Equatable {
     /// the bar and never colour it — see `tier`.
     let temporary: Double
 
-    /// Why the table is not being shown a bar it would otherwise see — one answer per
-    /// switch the DM can withhold it with (ADR-0036). Decided by
-    /// `PlayerVisibility.healthBarWithholding`.
-    enum Withholding: Equatable {
-        /// The Live Toolbar's **Health Bars** switch is off: no bar reaches the table tonight.
-        case allBars
-        /// This Pawn's **Show Health Bar to players** is off, in its Stat Block.
-        case thisPawn
-    }
-
     /// Read from current over maximum alone. Temporary hit points never move it: the rules
     /// do not let them stop a creature being Bloodied.
     let tier: Tier

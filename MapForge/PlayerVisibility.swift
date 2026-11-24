@@ -110,10 +110,20 @@ enum PlayerVisibility {
     /// Silent on whether the Pawn is drawn at all — hidden, dark, out of Solo Sight. The
     /// row already shows those, with the eye and the Solo Sight switch beside it.
     static func healthBarWithholding(stats: StatBlock,
-                                     areHealthBarsOn: Bool) -> HealthBar.Withholding? {
+                                     areHealthBarsOn: Bool) -> HealthBarWithholding? {
         if !areHealthBarsOn { return .allBars }
         if !stats.showsHealthBarToPlayers { return .thisPawn }
         return nil
+    }
+
+    /// Why the table is not being shown a Health Bar it would otherwise see — one answer per
+    /// switch the DM can withhold it with (ADR-0036). Here rather than on `HealthBar`, which
+    /// is the arithmetic of a bar and knows nothing of who sees it.
+    enum HealthBarWithholding: Equatable {
+        /// The Live Toolbar's **Health Bars** switch is off: no bar reaches the table tonight.
+        case allBars
+        /// This Pawn's **Show Health Bar to players** is off, in its Stat Block.
+        case thisPawn
     }
 
     /// Whether a **Light Marker** is drawn on the Player Display.
