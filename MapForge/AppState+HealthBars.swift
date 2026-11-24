@@ -19,7 +19,7 @@ extension AppState {
                 pawn: pawn, stats: stats, regions: regions,
                 isFogOverlayOn: isFogOverlayOn, hasVisibility: hasDeclaredGrid,
                 soloSightPawnID: resolvedSoloSightPawnID,
-                areHealthBarsOn: showsHealthBarsToPlayers),
+                areHealthBarsOn: areHealthBarsOn),
                 let stats, let bar = HealthBar(kind: pawn.kind, stats: stats) else { continue }
             bars[pawn.id] = bar
         }

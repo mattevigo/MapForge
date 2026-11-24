@@ -458,7 +458,7 @@ struct CombatPanel: View {
     /// `HealthBarReadout`, shared with the Scene tab's rows so the two cannot disagree.
     private func hitPoints(_ block: StatBlock, kind: PawnKind) -> some View {
         HealthBarReadout(kind: kind, stats: block,
-                         areHealthBarsOn: appState.showsHealthBarsToPlayers,
+                         areHealthBarsOn: appState.areHealthBarsOn,
                          flagsIncompleteStatBlock: true)
     }
 

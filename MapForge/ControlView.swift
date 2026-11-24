@@ -1743,8 +1743,9 @@ struct ControlView: View {
             //
             // The hit points go under the name, not beside it: the name is this row's only
             // flexible member, and the buttons already leave it little room. The Health Bar
-            // is the DM's only view of what the table is shown (ADR-0036). Read from the Encounter's blocks
-            // while a fight runs, as the Stat Block editor does, so the two tabs agree.
+            // is the DM's only view of what the table is shown (ADR-0036). Read from the
+            // Encounter's blocks while a fight runs, as the Stat Block editor does, so the two
+            // tabs agree.
             // Not for a Treasure, whose Scene row is left as it was.
             VStack(alignment: .leading, spacing: 2) {
                 TextField("label", text: Binding(
@@ -1756,7 +1757,7 @@ struct ControlView: View {
                 if pawn.kind != .treasure {
                     HealthBarReadout(kind: pawn.kind,
                                      stats: appState.liveStatBlock(for: pawn.id),
-                                     areHealthBarsOn: appState.showsHealthBarsToPlayers,
+                                     areHealthBarsOn: appState.areHealthBarsOn,
                                      flagsIncompleteStatBlock: false)
                         .padding(.leading, 4)
                 }

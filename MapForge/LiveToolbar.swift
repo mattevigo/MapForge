@@ -86,8 +86,8 @@ struct LiveToolbar: View {
     /// accent colour while the table sees the bars, a grey slashed one when it does not —
     /// and the words live on in the tooltip and the accessibility label.
     private var healthBarVisibilitySwitch: some View {
-        let isOn = appState.showsHealthBarsToPlayers
-        return Toggle(isOn: $appState.showsHealthBarsToPlayers) {
+        let isOn = appState.areHealthBarsOn
+        return Toggle(isOn: $appState.areHealthBarsOn) {
             Image(systemName: isOn ? "heart.fill" : "heart.slash")
                 .foregroundStyle(isOn ? Color.accentColor : Color.secondary)
                 .frame(width: 16)

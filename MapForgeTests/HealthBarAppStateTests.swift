@@ -43,7 +43,7 @@ final class HealthBarAppStateTests: XCTestCase {
     }
 
     func testTheTableSeesHealthBarsAtLaunch() {
-        XCTAssertTrue(makeAppState().showsHealthBarsToPlayers)
+        XCTAssertTrue(makeAppState().areHealthBarsOn)
     }
 
     func testAPlayerAndACreatureWithCompleteStatBlocksEachGetABar() {
@@ -77,7 +77,7 @@ final class HealthBarAppStateTests: XCTestCase {
         state.setStatBlock(StatBlock(currentHP: 7, maxHP: 7), for: goblin.id)
         XCTAssertEqual(state.playerHealthBars.count, 2, "precondition: two bars to hide")
 
-        state.showsHealthBarsToPlayers = false
+        state.areHealthBarsOn = false
 
         XCTAssertTrue(state.playerHealthBars.isEmpty)
     }

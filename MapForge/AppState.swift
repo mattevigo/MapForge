@@ -721,7 +721,7 @@ final class AppState: ObservableObject {
     /// rather than the bars — a dramatic reveal, a duel the players should feel blind in.
     /// Live and never persisted, like the Measurements switch beside it: a decision about
     /// the moment, so every launch starts with the bars on, which is ADR-0036's case.
-    @Published var showsHealthBarsToPlayers = true
+    @Published var areHealthBarsOn = true
 
     /// A Measurement ready to draw: where it starts and the colour it is drawn in, both
     /// resolved against its Pawn as it is now. Handed to `MeasurementLayer` whole, so both
@@ -908,12 +908,12 @@ final class AppState: ObservableObject {
                                          or: draft.itemToBecome)
         }
         fog.pawns[index] = edited
-        // The one thing this sheet does to a Stat Block's numbers: a Monster that *changed* is
-        // stamped, whole (ADR-0021). Through `editStatBlock`, so mid-fight the stamp is recorded as
-        // Changes like any other edit (ADR-0008); the rolled Initiative is not among them,
-        // because changing a bonus does not by itself move anyone. A Monster that left the
-        // Bestiary while the sheet was open stamps nothing, and the Pawn simply remembers
-        // its name.
+        // The one thing this sheet does to a Stat Block's numbers: a Monster that *changed*
+        // is stamped, whole (ADR-0021). Through `editStatBlock`, so mid-fight the stamp is
+        // recorded as Changes like any other edit (ADR-0008); the rolled Initiative is not
+        // among them, because changing a bonus does not by itself move anyone. A Monster that
+        // left the Bestiary while the sheet was open stamps nothing, and the Pawn simply
+        // remembers its name.
         if let monster = bestiary.monster(named: draft.monsterToStamp) {
             editStatBlock(for: id) { $0 = MonsterStamp.statBlock(from: monster, over: $0) }
             // OK commits both files, so neither waits out a debounce.
