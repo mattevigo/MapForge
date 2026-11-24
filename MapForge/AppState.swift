@@ -714,6 +714,15 @@ final class AppState: ObservableObject {
         showsMeasurementsToPlayers ? drawableMeasurements : []
     }
 
+    /// Whether the Player Display draws any Health Bar at all — the Live Toolbar's switch.
+    ///
+    /// The table-wide half of the rule; the per-Pawn half is the Stat Block's own
+    /// `showsHealthBarToPlayers`. For the moment a DM wants the table reading the fight
+    /// rather than the bars — a dramatic reveal, a duel the players should feel blind in.
+    /// Live and never persisted, like the Measurements switch beside it: a decision about
+    /// the moment, so every launch starts with the bars on, which is ADR-0036's case.
+    @Published var showsHealthBarsToPlayers = true
+
     /// A Measurement ready to draw: where it starts and the colour it is drawn in, both
     /// resolved against its Pawn as it is now. Handed to `MeasurementLayer` whole, so both
     /// screens draw exactly what was resolved here.

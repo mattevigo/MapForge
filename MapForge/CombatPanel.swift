@@ -457,8 +457,8 @@ struct CombatPanel: View {
     /// The numbers, the exact Health Bar under them, and the ⚠️ when there are none —
     /// `HealthBarReadout`, shared with the Scene tab's rows so the two cannot disagree.
     private func hitPoints(_ block: StatBlock, kind: PawnKind) -> some View {
-        // TODO(pawns-health-bar-02): pass AppState's Health Bars switch
-        HealthBarReadout(kind: kind, stats: block, areHealthBarsOn: true,
+        HealthBarReadout(kind: kind, stats: block,
+                         areHealthBarsOn: appState.showsHealthBarsToPlayers,
                          flagsIncompleteStatBlock: true)
     }
 

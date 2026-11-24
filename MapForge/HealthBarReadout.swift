@@ -95,27 +95,3 @@ struct HealthBarReadout: View {
         }
     }
 }
-
-/// The bar itself: the track, the fill in its tier's colour, and the temporary hit points
-/// straight after it in teal. Fractions come from `HealthBar`, so the DM's bar and the
-/// table's are cut at the same point.
-private struct HealthBarStrip: View {
-    let bar: HealthBar
-
-    var body: some View {
-        GeometryReader { geometry in
-            let width = geometry.size.width
-            ZStack(alignment: .leading) {
-                // Drawn at 0 too: an empty track is how a Pawn that is down reads.
-                Rectangle().fill(HealthBar.trackColor)
-                Rectangle()
-                    .fill(HealthBar.temporaryColor)
-                    .frame(width: width * (bar.fill + bar.temporary))
-                Rectangle()
-                    .fill(bar.tier.color)
-                    .frame(width: width * bar.fill)
-            }
-        }
-        .clipShape(Capsule())
-    }
-}
