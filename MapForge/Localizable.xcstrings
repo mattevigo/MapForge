@@ -8232,6 +8232,46 @@
         }
       }
     },
+    "Health Bars": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lebensbalken"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Μπάρες υγείας"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barras de salud"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barres de vie"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barre della salute"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barras de vida"
+          }
+        }
+      }
+    },
     "Hidden from players. Show it to see the Map through its eyes.": {
       "localizations": {
         "de": {
@@ -14179,6 +14219,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostra as medidas na tela dos jogadores. Desligado, a forma e a distância ficam só nesta janela."
+          }
+        }
+      }
+    },
+    "Show each Pawn's Health Bar on the Player Display. Off, the table sees no bars.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Den Lebensbalken jeder Spielfigur auf dem Spielerbildschirm zeigen. Ist dies aus, sieht der Tisch keine Balken."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εμφάνιση της μπάρας υγείας κάθε πιονιού στην οθόνη παικτών. Όταν είναι ανενεργό, το τραπέζι δεν βλέπει καμία μπάρα."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar la barra de salud de cada ficha en la pantalla de jugadores. Si está desactivado, la mesa no ve ninguna barra."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher la barre de vie de chaque pion sur l’écran des joueurs. Désactivé, la table ne voit aucune barre."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra la barra della salute di ogni pedina sullo schermo dei giocatori. Se disattivato, il tavolo non vede alcuna barra."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra a barra de vida de cada peça na tela dos jogadores. Desligado, a mesa não vê nenhuma barra."
           }
         }
       }

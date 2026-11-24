@@ -503,6 +503,7 @@ struct ControlView: View {
                 HStack(spacing: 16) {
                     fogSwitch
                     measurementVisibilitySwitch
+                    healthBarVisibilitySwitch
                     viewportToggle
                     mapFitToggle
                     Spacer()
@@ -1926,6 +1927,19 @@ struct ControlView: View {
             // control by its rendered label is what goes stale first.
             .accessibilityIdentifier("measurement-visibility-switch")
             .help("Show Measurements on the Player Display. Off, the shape and its distance stay on this window only.")
+    }
+
+    /// Whether the table sees any Health Bar (ADR-0036).
+    ///
+    /// Beside Measurements and built like it, because it is the same kind of decision: what
+    /// the Player Display shows right now, never persisted. Always present for the same
+    /// reasons — a DM hides the bars before the reveal, not after — and on by default, the
+    /// ADR's case. A single Pawn's bar is withheld on its Stat Block instead.
+    private var healthBarVisibilitySwitch: some View {
+        Toggle("Health Bars", isOn: $appState.showsHealthBarsToPlayers)
+            .toggleStyle(.checkbox)
+            .accessibilityIdentifier("health-bar-visibility-switch")
+            .help("Show each Pawn's Health Bar on the Player Display. Off, the table sees no bars.")
     }
 
     /// The Viewport rectangle's toggle, in the Live Toolbar.

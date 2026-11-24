@@ -97,10 +97,11 @@ final class SetupToolbarWidthTests: XCTestCase {
     @MainActor
     func testTheLiveToolbarsLabelsFitTheColumnOnOneLine() {
         // The row as `ControlView` builds it, minus the state it needs a live AppState for:
-        // two labelled switches, a button, and the Session button pushed to the far end.
+        // three labelled switches, a button, and the Session button pushed to the far end.
         let row = HStack(spacing: 16) {
             Toggle("Fog", isOn: .constant(true))
             Toggle("Measurements", isOn: .constant(true))
+            Toggle("Health Bars", isOn: .constant(true))
             Button("Viewport") {}
             Spacer()
             Button("Start Session") {}
