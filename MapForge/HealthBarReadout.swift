@@ -45,7 +45,7 @@ struct HealthBarReadout: View {
                             .opacity(withholding == nil ? 1 : Self.withheldOpacity)
                     }
                 }
-                .help(bar.map(help) ?? "")
+                .help(bar.map { Self.tooltip(for: $0.tier, withholding: withholding) } ?? "")
         } else if flagsIncompleteStatBlock {
             // Flagged, never hidden: a forgotten Stat Block must not silently drop a
             // monster from the fight.
@@ -80,17 +80,25 @@ struct HealthBarReadout: View {
     /// and a faded bar always says which switch to go and turn back on. One sentence per
     /// case rather than a tier's name spliced in, and the tier as a label after the dash, as
     /// a Condition is shown: a Pawn has no gender for a tier to agree with (ADR-0022).
-    private func help(_ bar: HealthBar) -> String {
+    ///
+    /// A bar neither switch withholds is described *wherever the table can see this Pawn*,
+    /// never as one the table sees: the row cannot know that, and does not need to. A hidden,
+    /// unlit or switched-out Pawn takes its bar with it, and the eye and the Solo Sight switch
+    /// beside the row already say so.
+    static func tooltip(for tier: HealthBar.Tier, withholding: HealthBar.Withholding?) -> String {
         switch withholding {
         case .allBars:
             return String(localized: "The table sees no Health Bars: the Health Bars switch is off.")
         case .thisPawn:
             return String(localized: "The table does not see this Health Bar: it is withheld in Edit Pawn.")
         case nil:
-            switch bar.tier {
-            case .healthy: return String(localized: "The table sees this Health Bar — Healthy.")
-            case .bloodied: return String(localized: "The table sees this Health Bar — Bloodied.")
-            case .critical: return String(localized: "The table sees this Health Bar — Critical.")
+            switch tier {
+            case .healthy:
+                return String(localized: "Wherever the table can see this Pawn, it sees this Health Bar — Healthy.")
+            case .bloodied:
+                return String(localized: "Wherever the table can see this Pawn, it sees this Health Bar — Bloodied.")
+            case .critical:
+                return String(localized: "Wherever the table can see this Pawn, it sees this Health Bar — Critical.")
             }
         }
     }

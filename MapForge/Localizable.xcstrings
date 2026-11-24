@@ -16106,126 +16106,6 @@
         }
       }
     },
-    "The table sees this Health Bar — Bloodied.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Tisch sieht diesen Lebensbalken — Blutend."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Το τραπέζι βλέπει αυτή την μπάρα υγείας — Bloodied."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La mesa ve esta barra de salud — Ensangrentado."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La table voit cette barre de vie — En sang."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il tavolo vede questa barra della salute — Sanguinante."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A mesa vê esta barra de vida — Sangrando."
-          }
-        }
-      }
-    },
-    "The table sees this Health Bar — Critical.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Tisch sieht diesen Lebensbalken — Kritisch."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Το τραπέζι βλέπει αυτή την μπάρα υγείας — Κρίσιμο."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La mesa ve esta barra de salud — Crítico."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La table voit cette barre de vie — Critique."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il tavolo vede questa barra della salute — Critico."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A mesa vê esta barra de vida — Crítico."
-          }
-        }
-      }
-    },
-    "The table sees this Health Bar — Healthy.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Tisch sieht diesen Lebensbalken — Gesund."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Το τραπέζι βλέπει αυτή την μπάρα υγείας — Υγιής."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La mesa ve esta barra de salud — Sano."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La table voit cette barre de vie — En forme."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il tavolo vede questa barra della salute — In salute."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A mesa vê esta barra de vida — Saudável."
-          }
-        }
-      }
-    },
     "This Character is no longer in the Party.": {
       "localizations": {
         "de": {
@@ -17390,6 +17270,126 @@
           "stringUnit": {
             "state": "translated",
             "value": "Editor de paredes…"
+          }
+        }
+      }
+    },
+    "Wherever the table can see this Pawn, it sees this Health Bar — Bloodied.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wo der Tisch diese Spielfigur sehen kann, sieht er diesen Lebensbalken — Blutend."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Όπου το τραπέζι βλέπει αυτό το πιόνι, βλέπει αυτή την μπάρα υγείας — Bloodied."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dondequiera que la mesa vea esta ficha, ve esta barra de salud — Ensangrentado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partout où la table voit ce pion, elle voit cette barre de vie — En sang."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ovunque il tavolo veda questa pedina, vede questa barra della salute — Sanguinante."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onde quer que a mesa veja esta peça, vê esta barra de vida — Sangrando."
+          }
+        }
+      }
+    },
+    "Wherever the table can see this Pawn, it sees this Health Bar — Critical.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wo der Tisch diese Spielfigur sehen kann, sieht er diesen Lebensbalken — Kritisch."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Όπου το τραπέζι βλέπει αυτό το πιόνι, βλέπει αυτή την μπάρα υγείας — Κρίσιμο."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dondequiera que la mesa vea esta ficha, ve esta barra de salud — Crítico."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partout où la table voit ce pion, elle voit cette barre de vie — Critique."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ovunque il tavolo veda questa pedina, vede questa barra della salute — Critico."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onde quer que a mesa veja esta peça, vê esta barra de vida — Crítico."
+          }
+        }
+      }
+    },
+    "Wherever the table can see this Pawn, it sees this Health Bar — Healthy.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wo der Tisch diese Spielfigur sehen kann, sieht er diesen Lebensbalken — Gesund."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Όπου το τραπέζι βλέπει αυτό το πιόνι, βλέπει αυτή την μπάρα υγείας — Υγιής."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dondequiera que la mesa vea esta ficha, ve esta barra de salud — Sano."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partout où la table voit ce pion, elle voit cette barre de vie — En forme."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ovunque il tavolo veda questa pedina, vede questa barra della salute — In salute."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onde quer que a mesa veja esta peça, vê esta barra de vida — Saudável."
           }
         }
       }
