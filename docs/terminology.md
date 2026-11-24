@@ -121,6 +121,7 @@ official word, and listed so they stay one choice:
 | Armour Class (AC) | Classe Armatura (CA) | Rüstungsklasse (RK) | Classe d'armure (CA) | Clase de armadura (CA) | Classe de Armadura (CA) |
 | Hit Points (HP) | Punti ferita (PF) | Trefferpunkte (TP) | Points de vie (Pv) | Puntos de golpe (PG) | Pontos de Vida (PV) |
 | temporary hit points | punti ferita temporanei | temporäre Trefferpunkte | points de vie temporaires | puntos de golpe temporales | pontos de vida temporários |
+| Bloodied (a Health Bar tier; the 2024 rules' term) | Sanguinante *(proposed)* | Blutend *(proposed)* | En sang *(proposed)* | Ensangrentado *(proposed)* | Sangrando *(proposed)* |
 | Round | Round (invariable) | Runde | Round | Asalto | Rodada |
 | Turn | Turno | Zug | Tour | Turno | Turno |
 | Encounter | Incontro | Begegnung | Rencontre | Encuentro | Encontro |
@@ -273,6 +274,8 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Correction | Correzione | |
 | Roll | Tiro | |
 | Beyond High (an Encounter Difficulty band) | Fuori scala | *Mortale* (the 2014 fourth band, Deadly, from a reckoning with a multiplier), *Estrema* (reads as a fourth band the book prints), *Oltre difficile* (a calque that reads as a slip) |
+| Health Bar | Barra della salute *(proposed)* | *barra vita* (the glossary avoids life bar), *barra dei PF* (the table never sees the number) |
+| Healthy / Critical (Health Bar tiers) | In salute / Critico *(proposed)* | |
 
 ### Deutsch
 
@@ -318,6 +321,8 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Correction | Korrektur | |
 | Roll | Wurf | |
 | Beyond High (an Encounter Difficulty band) | Über Hoch *(proposed)* | *Tödlich* (the 2014 fourth band, Deadly), *Sehr hoch* (reads as a band the book prints), *Jenseits der Skala* (too long beside *Begegnungsschwierigkeit*) |
+| Health Bar | Lebensbalken *(proposed)* | *TP-Balken* (the table never sees the number) |
+| Healthy / Critical (Health Bar tiers) | Gesund / Kritisch *(proposed)* | |
 
 ### Français
 
@@ -363,6 +368,8 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Correction | Correction | |
 | Roll | Jet | |
 | Beyond High (an Encounter Difficulty band) | Hors barème *(proposed)* | *Mortelle* (the 2014 fourth band, Deadly), *Très élevée* (reads as a band the book prints), *Au-delà d’élevée* (ungrammatical) |
+| Health Bar | Barre de vie *(proposed)* | *barre de Pv* (the table never sees the number) |
+| Healthy / Critical (Health Bar tiers) | En forme / Critique *(proposed)* | |
 
 ### Español
 
@@ -408,6 +415,8 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Correction | Corrección | |
 | Roll | Tirada | |
 | Beyond High (an Encounter Difficulty band) | Fuera de escala *(proposed)* | *Mortal* (the 2014 fourth band, Deadly), *Muy alta* (reads as a band the book prints), *Más que alta* |
+| Health Bar | Barra de salud *(proposed)* | *barra de PG* (the table never sees the number) |
+| Healthy / Critical (Health Bar tiers) | Sano / Crítico *(proposed)* | |
 
 ### Português (Brasil)
 
@@ -453,13 +462,15 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 | Correction | Correção | |
 | Roll | Rolagem | |
 | Beyond High (an Encounter Difficulty band) | Fora da escala *(proposed)* | *Mortal* (the 2014 fourth band, Deadly), *Muito alta* (reads as a band the book prints), *Acima de alta* |
+| Health Bar | Barra de vida *(proposed)* | *barra de PV* (the table never sees the number) |
+| Healthy / Critical (Health Bar tiers) | Saudável / Crítico *(proposed)* | |
 
 ### Ελληνικά
 
 Only game *mechanics* stay in English — Conditions, Abilities, Skills, Saving Throw, Ability
 Check, Difficulty Class, Modifier, Initiative, AC, HP, Concentration, Round, Turn, Stat Block,
 Traits, Actions, Challenge Rating, level, Encounter Difficulty and its bands, XP, XP budget,
-the ability table's MOD and SAVE —
+the ability table's MOD and SAVE, Bloodied —
 because that is what a Greek table says. Rulebook words that are also
 ordinary language are Greek: a Greek DM says *τέρας*, not "monster".
 
@@ -510,3 +521,5 @@ ordinary language are Greek: a Greek DM says *τέρας*, not "monster".
 | Correction | Διόρθωση | |
 | Roll | Ρίψη | |
 | Beyond High (an Encounter Difficulty band) | Beyond High *(proposed)* | *Πέρα από το High* (half Greek, on a scale the table reads in English) |
+| Health Bar | Μπάρα υγείας *(proposed)* | *HP bar* (the table never sees the number) |
+| Healthy / Critical (Health Bar tiers) | Υγιής / Κρίσιμο *(proposed)* | |
