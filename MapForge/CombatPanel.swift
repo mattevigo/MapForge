@@ -214,7 +214,10 @@ struct CombatPanel: View {
     private func order(_ encounter: Encounter) -> some View {
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 2) {
+                // A hairline between rows: each Health Bar runs its row's width, and without
+                // one a column of bars reads as stripes rather than one bar per Combatant.
                 ForEach(encounter.order, id: \.self) { id in
+                    if id != encounter.order.first { Divider() }
                     row(encounter, id: id)
                 }
                 bench(encounter)
@@ -242,6 +245,7 @@ struct CombatPanel: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 6)
             ForEach(benched, id: \.self) { id in
+                if id != benched.first { Divider() }
                 benchRow(encounter, id: id)
             }
         }
@@ -262,7 +266,7 @@ struct CombatPanel: View {
     }
 
     private func benchRow(_ encounter: Encounter, id: Pawn.ID) -> some View {
-        let block = encounter.blocks[id] ?? appState.statBlock(for: id)
+        let block = appState.liveStatBlock(for: id)
         let kind = kind(of: id, in: encounter)
         return HStack(spacing: 6) {
             Button {
@@ -286,9 +290,10 @@ struct CombatPanel: View {
                 .lineLimit(1)
 
             Spacer(minLength: 0)
-            hitPoints(block)
+            hitPoints(block, kind: kind)
             conditions(block)
         }
+        .healthBarUnderRow(kind: kind, stats: block, areHealthBarsOn: appState.areHealthBarsOn)
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
         .foregroundStyle(.secondary)
@@ -302,7 +307,9 @@ struct CombatPanel: View {
     }
 
     private func row(_ encounter: Encounter, id: Pawn.ID) -> some View {
-        let block = encounter.blocks[id] ?? StatBlock()
+        // The fight's numbers, with the Health Bar's setting from beside the Map: the Log's
+        // copy of that is whatever it was when the Pawn joined (`liveStatBlock`).
+        let block = encounter.blocks[id] == nil ? StatBlock() : appState.liveStatBlock(for: id)
         let isActive = encounter.activeCombatantID == id && !encounter.isCorrecting
 
         return HStack(spacing: 6) {
@@ -339,7 +346,7 @@ struct CombatPanel: View {
 
             Spacer(minLength: 0)
 
-            hitPoints(block)
+            hitPoints(block, kind: encounter.kind(of: id) ?? .creature)
             armourClass(block)
             conditions(block)
 
@@ -381,6 +388,10 @@ struct CombatPanel: View {
             .accessibilityIdentifier("bench")
             .help("Take out of the Order. Stays on the Map and can be put back.")
         }
+        // Inside the row's padding and its highlight, so the bar belongs to this Combatant
+        // and the active one's bar is on the active one's ground.
+        .healthBarUnderRow(kind: encounter.kind(of: id) ?? .creature, stats: block,
+                           areHealthBarsOn: appState.areHealthBarsOn)
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
         // Filled, not outlined: a DM reads this from across a table at a glance.
@@ -417,8 +428,9 @@ struct CombatPanel: View {
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .help("Initiative bonus")
-            hitPoints(block)
+            hitPoints(block, kind: pawn.kind)
         }
+        .healthBarUnderRow(kind: pawn.kind, stats: block, areHealthBarsOn: appState.areHealthBarsOn)
         .font(.caption)
         .padding(.horizontal, 6)
         .padding(.vertical, 2)
@@ -452,28 +464,10 @@ struct CombatPanel: View {
         .help(kind.title)
     }
 
-    @ViewBuilder
-    private func hitPoints(_ block: StatBlock) -> some View {
-        if let current = block.currentHP, let max = block.maxHP {
-            HStack(spacing: 1) {
-                Text("\(current)")
-                    .foregroundStyle(current <= 0 ? Color.red : .primary)
-                if block.temporaryHP > 0 {
-                    Text("+\(block.temporaryHP)").foregroundStyle(Color.teal)
-                }
-                Text("/\(max)").foregroundStyle(.secondary)
-            }
-            .font(.caption)
-            .monospacedDigit()
-        } else {
-            // Flagged, never hidden: a forgotten Stat Block must not silently drop a
-            // monster from the fight.
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.caption)
-                .foregroundStyle(.orange)
-                .help("No hit points yet — fill them in below.")
-                .accessibilityIdentifier("incomplete-stat-block")
-        }
+    /// The numbers, and the ⚠️ when there are none — `HealthBarReadout`. The bar is the
+    /// row's, under all of it.
+    private func hitPoints(_ block: StatBlock, kind: PawnKind) -> some View {
+        HealthBarReadout(kind: kind, stats: block, areHealthBarsOn: appState.areHealthBarsOn)
     }
 
     private func armourClass(_ block: StatBlock) -> some View {
@@ -563,6 +557,7 @@ struct CombatPanel: View {
                 ScrollView(.vertical) {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(rostered) { pawn in
+                            if pawn.id != rostered.first?.id { Divider() }
                             rosterRow(pawn)
                         }
                     }

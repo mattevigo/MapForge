@@ -6625,6 +6625,46 @@
         }
       }
     },
+    "Drag to reorder. Lower in the list is drawn on top on the Map.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Umordnen ziehen. Weiter unten in der Liste wird auf der Karte obenauf gezeichnet."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Σύρετε για αναδιάταξη. Όσο πιο χαμηλά στη λίστα, τόσο πιο πάνω σχεδιάζεται στον χάρτη."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrastra para reordenar. Más abajo en la lista se dibuja encima en el mapa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faites glisser pour réordonner. Plus bas dans la liste, plus haut sur la carte."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascina per riordinare. Più in basso nell'elenco, più in alto sulla mappa."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arraste para reordenar. Mais abaixo na lista é desenhado por cima no mapa."
+          }
+        }
+      }
+    },
     "During an Encounter — use the Encounter tab": {
       "localizations": {
         "de": {
@@ -8228,6 +8268,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Curar %@?"
+          }
+        }
+      }
+    },
+    "Health Bars": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lebensbalken"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Μπάρες υγείας"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barras de salud"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barres de vie"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barre della salute"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barras de vida"
           }
         }
       }
@@ -11371,6 +11451,46 @@
         }
       }
     },
+    "Off, the Player Display never draws this Pawn's Health Bar. Its row on this window still shows it.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ist dies aus, zeigt der Spielerbildschirm den Lebensbalken dieser Spielfigur nie. Ihre Zeile in diesem Fenster zeigt ihn weiterhin."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Όταν είναι ανενεργό, η οθόνη παικτών δεν δείχνει ποτέ τη μπάρα υγείας αυτού του πιονιού. Η γραμμή του σε αυτό το παράθυρο τη δείχνει ακόμα."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si está desactivado, la pantalla de jugadores nunca muestra la barra de salud de esta ficha. Su fila en esta ventana la sigue mostrando."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactivé, l’écran des joueurs n’affiche jamais la barre de vie de ce pion. Sa ligne dans cette fenêtre l’affiche toujours."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se disattivato, lo schermo dei giocatori non mostra mai la barra della salute di questa pedina. La sua riga in questa finestra la mostra ancora."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desligado, a tela dos jogadores nunca mostra a barra de vida desta peça. A linha dela nesta janela continua mostrando."
+          }
+        }
+      }
+    },
     "Only This Pawn": {
       "localizations": {
         "de": {
@@ -14143,6 +14263,46 @@
         }
       }
     },
+    "Show Health Bar to players": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lebensbalken den Spielern zeigen"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εμφάνιση μπάρας υγείας στους παίκτες"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar la barra de salud a los jugadores"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Montrer la barre de vie aux joueurs"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra la barra della salute ai giocatori"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar a barra de vida aos jogadores"
+          }
+        }
+      }
+    },
     "Show Measurements on the Player Display. Off, the shape and its distance stay on this window only.": {
       "localizations": {
         "de": {
@@ -14179,6 +14339,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostra as medidas na tela dos jogadores. Desligado, a forma e a distância ficam só nesta janela."
+          }
+        }
+      }
+    },
+    "Show each Pawn's Health Bar on the Player Display. Off, the table sees no bars.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Den Lebensbalken jeder Spielfigur auf dem Spielerbildschirm zeigen. Ist dies aus, sieht der Tisch keine Balken."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εμφάνιση της μπάρας υγείας κάθε πιονιού στην οθόνη παικτών. Όταν είναι ανενεργό, το τραπέζι δεν βλέπει καμία μπάρα."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar la barra de salud de cada ficha en la pantalla de jugadores. Si está desactivado, la mesa no ve ninguna barra."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher la barre de vie de chaque pion sur l’écran des joueurs. Désactivé, la table ne voit aucune barre."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra la barra della salute di ogni pedina sullo schermo dei giocatori. Se disattivato, il tavolo non vede alcuna barra."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra a barra de vida de cada peça na tela dos jogadores. Desligado, a mesa não vê nenhuma barra."
           }
         }
       }
@@ -15866,6 +16066,86 @@
         }
       }
     },
+    "The table does not see this Health Bar: it is withheld in Edit Pawn.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Tisch sieht diesen Lebensbalken nicht: Er ist unter „Spielfigur bearbeiten“ zurückgehalten."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το τραπέζι δεν βλέπει αυτή την μπάρα υγείας: είναι παρακρατημένη στην Επεξεργασία πιονιού."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La mesa no ve esta barra de salud: está retenida en Editar ficha."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La table ne voit pas cette barre de vie : elle est retenue dans Modifier le pion."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tavolo non vede questa barra della salute: è trattenuta in Modifica pedina."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A mesa não vê esta barra de vida: está retida em Editar peça."
+          }
+        }
+      }
+    },
+    "The table sees no Health Bars: the Health Bars switch is off.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Tisch sieht keine Lebensbalken: Der Schalter „Lebensbalken“ ist aus."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Το τραπέζι δεν βλέπει μπάρες υγείας: ο διακόπτης «Μπάρες υγείας» είναι ανενεργός."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La mesa no ve barras de salud: el interruptor Barras de salud está desactivado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La table ne voit aucune barre de vie : l’interrupteur Barres de vie est désactivé."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tavolo non vede barre della salute: l’interruttore Barre della salute è spento."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A mesa não vê barras de vida: o interruptor Barras de vida está desligado."
+          }
+        }
+      }
+    },
     "This Character is no longer in the Party.": {
       "localizations": {
         "de": {
@@ -17030,6 +17310,126 @@
           "stringUnit": {
             "state": "translated",
             "value": "Editor de paredes…"
+          }
+        }
+      }
+    },
+    "Wherever the table can see this Pawn, it sees this Health Bar — Bloodied.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wo der Tisch diese Spielfigur sehen kann, sieht er diesen Lebensbalken — Blutend."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Όπου το τραπέζι βλέπει αυτό το πιόνι, βλέπει αυτή την μπάρα υγείας — Bloodied."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dondequiera que la mesa vea esta ficha, ve esta barra de salud — Ensangrentado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partout où la table voit ce pion, elle voit cette barre de vie — En sang."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ovunque il tavolo veda questa pedina, vede questa barra della salute — Sanguinante."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onde quer que a mesa veja esta peça, vê esta barra de vida — Sangrando."
+          }
+        }
+      }
+    },
+    "Wherever the table can see this Pawn, it sees this Health Bar — Critical.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wo der Tisch diese Spielfigur sehen kann, sieht er diesen Lebensbalken — Kritisch."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Όπου το τραπέζι βλέπει αυτό το πιόνι, βλέπει αυτή την μπάρα υγείας — Κρίσιμο."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dondequiera que la mesa vea esta ficha, ve esta barra de salud — Crítico."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partout où la table voit ce pion, elle voit cette barre de vie — Critique."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ovunque il tavolo veda questa pedina, vede questa barra della salute — Critico."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onde quer que a mesa veja esta peça, vê esta barra de vida — Crítico."
+          }
+        }
+      }
+    },
+    "Wherever the table can see this Pawn, it sees this Health Bar — Healthy.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wo der Tisch diese Spielfigur sehen kann, sieht er diesen Lebensbalken — Gesund."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Όπου το τραπέζι βλέπει αυτό το πιόνι, βλέπει αυτή την μπάρα υγείας — Υγιής."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dondequiera que la mesa vea esta ficha, ve esta barra de salud — Sano."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partout où la table voit ce pion, elle voit cette barre de vie — En forme."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ovunque il tavolo veda questa pedina, vede questa barra della salute — In salute."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onde quer que a mesa veja esta peça, vê esta barra de vida — Saudável."
           }
         }
       }

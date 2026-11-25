@@ -490,6 +490,17 @@ enum PawnKind: String, Codable, CaseIterable, Equatable {
         }
     }
 
+    /// Whether a Pawn of this kind carries a **Health Bar** (`CONTEXT.md`): a Player or a
+    /// Creature, never a Treasure — a chest with hit points typed into it is still a chest.
+    /// One place, so the bar itself, the Edit Pawn sheet's toggle and `Add` cannot come to
+    /// disagree about it. A `switch` with no `default`, as above.
+    var carriesHealthBar: Bool {
+        switch self {
+        case .player, .creature: return true
+        case .treasure: return false
+        }
+    }
+
     /// The heading this kind is listed under in the live panel.
     var pluralTitle: String {
         switch self {

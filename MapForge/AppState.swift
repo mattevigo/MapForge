@@ -714,6 +714,15 @@ final class AppState: ObservableObject {
         showsMeasurementsToPlayers ? drawableMeasurements : []
     }
 
+    /// Whether the Player Display draws any Health Bar at all — the Live Toolbar's switch.
+    ///
+    /// The table-wide half of the rule; the per-Pawn half is the Stat Block's own
+    /// `showsHealthBarToPlayers`. For the moment a DM wants the table reading the fight
+    /// rather than the bars — a dramatic reveal, a duel the players should feel blind in.
+    /// Live and never persisted, like the Measurements switch beside it: a decision about
+    /// the moment, so every launch starts with the bars on, which is ADR-0036's case.
+    @Published var areHealthBarsOn = true
+
     /// A Measurement ready to draw: where it starts and the colour it is drawn in, both
     /// resolved against its Pawn as it is now. Handed to `MeasurementLayer` whole, so both
     /// screens draw exactly what was resolved here.
@@ -848,6 +857,17 @@ final class AppState: ObservableObject {
     /// cannot unwind past what the mode opened with, so a live edit has no stack to land in
     /// anyway. The in-mode `pawnInspector` path stays undoable through `FogEdits` — two
     /// paths with different undo semantics is the pattern here, not an inconsistency.
+    /// Move a Pawn to another's place in its Kind's group, from the Scene tab's drag
+    /// (`PawnOrder`). The Scene list *is* this order, so the Map's stacking follows it.
+    ///
+    /// A live action like a rename: saved with the Map through `fog`'s debounce, and not
+    /// undoable (ADR-0013). Allowed during an Encounter — the Initiative order is the
+    /// Encounter's own and is not touched.
+    func movePawn(_ moving: Pawn.ID, onto target: Pawn.ID) {
+        guard let reordered = PawnOrder.move(moving, onto: target, in: fog.pawns) else { return }
+        fog.pawns = reordered
+    }
+
     func setPawnLabel(id: Pawn.ID, _ label: String) {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
         fog.pawns[index].label = label
@@ -899,15 +919,21 @@ final class AppState: ObservableObject {
                                          or: draft.itemToBecome)
         }
         fog.pawns[index] = edited
-        // The one thing this sheet does to a Stat Block: a Monster that *changed* is stamped,
-        // whole (ADR-0021). Through `editStatBlock`, so mid-fight the stamp is recorded as
-        // Changes like any other edit (ADR-0008); the rolled Initiative is not among them,
-        // because changing a bonus does not by itself move anyone. A Monster that left the
-        // Bestiary while the sheet was open stamps nothing, and the Pawn simply remembers
-        // its name.
+        // The one thing this sheet does to a Stat Block's numbers: a Monster that *changed*
+        // is stamped, whole (ADR-0021). Through `editStatBlock`, so mid-fight the stamp is
+        // recorded as Changes like any other edit (ADR-0008); the rolled Initiative is not
+        // among them, because changing a bonus does not by itself move anyone. A Monster that
+        // left the Bestiary while the sheet was open stamps nothing, and the Pawn simply
+        // remembers its name.
         if let monster = bestiary.monster(named: draft.monsterToStamp) {
             editStatBlock(for: id) { $0 = MonsterStamp.statBlock(from: monster, over: $0) }
             // OK commits both files, so neither waits out a debounce.
+            flushPendingStatWrites()
+        }
+        // And whether the table sees its Health Bar, when the DM changed that: after the stamp,
+        // which keeps it, and never through the Log, which has no business with it (ADR-0036).
+        if let shows = draft.healthBarToWrite {
+            setShowsHealthBarToPlayers(shows, for: id)
             flushPendingStatWrites()
         }
         // A Treasure has nothing to do on its turn (`CONTEXT.md`, **Combatant**), so a

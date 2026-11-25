@@ -121,6 +121,12 @@ struct ControlView: View {
 
     /// Which row the Combat tab's Stat Block editor is pointed at.
     @State private var selectedCombatant: Pawn.ID?
+    /// The Scene tab's Pawn row being dragged to reorder, and the row it hovers over — so the
+    /// line showing where it will land is drawn only where the drop will be taken
+    /// (`PawnOrder.landing`). Set when the drag starts; SwiftUI says nothing when one is
+    /// cancelled, so a stale one is only ever replaced, and only ever read while hovering.
+    @State private var draggedPawn: Pawn.ID?
+    @State private var pawnDropTarget: Pawn.ID?
 
     /// What `Add` places. A Light, or a Pawn of one Kind — the Kind is settled here, when
     /// the DM picks from the menu, rather than in a sheet afterwards: adding four goblins is
@@ -500,14 +506,10 @@ struct ControlView: View {
             // the Map again. That includes the Session control: stopping the evening is done
             // where the evening is being run.
             if !showingLog {
-                HStack(spacing: 16) {
-                    fogSwitch
-                    measurementVisibilitySwitch
-                    viewportToggle
-                    mapFitToggle
-                    Spacer()
-                    sessionToggle
-                }
+                LiveToolbar(isLiveView: mode == .normal,
+                            isShowingViewport: $isShowingViewport,
+                            mapOverflowsViewport: mapOverflowsViewport,
+                            confirmStopSession: $confirmStopSession)
 
                 preview
             } else {
@@ -1257,7 +1259,11 @@ struct ControlView: View {
         switch target {
         case .pawn(let id):
             guard let pawn = appState.fog.pawns.first(where: { $0.id == id }) else { return }
-            editing = .pawn(id, EditPawnDraft(pawn: pawn))
+            // The Health Bar's setting from beside the Map, where it is kept — never the
+            // fight's copy, which the Log froze when the Pawn joined.
+            editing = .pawn(id, EditPawnDraft(
+                pawn: pawn,
+                showsHealthBarToPlayers: appState.statBlock(for: id).showsHealthBarToPlayers))
         case .light(let id):
             guard let light = appState.fog.lights.first(where: { $0.id == id }) else { return }
             editing = .light(id, EditLightDraft(light: light))
@@ -1407,8 +1413,12 @@ struct ControlView: View {
             else { return }   // outside the image: refused, and still armed
             // Through `addPawnToMap` rather than appending here, so a Creature placed while
             // a fight is running rolls Initiative and joins the Order. A Treasure is refused
-            // by `joinEncounter` itself, having nothing to do on its turn.
-            appState.addPawnToMap(pawn)
+            // by `joinEncounter` itself, having nothing to do on its turn. Asked of the Map
+            // before the new Pawn is on it, so the last of its Kind is the one before it.
+            let showsHealthBar = AddPlacement.showsHealthBarToPlayers(
+                kind: pawnKind, existing: appState.fog.pawns,
+                stats: appState.statsDocument.blocks)
+            appState.addPawnToMap(pawn, showingHealthBar: showsHealthBar)
         }
         // One click places one thing. The Kind stays on the menu, not on the cursor.
         armedAdd = nil
@@ -1712,6 +1722,8 @@ struct ControlView: View {
 
     private func pawnLiveRow(_ pawn: Pawn) -> some View {
         HStack(spacing: 6) {
+            reorderHandle(pawn)
+
             // The token, not a switch: it is how the DM finds this row, since it carries
             // the same colour and label as the disc on the Map. Toggling its light is a
             // secondary use of it, so it is the one thing in the row that looks like the
@@ -1764,6 +1776,38 @@ struct ControlView: View {
 
             rollButtons(pawn)
         }
+        // The Health Bar is the DM's only view of what the table is shown (ADR-0036), so it
+        // takes the row's whole width to be read as a fraction, under everything in it. No
+        // numbers here: the Scene tab is for placing and lighting, and the Encounter tab is
+        // where the DM reads hit points. Read from the Encounter's blocks while a fight runs,
+        // as the Stat Block editor does, so the two tabs agree.
+        .healthBarUnderRow(kind: pawn.kind,
+                           stats: appState.liveStatBlock(for: pawn.id),
+                           areHealthBarsOn: appState.areHealthBarsOn)
+        .overlay(alignment: pawnLanding(onto: pawn) == .before ? .top : .bottom) {
+            if pawnLanding(onto: pawn) != nil {
+                // Midway into the gap between rows, where the dropped row will go.
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(height: 2)
+                    .offset(y: pawnLanding(onto: pawn) == .before ? -4 : 4)
+            }
+        }
+        .contentShape(Rectangle())
+        .dropDestination(for: PawnDragPayload.self) { payloads, _ in
+            guard let moving = payloads.first?.pawnID,
+                  PawnOrder.landing(moving, onto: pawn.id, in: appState.fog.pawns) != nil
+            else { return false }
+            withAnimation(.snappy) { appState.movePawn(moving, onto: pawn.id) }
+            draggedPawn = nil
+            return true
+        } isTargeted: { isTargeted in
+            if isTargeted {
+                pawnDropTarget = pawn.id
+            } else if pawnDropTarget == pawn.id {
+                pawnDropTarget = nil
+            }
+        }
         // With one Pawn isolated, the rest of the party is switched out of the lighting,
         // and the panel should say so at a glance: a DM who forgets Solo Sight is on will
         // misread the Player Display, in front of players.
@@ -1773,6 +1817,43 @@ struct ControlView: View {
         // dimmed here for the different reason that its *light* is switched out, which is
         // true of a Pawn the table can still plainly see standing in a brazier's glow.
         .opacity(isSwitchedOutBySoloSight(pawn) ? soloSightSwitchedOutOpacity : 1)
+    }
+
+    /// The grip a Pawn's row is dragged by to reorder it within its group (`PawnOrder`).
+    ///
+    /// A grip of its own rather than the whole row: the row is the name field and buttons,
+    /// each of which takes the mouse first, and a drag that began as a text selection or a
+    /// toggle would be a guess. The list is the Map's order, so the tooltip says what the
+    /// order also does: lower in the list is drawn on top.
+    private func reorderHandle(_ pawn: Pawn) -> some View {
+        Image(systemName: "line.3.horizontal")
+            .font(.system(size: 10))
+            .foregroundStyle(.tertiary)
+            .frame(width: 10)
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .draggable(startDragging(pawn)) {
+                HStack(spacing: 6) {
+                    PawnToken(pawn: pawn, squareSide: 14, scalesWithFootprint: false)
+                    Text(pawn.label)
+                }
+                .padding(4)
+            }
+            .help(String(localized: "Drag to reorder. Lower in the list is drawn on top on the Map."))
+            .accessibilityIdentifier("pawn-reorder-handle")
+    }
+
+    /// The drag's payload, noting which Pawn is on the move — read only by the hover line.
+    private func startDragging(_ pawn: Pawn) -> PawnDragPayload {
+        draggedPawn = pawn.id
+        return PawnDragPayload(pawnID: pawn.id)
+    }
+
+    /// Where the row being dragged would land if dropped on `pawn`'s row now, or nil when
+    /// nothing hovers there or the drop would be refused.
+    private func pawnLanding(onto pawn: Pawn) -> PawnOrder.Landing? {
+        guard pawnDropTarget == pawn.id, let draggedPawn else { return nil }
+        return PawnOrder.landing(draggedPawn, onto: pawn.id, in: appState.fog.pawns)
     }
 
     /// Whether this Pawn rolls when the next fight starts.
@@ -1904,110 +1985,6 @@ struct ControlView: View {
             : String(localized: "Solo Sight: show the Map as \(pawn.label) alone lights it.")
     }
 
-    /// Whether the table sees the DM's Measurements.
-    ///
-    /// Beside the Fog switch because it is the same kind of control: a live decision about
-    /// what the Player Display shows, taken mid-session and never persisted.
-    ///
-    /// **Always present**, unlike the Fog switch it sits next to. It was conditional on
-    /// there being a Measurement to hide, which was wrong twice over. A DM decides whether a
-    /// distance is for the table *before* they take it, and a control that appears only once
-    /// the shape is already on the big screen offers that choice a moment too late. And a
-    /// control that comes and goes is the layout defect this window has been bitten by three
-    /// times: it shifts the row beside it and the preview below it.
-    ///
-    /// Default on: ADR-0005 makes the case that the table should see a Measurement, and that
-    /// is the common one. This is the escape for the other kind — the distance a DM takes for
-    /// themselves, where the number is the tactical fact they are deciding whether to reveal.
-    private var measurementVisibilitySwitch: some View {
-        Toggle("Measurements", isOn: $appState.showsMeasurementsToPlayers)
-            .toggleStyle(.checkbox)
-            // A stable handle for the UI tests, as the Fog switch carries: addressing a
-            // control by its rendered label is what goes stale first.
-            .accessibilityIdentifier("measurement-visibility-switch")
-            .help("Show Measurements on the Player Display. Off, the shape and its distance stay on this window only.")
-    }
-
-    /// The Viewport rectangle's toggle, in the Live Toolbar.
-    ///
-    /// Moved here from `modeControls`, where it sat among Grid Fit and the Wall Editor —
-    /// prep controls it has nothing in common with. Moving the Viewport is a live act the
-    /// table watches as it happens (`CONTEXT.md`), which is what this row is for.
-    ///
-    /// A toggle, not a mode: press to show the rectangle, press again to put it away. There
-    /// is no Cancel, deliberately — see `ViewportToggle`.
-    ///
-    /// Unavailable under Map Fit, where the rectangle covers the whole Map and there is
-    /// nothing to drag it to; its help says so (`ViewportToggle.explanation`) rather than
-    /// leaving the DM to guess why.
-    ///
-    /// Drawn only in the Live View, as it was inside `modeControls`' `.normal` case: the
-    /// rectangle is not drawn in Grid Fit or the Wall Editor, so a control for dragging it
-    /// would act on something invisible.
-    ///
-    /// Appearing and vanishing with the mode costs this row **width**, not height, so the
-    /// preview's container is unchanged and the Map does not resize — the defect
-    /// `ChromeHeightTests` guards. `fogSwitch` in the same row already comes and goes this
-    /// way. What a width change does cost is the buttons after it shifting sideways, which
-    /// is why the `Spacer()` sits between these switches and the Session control: the one
-    /// thing on the right stays put.
-    @ViewBuilder
-    private var viewportToggle: some View {
-        if mode == .normal {
-            Toggle("Viewport", isOn: $isShowingViewport)
-                .toggleStyle(.button)
-                .disabled(!ViewportToggle.isAvailable(mapOverflows: mapOverflowsViewport,
-                                                      hasDisplay: appState.playerScreen != nil,
-                                                      isMapFitOn: appState.isMapFitOn))
-                .help(ViewportToggle.explanation(isMapFitOn: appState.isMapFitOn).text)
-        }
-    }
-
-    /// **Map Fit**, beside the Viewport toggle and shown on the same terms: in the Live View
-    /// only, so it costs this row width and never height, as `viewportToggle` explains.
-    ///
-    /// Disabled without a Player Display: there is no screen to fit the Map to, and losing
-    /// the screen while fitted switches Map Fit off (`MapFitToggle`). Not persisted — see
-    /// `AppState.isMapFitOn`.
-    @ViewBuilder
-    private var mapFitToggle: some View {
-        if mode == .normal {
-            Toggle("Map Fit", isOn: $appState.isMapFitOn)
-                .toggleStyle(.button)
-                .disabled(!MapFitToggle.isAvailable(hasDisplay: appState.playerScreen != nil))
-                .help("Show the whole Map on the Player Display, as large as it fits, ignoring the Grid.")
-        }
-    }
-
-    // MARK: The Session
-
-    /// Start/Stop Session, in the Live Toolbar.
-    ///
-    /// Disabled without a Workspace: a Session's log lives in `.mapforge/sessions/`, so there
-    /// is nowhere to write without one — the refusal `startEncounter` already makes for a
-    /// missing Map.
-    ///
-    /// Stopping asks first. It did not, on the grounds that "starting again is one click" —
-    /// true when a Session was a flag, and false since the Log View, because a restart opens a
-    /// new file and the Log View shows only the current one. A misclick now visibly truncates
-    /// the evening the DM is reading. Starting is still one click, having nothing to lose.
-    /// See `StopSessionPrompt`.
-    private var sessionToggle: some View {
-        Button(appState.session == nil ? String(localized: "Start Session")
-                                       : String(localized: "Stop Session")) {
-            if appState.session == nil {
-                appState.startSession()
-            } else {
-                confirmStopSession = true
-            }
-        }
-        .disabled(appState.workspace == nil)
-        .accessibilityIdentifier("session-toggle")
-        .help(appState.workspace == nil
-              ? String(localized: "A Session records into the Workspace. Open one first.")
-              : String(localized: "Record this evening's movements and Comments."))
-    }
-
     // MARK: The Log
 
     /// Opens the Log View in the Map's place.
@@ -2067,21 +2044,6 @@ struct ControlView: View {
         guard commentBarState.isEnabled else { return }
         appState.addComment(comment)
         comment = ""
-    }
-
-    @ViewBuilder
-    private var fogSwitch: some View {
-        if !appState.fog.walls.isEmpty || !appState.fog.lights.isEmpty
-            || !appState.fog.pawns.isEmpty {
-            Toggle("Fog", isOn: $appState.isFogOverlayOn)
-                .toggleStyle(.switch)
-                // A stable handle for the UI tests. Addressing this by its rendered label
-                // is what went stale when the panel was last restructured — and a
-                // `.switch` Toggle publishes on macOS as a checkBox, not a switch, which
-                // is the other half of why the query missed.
-                .accessibilityIdentifier("fog-overlay-switch")
-                .help("Hide or reveal the Fog Overlay on the Player Display. Pawns stay visible either way.")
-        }
     }
 
     /// Everything on the Map that can be switched, listed down the side of the preview.
@@ -2217,7 +2179,7 @@ struct ControlView: View {
                         let group = appState.fog.pawns.filter { $0.kind == kind }
                         if !group.isEmpty {
                             liveGroup(kind.pluralTitle, count: group.count) {
-                                ForEach(group) { pawnLiveRow($0) }
+                                rowsWithDividers(group) { pawnLiveRow($0) }
                             }
                         }
                     }
@@ -2562,6 +2524,18 @@ struct ControlView: View {
 
     /// One titled group in the side panel. The count is in the heading so the DM can see
     /// "Creatures 6" without counting rows.
+    /// Rows with a hairline between each and the next: a Health Bar runs the width of its
+    /// row, and without a rule between them a list of bars reads as a stack of stripes
+    /// rather than as one bar per Pawn.
+    private func rowsWithDividers<Item: Identifiable, Row: View>(
+        _ items: [Item], @ViewBuilder row: @escaping (Item) -> Row
+    ) -> some View {
+        ForEach(items) { item in
+            if item.id != items.first?.id { Divider() }
+            row(item)
+        }
+    }
+
     private func liveGroup<Content: View>(_ title: String, count: Int,
                                           @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 6) {

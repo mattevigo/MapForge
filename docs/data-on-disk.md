@@ -93,7 +93,7 @@ that holds the radii must hold the unit.
 | `squaresWide` | The Map's declared Grid width in squares. **Absent when the DM never ran Grid Fit** — the default 30 is a guess and is never written. |
 | `walls[].from/to` | Endpoints in **image pixels**, so a Wall stays welded to the artwork when the Grid changes. Every point in the file is nested under `imagePixels` so the unit is never guessed. The four implicit Walls at the image edge are not stored. |
 | `lights[]` | `brightSquares` / `dimSquares` are in **Grid squares**; `isOn` is the switch; `name` is the DM's own and is omitted when unnamed. |
-| `pawns[]` | `label` is the DM's bookkeeping (never shown to players); `colorHex` is what the table sees. `kind` is `player`, `creature` or `treasure`. |
+| `pawns[]` | `label` is the DM's bookkeeping (never shown to players); `colorHex` is what the table sees. `kind` is `player`, `creature` or `treasure`. **The order matters**: it is the Scene tab's list order within each Kind, which the DM sets by dragging, and the stacking on both screens — a later Pawn is drawn over an earlier one and wins a click where they overlap. *Add* copies from the last Pawn of its Kind. |
 | `pawns[].light` | A Pawn *is* a Light: `brightSquares` is its sight. `dimSquares` is on disk but **re-derived on load** as sight + 1 (the fade), so the stored value is cosmetic history. |
 | `pawns[].characterID` | Which Character stamped this Pawn. Advisory only — counts on the Party panel, and, with `face.from: character`, which Pawns re-cutting that Character's Face for *every* one reaches (ADR-0028) — and omitted when absent (ADR-0007). |
 | `pawns[].monsterName` | Which Monster this Creature was said to be. Advisory only — the reference view, *Add*'s "same as last", and, with `face.from: monster`, which Pawns re-cutting that Monster's Face for *every* one reaches (ADR-0028), and the Roll sheet's offered Modifier, read live from that Monster's note (ADR-0029) — and omitted when absent (ADR-0020). The numbers were **copied** into `stats.json`. |
@@ -127,7 +127,8 @@ file so a shared Map with its Walls traced does not carry a party's wounds (ADR-
     { "pawnID": "…",
       "block": { "initiativeBonus": 2, "armorClass": 16, "currentHP": 19, "maxHP": 27,
                  "temporaryHP": 0, "conditions": ["poisoned"], "exhaustion": 0,
-                 "isConcentrating": false, "isInCombat": true } }
+                 "isConcentrating": false, "isInCombat": true,
+                 "showsHealthBarToPlayers": true } }
   ]
 }
 ```
@@ -143,13 +144,21 @@ file so a shared Map with its Walls traced does not carry a party's wounds (ADR-
 - `exhaustion` is 0–6 and is clamped on read, because this file can be hand-edited.
 - `isInCombat` is the roster: whether this Pawn rolls when the *next* fight starts. Read only
   at that moment. Absent in older files, meaning `true`.
+- `showsHealthBarToPlayers` is whether this Pawn's Health Bar reaches the Player Display
+  (ADR-0036) — false when the DM withheld it in Edit Pawn. The table-wide Health Bars switch is
+  not saved anywhere. Absent in older files, meaning `true`.
 - Every field has a default, so any subset of keys decodes.
 
 **When it is written.** Outside a fight, an edit goes straight here (debounced 0.5 s).
 *During* a fight the Combat Log is authoritative: the tracker's numbers are folded from the
 Log, and after every recorded Change the folded blocks are copied back here so the fight's
-damage outlives the fight. Flushed when the fight stops, the Map is switched, or a Monster
-is stamped.
+damage outlives the fight. Flushed when the fight stops, the Map is switched, a Monster is
+stamped, or Edit Pawn's OK changes whether the table sees the Pawn's Health Bar.
+
+`showsHealthBarToPlayers` is the exception to the Log's authority. It is not a Change, so it
+never goes through the Combat Log, during a fight or outside one: it is written straight here.
+The Log's copy of it is only what it was when the Pawn joined, so when the folded blocks are
+copied back the value already here is kept over the fold's.
 
 ### `<map>.combat/<timestamp>.jsonl` — one Combat Log per Encounter
 
@@ -475,7 +484,7 @@ What follows from the shape:
 | File | Written when | How | On unreadable |
 |---|---|---|---|
 | `.fog.json` | every fog edit, 0.5 s debounce, last wins; flushed on Map switch, quit, Pawn add/remove | atomic replace, pretty | warned in UI; the next edit **replaces** it |
-| `stats.json` | prep edits (debounced); every fold during a fight; flushed on fight stop, Map switch, Monster stamp | atomic replace, pretty | reported, **writes refused** |
+| `stats.json` | prep edits (debounced); every fold during a fight; flushed on fight stop, Map switch, Monster stamp, Edit Pawn OK that changes the Health Bar setting | atomic replace, pretty | reported, **writes refused** |
 | `<map>.combat/*.jsonl` | every Turn end, Correction, join/bench/reorder/re-roll, fight start/stop | append + fsync, one line | truncated tail dropped |
 | `sessions/*.jsonl` | every Comment, move, Roll, pointer, start/stop | append + fsync, one line | truncated tail dropped |
 | `parties.json` | every roster edit | atomic replace, pretty | reported, writes refused |

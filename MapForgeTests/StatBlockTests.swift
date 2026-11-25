@@ -72,4 +72,29 @@ final class StatBlockTests: XCTestCase {
         XCTAssertNil(decoded.currentHP)
         XCTAssertNil(decoded.maxHP)
     }
+
+    // MARK: - Showing the Health Bar
+
+    func testAPawnShowsItsHealthBarByDefault() {
+        // The table is entitled to the impression (ADR-0036); withholding it is the
+        // exception the DM chooses — the mimic, the boss meant to stay a mystery.
+        XCTAssertTrue(StatBlock().showsHealthBarToPlayers)
+    }
+
+    func testAFileWrittenBeforeHealthBarsShowsTheBar() throws {
+        // Every `stats.json` on disk today lacks the key, and none of those Pawns was ever
+        // withheld — there was no way to say so.
+        let json = Data("""
+        {"initiativeBonus":0,"armorClass":10,"currentHP":14,"maxHP":32,"temporaryHP":0,\
+        "conditions":[],"exhaustion":0,"isConcentrating":false,"isInCombat":true}
+        """.utf8)
+        XCTAssertTrue(try JSONDecoder().decode(StatBlock.self, from: json).showsHealthBarToPlayers)
+    }
+
+    func testAWithheldHealthBarSurvivesTheRoundTrip() throws {
+        // Withheld "for good": a relaunch must not hand the mimic's bar back to the table.
+        let block = StatBlock(currentHP: 14, maxHP: 32, showsHealthBarToPlayers: false)
+        let data = try JSONEncoder().encode(block)
+        XCTAssertFalse(try JSONDecoder().decode(StatBlock.self, from: data).showsHealthBarToPlayers)
+    }
 }

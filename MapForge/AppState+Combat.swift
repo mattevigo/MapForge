@@ -163,6 +163,41 @@ extension AppState {
         setStatBlock(block, for: pawn)
     }
 
+    // MARK: The Health Bar
+
+    /// A Pawn's Stat Block as it stands right now: the fight's copy while one runs, folded
+    /// from the Log, and the one beside the Map otherwise — `keepingHealthBarSetting` either
+    /// way. What a screen drawing a Health Bar reads.
+    func liveStatBlock(for pawn: Pawn.ID) -> StatBlock {
+        guard let folded = encounter?.blocks[pawn] else { return statBlock(for: pawn) }
+        return keepingHealthBarSetting(folded, for: pawn)
+    }
+
+    /// A block folded from the Combat Log, with whether the table sees its Health Bar taken
+    /// from beside the Map instead.
+    ///
+    /// The one place that owns this rule. The Log is authoritative over the numbers during a
+    /// fight (ADR-0008) but not over this setting: changing it is not a Change (ADR-0036), so
+    /// the Log holds only what it was when the Pawn joined, and a bar the DM withheld
+    /// mid-fight would come back the moment anything trusted the fight's copy of it.
+    private func keepingHealthBarSetting(_ folded: StatBlock, for pawn: Pawn.ID) -> StatBlock {
+        var block = folded
+        block.showsHealthBarToPlayers = statBlock(for: pawn).showsHealthBarToPlayers
+        return block
+    }
+
+    /// Shows or withholds one Pawn's Health Bar at the table, for good (ADR-0036).
+    ///
+    /// Straight to `stats.json`, never through the Log, during a fight as outside one: it is
+    /// not a Change — whether the table could see a bar is not something that happened in
+    /// the fight — so neither the Combat Log nor the Session Log hears of it.
+    func setShowsHealthBarToPlayers(_ shows: Bool, for pawn: Pawn.ID) {
+        var block = statBlock(for: pawn)
+        guard block.showsHealthBarToPlayers != shows else { return }
+        block.showsHealthBarToPlayers = shows
+        setStatBlock(block, for: pawn)
+    }
+
     /// Pawns on the Map that are not taking Turns: left off the roster, Benched during the
     /// fight, or Treasure. What the tracker lists under the Order.
     var notInCombat: Set<Pawn.ID> {
@@ -350,12 +385,17 @@ extension AppState {
     ///
     /// A Treasure that arrives already an Item takes the Item's Face here by the same rule.
     /// It has no numbers to stamp.
-    func addPawnToMap(_ pawn: Pawn) {
+    ///
+    /// `showingHealthBar` false places it with its Health Bar withheld from the table — what
+    /// `AddPlacement` passes on from the last of its Kind. After the stamp, which keeps it,
+    /// and before the join, so the fight's snapshot agrees.
+    func addPawnToMap(_ pawn: Pawn, showingHealthBar: Bool = true) {
         var pawn = pawn
         if let monster = bestiary.monster(named: pawn.monsterName),
            statsDocument.blocks[pawn.id] == nil {
             setStatBlock(MonsterStamp.statBlock(from: monster, over: StatBlock()), for: pawn.id)
         }
+        setShowsHealthBarToPlayers(showingHealthBar, for: pawn.id)
         // Fresh from the Monster or the Item, as its numbers are, never copied from a sibling.
         pawn.face = definitionFace(over: pawn.face, becoming: pawn.monsterName, or: pawn.itemName)
         fog.pawns.append(pawn)
@@ -479,9 +519,12 @@ extension AppState {
     /// Copies the folded Stat Blocks onto the ones that live beside the Map.
     ///
     /// The Log stays authoritative during a fight; this is what makes its result outlive
-    /// the fight, so next week's Encounter starts where this one left off.
+    /// the fight, so next week's Encounter starts where this one left off — the numbers, not
+    /// the Health Bar setting (`keepingHealthBarSetting`).
     private func syncStatsFromEncounter(_ live: Encounter) {
-        for (id, block) in live.blocks where statsDocument.blocks[id] != block {
+        for (id, folded) in live.blocks {
+            let block = keepingHealthBarSetting(folded, for: id)
+            guard statsDocument.blocks[id] != block else { continue }
             statsDocument.blocks[id] = block
         }
         statsAutosave.schedule(statsDocument)
