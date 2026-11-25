@@ -214,7 +214,10 @@ struct CombatPanel: View {
     private func order(_ encounter: Encounter) -> some View {
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 2) {
+                // A hairline between rows: each Health Bar runs its row's width, and without
+                // one a column of bars reads as stripes rather than one bar per Combatant.
                 ForEach(encounter.order, id: \.self) { id in
+                    if id != encounter.order.first { Divider() }
                     row(encounter, id: id)
                 }
                 bench(encounter)
@@ -242,6 +245,7 @@ struct CombatPanel: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 6)
             ForEach(benched, id: \.self) { id in
+                if id != benched.first { Divider() }
                 benchRow(encounter, id: id)
             }
         }
@@ -289,6 +293,7 @@ struct CombatPanel: View {
             hitPoints(block, kind: kind)
             conditions(block)
         }
+        .healthBarUnderRow(kind: kind, stats: block, areHealthBarsOn: appState.areHealthBarsOn)
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
         .foregroundStyle(.secondary)
@@ -383,6 +388,10 @@ struct CombatPanel: View {
             .accessibilityIdentifier("bench")
             .help("Take out of the Order. Stays on the Map and can be put back.")
         }
+        // Inside the row's padding and its highlight, so the bar belongs to this Combatant
+        // and the active one's bar is on the active one's ground.
+        .healthBarUnderRow(kind: encounter.kind(of: id) ?? .creature, stats: block,
+                           areHealthBarsOn: appState.areHealthBarsOn)
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
         // Filled, not outlined: a DM reads this from across a table at a glance.
@@ -421,6 +430,7 @@ struct CombatPanel: View {
                 .help("Initiative bonus")
             hitPoints(block, kind: pawn.kind)
         }
+        .healthBarUnderRow(kind: pawn.kind, stats: block, areHealthBarsOn: appState.areHealthBarsOn)
         .font(.caption)
         .padding(.horizontal, 6)
         .padding(.vertical, 2)
@@ -454,12 +464,10 @@ struct CombatPanel: View {
         .help(kind.title)
     }
 
-    /// The numbers, the exact Health Bar under them, and the ⚠️ when there are none —
-    /// `HealthBarReadout`, shared with the Scene tab's rows so the two cannot disagree.
+    /// The numbers, and the ⚠️ when there are none — `HealthBarReadout`. The bar is the
+    /// row's, under all of it.
     private func hitPoints(_ block: StatBlock, kind: PawnKind) -> some View {
-        HealthBarReadout(kind: kind, stats: block,
-                         areHealthBarsOn: appState.areHealthBarsOn,
-                         flagsIncompleteStatBlock: true)
+        HealthBarReadout(kind: kind, stats: block, areHealthBarsOn: appState.areHealthBarsOn)
     }
 
     private func armourClass(_ block: StatBlock) -> some View {
@@ -549,6 +557,7 @@ struct CombatPanel: View {
                 ScrollView(.vertical) {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(rostered) { pawn in
+                            if pawn.id != rostered.first?.id { Divider() }
                             rosterRow(pawn)
                         }
                     }

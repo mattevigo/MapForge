@@ -6,9 +6,10 @@ import XCTest
 /// The Scene tab's Pawn row with the DM's Health Bar in it.
 ///
 /// The name field is that row's one flexible member, and the buttons beside it already leave
-/// it little room, so the hit points must not take any of it. Measured in the real Control
-/// Window at its minimum width — the panel's width is fixed, so this is the width the row
-/// always has — by comparing a Pawn that has hit points with one that has none.
+/// it little room, so the Health Bar must not take any of it — it runs under the row, and the
+/// row shows no numbers. Measured in the real Control Window at its minimum width — the
+/// panel's width is fixed, so this is the width the row always has — by comparing a Pawn that
+/// has hit points with one that has none.
 @MainActor
 final class ScenePawnRowHealthBarLayoutTests: XCTestCase {
     private var directory: URL!
@@ -46,7 +47,7 @@ final class ScenePawnRowHealthBarLayoutTests: XCTestCase {
         return widths
     }
 
-    func testHitPointsTakeNoWidthFromThePawnsName() throws {
+    func testTheHealthBarTakesNoWidthFromThePawnsName() throws {
         let state = AppState(preferences: DisplayPreferences(defaults: defaults),
                              fogStore: FogStore(),
                              partyStore: PartyStore(directory: directory))
@@ -65,6 +66,6 @@ final class ScenePawnRowHealthBarLayoutTests: XCTestCase {
 
         XCTAssertGreaterThan(without, 0)
         XCTAssertEqual(withHitPoints, without, accuracy: 0.5,
-                       "the hit points squeeze the name field from \(without) to \(withHitPoints) pt")
+                       "the Health Bar squeezes the name field from \(without) to \(withHitPoints) pt")
     }
 }

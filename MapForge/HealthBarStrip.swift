@@ -11,13 +11,16 @@ import SwiftUI
 /// screens, and only the Player Display draws a bar on the Map.
 struct HealthBarStrip: View {
     let bar: HealthBar
+    /// The empty part. The table's is dark, over a Map; the DM's rows pass one that reads on
+    /// the panel in light and dark appearance alike, where the table's all but vanishes.
+    var track: Color = HealthBar.trackColor
 
     var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
             ZStack(alignment: .leading) {
                 // Drawn at 0 too: an empty track is how a Pawn that is down reads.
-                Rectangle().fill(HealthBar.trackColor)
+                Rectangle().fill(track)
                 Rectangle()
                     .fill(HealthBar.temporaryColor)
                     .frame(width: width * (bar.fill + bar.temporary))

@@ -1740,28 +1740,11 @@ struct ControlView: View {
 
             // Fills the column rather than a fixed 72 pt: names like "Goblin B" need the
             // room, and the panel has a known width to give them.
-            //
-            // The hit points go under the name, not beside it: the name is this row's only
-            // flexible member, and the buttons already leave it little room. The Health Bar
-            // is the DM's only view of what the table is shown (ADR-0036). Read from the
-            // Encounter's blocks while a fight runs, as the Stat Block editor does, so the two
-            // tabs agree.
-            // Not for a Treasure, whose Scene row is left as it was.
-            VStack(alignment: .leading, spacing: 2) {
-                TextField("label", text: Binding(
-                    get: { pawn.label },
-                    set: { appState.setPawnLabel(id: pawn.id, $0) }
-                ))
-                .textFieldStyle(.roundedBorder)
-
-                if pawn.kind != .treasure {
-                    HealthBarReadout(kind: pawn.kind,
-                                     stats: appState.liveStatBlock(for: pawn.id),
-                                     areHealthBarsOn: appState.areHealthBarsOn,
-                                     flagsIncompleteStatBlock: false)
-                        .padding(.leading, 4)
-                }
-            }
+            TextField("label", text: Binding(
+                get: { pawn.label },
+                set: { appState.setPawnLabel(id: pawn.id, $0) }
+            ))
+            .textFieldStyle(.roundedBorder)
             .frame(minWidth: 0)
 
             // Take it off the Player Display without deleting it. The eye is filled when
@@ -1785,6 +1768,14 @@ struct ControlView: View {
 
             rollButtons(pawn)
         }
+        // The Health Bar is the DM's only view of what the table is shown (ADR-0036), so it
+        // takes the row's whole width to be read as a fraction, under everything in it. No
+        // numbers here: the Scene tab is for placing and lighting, and the Encounter tab is
+        // where the DM reads hit points. Read from the Encounter's blocks while a fight runs,
+        // as the Stat Block editor does, so the two tabs agree.
+        .healthBarUnderRow(kind: pawn.kind,
+                           stats: appState.liveStatBlock(for: pawn.id),
+                           areHealthBarsOn: appState.areHealthBarsOn)
         // With one Pawn isolated, the rest of the party is switched out of the lighting,
         // and the panel should say so at a glance: a DM who forgets Solo Sight is on will
         // misread the Player Display, in front of players.
@@ -2119,7 +2110,7 @@ struct ControlView: View {
                         let group = appState.fog.pawns.filter { $0.kind == kind }
                         if !group.isEmpty {
                             liveGroup(kind.pluralTitle, count: group.count) {
-                                ForEach(group) { pawnLiveRow($0) }
+                                rowsWithDividers(group) { pawnLiveRow($0) }
                             }
                         }
                     }
@@ -2464,6 +2455,18 @@ struct ControlView: View {
 
     /// One titled group in the side panel. The count is in the heading so the DM can see
     /// "Creatures 6" without counting rows.
+    /// Rows with a hairline between each and the next: a Health Bar runs the width of its
+    /// row, and without a rule between them a list of bars reads as a stack of stripes
+    /// rather than as one bar per Pawn.
+    private func rowsWithDividers<Item: Identifiable, Row: View>(
+        _ items: [Item], @ViewBuilder row: @escaping (Item) -> Row
+    ) -> some View {
+        ForEach(items) { item in
+            if item.id != items.first?.id { Divider() }
+            row(item)
+        }
+    }
+
     private func liveGroup<Content: View>(_ title: String, count: Int,
                                           @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 6) {

@@ -1,15 +1,12 @@
 import SwiftUI
 
-/// A Pawn's hit points as the DM reads them in the Control Window's rows: the numbers, and
-/// under them the exact Health Bar in the tier the table is being shown (ADR-0036).
+/// A Pawn's hit points as the DM reads them in the Encounter tab's rows: the numbers, or the
+/// orange ⚠️ where there are none — a monster with no numbers must not silently drop out of
+/// a fight (ADR-0036).
 ///
-/// The DM's Map never draws a Health Bar, so this is the only place the DM can check what
-/// the table sees. One view for the Scene tab's Pawn rows and the Encounter tab's Order
-/// rows, so the two tabs cannot come to show it differently.
-///
-/// The bar sits *under* the numbers and is exactly as wide as they are. The Order row is
-/// already full at the live panel's fixed width, and the column that would give way is the
-/// name — the thing a DM reads fastest in a fight. Pinned by `HealthBarReadoutLayoutTests`.
+/// The exact Health Bar is not drawn here but across the whole row, by `healthBarUnderRow` —
+/// under the numbers it was as wide as "13/13", a smudge the DM could not read a fraction
+/// from. The Scene tab's rows carry that bar and no numbers.
 struct HealthBarReadout: View {
     let kind: PawnKind
     let stats: StatBlock
@@ -17,48 +14,21 @@ struct HealthBarReadout: View {
     /// `PlayerVisibility.showsHealthBarToPlayers` has none: a row that forgot the switch
     /// would tell the DM the table sees a bar it does not.
     let areHealthBarsOn: Bool
-    /// Whether a Stat Block without hit points gets the orange ⚠️. The Encounter tab's
-    /// rows flag it — a monster with no numbers must not silently drop out of a fight —
-    /// and the Scene tab's do not, where most Pawns are never given any.
-    let flagsIncompleteStatBlock: Bool
-
-    /// Thin, so it adds a few points to the row's height and reads as an underline of the
-    /// numbers rather than as a control.
-    static let barHeight: CGFloat = 3
-    static let barGap: CGFloat = 1
-
-    /// A withheld bar is still drawn, faded, rather than replaced by a glyph: the DM keeps
-    /// the exact picture, and the row does not grow a column the name would pay for.
-    static let withheldOpacity: Double = 0.3
 
     var body: some View {
         if let current = stats.currentHP, let max = stats.maxHP {
-            // None for a Treasure, which keeps the numbers its rows always had and never
-            // carries a bar — `HealthBar` decides, as it does for the table.
-            let bar = HealthBar(kind: kind, stats: stats)
             numbers(current: current, max: max)
-                .padding(.bottom, bar == nil ? 0 : Self.barHeight + Self.barGap)
-                .background(alignment: .bottom) {
-                    if let bar {
-                        HealthBarStrip(bar: bar)
-                            .frame(height: Self.barHeight)
-                            .opacity(withholding == nil ? 1 : Self.withheldOpacity)
-                    }
-                }
-                .help(bar.map { Self.tooltip(for: $0.tier, withholding: withholding) } ?? "")
-        } else if flagsIncompleteStatBlock {
-            // Flagged, never hidden: a forgotten Stat Block must not silently drop a
-            // monster from the fight.
+                .help(HealthBar(kind: kind, stats: stats)
+                    .map { Self.tooltip(for: $0.tier,
+                                        withholding: PlayerVisibility.healthBarWithholding(
+                                            stats: stats, areHealthBarsOn: areHealthBarsOn)) } ?? "")
+        } else {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.caption)
                 .foregroundStyle(.orange)
                 .help("No hit points yet — fill them in below.")
                 .accessibilityIdentifier("incomplete-stat-block")
         }
-    }
-
-    private var withholding: PlayerVisibility.HealthBarWithholding? {
-        PlayerVisibility.healthBarWithholding(stats: stats, areHealthBarsOn: areHealthBarsOn)
     }
 
     /// `current+temp/max`, as the Encounter tab has always written it: current in red at 0
@@ -99,6 +69,60 @@ struct HealthBarReadout: View {
                 return String(localized: "Wherever the table can see this Pawn, it sees this Health Bar — Bloodied.")
             case .critical:
                 return String(localized: "Wherever the table can see this Pawn, it sees this Health Bar — Critical.")
+            }
+        }
+    }
+}
+
+/// The DM's exact Health Bar, drawn under a whole row of the Control Window's lists: the
+/// track runs the row's width less a margin each side, and the fill is current over maximum
+/// of that track — so a goblin at half reads as half the row, not half of "13/13" (ADR-0036).
+///
+/// Under the row rather than in it, so it costs the row's flexible member — the name — not a
+/// point of width, only a few points of height. Pinned by `HealthBarReadoutLayoutTests`.
+struct HealthBarRowBar: View {
+    let bar: HealthBar
+    let withholding: PlayerVisibility.HealthBarWithholding?
+
+    /// Thicker than a hairline, so the tier's colour reads at a glance down the list, and
+    /// thinner than a control, so it is never mistaken for a slider.
+    static let height: CGFloat = 4
+    /// Between the row's controls and the bar.
+    static let gap: CGFloat = 3
+    /// Each side of the track, so it reads as belonging to its row rather than as a rule
+    /// across the panel — the Divider between rows is the rule.
+    static let margin: CGFloat = 4
+
+    /// A withheld bar is still drawn, faded, rather than replaced by a glyph: the DM keeps
+    /// the exact picture, and the tooltip says which switch withholds it.
+    static let withheldOpacity: Double = 0.3
+
+    /// The empty part, against the panel rather than a Map: the table's dark track vanished
+    /// on the dark appearance, and with it the length the fill is a fraction of.
+    static let trackColor = Color.primary.opacity(0.2)
+
+    var body: some View {
+        HealthBarStrip(bar: bar, track: Self.trackColor)
+            .frame(maxWidth: .infinity)
+            .frame(height: Self.height)
+            .padding(.horizontal, Self.margin)
+            .opacity(withholding == nil ? 1 : Self.withheldOpacity)
+            .help(HealthBarReadout.tooltip(for: bar.tier, withholding: withholding))
+            .accessibilityHidden(true)
+    }
+}
+
+extension View {
+    /// This row with the DM's Health Bar across its foot — nothing at all for a Pawn that
+    /// carries none (a Treasure, or no hit points to be a fraction of), so its row is
+    /// exactly as it was.
+    func healthBarUnderRow(kind: PawnKind, stats: StatBlock, areHealthBarsOn: Bool) -> some View {
+        VStack(alignment: .leading, spacing: HealthBarRowBar.gap) {
+            self
+            if let bar = HealthBar(kind: kind, stats: stats) {
+                HealthBarRowBar(bar: bar,
+                                withholding: PlayerVisibility.healthBarWithholding(
+                                    stats: stats, areHealthBarsOn: areHealthBarsOn))
             }
         }
     }
