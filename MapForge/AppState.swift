@@ -857,6 +857,17 @@ final class AppState: ObservableObject {
     /// cannot unwind past what the mode opened with, so a live edit has no stack to land in
     /// anyway. The in-mode `pawnInspector` path stays undoable through `FogEdits` — two
     /// paths with different undo semantics is the pattern here, not an inconsistency.
+    /// Move a Pawn to another's place in its Kind's group, from the Scene tab's drag
+    /// (`PawnOrder`). The Scene list *is* this order, so the Map's stacking follows it.
+    ///
+    /// A live action like a rename: saved with the Map through `fog`'s debounce, and not
+    /// undoable (ADR-0013). Allowed during an Encounter — the Initiative order is the
+    /// Encounter's own and is not touched.
+    func movePawn(_ moving: Pawn.ID, onto target: Pawn.ID) {
+        guard let reordered = PawnOrder.move(moving, onto: target, in: fog.pawns) else { return }
+        fog.pawns = reordered
+    }
+
     func setPawnLabel(id: Pawn.ID, _ label: String) {
         guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
         fog.pawns[index].label = label

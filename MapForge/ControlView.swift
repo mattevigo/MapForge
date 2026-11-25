@@ -121,6 +121,12 @@ struct ControlView: View {
 
     /// Which row the Combat tab's Stat Block editor is pointed at.
     @State private var selectedCombatant: Pawn.ID?
+    /// The Scene tab's Pawn row being dragged to reorder, and the row it hovers over — so the
+    /// line showing where it will land is drawn only where the drop will be taken
+    /// (`PawnOrder.landing`). Set when the drag starts; SwiftUI says nothing when one is
+    /// cancelled, so a stale one is only ever replaced, and only ever read while hovering.
+    @State private var draggedPawn: Pawn.ID?
+    @State private var pawnDropTarget: Pawn.ID?
 
     /// What `Add` places. A Light, or a Pawn of one Kind — the Kind is settled here, when
     /// the DM picks from the menu, rather than in a sheet afterwards: adding four goblins is
@@ -1716,6 +1722,8 @@ struct ControlView: View {
 
     private func pawnLiveRow(_ pawn: Pawn) -> some View {
         HStack(spacing: 6) {
+            reorderHandle(pawn)
+
             // The token, not a switch: it is how the DM finds this row, since it carries
             // the same colour and label as the disc on the Map. Toggling its light is a
             // secondary use of it, so it is the one thing in the row that looks like the
@@ -1776,6 +1784,30 @@ struct ControlView: View {
         .healthBarUnderRow(kind: pawn.kind,
                            stats: appState.liveStatBlock(for: pawn.id),
                            areHealthBarsOn: appState.areHealthBarsOn)
+        .overlay(alignment: pawnLanding(onto: pawn) == .before ? .top : .bottom) {
+            if pawnLanding(onto: pawn) != nil {
+                // Midway into the gap between rows, where the dropped row will go.
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(height: 2)
+                    .offset(y: pawnLanding(onto: pawn) == .before ? -4 : 4)
+            }
+        }
+        .contentShape(Rectangle())
+        .dropDestination(for: PawnDragPayload.self) { payloads, _ in
+            guard let moving = payloads.first?.pawnID,
+                  PawnOrder.landing(moving, onto: pawn.id, in: appState.fog.pawns) != nil
+            else { return false }
+            withAnimation(.snappy) { appState.movePawn(moving, onto: pawn.id) }
+            draggedPawn = nil
+            return true
+        } isTargeted: { isTargeted in
+            if isTargeted {
+                pawnDropTarget = pawn.id
+            } else if pawnDropTarget == pawn.id {
+                pawnDropTarget = nil
+            }
+        }
         // With one Pawn isolated, the rest of the party is switched out of the lighting,
         // and the panel should say so at a glance: a DM who forgets Solo Sight is on will
         // misread the Player Display, in front of players.
@@ -1785,6 +1817,43 @@ struct ControlView: View {
         // dimmed here for the different reason that its *light* is switched out, which is
         // true of a Pawn the table can still plainly see standing in a brazier's glow.
         .opacity(isSwitchedOutBySoloSight(pawn) ? soloSightSwitchedOutOpacity : 1)
+    }
+
+    /// The grip a Pawn's row is dragged by to reorder it within its group (`PawnOrder`).
+    ///
+    /// A grip of its own rather than the whole row: the row is the name field and buttons,
+    /// each of which takes the mouse first, and a drag that began as a text selection or a
+    /// toggle would be a guess. The list is the Map's order, so the tooltip says what the
+    /// order also does: lower in the list is drawn on top.
+    private func reorderHandle(_ pawn: Pawn) -> some View {
+        Image(systemName: "line.3.horizontal")
+            .font(.system(size: 10))
+            .foregroundStyle(.tertiary)
+            .frame(width: 10)
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .draggable(startDragging(pawn)) {
+                HStack(spacing: 6) {
+                    PawnToken(pawn: pawn, squareSide: 14, scalesWithFootprint: false)
+                    Text(pawn.label)
+                }
+                .padding(4)
+            }
+            .help(String(localized: "Drag to reorder. Lower in the list is drawn on top on the Map."))
+            .accessibilityIdentifier("pawn-reorder-handle")
+    }
+
+    /// The drag's payload, noting which Pawn is on the move — read only by the hover line.
+    private func startDragging(_ pawn: Pawn) -> PawnDragPayload {
+        draggedPawn = pawn.id
+        return PawnDragPayload(pawnID: pawn.id)
+    }
+
+    /// Where the row being dragged would land if dropped on `pawn`'s row now, or nil when
+    /// nothing hovers there or the drop would be refused.
+    private func pawnLanding(onto pawn: Pawn) -> PawnOrder.Landing? {
+        guard pawnDropTarget == pawn.id, let draggedPawn else { return nil }
+        return PawnOrder.landing(draggedPawn, onto: pawn.id, in: appState.fog.pawns)
     }
 
     /// Whether this Pawn rolls when the next fight starts.

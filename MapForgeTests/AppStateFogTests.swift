@@ -452,6 +452,25 @@ final class AppStateFogTests: XCTestCase {
         XCTAssertEqual(FogStore().load(forMapAt: map.url)?.pawns.first?.label, "Goblin B")
     }
 
+    func testAReorderFromTheSceneTabIsPersisted() throws {
+        // The Scene tab's order is `fog.pawns`, saved like a rename — and so it is still the
+        // order, and the stacking, next session.
+        let map = try makeMap(named: "dungeon")
+        let appState = AppState(preferences: isolatedPreferences())
+        appState.loadMap(image: map.image, at: map.url)
+        let durga = Pawn(at: MapPoint(x: 20, y: 15), label: "Durga",
+                         colorHex: Pawn.defaultColorHex, brightSquares: 6, kind: .player)
+        let rio = Pawn(at: MapPoint(x: 40, y: 15), label: "Rio",
+                       colorHex: Pawn.defaultColorHex, brightSquares: 6, kind: .player)
+        appState.fog.pawns = [durga, rio]
+
+        appState.movePawn(durga.id, onto: rio.id)
+        appState.flushPendingFogWrites()
+
+        XCTAssertEqual(appState.fog.pawns.map(\.label), ["Rio", "Durga"])
+        XCTAssertEqual(FogStore().load(forMapAt: map.url)?.pawns.map(\.label), ["Rio", "Durga"])
+    }
+
     func testRenamingAPawnThatIsGoneDoesNothing() throws {
         // The live row and the document can disagree for a frame after a delete.
         let map = try makeMap(named: "dungeon")
