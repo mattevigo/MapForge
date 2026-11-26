@@ -53,8 +53,12 @@ duplicates of the Mirror Image spell have no hit points to track.
 ## The Combat Log stays authoritative during a fight
 
 ADR-0008 is unchanged: while an Encounter runs, a Player's numbers are what the Log folds to,
-and every edit is a Change. Stopping the fight writes the result to the Character rather than
-to the Map's `stats.json`.
+and every edit is a Change. The Character follows the fold **as it moves**: every Change to a
+Player's shared numbers, a Correction included, reaches its Character when it is recorded,
+not when the fight stops. Writing only at the stop was considered and rejected, because a
+fight can be paused instead of stopped. Durga would then be at 20 in the paused fight's Log
+and still at her pre-fight 48 on every other Map, and resuming would mistake that stale 48
+for a heal.
 
 A fight is paused, not stopped, when the DM opens another Map, and the Character can be healed
 or hurt on that other Map meanwhile. When the paused fight resumes, the Character wins: each
