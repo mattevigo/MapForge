@@ -43,6 +43,46 @@ enum SessionLine: Equatable {
     case encounterEnded(map: String?, at: Date)
     case sessionEnded(endedAt: Date)
 
+    /// One edit gesture, outside a fight, that moved a Character's current hit points,
+    /// temporary hit points or exhaustion — made through one of the Pawns sharing them
+    /// (ADR-0037). "Hit 7" is one Line, and so is changing hit points and exhaustion together.
+    ///
+    /// Recorded because a hero's wounds now outlive the Map they were taken on, and the
+    /// evening's story includes the cleric healing her in the street. A Creature's numbers
+    /// changed outside a fight are not: they are the Map's, not the evening's.
+    ///
+    /// On disk, flat, **with only the numbers that moved** — the keys a DM Realm import reads:
+    ///
+    ///     {"line": "characterChanged", "characterID": "<uuid>", "name": "Durga",
+    ///      "pawnID": "<uuid>", "label": "Durga", "map": "town/street.png",
+    ///      "currentHP": {"from": 12, "to": 19}, "exhaustion": {"from": 2, "to": 1},
+    ///      "at": "2026-11-26T20:15:00Z"}
+    ///
+    /// - `characterID`, `name`: the Character, its name a snapshot as `label` is.
+    /// - `pawnID`, `label`: the Pawn the edit was made through, `label` a snapshot.
+    /// - `map`: the Map it was made on, as every other Line names one; absent with none.
+    /// - `currentHP`, `temporaryHP`, `exhaustion`: each `{"from", "to"}`, before and after,
+    ///   never a delta; absent when that number did not move. `currentHP`'s `from` or `to`
+    ///   is `null` for hit points never recorded — a note with no maximum — never 0.
+    case characterChanged(CharacterNumbersMoved, pawnID: UUID, label: String, map: String?,
+                          at: Date)
+
+    /// One Long Rest granted to a Party, with each Character it changed.
+    ///
+    /// No Map: a rest is taken in the roster, not on any Map. On disk:
+    ///
+    ///     {"line": "longRest", "partyID": "<uuid>", "partyName": "Eroi",
+    ///      "characters": [
+    ///        {"characterID": "<uuid>", "name": "Durga", "currentHP": {"from": 19, "to": 48}},
+    ///        {"characterID": "<uuid>", "name": "Ayla", "exhaustion": {"from": 2, "to": 1}}],
+    ///      "at": "2026-11-26T23:40:00Z"}
+    ///
+    /// - `partyID`, `partyName`: the Party rested, its name a snapshot.
+    /// - `characters`: only the Characters the rest changed, in the Party's order, each with
+    ///   the same keys a `characterChanged` Line gives a Character: `characterID`, `name`, and
+    ///   `currentHP`, `temporaryHP`, `exhaustion` only for the numbers that moved.
+    case longRest(partyID: UUID, partyName: String, characters: [CharacterNumbersMoved], at: Date)
+
     /// A line this version does not understand, read from a Log a later version wrote.
     ///
     /// Kept rather than dropped for the reason `Change.unrecognised` is kept: losing a whole
@@ -51,17 +91,73 @@ enum SessionLine: Equatable {
     case unrecognised
 }
 
+/// One number as something moved it: before and after, never a delta — the rule every Log
+/// keeps (ADR-0008).
+struct Moved<Value: Codable & Equatable>: Codable, Equatable {
+    var from: Value
+    var to: Value
+}
+
+/// What one gesture did to one Character's shared numbers: before and after for each of its
+/// current hit points, temporary hit points and exhaustion that moved, nil for each that did
+/// not (ADR-0037). The hit points are the ones a Pawn shows — the note's maximum while the
+/// Character is at full — not the roster's nil, which means "at full" only beside a note.
+struct CharacterNumbersMoved: Codable, Equatable {
+    var characterID: UUID
+    /// A snapshot, as a Pawn's `label` is: a Line read next year names the Character without
+    /// the roster it came from.
+    var name: String
+    /// `Int?` inside: hit points never recorded — a note with no maximum — are not 0.
+    var currentHP: Moved<Int?>?
+    var temporaryHP: Moved<Int>?
+    var exhaustion: Moved<Int>?
+
+    init(characterID: UUID, name: String, currentHP: Moved<Int?>? = nil,
+         temporaryHP: Moved<Int>? = nil, exhaustion: Moved<Int>? = nil) {
+        self.characterID = characterID
+        self.name = name
+        self.currentHP = currentHP
+        self.temporaryHP = temporaryHP
+        self.exhaustion = exhaustion
+    }
+
+    /// What moved of `character`'s shared numbers between two Stat Blocks showing them — or
+    /// nil, when none of the three did, which is no Line at all.
+    init?(of character: PartyCharacter, from before: StatBlock, to after: StatBlock) {
+        self.init(characterID: character.id, name: character.name)
+        if before.currentHP != after.currentHP {
+            currentHP = Moved(from: before.currentHP, to: after.currentHP)
+        }
+        if before.temporaryHP != after.temporaryHP {
+            temporaryHP = Moved(from: before.temporaryHP, to: after.temporaryHP)
+        }
+        if before.exhaustion != after.exhaustion {
+            exhaustion = Moved(from: before.exhaustion, to: after.exhaustion)
+        }
+        guard currentHP != nil || temporaryHP != nil || exhaustion != nil else { return nil }
+    }
+
+    /// The flat half, shared by both Lines that carry one: a `characterChanged` writes it
+    /// beside its own keys, a `longRest` writes one object of it per Character.
+    fileprivate enum CodingKeys: String, CodingKey {
+        case characterID, name, currentHP, temporaryHP, exhaustion
+    }
+}
+
 extension SessionLine: Codable {
     private enum CodingKeys: String, CodingKey {
         case line, startedAt, endedAt, at, text, map, pawnID, label
         case from, to, distanceSquares, logFile
         // A Roll, written flat: a DM opens this file and reads it.
         case ability, skill, d20, modifier, difficultyClass
+        // A Long Rest's. A `characterChanged`'s Character is read through its own keys.
+        case partyID, partyName, characters
     }
 
     private enum Kind: String {
         case sessionStarted, comment, pawnMoved, encounterStarted, encounterEnded, sessionEnded
         case savingThrow, abilityCheck
+        case characterChanged, longRest
     }
 
     init(from decoder: Decoder) throws {
@@ -114,6 +210,21 @@ extension SessionLine: Codable {
             self = .encounterEnded(map: map, at: try container.decode(Date.self, forKey: .at))
         case .sessionEnded:
             self = .sessionEnded(endedAt: try container.decode(Date.self, forKey: .endedAt))
+        case .characterChanged:
+            // The Character's keys sit beside the Line's own, so it is read from the same
+            // object rather than a nested one.
+            self = .characterChanged(try CharacterNumbersMoved(from: decoder),
+                                     pawnID: try container.decode(UUID.self, forKey: .pawnID),
+                                     label: try container.decode(String.self, forKey: .label),
+                                     map: map,
+                                     at: try container.decode(Date.self, forKey: .at))
+        case .longRest:
+            self = .longRest(
+                partyID: try container.decode(UUID.self, forKey: .partyID),
+                partyName: try container.decode(String.self, forKey: .partyName),
+                characters: try container.decode([CharacterNumbersMoved].self,
+                                                 forKey: .characters),
+                at: try container.decode(Date.self, forKey: .at))
         }
     }
 
@@ -167,6 +278,20 @@ extension SessionLine: Codable {
         case let .sessionEnded(endedAt):
             try container.encode(Kind.sessionEnded.rawValue, forKey: .line)
             try container.encode(endedAt, forKey: .endedAt)
+        case let .characterChanged(numbers, pawnID, label, map, at):
+            try container.encode(Kind.characterChanged.rawValue, forKey: .line)
+            // Flat, into the same object: one Character, so nothing to nest it for.
+            try numbers.encode(to: encoder)
+            try container.encode(pawnID, forKey: .pawnID)
+            try container.encode(label, forKey: .label)
+            try container.encodeIfPresent(map, forKey: .map)
+            try container.encode(at, forKey: .at)
+        case let .longRest(partyID, partyName, characters, at):
+            try container.encode(Kind.longRest.rawValue, forKey: .line)
+            try container.encode(partyID, forKey: .partyID)
+            try container.encode(partyName, forKey: .partyName)
+            try container.encode(characters, forKey: .characters)
+            try container.encode(at, forKey: .at)
         case .unrecognised:
             throw EncodingError.invalidValue(self, .init(
                 codingPath: container.codingPath,

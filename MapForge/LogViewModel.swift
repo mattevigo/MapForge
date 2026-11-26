@@ -140,7 +140,7 @@ struct LogViewModel {
                                                       liveLines: isLive ? liveEncounterLines : []))
             case .encounterEnded:
                 rows.append(.encounterEnded)
-            case .unrecognised:
+            case .unrecognised, .characterChanged, .longRest:
                 rows.append(.unreadableLine)
             }
         }
@@ -318,7 +318,9 @@ private extension SessionLine {
         case let .abilityCheck(_, _, map, _, _, _): map
         case let .encounterStarted(map, _, _): map
         case let .encounterEnded(map, _): map
-        case .sessionStarted, .sessionEnded, .unrecognised: nil
+        case let .characterChanged(_, _, _, map, _): map
+        // A rest is taken in the roster, not on a Map, so it changes no Map either.
+        case .sessionStarted, .sessionEnded, .longRest, .unrecognised: nil
         }
     }
 }
