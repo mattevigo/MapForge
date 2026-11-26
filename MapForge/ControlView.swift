@@ -211,6 +211,9 @@ struct ControlView: View {
     @State private var confirmStopSession = false
     /// Set when the DM asks to set a damaged roster aside and start fresh.
     @State private var confirmNewRoster = false
+    /// The Long Rest the DM asked for, shown for confirmation before it is taken: it
+    /// overwrites a whole party's numbers with one click, and is not undoable (ADR-0037).
+    @State private var confirmingLongRest: LongRest?
 
     private var endEncounterMessage: String {
         guard let map = appState.mapURL?.lastPathComponent else {
@@ -2346,6 +2349,7 @@ struct ControlView: View {
 
             Spacer(minLength: 0)
             Text("\(party.characters.count)").font(.caption).foregroundStyle(.secondary)
+            longRestButton
             Button {
                 editedCharacter = PartyCharacter(name: "")
                 editedCharacterFace = FaceDraft(nil)
@@ -2355,6 +2359,34 @@ struct ControlView: View {
             }
             .buttonStyle(.borderless)
             .help("Add a Character to this Party")
+        }
+    }
+
+    /// The Long Rest, for the active Party: at the Party's level rather than any one
+    /// Character's, because it wakes them all. It asks first, naming who it heals and from
+    /// what; and when it cannot be taken it says why rather than only greying out — mid-fight,
+    /// or with a party already rested (`AppState.longRestRefusal`).
+    private var longRestButton: some View {
+        let refusal = appState.longRestRefusal
+        return Button {
+            confirmingLongRest = appState.longRestOfActiveParty
+        } label: {
+            Image(systemName: "bed.double").frame(width: 16)
+        }
+        .buttonStyle(.borderless)
+        .disabled(refusal != nil)
+        .help(refusal ?? String(localized: "Long Rest: every Character with a note regains its hit points, loses its temporary hit points and one level of exhaustion"))
+        .accessibilityLabel(Text("Long Rest"))
+        .accessibilityIdentifier("party-long-rest")
+        .alert("Take a Long Rest?",
+               isPresented: Binding(get: { confirmingLongRest != nil },
+                                    set: { if !$0 { confirmingLongRest = nil } }),
+               presenting: confirmingLongRest) { _ in
+            Button("Long Rest") { appState.takeLongRest() }
+            Button("Cancel", role: .cancel) {}
+        } message: { rest in
+            Text(rest.lines.map(\.text).joined(separator: "\n")
+                 + "\n\n" + String(localized: "Conditions are kept. A Long Rest can't be undone."))
         }
     }
 
