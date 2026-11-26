@@ -893,15 +893,6 @@ final class AppState: ObservableObject {
         flushPendingFogWrites()
     }
 
-    /// Rename a Pawn outside the fog editing mode — "3" becomes "Goblin B" in the middle
-    /// of a fight, without leaving the table for authoring mode.
-    ///
-    /// The one deliberate crossing of the authoring/play line, and it follows `movePawn`
-    /// exactly: **not undoable**. A label is not geometry, and renaming is the same kind of
-    /// live, small, immediate act as moving a token. The fog undo stack is mode-local and
-    /// cannot unwind past what the mode opened with, so a live edit has no stack to land in
-    /// anyway. The in-mode `pawnInspector` path stays undoable through `FogEdits` — two
-    /// paths with different undo semantics is the pattern here, not an inconsistency.
     /// Move a Pawn to another's place in its Kind's group, from the Scene tab's drag
     /// (`PawnOrder`). The Scene list *is* this order, so the Map's stacking follows it.
     ///
@@ -911,11 +902,6 @@ final class AppState: ObservableObject {
     func movePawn(_ moving: Pawn.ID, onto target: Pawn.ID) {
         guard let reordered = PawnOrder.move(moving, onto: target, in: fog.pawns) else { return }
         fog.pawns = reordered
-    }
-
-    func setPawnLabel(id: Pawn.ID, _ label: String) {
-        guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
-        fog.pawns[index].label = label
     }
 
     /// Rename a Light outside the fog editing mode — "Light 3" becomes "trapped brazier"
