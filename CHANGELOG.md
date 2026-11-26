@@ -4,6 +4,54 @@ Versions follow [Semantic Versioning](https://semver.org). `MARKETING_VERSION` a
 `CURRENT_PROJECT_VERSION` in `project.yml` are the single source of truth; the About
 panel reads them from the built app.
 
+## 3.0.0 — 2026-11-26
+
+### Upgrading from 2.1
+
+- A Character with a note now owns its current and temporary hit points and its exhaustion,
+  shared by every Pawn stamped from it, rather than each Map keeping its own copy. The first
+  time 3.0 opens your roster, every such Character starts at **full hit points and no
+  exhaustion**, not at what any one Map last showed: set a wounded hero's numbers once, on
+  any of its Pawns, and every Map follows —
+  [ADR 0037](docs/adr/0037-a-characters-hit-points-are-shared-not-stamped.md).
+
+### Health Bars
+
+- The table now sees a **Health Bar** under each Player and Creature it can see on the Player
+  Display: a thin framed strip filled in proportion to its hit points, green while it is
+  Healthy, orange once it is **Bloodied** (half or below) and red when it is **Critical** (a
+  quarter or below), with temporary hit points as a teal segment after the fill. It never
+  shows a number, and a Pawn at 0 keeps an empty bar —
+  [ADR 0036](docs/adr/0036-the-table-sees-a-health-bar-never-a-number.md).
+- The heart on the Live Toolbar hides every Health Bar from the table for the evening; it is
+  on again at the next launch. **Show Health Bar to players** in Edit Pawn withholds one
+  Pawn's bar for good — the mimic, the boss — and *Add* copies the setting from the last Pawn
+  of the same Kind.
+- The DM's Map draws no bar. The Scene and Encounter tabs draw the exact one across each
+  Pawn's row, faded when the table is not shown it, with a tooltip saying which tier the table
+  sees or which switch withholds it. The Encounter tab keeps the numbers beside it.
+
+### The party's hit points
+
+- A Character with a note now carries its current and temporary hit points and its
+  exhaustion across Maps: every Pawn of Durga, on every Map, shows the same numbers, and
+  healing her on one heals her on all of them. Conditions stay with the Pawn on its own Map —
+  [ADR 0037](docs/adr/0037-a-characters-hit-points-are-shared-not-stamped.md).
+- The Party panel shows each such Character's Health Bar, numbers and exhaustion.
+- **Long Rest** — the bed on the Party panel — returns every Character with a note in the
+  active Party to full hit points, clears its temporary hit points and lowers its exhaustion
+  by one. It asks first, naming who it changes, and is not offered mid-fight or when the
+  party is already rested.
+- Each Long Rest, and each change to a Character's numbers outside a fight, is written in the
+  Session Log and shown in the Log View.
+
+### The Scene tab
+
+- Clicking a Pawn's row points the Stat Editor at it, at the foot of the tab, as the
+  Encounter tab does. Renaming a Pawn is done in Edit Pawn.
+- Pawns can be reordered by dragging a row by its grip, within its own group. The order is
+  also the stacking on the Map: lower in the list is drawn on top. It is saved with the Map.
+
 ## 2.1.1 — 2026-11-16
 
 ### Development
