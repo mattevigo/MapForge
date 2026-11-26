@@ -20,11 +20,11 @@ final class HealthBarLayoutTests: XCTestCase {
         XCTAssertEqual(frame.width, 100)
     }
 
-    /// An eighth of a square at a comfortable size: thin enough to read as a strip under the
+    /// A sixteenth of a square at a comfortable size: thin enough to read as a strip under the
     /// figure, thick enough to see the colour across a table.
-    func testTheBarIsAnEighthOfASquareTall() {
+    func testTheBarIsASixteenthOfASquareTall() {
         let frame = HealthBar.frame(below: centre, squareSide: 96, squaresAcross: 1)
-        XCTAssertEqual(frame.height, 12)
+        XCTAssertEqual(frame.height, 6)
     }
 
     /// Thickness follows ONE square, as a token's label does — a Big Pawn's bar is longer,
@@ -36,7 +36,7 @@ final class HealthBarLayoutTests: XCTestCase {
     }
 
     /// Map Fit on a large Map, or a low-resolution screen, shrinks the squares to a dozen
-    /// points (the Player Display's own floor). An eighth of that is a hairline the table
+    /// points (the Player Display's own floor). A sixteenth of that is a hairline the table
     /// cannot read a colour from, so the bar stops shrinking first.
     func testTheBarKeepsALegibleHeightWhenSquaresAreSmall() {
         let frame = HealthBar.frame(below: centre, squareSide: 12, squaresAcross: 1)
@@ -57,5 +57,12 @@ final class HealthBarLayoutTests: XCTestCase {
         let frame = HealthBar.frame(below: centre, squareSide: 96, squaresAcross: 2)
         XCTAssertEqual(frame.minY, 398)
         XCTAssertEqual(frame.midX, centre.x)
+    }
+
+    /// The table's black frame is a point wide, but at the 4 pt floor it gives way, so the
+    /// colour inside — the whole message — still outweighs it.
+    func testTheTablesFrameNeverOutweighsTheColour() {
+        XCTAssertEqual(HealthBarStrip.frameWidth(forHeight: 6), 1)
+        XCTAssertEqual(HealthBarStrip.frameWidth(forHeight: HealthBar.minimumHeight), 4.0 / 6, accuracy: 0.001)
     }
 }

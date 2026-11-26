@@ -81,7 +81,7 @@ struct PlayerView: View {
                         if let bar = healthBars[pawn.id] {
                             let strip = HealthBar.frame(below: p, squareSide: side,
                                                         squaresAcross: pawn.squaresAcross)
-                            HealthBarStrip(bar: bar)
+                            HealthBarStrip(bar: bar, style: .table)
                                 .frame(width: strip.width, height: strip.height)
                                 .position(x: strip.midX, y: strip.midY)
                         }

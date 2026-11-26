@@ -29,12 +29,12 @@ extension HealthBar {
     /// than scaled, because it is a seam between two shapes, not part of either.
     static let gap: CGFloat = 2
 
-    /// The bar's thickness as a share of one square: a strip under the figure, not a second
-    /// token beside it.
-    static let heightPerSquare: CGFloat = 1.0 / 8
+    /// The bar's thickness as a share of one square: a thin strip under the figure, as a
+    /// game draws an enemy's, not a second token beside it. An eighth read as a slab.
+    static let heightPerSquare: CGFloat = 1.0 / 16
 
     /// The thinnest the bar is ever drawn, in points. Map Fit on a large Map shrinks a
-    /// square to the Player Display's 12 pt floor, where an eighth is a hairline whose
+    /// square to the Player Display's 12 pt floor, where a sixteenth is a hairline whose
     /// colour nobody across the table can name — and the colour is the whole message.
     static let minimumHeight: CGFloat = 4
 }

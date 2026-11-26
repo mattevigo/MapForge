@@ -22,4 +22,15 @@ extension HealthBar {
     /// The empty part of the bar — what stays visible at 0, which is how the table sees a
     /// Pawn is down rather than barless.
     static let trackColor = Color.black.opacity(0.55)
+
+    /// The table's empty track: near-black with blood in it, opaque so the Map under the
+    /// token never shows through and passes for fill.
+    static let tableTrackColor = Color(red: 0.16, green: 0.03, blue: 0.03)
+
+    /// The frame round the table's bar, which keeps its edge on a black Map and a white one.
+    static let tableFrameColor = Color.black
+
+    /// The rim at the frame's outer edge, the dull bronze a game's enemy bar is set in, so the
+    /// bar keeps an edge on a black Map too.
+    static let tableRimColor = Color(red: 0.62, green: 0.50, blue: 0.32)
 }
