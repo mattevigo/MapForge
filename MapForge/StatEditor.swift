@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The Stat Block editor and the notes box, below the Order.
+/// The Stat Editor and the notes box, below the Order.
 ///
 /// Every edit goes through `AppState.editStatBlock`, which decides whether it becomes a
 /// `Change` in the Turn, a Correction against a past one, or a straight write to

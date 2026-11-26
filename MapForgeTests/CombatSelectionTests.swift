@@ -1,7 +1,7 @@
 import XCTest
 @testable import MapForge
 
-/// What the Stat Block editor is pointed at when a fight ends.
+/// What the Stat Editor is pointed at when a fight ends.
 ///
 /// A selection is a row in the Order. When the fight stops there is no Order to be a row of,
 /// so there is nothing left for the selection to mean — and an editor still offering the last

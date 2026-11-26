@@ -13,7 +13,7 @@ enum CharacterNoteLookup: Equatable {
     case found(CharacterNote)
 }
 
-/// What the Combat tab shows under a Player Pawn's Stat Block editor — `AppState.characterPage(for:)`.
+/// What the Combat tab shows under a Player Pawn's Stat Editor — `AppState.characterPage(for:)`.
 enum CharacterPage: Equatable {
     /// The Character's note, read from the Workspace.
     case note(CharacterNote)
@@ -77,7 +77,7 @@ enum CharacterReference {
     }
 }
 
-/// A Character's page, in the popover beside the Stat Block editor's name, for a Pawn
+/// A Character's page, in the popover beside the Stat Editor's name, for a Pawn
 /// Stamped from it.
 ///
 /// `MonsterReferenceView`'s twin, and like it reference and not state: every number the fight

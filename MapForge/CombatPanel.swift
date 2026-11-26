@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// What the Stat Block editor is pointed at, as a fight starts and stops. Applied by
+/// What the Stat Editor is pointed at, as a fight starts and stops. Applied by
 /// `AppState.encounter` as it becomes nil, to the pointer both tabs share.
 enum CombatSelectionPolicy {
     /// The selection that survives an Encounter ending.
@@ -32,7 +32,7 @@ enum CombatSelectionPolicy {
 struct CombatPanel: View {
     @EnvironmentObject private var appState: AppState
 
-    /// Which row the Stat Block editor is pointed at. Independent of whose Turn it is: a DM
+    /// Which row the Stat Editor is pointed at. Independent of whose Turn it is: a DM
     /// edits the monster the party just hit, not the one acting.
     ///
     /// `AppState.statEditorPawn`, handed in: the Scene tab points the same editor at the
@@ -328,7 +328,7 @@ struct CombatPanel: View {
             //
             // Edited in place. The players call their numbers out down this column as the
             // fight starts, and overtyping them here — Tab from one to the next — is the
-            // whole job; the Stat Block editor's "Init" is the *bonus*. Committed on Return
+            // whole job; the Stat Editor's "Init" is the *bonus*. Committed on Return
             // or on leaving the field; **Return also settles the Order**, animated so the
             // eye can follow the row to where its number puts it. Tab does not, so the
             // column can be typed top to bottom and settled once. Ties keep the order the
@@ -418,7 +418,7 @@ struct CombatPanel: View {
         .accessibilityLabel(Text(encounter.name(of: id) ?? "?"))
     }
 
-    /// One Pawn of the roster, before the fight — selectable, so the Stat Block editor
+    /// One Pawn of the roster, before the fight — selectable, so the Stat Editor
     /// below can be pointed at it.
     ///
     /// Prep is when a Stat Block most needs an editor and for a long time had none: the

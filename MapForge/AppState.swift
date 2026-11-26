@@ -261,7 +261,7 @@ final class AppState: ObservableObject {
     @Published private(set) var chosenDisplay: DisplayIdentity?
 
     private let playerWindow = PlayerWindowController()
-    /// The pages of the DM's notes pinned out of the Stat Block editor's popover, each in
+    /// The pages of the DM's notes pinned out of the Stat Editor's popover, each in
     /// its own panel.
     let pinnedPages = PinnedPages()
     private let preferences: DisplayPreferences
