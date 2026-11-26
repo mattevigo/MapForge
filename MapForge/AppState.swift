@@ -215,9 +215,14 @@ final class AppState: ObservableObject {
     /// Settable so a test can hand some over without a folder of notes.
     ///
     /// Whether a Pawn shares its Character's numbers turns on its note being found, so the
-    /// notes landing reaches the open Map's sharing Pawns as a roster change does (ADR-0037).
+    /// notes landing reaches the open Map's sharing Pawns as a roster change does, a live
+    /// fight's Combatants included (ADR-0037). Set after `bestiary` when a read lands, so it
+    /// is asked with the read over (`sharedCharacter(of:)`).
     @Published var characterNotes = CharacterNotes() {
-        didSet { refreshSharedStatBlocks() }
+        didSet {
+            refreshSharedStatBlocks()
+            reconcileWithCharacters()
+        }
     }
 
     /// Every Item read from the open Workspace's notes, in the same walk as the Bestiary and on
@@ -1180,8 +1185,8 @@ final class AppState: ObservableObject {
         characterNotes.note(named: character.noteName)
     }
 
-    /// The Character whose hit points and exhaustion `pawn` shares, with the note that makes
-    /// it share — or nil, when the Pawn keeps its own numbers (ADR-0037).
+    /// The Character whose hit points and exhaustion `pawn` shares, with the maximum that "at
+    /// full" means for it — or nil, when the Pawn keeps its own numbers (ADR-0037).
     ///
     /// The one place the rule is written, read by the door a Stat Block is read through and
     /// the one it is written through alike, so it cannot hold in one and be missed in the
@@ -1194,22 +1199,38 @@ final class AppState: ObservableObject {
     /// Creature keeps its `characterID`, and its hero's wounds are not its own
     /// (`modifierSource(for:)` reads the same way).
     ///
+    /// **While the notes are still being read**, a Character the DM linked to a note shares
+    /// as if it had been found, with the maximum its Pawn's own block was stamped with. The
+    /// roster is read with the Workspace and the notes land later, off the main thread, so a
+    /// Map — and a paused fight on it — can open before them. Deciding sharing by the notes
+    /// alone left a window in which the fight resumed unreconciled and then wrote its stale
+    /// numbers over the Character, and in which an edit to a Pawn reached only its own block,
+    /// for the Character's numbers to replace when the notes landed. Deciding it by the
+    /// roster closes that window instead of repairing what happened in it: the resume meets
+    /// the Character at once, and every edit reaches the Character as it is made. The notes
+    /// landing can then only take sharing away — a note not found — and that loses nothing,
+    /// because a sharing Pawn's own block is written alongside the Character's. Tracking
+    /// which edits fell in the window, to replay them once the notes landed, was the
+    /// alternative, and a second record of what the DM did.
+    ///
     /// Says nothing about fights: whether the Encounter or the Character holds a Combatant's
     /// numbers is the doors' to decide.
-    func sharedCharacter(of pawn: Pawn.ID) -> (character: PartyCharacter, note: CharacterNote)? {
+    func sharedCharacter(of pawn: Pawn.ID) -> (character: PartyCharacter, maxHP: Int?)? {
         guard let onMap = fog.pawns.first(where: { $0.id == pawn }),
               onMap.kind == .player,
               let id = onMap.characterID,
               let character = character(id: id),
-              let note = note(for: character) else { return nil }
-        return (character, note)
+              character.noteName != nil else { return nil }
+        if let note = note(for: character) { return (character, note.maxHP) }
+        guard bestiary == .reading else { return nil }
+        return (character, statsDocument.blocks[pawn]?.maxHP)
     }
 
     /// Writes the shared numbers in `block` — one Pawn's, just edited — to the Character that
     /// Pawn shares them with, and on to disk. Nothing when they are the numbers it already
     /// has, so a `parties.json` is not rewritten by an edit that moved nothing shared.
-    func share(_ block: StatBlock, with character: PartyCharacter, note: CharacterNote) {
-        guard character.sharedNumbers(over: block, maxHP: note.maxHP) != block else { return }
+    func share(_ block: StatBlock, with character: PartyCharacter, maxHP: Int?) {
+        guard character.sharedNumbers(over: block, maxHP: maxHP) != block else { return }
         var updated = character
         updated.takeSharedNumbers(from: block)
         partyBook = PartyRoster.updateCharacter(updated, in: partyBook)
@@ -1563,6 +1584,9 @@ final class AppState: ObservableObject {
                 BestiaryStore.read(workspace)
             }.value
             guard let self, !Task.isCancelled, self.workspace == workspace else { return }
+            // The Bestiary first: the notes landing is what brings the open Map's sharing
+            // Pawns up to date, and it must be asked with the read already over, or a Pawn
+            // whose note was not found would go on sharing (`sharedCharacter(of:)`).
             self.bestiary = read.bestiary
             self.characterNotes = read.characters
             self.treasury = read.treasury

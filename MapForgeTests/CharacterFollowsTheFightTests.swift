@@ -274,6 +274,78 @@ final class CharacterFollowsTheFightTests: XCTestCase {
         XCTAssertEqual(currentHP(of: durga, in: app), 20)
     }
 
+    // MARK: While the notes are being read
+
+    /// The Workspace's notes being read again, as when it opens: none of them found yet.
+    private func startReadingTheNotes(in app: AppState) {
+        app.bestiary = .reading
+        app.characterNotes = CharacterNotes()
+    }
+
+    /// The read landing, in the order `readBestiary` lands it.
+    private func landTheNotes(in app: AppState) {
+        app.bestiary = Bestiary()
+        app.characterNotes = CharacterNotes(notes: [durgaNote])
+    }
+
+    func testAFightResumedWhileTheNotesAreReadStillMeetsTheHealMadeWhileItWasPaused() throws {
+        let (app, durga, inTheCellar) = try pauseAFightWithDurgaAt20()
+        let onTheStreet = try stamp(durga, in: app)
+        app.editStatBlock(for: onTheStreet.id) { $0.currentHP = 48 }
+        startReadingTheNotes(in: app)
+
+        try openMap("cellar", in: app)
+        landTheNotes(in: app)
+
+        let encounter = try XCTUnwrap(app.encounter, "the fight did not resume")
+        XCTAssertEqual(encounter.blocks[inTheCellar.id]?.currentHP, 48)
+        XCTAssertEqual(encounter.pendingChanges,
+                       [.hpChanged(combatantID: inTheCellar.id, from: 20, to: 48)])
+        app.editStatBlock(for: inTheCellar.id) { $0.currentHP = 40 }
+        XCTAssertEqual(currentHP(of: durga, in: app), 40, "the heal was not undone")
+    }
+
+    func testAHitInAResumedFightWhileTheNotesAreReadIsKeptWhenTheyLand() throws {
+        let (app, durga, inTheCellar) = try pauseAFightWithDurgaAt20()
+        startReadingTheNotes(in: app)
+        try openMap("cellar", in: app)
+
+        app.editStatBlock(for: inTheCellar.id) { $0.currentHP = 9 }   // hit for 11
+        landTheNotes(in: app)
+
+        XCTAssertEqual(app.encounter?.blocks[inTheCellar.id]?.currentHP, 9)
+        XCTAssertEqual(currentHP(of: durga, in: app), 9)
+    }
+
+    func testAnEditOutsideAFightWhileTheNotesAreReadIsKeptWhenTheyLand() throws {
+        let (app, durga) = makeAppStateWithDurga()
+        try openMap("street", in: app)
+        let pawn = try stamp(durga, in: app)
+        startReadingTheNotes(in: app)
+        try openMap("street", in: app)
+
+        app.editStatBlock(for: pawn.id) { $0.currentHP = 30; $0.exhaustion = 2 }
+        landTheNotes(in: app)
+
+        let shown = app.statBlock(for: pawn.id)
+        XCTAssertEqual([shown.currentHP, shown.maxHP, shown.exhaustion], [30, 48, 2])
+        XCTAssertEqual(currentHP(of: durga, in: app), 30)
+        XCTAssertEqual(app.character(id: durga.id)?.exhaustion, 2)
+    }
+
+    func testAPawnWhoseNoteIsNotFoundWhenTheNotesLandKeepsTheEditMadeWhileTheyWereRead() throws {
+        let (app, durga) = makeAppStateWithDurga()
+        try openMap("street", in: app)
+        let pawn = try stamp(durga, in: app)
+        startReadingTheNotes(in: app)
+
+        app.editStatBlock(for: pawn.id) { $0.currentHP = 30 }
+        app.bestiary = Bestiary()
+        app.characterNotes = CharacterNotes()   // her note has left the notes
+
+        XCTAssertEqual(app.statBlock(for: pawn.id).currentHP, 30)
+    }
+
     // MARK: What never reaches the Character
 
     func testAConditionOrConcentrationInAFightLeavesTheCharactersNumbersUntouched() throws {

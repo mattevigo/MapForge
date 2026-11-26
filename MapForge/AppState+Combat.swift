@@ -23,7 +23,7 @@ extension AppState {
         let own = statsDocument.blocks[pawn] ?? StatBlock()
         guard encounter?.blocks[pawn] == nil, let shared = sharedCharacter(of: pawn)
         else { return own }
-        return shared.character.sharedNumbers(over: own, maxHP: shared.note.maxHP)
+        return shared.character.sharedNumbers(over: own, maxHP: shared.maxHP)
     }
 
     /// Writes a Pawn's numbers directly.
@@ -43,8 +43,8 @@ extension AppState {
         guard encounter?.blocks[pawn] == nil, let shared = sharedCharacter(of: pawn) else { return }
         // What the Pawn showed until now: the Character's numbers, as they stand before the
         // share below moves them.
-        let shown = shared.character.sharedNumbers(over: block, maxHP: shared.note.maxHP)
-        share(block, with: shared.character, note: shared.note)
+        let shown = shared.character.sharedNumbers(over: block, maxHP: shared.maxHP)
+        share(block, with: shared.character, maxHP: shared.maxHP)
         if let moved = CharacterNumbersMoved(of: shared.character, from: shown, to: block),
            let onMap = fog.pawns.first(where: { $0.id == pawn }) {
             recordSessionCharacterChange(moved, through: onMap)
@@ -560,7 +560,7 @@ extension AppState {
         guard let live = encounter else { return }
         for (id, folded) in live.blocks.sorted(by: { $0.key.uuidString < $1.key.uuidString }) {
             guard let shared = sharedCharacter(of: id) else { continue }
-            let theirs = shared.character.sharedNumbers(over: folded, maxHP: shared.note.maxHP)
+            let theirs = shared.character.sharedNumbers(over: folded, maxHP: shared.maxHP)
             for change in Self.changes(for: id, from: folded, to: theirs) {
                 recordChangeInTheLiveTurn(change)
             }
@@ -590,7 +590,7 @@ extension AppState {
                     || previous.temporaryHP != folded.temporaryHP
                     || previous.exhaustion != folded.exhaustion,
                   let shared = sharedCharacter(of: id) else { continue }
-            share(folded, with: shared.character, note: shared.note)
+            share(folded, with: shared.character, maxHP: shared.maxHP)
         }
     }
 
