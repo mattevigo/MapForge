@@ -501,6 +501,10 @@ extension AppState {
     /// fight still going, and folding it gives the Round, the Order and every hit point.
     /// A DM closing a laptop mid-fight is taking a break, and inventing an end line for
     /// them would put a lie in the Log.
+    ///
+    /// A break is also when the Characters can move: opening another Map is what pauses a
+    /// fight, and Durga can be healed on it. So the fight comes back agreeing with them
+    /// (`reconcileWithCharacters`) — after the fog, which says who shares, has been read.
     func resumeEncounter(forMapAt url: URL) {
         encounter = nil
         let reader = CombatLogReader()
@@ -511,6 +515,55 @@ extension AppState {
 
         encounter = Encounter(resuming: lines)
         logWriter = try? CombatLogWriter(reopening: newest)
+        reconcileWithCharacters()
+    }
+
+    /// Records, in the Turn the fight resumes on, whatever happened to its Players'
+    /// Characters while it was paused: for each sharing Combatant, a Change from the folded
+    /// current hit points, temporary hit points or exhaustion to its Character's, for each
+    /// that differs. Nothing when none does.
+    ///
+    /// The Character wins (ADR-0037): letting the Log win would silently undo the DM's heal,
+    /// and refusing edits to a Character in a paused fight would block the DM over a fight
+    /// nobody was running. Recorded rather than overwritten, so the fold and the Character
+    /// agree and the Log says what happened. Ordinary Changes in the live Turn, never
+    /// Corrections: a fight resumes live, and the heal happened now, not in a past Turn.
+    private func reconcileWithCharacters() {
+        guard let resumed = encounter, !resumed.isCorrecting else { return }
+        for (id, folded) in resumed.blocks.sorted(by: { $0.key.uuidString < $1.key.uuidString }) {
+            guard let shared = sharedCharacter(of: id) else { continue }
+            let theirs = shared.character.sharedNumbers(over: folded, maxHP: shared.note.maxHP)
+            for change in Self.changes(for: id, from: folded, to: theirs) {
+                recordChange(change)
+            }
+        }
+    }
+
+    // MARK: The Characters a fight shares numbers with
+
+    /// Hands each sharing Combatant's current and temporary hit points and exhaustion to its
+    /// Character, wherever the fold moved them between `old` and `new` — a live Change, a
+    /// Correction, or a Change to someone else during another Combatant's Turn alike, since
+    /// all of them are a move of the fold (ADR-0037). The Log stays authoritative; the
+    /// Character follows it as it moves rather than when the fight stops, because a fight
+    /// can be paused instead, and every other Map would show Durga unhurt meanwhile.
+    ///
+    /// Only for a Combatant the fight already held: one joining brings its Character's
+    /// numbers in through the join snapshot, so there is nothing to hand back, and a fight
+    /// being resumed says what its Characters are only after `reconcileWithCharacters`. Never
+    /// anything else of the block: Conditions, concentration, armour class, maximum hit
+    /// points and initiative belong to the Pawn and the fight it is in.
+    func shareFoldedNumbers(from old: Encounter?, to new: Encounter?) {
+        guard let old, let new else { return }
+        let before = old.blocks
+        for (id, folded) in new.blocks {
+            guard let previous = before[id],
+                  previous.currentHP != folded.currentHP
+                    || previous.temporaryHP != folded.temporaryHP
+                    || previous.exhaustion != folded.exhaustion,
+                  let shared = sharedCharacter(of: id) else { continue }
+            share(folded, with: shared.character, note: shared.note)
+        }
     }
 
     // MARK: Writing
