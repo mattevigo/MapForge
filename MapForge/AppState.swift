@@ -1653,6 +1653,25 @@ final class AppState: ObservableObject {
         cutNoteFaces()
     }
 
+    /// Gives each of `characters` its shared numbers — current and temporary hit points and
+    /// exhaustion — in the roster, in one write, and leaves everything else about them as the
+    /// roster has it. What a Long Rest does to a Party (`takeLongRest()`); every Pawn sharing
+    /// them follows, on this Map at once and on the others when they open (ADR-0037).
+    func writeSharedNumbers(of characters: [PartyCharacter]) {
+        var book = partyBook
+        for character in characters {
+            guard var stored = book.parties.lazy.flatMap(\.characters)
+                .first(where: { $0.id == character.id }) else { continue }
+            stored.currentHP = character.currentHP
+            stored.temporaryHP = character.temporaryHP
+            stored.exhaustion = character.exhaustion
+            book = PartyRoster.updateCharacter(stored, in: book)
+        }
+        guard book != partyBook else { return }
+        partyBook = book
+        writeParties()
+    }
+
     /// `character` with the Face its editor left, kept now if it was cut there.
     private func character(_ character: PartyCharacter, wearing face: FaceDraft?) -> PartyCharacter {
         guard let face else { return character }
