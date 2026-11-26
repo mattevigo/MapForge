@@ -189,7 +189,12 @@ final class AppState: ObservableObject {
     /// The DM's Parties, as they stand in the open Workspace. Empty before one is open.
     /// Written straight through on every edit rather than debounced: a roster changes when
     /// the DM types in it, which is nothing like drag-rate.
-    @Published private(set) var partyBook = PartyBook()
+    ///
+    /// Every change reaches the open Map's sharing Pawns' own Stat Blocks, whatever made it —
+    /// a wound, a note linked, another Workspace's roster (ADR-0037).
+    @Published private(set) var partyBook = PartyBook() {
+        didSet { refreshSharedStatBlocks() }
+    }
 
     /// Every Monster read from the open Workspace's notes. Read when the Workspace opens and
     /// at no other time, and never written anywhere — see `BestiaryStore` and ADR-0020.
@@ -199,7 +204,12 @@ final class AppState: ObservableObject {
     /// Every Character's note read from the open Workspace, in the same walk as the Bestiary
     /// and on the same terms: never written anywhere (ADR-0024). Empty until it lands.
     /// Settable so a test can hand some over without a folder of notes.
-    @Published var characterNotes = CharacterNotes()
+    ///
+    /// Whether a Pawn shares its Character's numbers turns on its note being found, so the
+    /// notes landing reaches the open Map's sharing Pawns as a roster change does (ADR-0037).
+    @Published var characterNotes = CharacterNotes() {
+        didSet { refreshSharedStatBlocks() }
+    }
 
     /// Every Item read from the open Workspace's notes, in the same walk as the Bestiary and on
     /// the same terms: read when the Workspace opens and never written anywhere (ADR-0031).
@@ -495,6 +505,9 @@ final class AppState: ObservableObject {
         // still running when it was last closed.
         loadStats(forMapAt: url)
         resumeEncounter(forMapAt: url)
+        // After the resume, so a paused fight's Combatants keep the fold's numbers: the
+        // Character met here is for the Pawns standing outside it (ADR-0037).
+        refreshSharedStatBlocks()
         presentIfPossible()
     }
 
@@ -1135,10 +1148,13 @@ final class AppState: ObservableObject {
                                     droppedAt: droppedPoint,
                                     map: map, frame: frame) else { return false }
         // The combat numbers its note gives, copied at drag time like every other field —
-        // ADR-0007's rule reaching more of them (ADR-0024). Before `addPawnToMap`, because
-        // joining a running fight reads the Stat Block to snapshot it into the Log. A
-        // Character with no note the app could read stamps none.
-        if let block = Stamp.statBlock(from: note) {
+        // ADR-0007's rule reaching more of them (ADR-0024) — and its shared numbers as they
+        // stand now, so a wounded Character arrives wounded (ADR-0037). The roster's copy of
+        // the Character rather than the one the drag carried, which may predate the last
+        // wound. Before `addPawnToMap`, because joining a running fight reads the Stat Block
+        // to snapshot it into the Log; and so before the Pawn shares, which is why this write
+        // cannot reach the Character. A Character with no note the app could read stamps none.
+        if let block = Stamp.statBlock(from: note, of: self.character(id: character.id) ?? character) {
             setStatBlock(block, for: pawn.id)
         }
         // Through `addPawnToMap` rather than appending here, so a Character Stamped while
@@ -1153,6 +1169,65 @@ final class AppState: ObservableObject {
     /// Workspace's notes still hold one of that name.
     func note(for character: PartyCharacter) -> CharacterNote? {
         characterNotes.note(named: character.noteName)
+    }
+
+    /// The Character whose hit points and exhaustion `pawn` shares, with the note that makes
+    /// it share — or nil, when the Pawn keeps its own numbers (ADR-0037).
+    ///
+    /// The one place the rule is written, read by the door a Stat Block is read through and
+    /// the one it is written through alike, so it cannot hold in one and be missed in the
+    /// other. A Pawn shares when it stands on the open Map as a Player, its `characterID`
+    /// names a Character in any Party — not only the active one, as a drag's does not — and
+    /// that Character's note is found. A Player whose Character has no note, or whose note
+    /// has left the notes, keeps its own, as a Creature does: sharing a current total without
+    /// a shared maximum would make the Health Bar depend on the Map it is drawn on. By kind
+    /// too, because a link outlives the kind it was made for: a Stamped Pawn the DM made a
+    /// Creature keeps its `characterID`, and its hero's wounds are not its own
+    /// (`modifierSource(for:)` reads the same way).
+    ///
+    /// Says nothing about fights: whether the Encounter or the Character holds a Combatant's
+    /// numbers is the doors' to decide.
+    func sharedCharacter(of pawn: Pawn.ID) -> (character: PartyCharacter, note: CharacterNote)? {
+        guard let onMap = fog.pawns.first(where: { $0.id == pawn }),
+              onMap.kind == .player,
+              let id = onMap.characterID,
+              let character = character(id: id),
+              let note = note(for: character) else { return nil }
+        return (character, note)
+    }
+
+    /// Writes the shared numbers in `block` — one Pawn's, just edited — to the Character that
+    /// Pawn shares them with, and on to disk. Nothing when they are the numbers it already
+    /// has, so a `parties.json` is not rewritten by an edit that moved nothing shared.
+    func share(_ block: StatBlock, with character: PartyCharacter, note: CharacterNote) {
+        guard character.sharedNumbers(over: block, maxHP: note.maxHP) != block else { return }
+        var updated = character
+        updated.takeSharedNumbers(from: block)
+        partyBook = PartyRoster.updateCharacter(updated, in: partyBook)
+        writeParties()
+    }
+
+    /// Brings every sharing Pawn's own Stat Block on the open Map up to date with its
+    /// Character, so a Pawn whose Character is later deleted keeps the numbers it last showed
+    /// (ADR-0037), and `stats.json` says what the Map showed.
+    ///
+    /// Asked whenever the answer could have moved: when a Map opens, when the roster changes,
+    /// and when the notes land. Only a block that exists — a Pawn the DM never gave numbers is
+    /// not given a block of defaults here, which would pass AC 10 off as the hero's — and
+    /// never a Combatant's, whose block follows the fight's fold instead (ADR-0008).
+    func refreshSharedStatBlocks() {
+        var changed = false
+        for pawn in fog.pawns {
+            guard let own = statsDocument.blocks[pawn.id], encounter?.blocks[pawn.id] == nil
+            else { continue }
+            let shown = statBlock(for: pawn.id)
+            guard shown != own else { continue }
+            statsDocument.blocks[pawn.id] = shown
+            changed = true
+        }
+        // Optional-chained: the roster is first read at launch, before the autosave exists —
+        // and with no Map open, so nothing can have changed then.
+        if changed { statsAutosave?.schedule(statsDocument) }
     }
 
     /// The Pawn `character` would Stamp, for drawing it in the Party panel and under the
@@ -1557,9 +1632,18 @@ final class AppState: ObservableObject {
     /// Edit a Character in place. Pawns already Stamped from it are deliberately untouched:
     /// a Stamp is a copy taken at the drag, so renaming Thorin today, or giving him another
     /// Face, leaves last week's map exactly as it was run.
+    ///
+    /// Its shared numbers are the roster's, not the editor's: the editor edits what the
+    /// Character *is*, and the copy it was opened on would carry back the hit points it had
+    /// then, undoing any wound dealt since (ADR-0037).
     func updateCharacter(_ character: PartyCharacter, face: FaceDraft? = nil) {
-        partyBook = PartyRoster.updateCharacter(self.character(character, wearing: face),
-                                                in: partyBook)
+        var edited = self.character(character, wearing: face)
+        if let stored = self.character(id: character.id) {
+            edited.currentHP = stored.currentHP
+            edited.temporaryHP = stored.temporaryHP
+            edited.exhaustion = stored.exhaustion
+        }
+        partyBook = PartyRoster.updateCharacter(edited, in: partyBook)
         writeParties()
         cutNoteFaces()
     }
