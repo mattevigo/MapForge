@@ -3343,9 +3343,6 @@
     "/": {
       "shouldTranslate": false
     },
-    "/%lld": {
-      "shouldTranslate": false
-    },
     "A Creature or a Treasure emits no Light and is hidden from players by darkness.": {
       "localizations": {
         "de": {
@@ -8320,7 +8317,7 @@
       }
     },
     "HP %@ → %@": {
-      "comment": "A Character's current hit points in the Session Log, before and after",
+      "comment": "A Character's current hit points, before and after",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -19232,7 +19229,7 @@
       }
     },
     "temp HP %lld → %lld": {
-      "comment": "A Character's temporary hit points in the Session Log, before and after",
+      "comment": "A Character's temporary hit points, before and after",
       "localizations": {
         "de": {
           "stringUnit": {
