@@ -21,6 +21,12 @@ enum LogRow: Equatable {
     case savingThrow(label: String, ability: Ability, roll: Roll, at: Date)
     case abilityCheck(label: String, skill: Skill, roll: Roll, at: Date)
 
+    /// A Character's shared numbers changed outside a fight, and a Long Rest (ADR-0037). The
+    /// Character, not the Pawn the edit was made through, is what the row names: the wound is
+    /// hers, on whichever Map.
+    case characterChanged(CharacterNumbersMoved, at: Date)
+    case longRest(characters: [CharacterNumbersMoved], at: Date)
+
     /// The Map changed. Synthetic: nothing records a switch, so this is inferred from two
     /// consecutive Lines disagreeing about their Map. See ADR-0016.
     case mapSeparator(path: String)
@@ -140,6 +146,10 @@ struct LogViewModel {
                                                       liveLines: isLive ? liveEncounterLines : []))
             case .encounterEnded:
                 rows.append(.encounterEnded)
+            case let .characterChanged(numbers, _, _, _, at):
+                rows.append(.characterChanged(numbers, at: at))
+            case let .longRest(_, _, characters, at):
+                rows.append(.longRest(characters: characters, at: at))
             case .unrecognised:
                 rows.append(.unreadableLine)
             }
@@ -318,7 +328,9 @@ private extension SessionLine {
         case let .abilityCheck(_, _, map, _, _, _): map
         case let .encounterStarted(map, _, _): map
         case let .encounterEnded(map, _): map
-        case .sessionStarted, .sessionEnded, .unrecognised: nil
+        case let .characterChanged(_, _, _, map, _): map
+        // A rest is taken in the roster, not on a Map, so it changes no Map either.
+        case .sessionStarted, .sessionEnded, .longRest, .unrecognised: nil
         }
     }
 }

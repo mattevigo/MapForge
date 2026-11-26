@@ -2,7 +2,7 @@ import AppKit
 import XCTest
 @testable import MapForge
 
-/// A page pinned out of the Stat Block editor's popover into a panel of its own.
+/// A page pinned out of the Stat Editor's popover into a panel of its own.
 ///
 /// The popover goes with an outside click, which is right for a page glanced at and wrong for
 /// the boss's page the DM wants open all fight. Pinned, the page stays on its Monster or

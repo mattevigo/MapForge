@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// A page of the DM's notes, as the Stat Block editor's popover and a pinned panel show it:
+/// A page of the DM's notes, as the Stat Editor's popover and a pinned panel show it:
 /// a Monster's, or a Character's.
 ///
 /// Named by what it is a page *of*, not by the Pawn it was opened from — every Ogre on the

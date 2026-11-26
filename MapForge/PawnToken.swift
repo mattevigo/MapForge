@@ -202,7 +202,7 @@ extension Pawn {
     /// tokens with one name mid-fight is exactly the confusion a label exists to prevent.
     /// Non-numeric labels are skipped, so renaming "2" to "Goblin B" frees the 2 rather
     /// than blocking the count.
-    /// Saturates rather than trapping: the live rename field takes any text, so a DM can
+    /// Saturates rather than trapping: the Edit Pawn sheet's label takes any text, so a DM can
     /// set a label of `Int.max` and the next placement would crash the app on overflow.
     static func nextLabel(after pawns: [Pawn]) -> String {
         let highest = pawns.compactMap { Int($0.label) }.max() ?? 0

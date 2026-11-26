@@ -7,7 +7,7 @@ import XCTest
 ///
 /// The roster before Play was a plain stack while the Order is a ScrollView. A fight's long
 /// Order scrolled; a long roster before it could not, so selecting one of 34 Pawns put the
-/// Stat Block editor under a list that already filled the tab. The panel overflowed — Play
+/// Stat Editor under a list that already filled the tab. The panel overflowed — Play
 /// clipped off the top, the editor off the bottom — and the Monster's page under the
 /// editor, a ScrollView with nothing left to share, was squeezed to nothing. The roster
 /// scrolls now, and the page is a popover with no list to share the height with.

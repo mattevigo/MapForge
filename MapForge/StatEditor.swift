@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The Stat Block editor and the notes box, below the Order.
+/// The Stat Editor and the notes box, below the Order.
 ///
 /// Every edit goes through `AppState.editStatBlock`, which decides whether it becomes a
 /// `Change` in the Turn, a Correction against a past one, or a straight write to
@@ -12,6 +12,11 @@ struct StatEditor: View {
     /// monster the party just hit, not the one acting.
     let combatant: Pawn.ID?
 
+    /// A line naming the Turn being corrected, for an editor that must not edit while it is:
+    /// shown above the editor, which is disabled under it. Nil — the Encounter tab's, always
+    /// — is an editor that edits. See `SceneTabCorrectionLock`.
+    var correctingLine: String? = nil
+
     /// Typed into but not yet committed. Hit points want arithmetic at the table — "-7"
     /// beats working out 23 minus 7 while six people wait.
     @State private var damage = ""
@@ -19,15 +24,40 @@ struct StatEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let combatant, let pawn = pawn(combatant) {
+            if let correctingLine {
                 Divider()
-                editor(for: pawn)
+                correctingNotice(correctingLine)
             }
-            if appState.encounter != nil {
-                Divider()
-                notesBox
+            Group {
+                if let combatant, let pawn = pawn(combatant) {
+                    Divider()
+                    editor(for: pawn)
+                }
+                if appState.encounter != nil {
+                    Divider()
+                    notesBox
+                }
             }
+            .disabled(correctingLine != nil)
         }
+    }
+
+    /// The correcting bar's colours, so the line reads as the same mode the Encounter tab's
+    /// bar names. Wraps rather than truncating: the Turn's name is the point of it.
+    private func correctingNotice(_ line: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: "pencil.and.outline")
+            Text(line)
+                .font(.caption.weight(.semibold))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(Color.orange.opacity(0.25), in: RoundedRectangle(cornerRadius: 4))
+        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.orange))
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("stat-editor-correcting")
     }
 
     private func pawn(_ id: Pawn.ID) -> Pawn? {

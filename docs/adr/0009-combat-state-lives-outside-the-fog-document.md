@@ -84,3 +84,10 @@ for one struct with a flag has exactly the fields it had before.
   Character to hang them on and Creatures are most of a fight.
 - **Application Support, keyed by map path** — rejected: it breaks when the DM moves a map
   file, and it separates a fight from the map it happened on.
+
+## Amended: a Player's hit points are its Character's
+
+Under ADR-0037, `stats.json` is no longer the whole truth about a Player Pawn stamped from a
+Character with a note: its current and temporary hit points and its exhaustion are kept on the
+Character, in the Workspace, and shared across Maps. Its Conditions, concentration and the
+rest of its Stat Block stay here, keyed by `Pawn.ID`.
