@@ -222,4 +222,64 @@ final class CharacterSessionLinesTests: XCTestCase {
         }
         XCTAssertEqual(numbers.temporaryHP, Moved(from: 0, to: 5))
     }
+
+    // MARK: A Long Rest
+
+    func testALongRestWritesOneLineListingOnlyTheCharactersItChanged() throws {
+        let (app, durga) = makeAppStateWithDurga()
+        app.characterNotes = CharacterNotes(notes: [
+            durgaNote, CharacterNote(name: "Ayla", maxHP: 30), CharacterNote(name: "Brom", maxHP: 40),
+        ])
+        let ayla = PartyCharacter(name: "Ayla", noteName: "Ayla", exhaustion: 2)
+        let brom = PartyCharacter(name: "Brom", noteName: "Brom")   // already rested
+        let tessa = PartyCharacter(name: "Tessa", currentHP: 3)     // no note: passed over
+        for character in [ayla, brom, tessa] { app.addCharacter(character) }
+        let party = try XCTUnwrap(app.activeParty)
+
+        XCTAssertNotNil(app.takeLongRest())
+
+        let lines = try characterLines(app)
+        XCTAssertEqual(lines.count, 1, "one Line for the rest, and none for each Character")
+        guard case let .longRest(partyID, partyName, characters, _) = lines.first else {
+            return XCTFail("expected a longRest Line, got \(lines)")
+        }
+        XCTAssertEqual(partyID, party.id)
+        XCTAssertEqual(partyName, "Eroi")
+        XCTAssertEqual(characters, [
+            CharacterNumbersMoved(characterID: durga.id, name: "Durga",
+                                  currentHP: Moved(from: 12, to: 48)),
+            CharacterNumbersMoved(characterID: ayla.id, name: "Ayla",
+                                  exhaustion: Moved(from: 2, to: 1)),
+        ])
+    }
+
+    func testALongRestRefusedWritesNoLine() throws {
+        let (app, durga) = makeAppStateWithDurga()
+        try openMap("cellar", in: app)
+        try stamp(durga, in: app)
+        app.startEncounter()
+
+        XCTAssertNil(app.takeLongRest(), "precondition: nobody long-rests mid-fight")
+        app.stopEncounter()
+
+        XCTAssertEqual(try characterLines(app), [])
+    }
+
+    func testALongRestWhileAFightIsPausedOnAnotherMapIsLeftToTheFightsLog() throws {
+        // The Session Log is silent from a fight's start to its end, paused or not (ADR-0014):
+        // the fight records the rest as Changes when it resumes.
+        let (app, durga) = makeAppStateWithDurga()
+        try openMap("cellar", in: app)
+        let inTheCellar = try stamp(durga, in: app)
+        app.startEncounter()
+        app.endTurn()
+        try openMap("street", in: app)
+
+        XCTAssertNotNil(app.takeLongRest(), "precondition: a paused fight does not refuse it")
+        try openMap("cellar", in: app)
+
+        XCTAssertEqual(app.encounter?.pendingChanges,
+                       [.hpChanged(combatantID: inTheCellar.id, from: 12, to: 48)], "precondition")
+        XCTAssertEqual(try characterLines(app), [])
+    }
 }

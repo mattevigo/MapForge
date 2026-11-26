@@ -137,6 +137,14 @@ struct CharacterNumbersMoved: Codable, Equatable {
         guard currentHP != nil || temporaryHP != nil || exhaustion != nil else { return nil }
     }
 
+    /// What moved between two states of one Character in the roster — what a Long Rest does
+    /// to it — shown as its Pawns would show them, with `maxHP` its note's.
+    init?(of before: PartyCharacter, becoming after: PartyCharacter, maxHP: Int?) {
+        self.init(of: before,
+                  from: before.sharedNumbers(over: StatBlock(), maxHP: maxHP),
+                  to: after.sharedNumbers(over: StatBlock(), maxHP: maxHP))
+    }
+
     /// The flat half, shared by both Lines that carry one: a `characterChanged` writes it
     /// beside its own keys, a `longRest` writes one object of it per Character.
     fileprivate enum CodingKeys: String, CodingKey {

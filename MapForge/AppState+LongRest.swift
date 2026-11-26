@@ -36,11 +36,21 @@ extension AppState {
     /// Asked for only after the DM confirmed it, because it overwrites a whole party's numbers
     /// with one click — and not undoable, like every other live action: the confirmation is
     /// the escape.
+    ///
+    /// Recorded in the Session Log here, as one Line naming the Party and each Character it
+    /// changed, so no caller can grant a rest the evening does not hear of.
     @discardableResult
     func takeLongRest() -> LongRest? {
-        guard longRestRefusal == nil else { return nil }
+        guard longRestRefusal == nil, let party = activeParty else { return nil }
         let rest = longRestOfActiveParty
+        // Read before the write, which moves the roster's copies to where the rest leaves them.
+        let moved = rest.rested.compactMap { rested -> CharacterNumbersMoved? in
+            guard let before = character(id: rested.id) else { return nil }
+            return CharacterNumbersMoved(of: before, becoming: rested,
+                                         maxHP: note(for: before)?.maxHP)
+        }
         writeSharedNumbers(of: rest.rested)
+        recordSessionLongRest(of: party, moved)
         return rest
     }
 }

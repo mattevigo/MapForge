@@ -137,6 +137,17 @@ extension AppState {
         session = live
     }
 
+    /// Records a Long Rest granted to `party`, with what it moved of each Character it
+    /// changed. Called from `takeLongRest`, the one way a rest is taken. No Map: a rest is
+    /// taken in the roster, not on any Map.
+    func recordSessionLongRest(of party: Party, _ characters: [CharacterNumbersMoved]) {
+        guard var live = session else { return }
+        writeSession(SessionControl.longRest(partyID: party.id, partyName: party.name,
+                                             characters: characters,
+                                             at: Date(), in: &live))
+        session = live
+    }
+
     // MARK: The hand-off
 
     /// Hands recording to the Combat Log and writes the pointer naming it.
