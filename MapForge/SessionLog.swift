@@ -47,7 +47,7 @@ enum SessionLine: Equatable {
     /// temporary hit points or exhaustion — made through one of the Pawns sharing them
     /// (ADR-0037). "Hit 7" is one Line, and so is changing hit points and exhaustion together.
     ///
-    /// Recorded because a hero's wounds now outlive the Map they were taken on, and the
+    /// Recorded because a Character's wounds now outlive the Map they were taken on, and the
     /// evening's story includes the cleric healing her in the street. A Creature's numbers
     /// changed outside a fight are not: they are the Map's, not the evening's.
     ///

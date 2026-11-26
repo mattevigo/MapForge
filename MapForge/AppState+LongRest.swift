@@ -15,7 +15,7 @@ extension AppState {
     /// Said rather than only enforced, as `encounterRefusal` is. A fight running on the open
     /// Map refuses it, since nobody long-rests mid-fight; a fight paused on another Map does
     /// not, and meets the rested party when it resumes. A party with nobody to change is not
-    /// asked to confirm a rest that would do nothing.
+    /// asked to confirm a Long Rest that would do nothing.
     var longRestRefusal: String? {
         if encounter != nil {
             return String(localized: "Nobody long-rests mid-fight.",
@@ -38,19 +38,20 @@ extension AppState {
     /// the escape.
     ///
     /// Recorded in the Session Log here, as one Line naming the Party and each Character it
-    /// changed, so no caller can grant a rest the evening does not hear of.
+    /// changed, so no caller can grant a Long Rest the evening does not hear of.
     @discardableResult
     func takeLongRest() -> LongRest? {
         guard longRestRefusal == nil, let party = activeParty else { return nil }
-        let rest = longRestOfActiveParty
-        // Read before the write, which moves the roster's copies to where the rest leaves them.
-        let moved = rest.rested.compactMap { rested -> CharacterNumbersMoved? in
+        let longRest = longRestOfActiveParty
+        // Read before the write, which moves the roster's copies to where the Long Rest
+        // leaves them.
+        let moved = longRest.rested.compactMap { rested -> CharacterNumbersMoved? in
             guard let before = character(id: rested.id) else { return nil }
             return CharacterNumbersMoved(of: before, becoming: rested,
                                          maxHP: note(for: before)?.maxHP)
         }
-        writeSharedNumbers(of: rest.rested)
+        writeSharedNumbers(of: longRest.rested)
         recordSessionLongRest(of: party, moved)
-        return rest
+        return longRest
     }
 }

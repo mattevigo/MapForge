@@ -180,18 +180,18 @@ final class CharacterSharedNumbersTests: XCTestCase {
     }
 
     func testAStampedPawnTheDMMadeACreatureKeepsItsOwnNumbers() throws {
-        // Its `characterID` outlives the kind it was made for, and the hero's wounds are not
+        // Its `characterID` outlives the kind it was made for, and the Character's wounds are not
         // the monster's.
         let (app, durga) = makeAppStateWithDurga()
         try openMap("cellar", in: app)
-        let hero = try stamp(durga, in: app)
+        let durgasOwn = try stamp(durga, in: app)
         let impostor = try stamp(durga, in: app, at: CGPoint(x: 200, y: 80))
         let index = try XCTUnwrap(app.fog.pawns.firstIndex { $0.id == impostor.id })
         app.fog.pawns[index].kind = .creature
 
         app.editStatBlock(for: impostor.id) { $0.currentHP = 3 }
 
-        XCTAssertEqual(hitPoints(of: hero, in: app), [48, 48])
+        XCTAssertEqual(hitPoints(of: durgasOwn, in: app), [48, 48])
         XCTAssertEqual(hitPoints(of: impostor, in: app), [3, 48])
     }
 

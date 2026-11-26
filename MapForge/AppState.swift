@@ -1190,7 +1190,7 @@ final class AppState: ObservableObject {
     /// has left the notes, keeps its own, as a Creature does: sharing a current total without
     /// a shared maximum would make the Health Bar depend on the Map it is drawn on. By kind
     /// too, because a link outlives the kind it was made for: a Stamped Pawn the DM made a
-    /// Creature keeps its `characterID`, and its hero's wounds are not its own
+    /// Creature keeps its `characterID`, and its Character's wounds are not its own
     /// (`modifierSource(for:)` reads the same way).
     ///
     /// **While the notes are still being read**, a Character the DM linked to a note shares
@@ -1238,7 +1238,7 @@ final class AppState: ObservableObject {
     ///
     /// Asked whenever the answer could have moved: when a Map opens, when the roster changes,
     /// and when the notes land. Only a block that exists — a Pawn the DM never gave numbers is
-    /// not given a block of defaults here, which would pass AC 10 off as the hero's — and
+    /// not given a block of defaults here, which would pass AC 10 off as the Character's — and
     /// never a Combatant's, whose block follows the fight's fold instead (ADR-0008).
     func refreshSharedStatBlocks() {
         var changed = false
@@ -1335,7 +1335,7 @@ final class AppState: ObservableObject {
     /// Stamp is the one offered.
     ///
     /// By the Pawn's kind first, because each link outlives the kind it was made for: a Stamped
-    /// Pawn the DM made a Creature keeps its `characterID`, and its hero's saves are not its
+    /// Pawn the DM made a Creature keeps its `characterID`, and its Character's saves are not its
     /// own. Nil for a Treasure, which has no numbers, and for any Pawn whose note is not read.
     func modifierSource(for pawn: Pawn) -> ModifierSource? {
         switch pawn.kind {

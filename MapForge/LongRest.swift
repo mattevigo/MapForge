@@ -7,18 +7,19 @@ import Foundation
 /// its note's maximum hit points, loses its temporary hit points and drops one level of
 /// exhaustion (ADR-0037). Only those three numbers, the ones a Character shares with its
 /// Pawns: Conditions and concentration are the Pawn's, and belong to the place and the fight
-/// it is in, so a rest taken in the roster never reaches them.
+/// it is in, so a Long Rest taken in the roster never reaches them.
 ///
 /// A Character with no note is passed over. Its Pawns keep their own numbers, as a Creature's
 /// do, and there is no maximum to return it to.
 struct LongRest: Equatable {
-    /// One Character the rest would change, as the confirmation names it: who, and what from.
+    /// One Character the Long Rest would change, as the confirmation names it: who, and what
+    /// from.
     struct Line: Equatable {
         var name: String
         var changes: [Change]
 
-        /// One number the rest moves, with where it starts. Where it ends is the rest's own
-        /// rule — the maximum, none, one fewer — so it is not stored twice.
+        /// One number the Long Rest moves, with where it starts. Where it ends is the Long
+        /// Rest's own rule — the maximum, none, one fewer — so it is not stored twice.
         enum Change: Equatable {
             /// Current hit points `before`, of `max`, returning to `max`.
             case hitPoints(before: Int, max: Int)
@@ -47,25 +48,25 @@ struct LongRest: Equatable {
         }
     }
 
-    /// The Characters the rest changes, already rested, in the Party's order. Only those it
+    /// The Characters the Long Rest changes, already rested, in the Party's order. Only those it
     /// changes, so applying it rewrites nothing that would not move.
     var rested: [PartyCharacter] = []
     /// What the confirmation lists: one line for each Character in `rested`.
     var lines: [Line] = []
 
-    /// Whether the rest would change anyone. A Party already rested is not asked again: a
+    /// Whether the Long Rest would change anyone. A Party already rested is not asked again: a
     /// dialog that appears when nothing can change is one the DM learns to click through.
     var changesAnyone: Bool { !rested.isEmpty }
 
     /// The Long Rest of `characters`, each with the note `note` finds for it — nil for one
-    /// that has none, which the rest passes over.
+    /// that has none, which the Long Rest passes over.
     init(of characters: [PartyCharacter], note: (PartyCharacter) -> CharacterNote?) {
         for character in characters {
             guard let note = note(character) else { continue }
             var changes: [Line.Change] = []
             let numbers = character.sharedNumbers
             var rested = character
-            // A note with no maximum gives the rest nothing to return the hit points to, so
+            // A note with no maximum gives the Long Rest nothing to return the hit points to, so
             // they stay as they are rather than becoming none.
             if let max = note.maxHP {
                 let current = numbers.currentHP ?? max
