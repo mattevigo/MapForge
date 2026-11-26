@@ -418,49 +418,32 @@ final class AppStateFogTests: XCTestCase {
                      "the tavern inherited the dungeon's Grid")
     }
 
-    // MARK: Live Pawn renaming
+    // MARK: Live Pawn edits
 
-    func testRenamingAPawnDuringPlayReachesTheDocument() throws {
-        // The acceptance sentence: mid-session, without leaving the live map, the DM
-        // renames a Pawn from "3" to "Goblin B" and the Player Display follows — which it
-        // does by reading `fog`, so reaching `fog` is the whole guarantee.
-        let map = try makeMap(named: "dungeon")
-        let appState = AppState(preferences: isolatedPreferences())
-        appState.loadMap(image: map.image, at: map.url)
-        let pawn = Pawn(at: MapPoint(x: 20, y: 15), label: "3",
-                        colorHex: Pawn.defaultColorHex, brightSquares: 6)
-        appState.fog.pawns = [pawn]
-
-        appState.setPawnLabel(id: pawn.id, "Goblin B")
-
-        XCTAssertEqual(appState.fog.pawns.first?.label, "Goblin B")
+    /// Renames `pawn` as the Edit Pawn sheet does, its one door for a label.
+    private func rename(_ pawn: Pawn, to label: String, in appState: AppState) {
+        var draft = EditPawnDraft(pawn: pawn)
+        draft.label = label
+        appState.updatePawn(id: pawn.id, with: draft)
     }
 
-    func testARenameDuringPlayIsPersisted() throws {
-        // It rides `fog`'s debounce like every other live action — a rename made at the
-        // table is still there next session.
+    func testAReorderFromTheSceneTabIsPersisted() throws {
+        // The Scene tab's order is `fog.pawns`, saved like a rename — and so it is still the
+        // order, and the stacking, next session.
         let map = try makeMap(named: "dungeon")
         let appState = AppState(preferences: isolatedPreferences())
         appState.loadMap(image: map.image, at: map.url)
-        let pawn = Pawn(at: MapPoint(x: 20, y: 15), label: "3",
-                        colorHex: Pawn.defaultColorHex, brightSquares: 6)
-        appState.fog.pawns = [pawn]
+        let durga = Pawn(at: MapPoint(x: 20, y: 15), label: "Durga",
+                         colorHex: Pawn.defaultColorHex, brightSquares: 6, kind: .player)
+        let rio = Pawn(at: MapPoint(x: 40, y: 15), label: "Rio",
+                       colorHex: Pawn.defaultColorHex, brightSquares: 6, kind: .player)
+        appState.fog.pawns = [durga, rio]
 
-        appState.setPawnLabel(id: pawn.id, "Goblin B")
+        appState.movePawn(durga.id, onto: rio.id)
         appState.flushPendingFogWrites()
 
-        XCTAssertEqual(FogStore().load(forMapAt: map.url)?.pawns.first?.label, "Goblin B")
-    }
-
-    func testRenamingAPawnThatIsGoneDoesNothing() throws {
-        // The live row and the document can disagree for a frame after a delete.
-        let map = try makeMap(named: "dungeon")
-        let appState = AppState(preferences: isolatedPreferences())
-        appState.loadMap(image: map.image, at: map.url)
-
-        appState.setPawnLabel(id: UUID(), "Goblin B")
-
-        XCTAssertTrue(appState.fog.pawns.isEmpty)
+        XCTAssertEqual(appState.fog.pawns.map(\.label), ["Rio", "Durga"])
+        XCTAssertEqual(FogStore().load(forMapAt: map.url)?.pawns.map(\.label), ["Rio", "Durga"])
     }
 
     // MARK: Fog mode must not clobber live state
@@ -487,9 +470,9 @@ final class AppStateFogTests: XCTestCase {
     }
 
     func testApplyingFogEditsKeepsALiveRenameMadeDuringTheMode() throws {
-        // The live row renders during fog mode too, and a rename there writes straight to
-        // `fog`. The next edit inside the mode must not wipe it — non-undoable was the
-        // sanctioned trade-off; silently destroyed by an unrelated action was not.
+        // The Edit Pawn sheet can be opened during fog mode too, and a rename there writes
+        // straight to `fog`. The next edit inside the mode must not wipe it — non-undoable was
+        // the sanctioned trade-off; silently destroyed by an unrelated action was not.
         let map = try makeMap(named: "dungeon")
         let appState = AppState(preferences: isolatedPreferences())
         appState.loadMap(image: map.image, at: map.url)
@@ -499,7 +482,7 @@ final class AppStateFogTests: XCTestCase {
 
         appState.beginFogEditing()                         // as the mode opens
         var edits = FogEdits(document: appState.fog)
-        appState.setPawnLabel(id: pawn.id, "Goblin B")     // renamed from the live row
+        rename(pawn, to: "Goblin B", in: appState)         // renamed in the Edit Pawn sheet
         edits.addWalls([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 50, y: 0))])
         appState.applyFogEdits(edits)                      // ...then a Wall is drawn
 
@@ -560,7 +543,7 @@ final class AppStateFogTests: XCTestCase {
         var edits = FogEdits(document: appState.fog)
         edits.addWalls([Wall(from: MapPoint(x: 0, y: 0), to: MapPoint(x: 50, y: 0))])
         appState.applyFogEdits(edits)
-        appState.setPawnLabel(id: pawn.id, "Goblin B")
+        rename(pawn, to: "Goblin B", in: appState)
 
         appState.cancelFogEditing(edits)
 

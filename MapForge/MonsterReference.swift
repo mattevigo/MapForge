@@ -48,7 +48,7 @@ enum MonsterReference {
     }
 }
 
-/// A Monster's page, in the popover beside the Stat Block editor's name, for the Combatant
+/// A Monster's page, in the popover beside the Stat Editor's name, for the Combatant
 /// the editor is pointed at.
 ///
 /// **The one live read of the Bestiary** (ADR-0020): looked up by the name the Pawn
@@ -83,7 +83,7 @@ struct MonsterReferenceView: View {
     }
 }
 
-/// A Page of the DM's notes beside the Stat Block editor — a Monster's or a Character's, laid
+/// A Page of the DM's notes beside the Stat Editor — a Monster's or a Character's, laid
 /// out alike so the DM reads both the same way mid-fight.
 ///
 /// Drawn as a rulebook prints a creature — as the Fantasy Statblocks plugin draws one in the

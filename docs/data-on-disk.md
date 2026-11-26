@@ -25,7 +25,7 @@ its whole game and none of the first Mac's hardware.
 MyGame/                              ← the Workspace (any folder the DM adopted)
 ├── .mapforge/
 │   ├── workspace.json               ← the Manifest: what makes this folder a Workspace
-│   ├── parties.json                 ← every Party and its Characters
+│   ├── parties.json                 ← every Party and its Characters, with their hit points
 │   ├── preferences.json             ← active Party, chosen Player Display (app-written)
 │   ├── config.json                  ← no longer read (ADR-0023); left alone if present
 │   ├── note-faces.json              ← the cut each Monster's, Character's or Item's note picture was given
@@ -93,9 +93,9 @@ that holds the radii must hold the unit.
 | `squaresWide` | The Map's declared Grid width in squares. **Absent when the DM never ran Grid Fit** — the default 30 is a guess and is never written. |
 | `walls[].from/to` | Endpoints in **image pixels**, so a Wall stays welded to the artwork when the Grid changes. Every point in the file is nested under `imagePixels` so the unit is never guessed. The four implicit Walls at the image edge are not stored. |
 | `lights[]` | `brightSquares` / `dimSquares` are in **Grid squares**; `isOn` is the switch; `name` is the DM's own and is omitted when unnamed. |
-| `pawns[]` | `label` is the DM's bookkeeping (never shown to players); `colorHex` is what the table sees. `kind` is `player`, `creature` or `treasure`. |
+| `pawns[]` | `label` is the DM's bookkeeping (never shown to players); `colorHex` is what the table sees. `kind` is `player`, `creature` or `treasure`. **The order matters**: it is the Scene tab's list order within each Kind, which the DM sets by dragging, and the stacking on both screens — a later Pawn is drawn over an earlier one and wins a click where they overlap. *Add* copies from the last Pawn of its Kind. |
 | `pawns[].light` | A Pawn *is* a Light: `brightSquares` is its sight. `dimSquares` is on disk but **re-derived on load** as sight + 1 (the fade), so the stored value is cosmetic history. |
-| `pawns[].characterID` | Which Character stamped this Pawn. Advisory only — counts on the Party panel, and, with `face.from: character`, which Pawns re-cutting that Character's Face for *every* one reaches (ADR-0028) — and omitted when absent (ADR-0007). |
+| `pawns[].characterID` | Which Character stamped this Pawn. Advisory — counts on the Party panel, and, with `face.from: character`, which Pawns re-cutting that Character's Face for *every* one reaches (ADR-0028) — but in one respect: a Player Pawn whose Character has a note shares that Character's current and temporary hit points and exhaustion through it (ADR-0037, see `stats.json`). Omitted when absent (ADR-0007). |
 | `pawns[].monsterName` | Which Monster this Creature was said to be. Advisory only — the reference view, *Add*'s "same as last", and, with `face.from: monster`, which Pawns re-cutting that Monster's Face for *every* one reaches (ADR-0028), and the Roll sheet's offered Modifier, read live from that Monster's note (ADR-0029) — and omitted when absent (ADR-0020). The numbers were **copied** into `stats.json`. |
 | `pawns[].itemName` | Which Item this Treasure was said to be, by the name its note gives it. Advisory only, as `monsterName` is — *Add*'s "same as last", and, with `face.from: item`, the Item a Face came from, and so which Pawns re-cutting that Item's Face for *every* one reaches (ADR-0028) — and omitted when absent; a Pawn that stops being a Treasure forgets it (ADR-0031). The label was **copied** from the Item's initials. |
 | `pawns[].face` | The **Face** this Pawn is drawn as, in place of its colour, on both screens. `file` names a kept cut in `.mapforge/faces/` — a file name, never a path, and never the picture it was cut from. `from` is where the Face came from: `hand` (cut by the DM for this Pawn, or for the one it inherited the Face from under *Add*, which then share the `file`), `character` (copied by the Stamp from the Character in `characterID`; under *Add* it passes on as `hand`) `monster` (taken from a Monster whose note names the picture — the one in `monsterName`, until the DM clears or changes it; under *Add* it is taken fresh from the Monster, never copied) or `item` (taken from an Item whose note's frontmatter names the picture — the one in `itemName`, as `monster` is; under *Add* it is taken fresh from the Item, never copied). Becoming another Monster replaces a `monster` Face with the new Monster's, or removes it, and becoming another Item does the same to an `item` Face; `hand` and `character` are never touched. A `monster`, `character` or `item` Face re-cut for *only this Pawn* becomes `hand`; re-cut for *every* one, it keeps its `from` and names the new `file`. Omitted when the Pawn has none; a `file` that is missing draws the colour (ADR-0028). |
@@ -127,7 +127,8 @@ file so a shared Map with its Walls traced does not carry a party's wounds (ADR-
     { "pawnID": "…",
       "block": { "initiativeBonus": 2, "armorClass": 16, "currentHP": 19, "maxHP": 27,
                  "temporaryHP": 0, "conditions": ["poisoned"], "exhaustion": 0,
-                 "isConcentrating": false, "isInCombat": true } }
+                 "isConcentrating": false, "isInCombat": true,
+                 "showsHealthBarToPlayers": true } }
   ]
 }
 ```
@@ -143,13 +144,30 @@ file so a shared Map with its Walls traced does not carry a party's wounds (ADR-
 - `exhaustion` is 0–6 and is clamped on read, because this file can be hand-edited.
 - `isInCombat` is the roster: whether this Pawn rolls when the *next* fight starts. Read only
   at that moment. Absent in older files, meaning `true`.
+- `showsHealthBarToPlayers` is whether this Pawn's Health Bar reaches the Player Display
+  (ADR-0036) — false when the DM withheld it in Edit Pawn. The table-wide Health Bars switch is
+  not saved anywhere. Absent in older files, meaning `true`.
 - Every field has a default, so any subset of keys decodes.
+- For a **Player Pawn sharing a Character** — its `characterID` names a Character whose note is
+  found — `currentHP`, `temporaryHP` and `exhaustion` are the Character's, kept in
+  `parties.json`, and what is here is a **fallback**: the numbers the Pawn last showed, kept up
+  to date while its Map is open, and what it keeps if its Character is deleted or its note
+  leaves the notes (ADR-0037). Every other field is the Pawn's own, Conditions and
+  concentration included. During a fight the fold is authoritative for these too, and the
+  Character follows it.
 
 **When it is written.** Outside a fight, an edit goes straight here (debounced 0.5 s).
 *During* a fight the Combat Log is authoritative: the tracker's numbers are folded from the
 Log, and after every recorded Change the folded blocks are copied back here so the fight's
-damage outlives the fight. Flushed when the fight stops, the Map is switched, or a Monster
-is stamped.
+damage outlives the fight. Flushed when the fight stops, the Map is switched, a Monster is
+stamped, or Edit Pawn's OK changes whether the table sees the Pawn's Health Bar. A sharing
+Pawn's copy is also rewritten whenever its Character's numbers move — through another of its
+Pawns, on this Map or another, a Long Rest, or the notes landing — so it says what the Map shows.
+
+`showsHealthBarToPlayers` is the exception to the Log's authority. It is not a Change, so it
+never goes through the Combat Log, during a fight or outside one: it is written straight here.
+The Log's copy of it is only what it was when the Pawn joined, so when the folded blocks are
+copied back the value already here is kept over the fold's.
 
 ### `<map>.combat/<timestamp>.jsonl` — one Combat Log per Encounter
 
@@ -239,7 +257,8 @@ version, for diagnosis only.
       "characters": [
         { "id": "…", "name": "Durga", "colorHex": "#D0342C", "sightSquares": 6,
           "noteName": "Durga Pietraferma",
-          "face": { "file": "3F2A….png", "from": "hand" } }
+          "face": { "file": "3F2A….png", "from": "hand" },
+          "currentHP": 12, "temporaryHP": 0, "exhaustion": 1 }
       ] }
   ]
 }
@@ -250,7 +269,9 @@ label, colour, sight and Face — and `noteName`, the `name` of the note its num
 absent while the DM has not linked one (ADR-0024). Stamping copies `name`, `colorHex`,
 `sightSquares`, `face` and the note's size into a Pawn, and the note's `initiative`, `ac` and
 `hp` into its Stat Block; a Character with no readable note stamps no Stat Block at all. The Pawn
-then leads its own life (ADR-0007). `characters` is an array so the DM's order is kept. A
+then leads its own life (ADR-0007) — all but its current and temporary hit points and its
+exhaustion, which a Player Pawn of a Character with a note shares with it rather than copies
+(ADR-0037). `characters` is an array so the DM's order is kept. A
 roster written before notes still opens with every Character unlinked: its `isBig`,
 `initiativeBonus`, `armorClass` and `maxHP` are ignored and dropped at the next write.
 `face` is the Face the DM cut for the Character in its editor, or by re-cutting the Face of one
@@ -260,6 +281,21 @@ none, so a roster written before Faces opens unchanged. A Character without one 
 picture its note names, if any, cut once for it (`note-faces.json`); its own wins. A Stamped
 Pawn names the same `file`, `from: character`: a copy, so a Character given another Face, or none, leaves every Pawn
 already Stamped as it was (ADR-0007, ADR-0028).
+
+What the evening has done to a Character with a note, shared by every Player Pawn stamped from
+it on every Map (ADR-0037):
+
+| Field | Meaning |
+|---|---|
+| `currentHP` | Its current hit points. **Absent while it is at full** — its note's maximum, whatever the note says today — so a Character never wounded, or just given a Long Rest, writes none. |
+| `temporaryHP` | Its temporary hit points; 0 when it has none. |
+| `exhaustion` | Its exhaustion level, 0–6, clamped where it lands in a Pawn's Stat Block. |
+
+All three are absent in a roster written before shared hit points, which opens with every
+Character at full rather than taking the numbers of whichever Pawn the app opened first.
+They mean nothing for a Character with no note, whose Pawns keep their own. Written whenever
+one of them moves: an edit to any of its Pawns, every Change to one during a fight (as it is
+recorded, not when the fight stops), or a Long Rest.
 Absent when there are no Parties; unreadable file latched.
 
 ### `preferences.json` — what the app chooses for this Workspace
@@ -374,8 +410,10 @@ Held at the Workspace level because an evening outlives the Map it begins on.
 {"at":"2026-09-16T19:03:41Z","line":"comment","map":"maps/crypt/dungeon.png","text":"The party enters the crypt"}
 {"at":"2026-09-16T19:05:12Z","distanceSquares":3.2,"from":{"imagePixels":{…}},"label":"Thorin","line":"pawnMoved","map":"maps/crypt/dungeon.png","pawnID":"A…","to":{"imagePixels":{…}}}
 {"ability":"wisdom","at":"2026-09-16T19:09:30Z","d20":14,"difficultyClass":13,"label":"Thorin","line":"savingThrow","map":"maps/crypt/dungeon.png","modifier":1,"pawnID":"A…"}
+{"at":"2026-09-16T19:12:05Z","characterID":"C…","currentHP":{"from":12,"to":19},"label":"Durga","line":"characterChanged","map":"maps/crypt/dungeon.png","name":"Durga","pawnID":"D…"}
 {"at":"2026-09-16T20:15:00Z","line":"encounterStarted","logFile":"2026-09-16T201500Z.jsonl","map":"maps/crypt/dungeon.png"}
 {"at":"2026-09-16T20:41:10Z","line":"encounterEnded","map":"maps/crypt/dungeon.png"}
+{"at":"2026-09-16T23:05:00Z","characters":[{"characterID":"C…","currentHP":{"from":19,"to":48},"name":"Durga"},{"characterID":"E…","exhaustion":{"from":2,"to":1},"name":"Ayla"}],"line":"longRest","partyID":"P…","partyName":"Eroi"}
 {"endedAt":"2026-09-16T23:10:00Z","line":"sessionEnded"}
 ```
 
@@ -386,6 +424,8 @@ Held at the Workspace level because an evening outlives the Map it begins on.
 | `pawnMoved` | `pawnID`, `label`, `map?`, `from`, `to`, `distanceSquares`, `at` | A completed drag outside a fight. `label` is a snapshot so the line reads without the fog file. |
 | `savingThrow` | `pawnID`, `label`, `map?`, `ability`, `d20`, `modifier`, `difficultyClass?`, `at` | A Roll outside a fight; here `pawnID` *is* the subject. |
 | `abilityCheck` | `pawnID`, `label`, `map?`, `skill`, `d20`, `modifier`, `difficultyClass?`, `at` | As above, by Skill. |
+| `characterChanged` | `characterID`, `name`, `pawnID`, `label`, `map?`, `currentHP?`, `temporaryHP?`, `exhaustion?`, `at` | One edit outside a fight that moved a Character's shared numbers, made through one of its Pawns (ADR-0037). `name` and `label` are snapshots. Each number is `{"from", "to"}`, before and after, never a delta, and **present only when it moved**. `currentHP` is the hit points the Pawn showed — the note's maximum while at full — and its `from` or `to` is `null` for hit points never recorded (a note with no maximum), never 0: the one place this file writes `null`. A Creature's numbers changed outside a fight are not recorded. |
+| `longRest` | `partyID`, `partyName`, `characters[]`, `at` | One Long Rest of a Party. No `map`: it is taken in the roster. `partyName` is a snapshot. `characters` holds only the Characters it changed, in the Party's order, each with the keys a `characterChanged` gives a Character: `characterID`, `name`, and `currentHP`, `temporaryHP`, `exhaustion` only for what moved. |
 | `encounterStarted` | `map?`, `logFile`, `at` | **The pointer**: names the Combat Log (bare file name, inside `<map>.combat/`) that holds what happened next. The Session Log then falls silent. |
 | `encounterEnded` | `map?`, `at` | Recording resumes here. |
 | `sessionEnded` | `endedAt` | Closes the file. A file without one is an evening still running. |
@@ -431,15 +471,25 @@ any instant" (ADR-0014) is the rule every arrow below follows.
 ```
 Workspace opened ──► resume newest sessions/*.jsonl if it has no sessionEnded
                      read parties.json, preferences.json; every note → Bestiary
+                     (the notes land later; until then a Character linked to a note
+                      shares as if it were found)
 Map opened ────────► read <map>.fog.json, <map>.combat/stats.json
+                     a sharing Player Pawn's hit points and exhaustion: from parties.json
                      resume newest <map>.combat/*.jsonl if it has no encounterEnded
+                     — each Character that moved meanwhile: a Change in the resumed Turn
 
 Start Session ─────► sessions/T.jsonl        {sessionStarted}
   comment / move / roll ─────────────────────► appended to sessions/T.jsonl
+  edit a sharing Pawn's hit points / exhaustion ► parties.json rewritten
+                     sessions/T.jsonl         {characterChanged}
+  Long Rest ───────► parties.json rewritten
+                     sessions/T.jsonl         {longRest}
   Start Encounter ─► <map>.combat/U.jsonl     {encounterStarted, order, combatants}
                      sessions/T.jsonl         {encounterStarted, logFile: "U.jsonl"}  ← pointer
                      sessions/T.jsonl is now SILENT
     every Change ──► buffered in memory; stats.json follows the fold (debounced)
+                     a Player's shared number moved, by a Correction too: parties.json
+                     rewritten now; the Character's other Pawns in the fight follow, live
     End Turn ──────► <map>.combat/U.jsonl     {turn, changes[…]}          ← fsync
     move / roll ───► go into the Turn's changes, not the Session Log
     step back + edit ► <map>.combat/U.jsonl   {correction, targetRound…}  ← fsync
@@ -475,10 +525,10 @@ What follows from the shape:
 | File | Written when | How | On unreadable |
 |---|---|---|---|
 | `.fog.json` | every fog edit, 0.5 s debounce, last wins; flushed on Map switch, quit, Pawn add/remove | atomic replace, pretty | warned in UI; the next edit **replaces** it |
-| `stats.json` | prep edits (debounced); every fold during a fight; flushed on fight stop, Map switch, Monster stamp | atomic replace, pretty | reported, **writes refused** |
+| `stats.json` | prep edits (debounced); every fold during a fight; a sharing Pawn's copy whenever its Character's numbers move; flushed on fight stop, Map switch, Monster stamp, Edit Pawn OK that changes the Health Bar setting | atomic replace, pretty | reported, **writes refused** |
 | `<map>.combat/*.jsonl` | every Turn end, Correction, join/bench/reorder/re-roll, fight start/stop | append + fsync, one line | truncated tail dropped |
-| `sessions/*.jsonl` | every Comment, move, Roll, pointer, start/stop | append + fsync, one line | truncated tail dropped |
-| `parties.json` | every roster edit | atomic replace, pretty | reported, writes refused |
+| `sessions/*.jsonl` | every Comment, move, Roll, change to a Character's hit points or exhaustion outside a fight, Long Rest, pointer, start/stop | append + fsync, one line | truncated tail dropped |
+| `parties.json` | every roster edit; every move of a Character's shared numbers — an edit to one of its Pawns, every Change to one mid-fight, a Long Rest | atomic replace, pretty | reported, writes refused |
 | `preferences.json` | Party or display chosen | atomic replace, pretty | replaced by defaults |
 | `faces/*.png` | OK on a cut in the Edit Pawn sheet, Save on one in a Character's editor, a Monster's, an Item's or a Character's note picture first cut | atomic, once per cut, never rewritten; a failed write leaves the Pawn or Character the Face it had | the Pawn, or the Character in the roster, draws its colour |
 | `note-faces.json` | a Pawn first taking a Monster's or an Item's Face; a linked Character's note picture first cut, when the notes are read or the Character is saved; a note naming another picture | atomic replace, pretty; a failed write is logged, and the picture is cut again next launch | read as no cuts, replaced at the next |
@@ -487,7 +537,8 @@ What follows from the shape:
 
 Common to everything: UUIDs as strings, dates as ISO 8601 UTC, points as
 `{"imagePixels": {"x", "y"}}`, distances and radii in Grid squares, colours as `#RRGGBB`.
-Optional values are **omitted**, never `null`. A document with nothing in it deletes its file.
+Optional values are **omitted**, never `null` — save a `characterChanged` Line's hit points
+never recorded. A document with nothing in it deletes its file.
 A version number is stamped on write, not echoed from the read.
 
 ## What is never saved

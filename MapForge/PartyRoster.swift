@@ -69,6 +69,14 @@ enum PartyRoster {
         return book
     }
 
+    /// The Character `id` names, in whichever Party it belongs to — or nil, when none does.
+    /// Every Party rather than the active one, for `updateCharacter`'s reason.
+    static func character(id: UUID, in book: PartyBook) -> PartyCharacter? {
+        book.parties.lazy.compactMap { party in
+            party.characters.first { $0.id == id }
+        }.first
+    }
+
     /// Replaces a Character in place, keeping its position in the DM's order.
     ///
     /// Pawns already Stamped from it are deliberately not revisited: a Stamp is a copy taken

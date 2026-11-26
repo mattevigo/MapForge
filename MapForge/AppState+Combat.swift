@@ -14,8 +14,16 @@ extension AppState {
     ///
     /// Never optional at the call site: a Creature stamped and not yet given hit points is
     /// AC 10 with none, which the tracker flags rather than refuses.
+    ///
+    /// A Pawn that shares its Character's numbers (`sharedCharacter(of:)`) reads its current
+    /// and temporary hit points and its exhaustion from the Character, and the rest from its
+    /// own block (ADR-0037) — outside a fight. A Combatant's numbers are the Encounter's
+    /// (ADR-0008), and its own block follows the fold, so it is read as it stands.
     func statBlock(for pawn: Pawn.ID) -> StatBlock {
-        statsDocument.blocks[pawn] ?? StatBlock()
+        let own = statsDocument.blocks[pawn] ?? StatBlock()
+        guard encounter?.blocks[pawn] == nil, let shared = sharedCharacter(of: pawn)
+        else { return own }
+        return shared.character.sharedNumbers.laid(over: own, maxHP: shared.maxHP)
     }
 
     /// Writes a Pawn's numbers directly.
@@ -23,9 +31,25 @@ extension AppState {
     /// For prep, before any fight: there is no Log open then, so there is nothing to
     /// record into. **Not** the path for changing a number mid-Encounter — that is
     /// `recordChange`, and the difference is the whole of ADR-0008.
+    ///
+    /// A Pawn that shares its Character's numbers writes them to the Character, so every
+    /// other Pawn of it, on this Map and every other, shows them at once — and to its own
+    /// block too, which is what it keeps if the Character is deleted (ADR-0037). What it moved
+    /// of them is recorded in the Session Log, here, because this is the one door every such
+    /// edit comes through; a Creature's or a no-note Player's edit is not.
     func setStatBlock(_ block: StatBlock, for pawn: Pawn.ID) {
         statsDocument.blocks[pawn] = block
         statsAutosave.schedule(statsDocument)
+        guard encounter?.blocks[pawn] == nil, let shared = sharedCharacter(of: pawn) else { return }
+        // What the Pawn showed until now: the Character's numbers, as they stand before the
+        // share below moves them.
+        let shown = shared.character.sharedNumbers.shown(maxHP: shared.maxHP)
+        share(block, with: shared.character, maxHP: shared.maxHP)
+        if let moved = CharacterNumbersMoved(of: shared.character, from: shown,
+                                             to: SharedNumbers(of: block)),
+           let onMap = fog.pawns.first(where: { $0.id == pawn }) {
+            recordSessionCharacterChange(moved, through: onMap)
+        }
     }
 
     /// Edits a Pawn's numbers, whichever way is correct right now.
@@ -163,6 +187,41 @@ extension AppState {
         setStatBlock(block, for: pawn)
     }
 
+    // MARK: The Health Bar
+
+    /// A Pawn's Stat Block as it stands right now: the fight's copy while one runs, folded
+    /// from the Log, and the one beside the Map otherwise — `keepingHealthBarSetting` either
+    /// way. What a screen drawing a Health Bar reads.
+    func liveStatBlock(for pawn: Pawn.ID) -> StatBlock {
+        guard let folded = encounter?.blocks[pawn] else { return statBlock(for: pawn) }
+        return keepingHealthBarSetting(folded, for: pawn)
+    }
+
+    /// A block folded from the Combat Log, with whether the table sees its Health Bar taken
+    /// from beside the Map instead.
+    ///
+    /// The one place that owns this rule. The Log is authoritative over the numbers during a
+    /// fight (ADR-0008) but not over this setting: changing it is not a Change (ADR-0036), so
+    /// the Log holds only what it was when the Pawn joined, and a bar the DM withheld
+    /// mid-fight would come back the moment anything trusted the fight's copy of it.
+    private func keepingHealthBarSetting(_ folded: StatBlock, for pawn: Pawn.ID) -> StatBlock {
+        var block = folded
+        block.showsHealthBarToPlayers = statBlock(for: pawn).showsHealthBarToPlayers
+        return block
+    }
+
+    /// Shows or withholds one Pawn's Health Bar at the table, for good (ADR-0036).
+    ///
+    /// Straight to `stats.json`, never through the Log, during a fight as outside one: it is
+    /// not a Change — whether the table could see a bar is not something that happened in
+    /// the fight — so neither the Combat Log nor the Session Log hears of it.
+    func setShowsHealthBarToPlayers(_ shows: Bool, for pawn: Pawn.ID) {
+        var block = statBlock(for: pawn)
+        guard block.showsHealthBarToPlayers != shows else { return }
+        block.showsHealthBarToPlayers = shows
+        setStatBlock(block, for: pawn)
+    }
+
     /// Pawns on the Map that are not taking Turns: left off the roster, Benched during the
     /// fight, or Treasure. What the tracker lists under the Order.
     var notInCombat: Set<Pawn.ID> {
@@ -239,6 +298,16 @@ extension AppState {
         encounter = live
         // The Stat Blocks on disk follow the fold, so a fight's damage survives the
         // Encounter that did it — stopping is not a rest.
+        syncStatsFromEncounter(live)
+    }
+
+    /// Records one Change into the Turn in progress even while the correction cursor is on a
+    /// past one — what bringing a Combatant to its Character's numbers is
+    /// (`EncounterControl.recordInTheLiveTurn`).
+    private func recordChangeInTheLiveTurn(_ change: Change) {
+        guard var live = encounter else { return }
+        write(EncounterControl.recordInTheLiveTurn(change, in: &live))
+        encounter = live
         syncStatsFromEncounter(live)
     }
 
@@ -350,12 +419,17 @@ extension AppState {
     ///
     /// A Treasure that arrives already an Item takes the Item's Face here by the same rule.
     /// It has no numbers to stamp.
-    func addPawnToMap(_ pawn: Pawn) {
+    ///
+    /// `showingHealthBar` false places it with its Health Bar withheld from the table — what
+    /// `AddPlacement` passes on from the last of its Kind. After the stamp, which keeps it,
+    /// and before the join, so the fight's snapshot agrees.
+    func addPawnToMap(_ pawn: Pawn, showingHealthBar: Bool = true) {
         var pawn = pawn
         if let monster = bestiary.monster(named: pawn.monsterName),
            statsDocument.blocks[pawn.id] == nil {
             setStatBlock(MonsterStamp.statBlock(from: monster, over: StatBlock()), for: pawn.id)
         }
+        setShowsHealthBarToPlayers(showingHealthBar, for: pawn.id)
         // Fresh from the Monster or the Item, as its numbers are, never copied from a sibling.
         pawn.face = definitionFace(over: pawn.face, becoming: pawn.monsterName, or: pawn.itemName)
         fog.pawns.append(pawn)
@@ -446,6 +520,10 @@ extension AppState {
     /// fight still going, and folding it gives the Round, the Order and every hit point.
     /// A DM closing a laptop mid-fight is taking a break, and inventing an end line for
     /// them would put a lie in the Log.
+    ///
+    /// A break is also when the Characters can move: opening another Map is what pauses a
+    /// fight, and Durga can be healed on it. So the fight comes back agreeing with them
+    /// (`reconcileWithCharacters`) — after the fog, which says who shares, has been read.
     func resumeEncounter(forMapAt url: URL) {
         encounter = nil
         let reader = CombatLogReader()
@@ -456,6 +534,63 @@ extension AppState {
 
         encounter = Encounter(resuming: lines)
         logWriter = try? CombatLogWriter(reopening: newest)
+        reconcileWithCharacters()
+    }
+
+    /// Brings every sharing Combatant to its Character's numbers: for each, a Change from the
+    /// folded current hit points, temporary hit points or exhaustion to its Character's, for
+    /// each that differs. Nothing when none does.
+    ///
+    /// Asked whenever a Character's numbers can have moved from under the fight: when a fight
+    /// resumes, after whatever happened to its Players' Characters while it was paused; and
+    /// on every change to the roster (`partyBook`), which is how a hit on one of Durga's Pawns
+    /// reaches her other Pawn in the same fight, and an edit to one of her Pawns outside the
+    /// fight reaches her Pawns in it — two Pawns of one Character share one set of numbers.
+    ///
+    /// The Character wins (ADR-0037): letting the Log win would silently undo the DM's heal,
+    /// and refusing edits to a Character in a paused fight would block the DM over a fight
+    /// nobody was running. Recorded rather than overwritten, so the fold and the Character
+    /// agree and the Log says what happened. Always Changes in the live Turn, never
+    /// Corrections, even while the cursor is on a past Turn: the second Pawn moves now, not
+    /// Rounds ago (`EncounterControl.recordInTheLiveTurn`).
+    ///
+    /// Cannot recur past one step: each Change it records moves the fold, and the move is
+    /// shared (`shareFoldedNumbers`), but to the numbers the Character already has — which
+    /// changes nothing in the roster, and asks for nothing more.
+    func reconcileWithCharacters() {
+        guard let live = encounter else { return }
+        for (id, folded) in live.blocks.sorted(by: { $0.key.uuidString < $1.key.uuidString }) {
+            guard let shared = sharedCharacter(of: id) else { continue }
+            let theirs = shared.character.sharedNumbers.laid(over: folded, maxHP: shared.maxHP)
+            for change in Self.changes(for: id, from: folded, to: theirs) {
+                recordChangeInTheLiveTurn(change)
+            }
+        }
+    }
+
+    // MARK: The Characters a fight shares numbers with
+
+    /// Hands each sharing Combatant's current and temporary hit points and exhaustion to its
+    /// Character, wherever the fold moved them between `old` and `new` — a live Change, a
+    /// Correction, or a Change to someone else during another Combatant's Turn alike, since
+    /// all of them are a move of the fold (ADR-0037). The Log stays authoritative; the
+    /// Character follows it as it moves rather than when the fight stops, because a fight
+    /// can be paused instead, and every other Map would show Durga unhurt meanwhile.
+    ///
+    /// Only for a Combatant the fight already held: one joining brings its Character's
+    /// numbers in through the join snapshot, so there is nothing to hand back, and a fight
+    /// being resumed says what its Characters are only after `reconcileWithCharacters`. Never
+    /// anything else of the block: Conditions, concentration, armour class, maximum hit
+    /// points and initiative belong to the Pawn and the fight it is in.
+    func shareFoldedNumbers(from old: Encounter?, to new: Encounter?) {
+        guard let old, let new else { return }
+        let before = old.blocks
+        for (id, folded) in new.blocks {
+            guard let previous = before[id],
+                  SharedNumbers(of: previous) != SharedNumbers(of: folded),
+                  let shared = sharedCharacter(of: id) else { continue }
+            share(folded, with: shared.character, maxHP: shared.maxHP)
+        }
     }
 
     // MARK: Writing
@@ -479,9 +614,12 @@ extension AppState {
     /// Copies the folded Stat Blocks onto the ones that live beside the Map.
     ///
     /// The Log stays authoritative during a fight; this is what makes its result outlive
-    /// the fight, so next week's Encounter starts where this one left off.
+    /// the fight, so next week's Encounter starts where this one left off — the numbers, not
+    /// the Health Bar setting (`keepingHealthBarSetting`).
     private func syncStatsFromEncounter(_ live: Encounter) {
-        for (id, block) in live.blocks where statsDocument.blocks[id] != block {
+        for (id, folded) in live.blocks {
+            let block = keepingHealthBarSetting(folded, for: id)
+            guard statsDocument.blocks[id] != block else { continue }
             statsDocument.blocks[id] = block
         }
         statsAutosave.schedule(statsDocument)

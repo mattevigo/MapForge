@@ -65,7 +65,9 @@ final class WallEditorTests: XCTestCase {
         appState.beginFogEditing()
         let edits = FogEdits(document: appState.fog)
 
-        appState.setPawnLabel(id: pawn.id, "Goblin B")
+        var rename = EditPawnDraft(pawn: pawn)
+        rename.label = "Goblin B"
+        appState.updatePawn(id: pawn.id, with: rename)
         appState.setPawnLight(id: pawn.id, isOn: false)
         appState.setPawnHidden(id: pawn.id, isHidden: true)
         appState.cancelFogEditing(edits)

@@ -52,6 +52,18 @@ struct StatBlock: Codable, Equatable {
     /// different moments, rather than one control whose meaning changes.
     var isInCombat: Bool = true
 
+    /// Whether this Pawn's **Health Bar** reaches the Player Display (ADR-0036).
+    ///
+    /// The DM's way to withhold one bar for good — the mimic, the boss whose state is meant
+    /// to be a mystery — where the Live Toolbar's switch withholds every bar for the
+    /// evening. Kept here, beside the hit points it is about and out of the fog file, for
+    /// ADR-0009's reason. Defaults to true: the table is entitled to the impression, and
+    /// withholding it is the exception the DM chooses.
+    ///
+    /// Not a Change: whether the table could see a bar is not something that happened in
+    /// the fight, so neither Log records it.
+    var showsHealthBarToPlayers: Bool = true
+
     static let defaultArmorClass = 10
     static let maximumExhaustion = 6
 
@@ -69,7 +81,8 @@ struct StatBlock: Codable, Equatable {
          conditions: Set<Condition> = [],
          exhaustion: Int = 0,
          isConcentrating: Bool = false,
-         isInCombat: Bool = true) {
+         isInCombat: Bool = true,
+         showsHealthBarToPlayers: Bool = true) {
         self.initiativeBonus = initiativeBonus
         self.armorClass = armorClass
         self.currentHP = currentHP
@@ -79,6 +92,7 @@ struct StatBlock: Codable, Equatable {
         self.exhaustion = Self.clampExhaustion(exhaustion)
         self.isConcentrating = isConcentrating
         self.isInCombat = isInCombat
+        self.showsHealthBarToPlayers = showsHealthBarToPlayers
     }
 
     private static func clampExhaustion(_ level: Int) -> Int {
@@ -103,7 +117,11 @@ struct StatBlock: Codable, Equatable {
             isConcentrating: try container.decodeIfPresent(Bool.self, forKey: .isConcentrating) ?? false,
             // Absent in every file written before the roster existed, and every Pawn in one
             // of those was fighting — there was no way to say otherwise.
-            isInCombat: try container.decodeIfPresent(Bool.self, forKey: .isInCombat) ?? true
+            isInCombat: try container.decodeIfPresent(Bool.self, forKey: .isInCombat) ?? true,
+            // Absent in every file written before Health Bars existed, and none of those
+            // Pawns was withheld from the table — there was nothing to withhold.
+            showsHealthBarToPlayers: try container.decodeIfPresent(
+                Bool.self, forKey: .showsHealthBarToPlayers) ?? true
         )
     }
 }

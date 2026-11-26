@@ -332,3 +332,66 @@ final class AddPlacementItemTests: XCTestCase {
         XCTAssertNil(try add(.treasure, after: [first]).face)
     }
 }
+
+/// Whether a Pawn placed with `Add` shows its Health Bar to the table (ADR-0036).
+///
+/// Inherited per Kind, as the colour is: the second mimic starts withheld if the first one
+/// was. The flag lives on the Stat Block rather than the Pawn, so it is asked of the blocks.
+final class AddPlacementHealthBarTests: XCTestCase {
+    private func pawn(_ label: String, kind: PawnKind) -> Pawn {
+        Pawn(at: MapPoint(x: 10, y: 10), label: label, colorHex: "#2E7D32",
+             brightSquares: 6, kind: kind)
+    }
+
+    private func withheld(_ pawns: Pawn...) -> [UUID: StatBlock] {
+        Dictionary(uniqueKeysWithValues: pawns.map {
+            ($0.id, StatBlock(currentHP: 10, maxHP: 10, showsHealthBarToPlayers: false))
+        })
+    }
+
+    private func shows(_ kind: PawnKind, after existing: [Pawn],
+                       stats: [UUID: StatBlock]) -> Bool {
+        AddPlacement.showsHealthBarToPlayers(kind: kind, existing: existing, stats: stats)
+    }
+
+    func testAddAfterAWithheldCreaturePlacesAWithheldOne() {
+        let mimic = pawn("1", kind: .creature)
+
+        XCTAssertFalse(shows(.creature, after: [mimic], stats: withheld(mimic)))
+    }
+
+    func testAddAfterAShownCreaturePlacesAShownOne() {
+        let goblin = pawn("1", kind: .creature)
+
+        XCTAssertTrue(shows(.creature, after: [goblin],
+                            stats: [goblin.id: StatBlock(currentHP: 7, maxHP: 7)]))
+    }
+
+    func testTheFirstCreatureShowsItsBar() {
+        XCTAssertTrue(shows(.creature, after: [], stats: [:]))
+    }
+
+    /// A Pawn the DM never gave numbers to has never been withheld either.
+    func testAddAfterACreatureWithNoStatBlockPlacesAShownOne() {
+        XCTAssertTrue(shows(.creature, after: [pawn("1", kind: .creature)], stats: [:]))
+    }
+
+    /// A withheld boss must not make the next Player a mystery, nor a withheld Player the
+    /// next goblin.
+    func testPlayersAndCreaturesInheritFromTheirOwnKind() {
+        let boss = pawn("Boss", kind: .creature)
+        let vex = pawn("Vex", kind: .player)
+
+        XCTAssertTrue(shows(.player, after: [vex, boss], stats: withheld(boss)))
+        XCTAssertTrue(shows(.creature, after: [boss, vex], stats: withheld(vex)))
+        XCTAssertFalse(shows(.player, after: [vex, boss], stats: withheld(vex)))
+    }
+
+    /// The last mimic, not any mimic: the DM showed the second one's bar for a reason.
+    func testTheLastOfItsKindDecides() {
+        let first = pawn("1", kind: .creature)
+        let second = pawn("2", kind: .creature)
+
+        XCTAssertTrue(shows(.creature, after: [first, second], stats: withheld(first)))
+    }
+}

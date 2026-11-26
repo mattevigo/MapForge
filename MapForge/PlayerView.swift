@@ -64,6 +64,11 @@ struct PlayerView: View {
                     // it, and never when the DM has hidden it. Under Solo Sight the party
                     // draws by that same discovery rule, all but the isolated Pawn itself.
                     // See `PlayerVisibility`.
+                    //
+                    // Under each, its Health Bar when the table may see one — a separate
+                    // view beside the token, so the token is the one the DM's screen draws.
+                    // See `AppState.playerHealthBars` and ADR-0036.
+                    let healthBars = appState.playerHealthBars
                     ForEach(appState.fog.pawns.filter {
                         PlayerVisibility.showsToPlayers(pawn: $0, regions: regions,
                                                         isFogOverlayOn: appState.isFogOverlayOn,
@@ -73,6 +78,13 @@ struct PlayerView: View {
                         let p = PlayerPlacement.viewPoint(pawn.at, map: map, frame: frame)
                         PawnToken(pawn: pawn, squareSide: side, isForPlayers: true)
                             .position(x: p.x, y: p.y)
+                        if let bar = healthBars[pawn.id] {
+                            let strip = HealthBar.frame(below: p, squareSide: side,
+                                                        squaresAcross: pawn.squaresAcross)
+                            HealthBarStrip(bar: bar, style: .table)
+                                .frame(width: strip.width, height: strip.height)
+                                .position(x: strip.midX, y: strip.midY)
+                        }
                     }
 
                     // The table sees the Measurement, its distance included — the first

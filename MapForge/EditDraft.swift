@@ -12,18 +12,27 @@ import Foundation
 /// it, which is a live action of its own — and its Face. A Face cut here is a draft like the
 /// rest: only OK keeps the cut in the Workspace, so Cancel leaves no file behind.
 ///
-/// **No Stat Block field is here, and none may be added.** The numbers live in their own file
+/// **No Stat Block number is here, and none may be added.** The numbers live in their own file
 /// and have their own editor (ADR-0009); a hit point total half-typed into this sheet and
 /// then met by Cancel is where save semantics get murky. What *is* here is the Monster's
 /// name, and that is a narrower thing: naming a Monster makes OK perform one whole-value
 /// stamp (`MonsterStamp`, in `AppState.updatePawn`), which is an act rather than an edit. OK
 /// still commits everything the sheet shows and Cancel still commits nothing. See ADR-0021.
+///
+/// And whether the table sees the Pawn's **Health Bar**, which is kept in the Stat Block but
+/// is no number: it says nothing about the fight, only what the Player Display may draw of
+/// it, so it is a fact about the Pawn as the DM means it and sits with the rest of those. It
+/// is not a Change (ADR-0036), so OK writes it beside the Combat Log, never into it.
 struct EditPawnDraft: Equatable {
     var label: String
     var colorHex: String
     var kind: PawnKind
     var isBig: Bool
     var sightSquares: CGFloat
+    /// Whether the Player Display draws this Pawn's Health Bar. Offered only when
+    /// `offersHealthBar`, and written by OK only when the DM changed it — see
+    /// `healthBarToWrite`.
+    var showsHealthBarToPlayers: Bool
     /// The Monster this Creature is, by name. Set through `pick` and `clearMonster`, which
     /// keep the label and the size in step with it.
     private(set) var monsterName: String?
@@ -64,6 +73,9 @@ struct EditPawnDraft: Equatable {
     /// The label the last `pick` wrote, so a second pick can tell the app's label from one
     /// the DM typed over it.
     private var pickedLabel: String?
+    /// Whether the table saw the Pawn's Health Bar when the sheet opened — what decides
+    /// whether OK writes one.
+    private let openedShowingHealthBar: Bool
     /// The Face the Pawn had when the sheet opened, to give back if a Monster's or an Item's
     /// Face taken here stops being this Pawn's Monster's or Item's.
     private let openedWithFace: PawnFace?
@@ -71,8 +83,12 @@ struct EditPawnDraft: Equatable {
     /// while the Pawn still wears it — so picking another does not carry it onto that one.
     private var tookFaceFrom: FaceSource?
 
-    init(pawn: Pawn) {
+    /// `showsHealthBarToPlayers` is the Pawn's Stat Block's, which the Pawn does not carry.
+    /// True, the Stat Block's own default, is right for a Pawn that has none.
+    init(pawn: Pawn, showsHealthBarToPlayers: Bool = true) {
         pawnID = pawn.id
+        self.showsHealthBarToPlayers = showsHealthBarToPlayers
+        openedShowingHealthBar = showsHealthBarToPlayers
         label = pawn.label
         colorHex = pawn.colorHex
         kind = pawn.kind
@@ -240,6 +256,22 @@ struct EditPawnDraft: Equatable {
             face = FaceDraft(openedWithFace)
         }
         tookFaceFrom = nil
+    }
+
+    /// Whether the sheet offers the Health Bar's toggle: for a Pawn that carries a bar, which
+    /// a Treasure never does. Asked of the Kind in the sheet, so a Creature being made a
+    /// Treasure loses the toggle as it loses the Monster's search box.
+    var offersHealthBar: Bool { kind.carriesHealthBar }
+
+    /// The Health Bar's setting OK must write to the Stat Block, or nil when it must not.
+    ///
+    /// Only one the DM *changed*, as `monsterToStamp` is only a Monster that changed: OK on a
+    /// sheet opened to change a colour must not give a Pawn with no Stat Block one. Never for
+    /// a Treasure, whose toggle is not shown — a setting the DM cannot see is not one they
+    /// chose.
+    var healthBarToWrite: Bool? {
+        guard offersHealthBar, showsHealthBarToPlayers != openedShowingHealthBar else { return nil }
+        return showsHealthBarToPlayers
     }
 
     /// The Monster OK must stamp, or nil when it must not.

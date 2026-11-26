@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// What the Stat Block editor is pointed at, as a fight starts and stops.
+/// What the Stat Editor is pointed at, as a fight starts and stops. Applied by
+/// `AppState.encounter` as it becomes nil, to the pointer both tabs share.
 enum CombatSelectionPolicy {
     /// The selection that survives an Encounter ending.
     ///
@@ -14,6 +15,14 @@ enum CombatSelectionPolicy {
     /// Stopping a fight neither heals anyone nor clears their Conditions (`CONTEXT.md`,
     /// **Encounter**); this clears what is *pointed at*, not anything pointed to.
     static func afterEncounterEnds() -> Pawn.ID? { nil }
+
+    /// Whom the editor edits: the Pawn pointed at, or — during a fight, with nothing pointed
+    /// at — whoever's Turn it is. Outside a fight there is no Turn to fall back on, so
+    /// pointing at nothing edits nothing. One rule for the Scene tab's editor and the
+    /// Encounter tab's, so the two cannot disagree about whom they show.
+    static func subject(pointedAt pointer: Pawn.ID?, during encounter: Encounter?) -> Pawn.ID? {
+        pointer ?? encounter?.activeCombatantID
+    }
 }
 
 /// The Initiative Tracker: the Order of Combatants and the controls that drive a fight.
@@ -23,8 +32,11 @@ enum CombatSelectionPolicy {
 struct CombatPanel: View {
     @EnvironmentObject private var appState: AppState
 
-    /// Which row the Stat Block editor is pointed at. Independent of whose Turn it is: a DM
+    /// Which row the Stat Editor is pointed at. Independent of whose Turn it is: a DM
     /// edits the monster the party just hit, not the one acting.
+    ///
+    /// `AppState.statEditorPawn`, handed in: the Scene tab points the same editor at the
+    /// same Pawn, and the pointer is cleared there when a fight ends.
     @Binding var selection: Pawn.ID?
 
     /// Asks for the Roll sheet. A callback rather than a sheet of this panel's own: the
@@ -48,7 +60,8 @@ struct CombatPanel: View {
             // and the box they type a note into, always in the same place, so the hand goes
             // to them without looking. Edits reflect into the rows above because both read
             // the same folded state.
-            StatEditor(combatant: selection ?? appState.encounter?.activeCombatantID)
+            StatEditor(combatant: CombatSelectionPolicy.subject(pointedAt: selection,
+                                                                during: appState.encounter))
                 .padding(8)
         }
         // The whole height of the tab, fight or no fight, so the panel's ground does not end
@@ -57,13 +70,9 @@ struct CombatPanel: View {
         .background(Color(nsColor: .textBackgroundColor),
                     in: RoundedRectangle(cornerRadius: 6))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
-        // Watched here rather than cleared in `stopEncounter`, because the selection is this
-        // panel's and `AppState` does not know the editor exists. Covers every way a fight
-        // can end — the button, closing the Map, switching Workspace — since all of them
-        // arrive as `encounter` becoming nil.
-        .onChange(of: appState.encounter == nil) { _, ended in
-            if ended { selection = CombatSelectionPolicy.afterEncounterEnds() }
-        }
+        // No watch for the fight ending here: the selection is cleared by `AppState` as
+        // `encounter` becomes nil. Watched from this panel, a fight ended while the Scene
+        // tab was showing — this panel off screen — left the pointer behind.
     }
 
     // MARK: The header
@@ -214,7 +223,10 @@ struct CombatPanel: View {
     private func order(_ encounter: Encounter) -> some View {
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 2) {
+                // A hairline between rows: each Health Bar runs its row's width, and without
+                // one a column of bars reads as stripes rather than one bar per Combatant.
                 ForEach(encounter.order, id: \.self) { id in
+                    if id != encounter.order.first { Divider() }
                     row(encounter, id: id)
                 }
                 bench(encounter)
@@ -242,6 +254,7 @@ struct CombatPanel: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 6)
             ForEach(benched, id: \.self) { id in
+                if id != benched.first { Divider() }
                 benchRow(encounter, id: id)
             }
         }
@@ -262,7 +275,7 @@ struct CombatPanel: View {
     }
 
     private func benchRow(_ encounter: Encounter, id: Pawn.ID) -> some View {
-        let block = encounter.blocks[id] ?? appState.statBlock(for: id)
+        let block = appState.liveStatBlock(for: id)
         let kind = kind(of: id, in: encounter)
         return HStack(spacing: 6) {
             Button {
@@ -286,9 +299,10 @@ struct CombatPanel: View {
                 .lineLimit(1)
 
             Spacer(minLength: 0)
-            hitPoints(block)
+            hitPoints(block, kind: kind)
             conditions(block)
         }
+        .healthBarUnderRow(kind: kind, stats: block, areHealthBarsOn: appState.areHealthBarsOn)
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
         .foregroundStyle(.secondary)
@@ -302,7 +316,9 @@ struct CombatPanel: View {
     }
 
     private func row(_ encounter: Encounter, id: Pawn.ID) -> some View {
-        let block = encounter.blocks[id] ?? StatBlock()
+        // The fight's numbers, with the Health Bar's setting from beside the Map: the Log's
+        // copy of that is whatever it was when the Pawn joined (`liveStatBlock`).
+        let block = encounter.blocks[id] == nil ? StatBlock() : appState.liveStatBlock(for: id)
         let isActive = encounter.activeCombatantID == id && !encounter.isCorrecting
 
         return HStack(spacing: 6) {
@@ -312,7 +328,7 @@ struct CombatPanel: View {
             //
             // Edited in place. The players call their numbers out down this column as the
             // fight starts, and overtyping them here — Tab from one to the next — is the
-            // whole job; the Stat Block editor's "Init" is the *bonus*. Committed on Return
+            // whole job; the Stat Editor's "Init" is the *bonus*. Committed on Return
             // or on leaving the field; **Return also settles the Order**, animated so the
             // eye can follow the row to where its number puts it. Tab does not, so the
             // column can be typed top to bottom and settled once. Ties keep the order the
@@ -339,7 +355,7 @@ struct CombatPanel: View {
 
             Spacer(minLength: 0)
 
-            hitPoints(block)
+            hitPoints(block, kind: encounter.kind(of: id) ?? .creature)
             armourClass(block)
             conditions(block)
 
@@ -381,6 +397,10 @@ struct CombatPanel: View {
             .accessibilityIdentifier("bench")
             .help("Take out of the Order. Stays on the Map and can be put back.")
         }
+        // Inside the row's padding and its highlight, so the bar belongs to this Combatant
+        // and the active one's bar is on the active one's ground.
+        .healthBarUnderRow(kind: encounter.kind(of: id) ?? .creature, stats: block,
+                           areHealthBarsOn: appState.areHealthBarsOn)
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
         // Filled, not outlined: a DM reads this from across a table at a glance.
@@ -398,7 +418,7 @@ struct CombatPanel: View {
         .accessibilityLabel(Text(encounter.name(of: id) ?? "?"))
     }
 
-    /// One Pawn of the roster, before the fight — selectable, so the Stat Block editor
+    /// One Pawn of the roster, before the fight — selectable, so the Stat Editor
     /// below can be pointed at it.
     ///
     /// Prep is when a Stat Block most needs an editor and for a long time had none: the
@@ -417,8 +437,9 @@ struct CombatPanel: View {
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .help("Initiative bonus")
-            hitPoints(block)
+            hitPoints(block, kind: pawn.kind)
         }
+        .healthBarUnderRow(kind: pawn.kind, stats: block, areHealthBarsOn: appState.areHealthBarsOn)
         .font(.caption)
         .padding(.horizontal, 6)
         .padding(.vertical, 2)
@@ -452,28 +473,10 @@ struct CombatPanel: View {
         .help(kind.title)
     }
 
-    @ViewBuilder
-    private func hitPoints(_ block: StatBlock) -> some View {
-        if let current = block.currentHP, let max = block.maxHP {
-            HStack(spacing: 1) {
-                Text("\(current)")
-                    .foregroundStyle(current <= 0 ? Color.red : .primary)
-                if block.temporaryHP > 0 {
-                    Text("+\(block.temporaryHP)").foregroundStyle(Color.teal)
-                }
-                Text("/\(max)").foregroundStyle(.secondary)
-            }
-            .font(.caption)
-            .monospacedDigit()
-        } else {
-            // Flagged, never hidden: a forgotten Stat Block must not silently drop a
-            // monster from the fight.
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.caption)
-                .foregroundStyle(.orange)
-                .help("No hit points yet — fill them in below.")
-                .accessibilityIdentifier("incomplete-stat-block")
-        }
+    /// The numbers, and the ⚠️ when there are none — `HealthBarReadout`. The bar is the
+    /// row's, under all of it.
+    private func hitPoints(_ block: StatBlock, kind: PawnKind) -> some View {
+        HealthBarReadout(kind: kind, stats: block, areHealthBarsOn: appState.areHealthBarsOn)
     }
 
     private func armourClass(_ block: StatBlock) -> some View {
@@ -563,6 +566,7 @@ struct CombatPanel: View {
                 ScrollView(.vertical) {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(rostered) { pawn in
+                            if pawn.id != rostered.first?.id { Divider() }
                             rosterRow(pawn)
                         }
                     }

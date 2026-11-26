@@ -62,3 +62,9 @@ Character and the next Stamp, never a Pawn already on a Map.
 - **Derive sight from darkvision**: rejected, as above.
 - **Show the Character's page in the Combat tab**: not rejected, and built after this
   decision. How a Player Pawn finds that page is settled in ADR-0007's amendment.
+
+## Amended: what the evening does to a Character
+
+ADR-0037 gives a Character with a note numbers that are **not** read from it: its current and
+temporary hit points and its exhaustion level, kept by the app and shared by its Pawns. They
+are the evening's, not the definition's, and the note is never written.
