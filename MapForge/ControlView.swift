@@ -119,8 +119,6 @@ struct ControlView: View {
     /// wants one reader for the session's life can have one.
     @State private var logModel = LogViewModel()
 
-    /// Which row the Combat tab's Stat Block editor is pointed at.
-    @State private var selectedCombatant: Pawn.ID?
     /// The Scene tab's Pawn row being dragged to reorder, and the row it hovers over — so the
     /// line showing where it will land is drawn only where the drop will be taken
     /// (`PawnOrder.landing`). Set when the drag starts; SwiftUI says nothing when one is
@@ -2202,7 +2200,7 @@ struct ControlView: View {
     /// reads the Encounter and nothing else this window holds, which is the seam issue
     /// 04's Scene extraction turned out not to have.
     private var combatPanel: some View {
-        CombatPanel(selection: $selectedCombatant,
+        CombatPanel(selection: $appState.statEditorPawn,
                     onRoll: { pawn, kind in rolling = RollTarget(pawn: pawn, kind: kind) })
     }
 

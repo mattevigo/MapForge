@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// What the Stat Block editor is pointed at, as a fight starts and stops.
+/// What the Stat Block editor is pointed at, as a fight starts and stops. Applied by
+/// `AppState.encounter` as it becomes nil, to the pointer both tabs share.
 enum CombatSelectionPolicy {
     /// The selection that survives an Encounter ending.
     ///
@@ -25,6 +26,9 @@ struct CombatPanel: View {
 
     /// Which row the Stat Block editor is pointed at. Independent of whose Turn it is: a DM
     /// edits the monster the party just hit, not the one acting.
+    ///
+    /// `AppState.statEditorPawn`, handed in: the Scene tab points the same editor at the
+    /// same Pawn, and the pointer is cleared there when a fight ends.
     @Binding var selection: Pawn.ID?
 
     /// Asks for the Roll sheet. A callback rather than a sheet of this panel's own: the
@@ -48,7 +52,7 @@ struct CombatPanel: View {
             // and the box they type a note into, always in the same place, so the hand goes
             // to them without looking. Edits reflect into the rows above because both read
             // the same folded state.
-            StatEditor(combatant: selection ?? appState.encounter?.activeCombatantID)
+            StatEditor(combatant: appState.statEditorSubject)
                 .padding(8)
         }
         // The whole height of the tab, fight or no fight, so the panel's ground does not end
@@ -57,13 +61,9 @@ struct CombatPanel: View {
         .background(Color(nsColor: .textBackgroundColor),
                     in: RoundedRectangle(cornerRadius: 6))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(nsColor: .separatorColor)))
-        // Watched here rather than cleared in `stopEncounter`, because the selection is this
-        // panel's and `AppState` does not know the editor exists. Covers every way a fight
-        // can end — the button, closing the Map, switching Workspace — since all of them
-        // arrive as `encounter` becoming nil.
-        .onChange(of: appState.encounter == nil) { _, ended in
-            if ended { selection = CombatSelectionPolicy.afterEncounterEnds() }
-        }
+        // No watch for the fight ending here: the selection is cleared by `AppState` as
+        // `encounter` becomes nil. Watched from this panel, a fight ended while the Scene
+        // tab was showing — this panel off screen — left the pointer behind.
     }
 
     // MARK: The header
