@@ -124,6 +124,7 @@ official word, and listed so they stay one choice:
 | Bloodied (a Health Bar tier; the 2024 rules' term) | Sanguinante *(proposed)* | Blutend *(proposed)* | En sang *(proposed)* | Ensangrentado *(proposed)* | Sangrando *(proposed)* |
 | Round | Round (invariable) | Runde | Round | Asalto | Rodada |
 | Turn | Turno | Zug | Tour | Turno | Turno |
+| Long Rest | Riposo lungo | Lange Rast | Repos long | Descanso largo | Descanso longo *(proposed)* |
 | Encounter | Incontro | Begegnung | Rencontre | Encuentro | Encontro |
 | Creature | Creatura | Kreatur | Créature | Criatura | Criatura |
 | Monster | Mostro | Monster | Monstre | Monstruo | Monstro |
@@ -159,6 +160,13 @@ ability table's headings are in capitals, as every edition sets them; German's *
 French's *JS* abbreviate their word for Saving Throw. The Spanish edition ends every stat-block
 label with a colon (*CA:*, *Velocidad:*); the colon is layout, not the term, and is left out
 there as in every other language.
+
+Long Rest is the *Rules Glossary* entry of SRD 5.2.1 in each language, checked there: *Riposo
+lungo*, *Lange Rast*, *Repos long*, *Descanso largo*. Mid-sentence Italian and Spanish write it
+in lower case and German lowers only the adjective (*eine lange Rast*); French capitalises it
+throughout, as its book does (*terminer un Repos long*). pt-BR's is the 2014 *Livro do
+Jogador*'s well-known *descanso longo*, checked against neither book, so it is proposed and
+follows Portuguese sentence case.
 
 ### Encounter Difficulty
 
@@ -475,7 +483,7 @@ No book has these, so each is a choice. *Rejected* lists what was turned down an
 Only game *mechanics* stay in English — Conditions, Abilities, Skills, Saving Throw, Ability
 Check, Difficulty Class, Modifier, Initiative, AC, HP, Concentration, Round, Turn, Stat Block,
 Traits, Actions, Challenge Rating, level, Encounter Difficulty and its bands, XP, XP budget,
-the ability table's MOD and SAVE, Bloodied —
+the ability table's MOD and SAVE, Bloodied, Long Rest *(proposed)* —
 because that is what a Greek table says. Rulebook words that are also
 ordinary language are Greek: a Greek DM says *τέρας*, not "monster".
 
