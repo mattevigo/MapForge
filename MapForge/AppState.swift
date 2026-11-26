@@ -1673,13 +1673,16 @@ final class AppState: ObservableObject {
         cutNoteFaces()
     }
 
-    /// Edit a Character in place. Pawns already Stamped from it are deliberately untouched:
-    /// a Stamp is a copy taken at the drag, so renaming Thorin today, or giving him another
-    /// Face, leaves last week's map exactly as it was run.
+    /// Edit a Character in place. What a Stamp copied into its Pawns is deliberately left
+    /// alone: a Stamp is a copy taken at the drag, so renaming Thorin today, or giving him
+    /// another Face, leaves last week's map exactly as it was run.
     ///
-    /// Its shared numbers are the roster's, not the editor's: the editor edits what the
-    /// Character *is*, and the copy it was opened on would carry back the hit points it had
-    /// then, undoing any wound dealt since (ADR-0037).
+    /// Its hit points and exhaustion are the exception, because its Pawns share them rather
+    /// than copy them (ADR-0037). The editor never moves them — they are the roster's, not
+    /// the editor's: it edits what the Character *is*, and the copy it was opened on would
+    /// carry back the hit points it had then, undoing any wound dealt since. But linking it to
+    /// a note, or unlinking it, starts or stops that sharing, and its Pawns on the open Map
+    /// follow at once, a fight's Combatants included (`partyBook`).
     func updateCharacter(_ character: PartyCharacter, face: FaceDraft? = nil) {
         var edited = self.character(character, wearing: face)
         if let stored = self.character(id: character.id) {
