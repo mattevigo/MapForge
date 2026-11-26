@@ -110,7 +110,13 @@ final class AppState: ObservableObject {
     /// second copy of the state to drift — see `Encounter` and ADR-0008. Live state, like
     /// Solo Sight and Measurement: never part of `FogEdits`, never undone by the fog Undo
     /// button.
-    @Published var encounter: Encounter?
+    ///
+    /// Every move of its fold reaches the Characters its Players share numbers with, from
+    /// here rather than from each thing that records a Change, so a Correction and a Change
+    /// to someone else mid-Turn are not paths it can be forgotten on (ADR-0037).
+    @Published var encounter: Encounter? {
+        didSet { shareFoldedNumbers(from: oldValue, to: encounter) }
+    }
 
     /// Every Pawn's combat numbers on this Map, as they stand between fights.
     @Published var statsDocument = StatsDocument()
