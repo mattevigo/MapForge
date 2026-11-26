@@ -19184,6 +19184,53 @@
         }
       }
     },
+    "session-log.exhaustion-moved": {
+      "comment": "A Character's exhaustion level in the Session Log, before and after",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erschöpfung %1$lld → %2$lld"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "exhaustion %1$lld → %2$lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "exhaustion %1$lld → %2$lld"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "cansancio %1$lld → %2$lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Épuisement %1$lld → %2$lld"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "indebolimento %1$lld → %2$lld"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "exaustão %1$lld → %2$lld"
+          }
+        }
+      }
+    },
     "temp HP %lld → %lld": {
       "comment": "A Character's temporary hit points in the Session Log, before and after",
       "localizations": {
