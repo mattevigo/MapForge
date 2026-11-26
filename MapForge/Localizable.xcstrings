@@ -3299,6 +3299,9 @@
     "+%lld": {
       "shouldTranslate": false
     },
+    "+%lld temp → 0": {
+      "comment": "A Long Rest's line: temporary hit points it clears"
+    },
     "/": {
       "shouldTranslate": false
     },
@@ -5651,6 +5654,7 @@
         }
       }
     },
+    "Conditions are kept. A Long Rest can't be undone.": {},
     "Cone": {
       "localizations": {
         "de": {
@@ -5773,6 +5777,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Corrigindo a rodada %1$lld — %2$@"
+          }
+        }
+      }
+    },
+    "Correcting Round %lld, %@'s Turn — edit in the Encounter tab": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Correcting Round %1$lld, %2$@'s Turn — edit in the Encounter tab"
           }
         }
       }
@@ -9479,6 +9493,8 @@
         }
       }
     },
+    "Long Rest": {},
+    "Long Rest: every Character with a note regains its hit points, loses its temporary hit points and one level of exhaustion": {},
     "Low": {
       "comment": "An Encounter Difficulty band, as SRD 5.2.1 names it",
       "localizations": {
@@ -10924,6 +10940,9 @@
           }
         }
       }
+    },
+    "Nobody long-rests mid-fight.": {
+      "comment": "Why the Long Rest button is disabled while an Encounter runs"
     },
     "Nobody on the Map is in the next Encounter": {
       "localizations": {
@@ -15668,6 +15687,7 @@
         }
       }
     },
+    "Take a Long Rest?": {},
     "Take out of the Order. Stays on the Map and can be put back.": {
       "localizations": {
         "de": {
@@ -16068,6 +16088,9 @@
           }
         }
       }
+    },
+    "The party is already rested.": {
+      "comment": "Why the Long Rest button is disabled when it would change nobody"
     },
     "The table does not see this Health Bar: it is withheld in Edit Pawn.": {
       "localizations": {
@@ -18043,6 +18066,9 @@
           }
         }
       }
+    },
+    "exhaustion %lld → %lld": {
+      "comment": "A Long Rest's line: the exhaustion level it lowers"
     },
     "extends: “%@” names a Monster no note defines": {
       "localizations": {

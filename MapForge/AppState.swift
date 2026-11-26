@@ -110,7 +110,30 @@ final class AppState: ObservableObject {
     /// second copy of the state to drift — see `Encounter` and ADR-0008. Live state, like
     /// Solo Sight and Measurement: never part of `FogEdits`, never undone by the fog Undo
     /// button.
-    @Published var encounter: Encounter?
+    ///
+    /// Every move of its fold reaches the Characters its Players share numbers with, from
+    /// here rather than from each thing that records a Change, so a Correction and a Change
+    /// to someone else mid-Turn are not paths it can be forgotten on (ADR-0037).
+    @Published var encounter: Encounter? {
+        didSet {
+            shareFoldedNumbers(from: oldValue, to: encounter)
+            // Every way a fight ends — Stop, closing the Map, switching Workspace — arrives
+            // here as `encounter` becoming nil, whichever tab of the live panel is showing.
+            if encounter == nil, oldValue != nil {
+                statEditorPawn = CombatSelectionPolicy.afterEncounterEnds()
+            }
+        }
+    }
+
+    /// The Pawn the Stat Editor is pointed at: one pointer for the Scene tab and the
+    /// Encounter tab both, so switching tabs keeps the same Pawn in the editor.
+    ///
+    /// Here rather than in the Control Window's state because a fight ending clears it
+    /// (`CombatSelectionPolicy`), and the tab that watched for that was only on screen
+    /// while it was the tab showing — a fight stopped by closing the Map from the Scene tab
+    /// left the Encounter tab's editor pointing at the last Combatant. Unrelated to the
+    /// Map's `selection`, which is for moving. Never saved. See `statEditorSubject`.
+    @Published var statEditorPawn: Pawn.ID?
 
     /// Every Pawn's combat numbers on this Map, as they stand between fights.
     @Published var statsDocument = StatsDocument()
@@ -1640,6 +1663,25 @@ final class AppState: ObservableObject {
         partyBook = PartyRoster.updateCharacter(edited, in: partyBook)
         writeParties()
         cutNoteFaces()
+    }
+
+    /// Gives each of `characters` its shared numbers — current and temporary hit points and
+    /// exhaustion — in the roster, in one write, and leaves everything else about them as the
+    /// roster has it. What a Long Rest does to a Party (`takeLongRest()`); every Pawn sharing
+    /// them follows, on this Map at once and on the others when they open (ADR-0037).
+    func writeSharedNumbers(of characters: [PartyCharacter]) {
+        var book = partyBook
+        for character in characters {
+            guard var stored = book.parties.lazy.flatMap(\.characters)
+                .first(where: { $0.id == character.id }) else { continue }
+            stored.currentHP = character.currentHP
+            stored.temporaryHP = character.temporaryHP
+            stored.exhaustion = character.exhaustion
+            book = PartyRoster.updateCharacter(stored, in: book)
+        }
+        guard book != partyBook else { return }
+        partyBook = book
+        writeParties()
     }
 
     /// `character` with the Face its editor left, kept now if it was cut there.
