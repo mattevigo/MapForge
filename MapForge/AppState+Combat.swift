@@ -300,6 +300,16 @@ extension AppState {
         syncStatsFromEncounter(live)
     }
 
+    /// Records one Change into the Turn in progress even while the correction cursor is on a
+    /// past one — what bringing a Combatant to its Character's numbers is
+    /// (`EncounterControl.recordInTheLiveTurn`).
+    private func recordChangeInTheLiveTurn(_ change: Change) {
+        guard var live = encounter else { return }
+        write(EncounterControl.recordInTheLiveTurn(change, in: &live))
+        encounter = live
+        syncStatsFromEncounter(live)
+    }
+
     // MARK: The Map
 
     /// Records a completed drag.
@@ -526,23 +536,33 @@ extension AppState {
         reconcileWithCharacters()
     }
 
-    /// Records, in the Turn the fight resumes on, whatever happened to its Players'
-    /// Characters while it was paused: for each sharing Combatant, a Change from the folded
-    /// current hit points, temporary hit points or exhaustion to its Character's, for each
-    /// that differs. Nothing when none does.
+    /// Brings every sharing Combatant to its Character's numbers: for each, a Change from the
+    /// folded current hit points, temporary hit points or exhaustion to its Character's, for
+    /// each that differs. Nothing when none does.
+    ///
+    /// Asked whenever a Character's numbers can have moved from under the fight: when a fight
+    /// resumes, after whatever happened to its Players' Characters while it was paused; and
+    /// on every change to the roster (`partyBook`), which is how a hit on one of Durga's Pawns
+    /// reaches her other Pawn in the same fight, and an edit to one of her Pawns outside the
+    /// fight reaches her Pawns in it — two Pawns of one Character share one set of numbers.
     ///
     /// The Character wins (ADR-0037): letting the Log win would silently undo the DM's heal,
     /// and refusing edits to a Character in a paused fight would block the DM over a fight
     /// nobody was running. Recorded rather than overwritten, so the fold and the Character
-    /// agree and the Log says what happened. Ordinary Changes in the live Turn, never
-    /// Corrections: a fight resumes live, and the heal happened now, not in a past Turn.
-    private func reconcileWithCharacters() {
-        guard let resumed = encounter, !resumed.isCorrecting else { return }
-        for (id, folded) in resumed.blocks.sorted(by: { $0.key.uuidString < $1.key.uuidString }) {
+    /// agree and the Log says what happened. Always Changes in the live Turn, never
+    /// Corrections, even while the cursor is on a past Turn: the second Pawn moves now, not
+    /// Rounds ago (`EncounterControl.recordInTheLiveTurn`).
+    ///
+    /// Cannot recur past one step: each Change it records moves the fold, and the move is
+    /// shared (`shareFoldedNumbers`), but to the numbers the Character already has — which
+    /// changes nothing in the roster, and asks for nothing more.
+    func reconcileWithCharacters() {
+        guard let live = encounter else { return }
+        for (id, folded) in live.blocks.sorted(by: { $0.key.uuidString < $1.key.uuidString }) {
             guard let shared = sharedCharacter(of: id) else { continue }
             let theirs = shared.character.sharedNumbers(over: folded, maxHP: shared.note.maxHP)
             for change in Self.changes(for: id, from: folded, to: theirs) {
-                recordChange(change)
+                recordChangeInTheLiveTurn(change)
             }
         }
     }

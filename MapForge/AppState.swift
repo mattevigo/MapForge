@@ -195,10 +195,14 @@ final class AppState: ObservableObject {
     /// Written straight through on every edit rather than debounced: a roster changes when
     /// the DM types in it, which is nothing like drag-rate.
     ///
-    /// Every change reaches the open Map's sharing Pawns' own Stat Blocks, whatever made it —
-    /// a wound, a note linked, another Workspace's roster (ADR-0037).
+    /// Every change reaches the open Map's sharing Pawns, whatever made it — a wound, a note
+    /// linked, another Workspace's roster: the own Stat Blocks of those outside the fight,
+    /// and the folded numbers of those in it (`reconcileWithCharacters`, ADR-0037).
     @Published private(set) var partyBook = PartyBook() {
-        didSet { refreshSharedStatBlocks() }
+        didSet {
+            refreshSharedStatBlocks()
+            reconcileWithCharacters()
+        }
     }
 
     /// Every Monster read from the open Workspace's notes. Read when the Workspace opens and

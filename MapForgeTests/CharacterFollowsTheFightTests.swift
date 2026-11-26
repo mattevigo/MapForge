@@ -125,6 +125,66 @@ final class CharacterFollowsTheFightTests: XCTestCase {
         XCTAssertEqual(character.exhaustion, 1)
     }
 
+    // MARK: Two Pawns of one Character
+
+    func testAHitOnOnePawnInAFightBringsTheOtherPawnToTheCharactersNumbersInTheLiveTurn() throws {
+        let (app, durga) = makeAppStateWithDurga()
+        try openMap("cellar", in: app)
+        let first = try stamp(durga, in: app)
+        let second = try stamp(durga, in: app, at: CGPoint(x: 200, y: 80))
+        app.startEncounter()
+
+        app.editStatBlock(for: first.id) { $0.currentHP = 20 }   // hit for 28
+
+        let encounter = try XCTUnwrap(app.encounter)
+        XCTAssertEqual(encounter.blocks[second.id]?.currentHP, 20)
+        XCTAssertEqual(encounter.pendingChanges, [
+            .hpChanged(combatantID: first.id, from: 48, to: 20),
+            .hpChanged(combatantID: second.id, from: 48, to: 20),
+        ], "one follow-up, and no follow-up of the follow-up")
+        XCTAssertEqual(currentHP(of: durga, in: app), 20)
+    }
+
+    func testACorrectionToOnePawnBringsTheOtherPawnAlongInTheLiveTurn() throws {
+        let (app, durga) = makeAppStateWithDurga()
+        try openMap("cellar", in: app)
+        let first = try stamp(durga, in: app)
+        let second = try stamp(durga, in: app, at: CGPoint(x: 200, y: 80))
+        app.startEncounter()
+        app.editStatBlock(for: first.id) { $0.currentHP = 20 }   // hit for 28
+        app.endTurn()
+        XCTAssertEqual(app.encounter?.blocks[second.id]?.currentHP, 20, "precondition")
+
+        app.stepBackForCorrection()
+        app.editStatBlock(for: first.id) { $0.currentHP = 30 }   // it was only 18
+
+        let encounter = try XCTUnwrap(app.encounter)
+        XCTAssertTrue(encounter.isCorrecting, "precondition: still correcting")
+        XCTAssertEqual(encounter.blocks[first.id]?.currentHP, 30)
+        XCTAssertEqual(encounter.blocks[second.id]?.currentHP, 30)
+        XCTAssertEqual(encounter.pendingChanges,
+                       [.hpChanged(combatantID: second.id, from: 20, to: 30)],
+                       "the follow-up is what happens now, not a Correction to a past Turn")
+        XCTAssertEqual(currentHP(of: durga, in: app), 30)
+    }
+
+    func testAnEditToAPawnOutsideTheFightBringsHerPawnInItToTheSameNumbers() throws {
+        let (app, durga) = makeAppStateWithDurga()
+        try openMap("cellar", in: app)
+        let fighting = try stamp(durga, in: app)
+        let watching = try stamp(durga, in: app, at: CGPoint(x: 200, y: 80))
+        app.setInCombat(false, for: watching.id)
+        app.startEncounter()
+        XCTAssertNil(app.encounter?.blocks[watching.id], "precondition: a bystander")
+
+        app.editStatBlock(for: watching.id) { $0.currentHP = 31; $0.exhaustion = 1 }
+
+        let encounter = try XCTUnwrap(app.encounter)
+        XCTAssertEqual(encounter.blocks[fighting.id]?.currentHP, 31)
+        XCTAssertEqual(encounter.blocks[fighting.id]?.exhaustion, 1)
+        XCTAssertEqual(currentHP(of: durga, in: app), 31)
+    }
+
     // MARK: Joining and stopping
 
     func testAPawnJoiningAFightBringsItsCharactersNumbersIntoTheLog() throws {
