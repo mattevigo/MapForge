@@ -107,3 +107,11 @@ The blast radius is unchanged in kind. A Pawn whose Character is deleted, unlink
 note has gone loses a page of reference and nothing else. Its label, colour, sight and Stat
 Block are still its own, `<map>.fog.json` still reads without a roster, and nothing about
 drawing, lighting, discovery or persistence branches on the field.
+
+## Amended: a Character's hit points are shared
+
+ADR-0037 reverses the copy rule for three fields. A Player Pawn stamped from a Character with
+a note shares that Character's current and temporary hit points and its exhaustion through
+`characterID`, on every Map, instead of copying them at the Stamp. Everything else here
+stands: the fog file still reads without a roster, and a Pawn whose Character is deleted keeps
+the numbers it last showed.
