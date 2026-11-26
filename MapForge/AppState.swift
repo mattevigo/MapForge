@@ -110,8 +110,13 @@ final class AppState: ObservableObject {
     /// second copy of the state to drift — see `Encounter` and ADR-0008. Live state, like
     /// Solo Sight and Measurement: never part of `FogEdits`, never undone by the fog Undo
     /// button.
+    ///
+    /// Every move of its fold reaches the Characters its Players share numbers with, from
+    /// here rather than from each thing that records a Change, so a Correction and a Change
+    /// to someone else mid-Turn are not paths it can be forgotten on (ADR-0037).
     @Published var encounter: Encounter? {
         didSet {
+            shareFoldedNumbers(from: oldValue, to: encounter)
             // Every way a fight ends — Stop, closing the Map, switching Workspace — arrives
             // here as `encounter` becoming nil, whichever tab of the live panel is showing.
             if encounter == nil, oldValue != nil {
