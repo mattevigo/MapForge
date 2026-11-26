@@ -14282,6 +14282,9 @@
         }
       }
     },
+    "Shared by every Pawn of this Character, on every Map — Bloodied.": {},
+    "Shared by every Pawn of this Character, on every Map — Critical.": {},
+    "Shared by every Pawn of this Character, on every Map — Healthy.": {},
     "Show Health Bar to players": {
       "localizations": {
         "de": {

@@ -16,8 +16,8 @@ struct HealthBarReadout: View {
     let areHealthBarsOn: Bool
 
     var body: some View {
-        if let current = stats.currentHP, let max = stats.maxHP {
-            numbers(current: current, max: max)
+        if let numbers = HitPointNumbers(stats: stats) {
+            HitPointNumbersText(numbers: numbers)
                 .help(HealthBar(kind: kind, stats: stats)
                     .map { Self.tooltip(for: $0.tier,
                                         withholding: PlayerVisibility.healthBarWithholding(
@@ -29,21 +29,6 @@ struct HealthBarReadout: View {
                 .help("No hit points yet — fill them in below.")
                 .accessibilityIdentifier("incomplete-stat-block")
         }
-    }
-
-    /// `current+temp/max`, as the Encounter tab has always written it: current in red at 0
-    /// or below, temporary in the teal the bar's temporary segment is drawn in.
-    private func numbers(current: Int, max: Int) -> some View {
-        HStack(spacing: 1) {
-            Text("\(current)")
-                .foregroundStyle(current <= 0 ? Color.red : .primary)
-            if stats.temporaryHP > 0 {
-                Text("+\(stats.temporaryHP)").foregroundStyle(HealthBar.temporaryColor)
-            }
-            Text("/\(max)").foregroundStyle(.secondary)
-        }
-        .font(.caption)
-        .monospacedDigit()
     }
 
     /// What the table is being shown, in words — so the tier is never told by colour alone,
@@ -74,6 +59,28 @@ struct HealthBarReadout: View {
     }
 }
 
+/// `current+temp/max`, as the Encounter tab has always written it: current in red at 0 or
+/// below, temporary in the teal the bar's temporary segment is drawn in.
+///
+/// Its own view so the Party panel's Character rows write a Character's numbers with this
+/// one, and the roster and the Encounter tab cannot colour them differently.
+struct HitPointNumbersText: View {
+    let numbers: HitPointNumbers
+
+    var body: some View {
+        HStack(spacing: 1) {
+            Text(numbers.currentText)
+                .foregroundStyle(numbers.current <= 0 ? Color.red : .primary)
+            if let temporary = numbers.temporaryText {
+                Text(temporary).foregroundStyle(HealthBar.temporaryColor)
+            }
+            Text(numbers.maxText).foregroundStyle(.secondary)
+        }
+        .font(.caption)
+        .monospacedDigit()
+    }
+}
+
 /// The DM's exact Health Bar, drawn under a whole row of the Control Window's lists: the
 /// track runs the row's width less a margin each side, and the fill is current over maximum
 /// of that track — so a goblin at half reads as half the row, not half of "13/13" (ADR-0036).
@@ -83,6 +90,9 @@ struct HealthBarReadout: View {
 struct HealthBarRowBar: View {
     let bar: HealthBar
     let withholding: PlayerVisibility.HealthBarWithholding?
+    /// What pointing at it says, when not what the table is shown of a Pawn's bar — a
+    /// Character's row, whose bar no table sees (`CharacterHitPoints.tooltip`).
+    var tooltip: String? = nil
 
     /// Thicker than a hairline, so the tier's colour reads at a glance down the list, and
     /// thinner than a control, so it is never mistaken for a slider.
@@ -107,7 +117,7 @@ struct HealthBarRowBar: View {
             .frame(height: Self.height)
             .padding(.horizontal, Self.margin)
             .opacity(withholding == nil ? 1 : Self.withheldOpacity)
-            .help(HealthBarReadout.tooltip(for: bar.tier, withholding: withholding))
+            .help(tooltip ?? HealthBarReadout.tooltip(for: bar.tier, withholding: withholding))
             .accessibilityHidden(true)
     }
 }
@@ -117,13 +127,19 @@ extension View {
     /// carries none (a Treasure, or no hit points to be a fraction of), so its row is
     /// exactly as it was.
     func healthBarUnderRow(kind: PawnKind, stats: StatBlock, areHealthBarsOn: Bool) -> some View {
+        healthBarUnderRow(HealthBar(kind: kind, stats: stats).map {
+            HealthBarRowBar(bar: $0,
+                            withholding: PlayerVisibility.healthBarWithholding(
+                                stats: stats, areHealthBarsOn: areHealthBarsOn))
+        })
+    }
+
+    /// This row with `rowBar` across its foot, or exactly as it was with none. The one
+    /// layout every row's bar is drawn in — a Pawn's and a Character's alike.
+    func healthBarUnderRow(_ rowBar: HealthBarRowBar?) -> some View {
         VStack(alignment: .leading, spacing: HealthBarRowBar.gap) {
             self
-            if let bar = HealthBar(kind: kind, stats: stats) {
-                HealthBarRowBar(bar: bar,
-                                withholding: PlayerVisibility.healthBarWithholding(
-                                    stats: stats, areHealthBarsOn: areHealthBarsOn))
-            }
+            if let rowBar { rowBar }
         }
     }
 }

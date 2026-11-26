@@ -1336,6 +1336,18 @@ final class AppState: ObservableObject {
         bestiary != .reading && note(for: character) == nil
     }
 
+    /// What the roster shows of `character`'s hit points and exhaustion, or nil for a
+    /// Character with no note found, whose Pawns keep their own (ADR-0037).
+    ///
+    /// Read from the roster's copy of the Character rather than the one handed in, which a
+    /// view may have been drawn from before the last wound — the same reason a Stamp reads it.
+    /// Every change to it lands in `partyBook`, through whichever door it came: an edit to any
+    /// of its Pawns, a fight's Changes, a Long Rest.
+    func hitPoints(of character: PartyCharacter) -> CharacterHitPoints? {
+        CharacterHitPoints(character: self.character(id: character.id) ?? character,
+                           note: note(for: character))
+    }
+
     /// A Party drag landing on the Map: the pasteboard's payload, resolved and Stamped.
     ///
     /// The Map's `.dropDestination` calls this and nothing else. It is a method rather than
