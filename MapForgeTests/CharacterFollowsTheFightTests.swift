@@ -346,6 +346,29 @@ final class CharacterFollowsTheFightTests: XCTestCase {
         XCTAssertEqual(app.statBlock(for: pawn.id).currentHP, 30)
     }
 
+    // MARK: A Pawn that starts sharing
+
+    func testACombatantMadeAPlayerAgainInTheEditPawnSheetComesToItsCharactersNumbers() throws {
+        let (app, durga) = makeAppStateWithDurga()
+        try openMap("cellar", in: app)
+        let durgasOwn = try stamp(durga, in: app)
+        let impostor = try stamp(durga, in: app, at: CGPoint(x: 200, y: 80))
+        let index = try XCTUnwrap(app.fog.pawns.firstIndex { $0.id == impostor.id })
+        app.fog.pawns[index].kind = .creature
+        app.startEncounter()
+        app.editStatBlock(for: impostor.id) { $0.currentHP = 3 }
+        app.editStatBlock(for: durgasOwn.id) { $0.currentHP = 20 }
+
+        var draft = EditPawnDraft(pawn: app.fog.pawns[index])
+        draft.kind = .player
+        app.updatePawn(id: impostor.id, with: draft)
+
+        XCTAssertEqual(app.encounter?.blocks[impostor.id]?.currentHP, 20)
+        XCTAssertEqual(app.encounter?.pendingChanges.last,
+                       .hpChanged(combatantID: impostor.id, from: 3, to: 20))
+        XCTAssertEqual(currentHP(of: durga, in: app), 20)
+    }
+
     // MARK: What never reaches the Character
 
     func testAConditionOrConcentrationInAFightLeavesTheCharactersNumbersUntouched() throws {

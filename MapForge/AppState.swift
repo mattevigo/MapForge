@@ -973,6 +973,14 @@ final class AppState: ObservableObject {
         if fog.pawns[index].kind == .treasure {
             benchCombatant(id)
         }
+        // A Pawn made a Player again starts sharing its Character's numbers, as one whose
+        // Character's note lands does, and meets them as a resumed fight does: the Character
+        // wins (ADR-0037). This sheet is where a Pawn's Kind changes.
+        if fog.pawns[index].kind == .player {
+            refreshSharedStatBlocks()
+            reconcileWithCharacters()
+            flushPendingStatWrites()
+        }
         flushPendingFogWrites()
     }
 
