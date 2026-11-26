@@ -15,6 +15,14 @@ enum CombatSelectionPolicy {
     /// Stopping a fight neither heals anyone nor clears their Conditions (`CONTEXT.md`,
     /// **Encounter**); this clears what is *pointed at*, not anything pointed to.
     static func afterEncounterEnds() -> Pawn.ID? { nil }
+
+    /// Whom the editor edits: the Pawn pointed at, or — during a fight, with nothing pointed
+    /// at — whoever's Turn it is. Outside a fight there is no Turn to fall back on, so
+    /// pointing at nothing edits nothing. One rule for the Scene tab's editor and the
+    /// Encounter tab's, so the two cannot disagree about whom they show.
+    static func subject(pointedAt pointer: Pawn.ID?, during encounter: Encounter?) -> Pawn.ID? {
+        pointer ?? encounter?.activeCombatantID
+    }
 }
 
 /// The Initiative Tracker: the Order of Combatants and the controls that drive a fight.
@@ -52,7 +60,8 @@ struct CombatPanel: View {
             // and the box they type a note into, always in the same place, so the hand goes
             // to them without looking. Edits reflect into the rows above because both read
             // the same folded state.
-            StatEditor(combatant: appState.statEditorSubject)
+            StatEditor(combatant: CombatSelectionPolicy.subject(pointedAt: selection,
+                                                                during: appState.encounter))
                 .padding(8)
         }
         // The whole height of the tab, fight or no fight, so the panel's ground does not end
