@@ -5777,6 +5777,16 @@
         }
       }
     },
+    "Correcting Round %lld, %@'s Turn — edit in the Encounter tab": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Correcting Round %1$lld, %2$@'s Turn — edit in the Encounter tab"
+          }
+        }
+      }
+    },
     "Correction to Round %lld — %@": {
       "localizations": {
         "de": {

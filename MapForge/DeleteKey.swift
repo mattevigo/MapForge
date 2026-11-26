@@ -61,9 +61,8 @@ struct DeleteKeyModifier: ViewModifier {
             // by frame, and for the identical reason.
             guard let window = handler.window, event.window === window else { return event }
             // Never steal ⌫ from text being edited: if the first responder takes text
-            // input, the key belongs to it. The DM types into "Grid squares wide" and,
-            // since this feature, a Pawn's label in the live row — both on screen while a
-            // fog selection exists.
+            // input, the key belongs to it. The DM types into "Grid squares wide" and the
+            // Scene tab's Stat Editor — both on screen while a fog selection exists.
             //
             // Tested through `NSTextInputClient` and the window's field editor rather than
             // `NSText`/`NSTextView`: a SwiftUI `TextField` is neither, so those two classes

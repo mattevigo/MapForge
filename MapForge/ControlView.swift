@@ -119,8 +119,6 @@ struct ControlView: View {
     /// wants one reader for the session's life can have one.
     @State private var logModel = LogViewModel()
 
-    /// Which row the Combat tab's Stat Block editor is pointed at.
-    @State private var selectedCombatant: Pawn.ID?
     /// The Scene tab's Pawn row being dragged to reorder, and the row it hovers over — so the
     /// line showing where it will land is drawn only where the drop will be taken
     /// (`PawnOrder.landing`). Set when the drag starts; SwiftUI says nothing when one is
@@ -1705,23 +1703,22 @@ struct ControlView: View {
         }
     }
 
-    /// One Pawn in the live panel: its light toggle, and its label editable in place.
-    ///
-    /// Renaming lives here — beside the toggle, on the surface that is already the live
-    /// control surface — rather than on a double-click on the token in `PawnLayer`. That
-    /// layer owns the drag gesture, and gesture composition in this render layer has
-    /// produced four defects already; a competing double-click there is the risky option
-    /// for a marginal gain in directness.
-    ///
-    /// The write is `appState.setPawnLabel`, not `FogEdits`: a rename at the table is a
-    /// live action and is not undoable, exactly as moving a Pawn is not.
     /// A sight or a radius as the table speaks it, in the Distance Unit in force.
     private func distance(_ squares: CGFloat) -> String {
         appState.distanceUnit.format(squares: squares)
     }
 
+    /// One Pawn in the live panel: its light toggle, its label, and the switches for what
+    /// the table sees of it.
+    ///
+    /// Clicking the row anywhere outside its controls points the Stat Editor at the foot of
+    /// the tab at this Pawn (`AppState.statEditorPawn`) — the same pointer the Encounter
+    /// tab's rows set, so switching tabs keeps the same Pawn in the editor. The label is
+    /// text, not a field: a field filled the row's middle, which is where the click lands,
+    /// and renaming is the Edit Pawn sheet's, which has a label field of its own.
     private func pawnLiveRow(_ pawn: Pawn) -> some View {
-        HStack(spacing: 6) {
+        let isPointedAt = appState.statEditorPawn == pawn.id
+        return HStack(spacing: 6) {
             reorderHandle(pawn)
 
             // The token, not a switch: it is how the DM finds this row, since it carries
@@ -1735,8 +1732,8 @@ struct ControlView: View {
                 PawnToken(pawn: pawn, squareSide: 14, scalesWithFootprint: false)
             }
             .toggleStyle(.button)
-            // The button's own label is the Pawn's name, which the DM can rename in the
-            // very next field. The identifier is what a test should hold on to.
+            // The button's own label is the Pawn's name, which the very next text shows.
+            // The identifier is what a test should hold on to.
             .accessibilityIdentifier("pawn-light-toggle")
             .help(pawn.isDiscovered
                   // One sentence per kind rather than the kind's title spliced in: the article
@@ -1747,13 +1744,13 @@ struct ControlView: View {
                   : String(localized: "\(pawn.label): sight \(distance(pawn.light.brightSquares)). Click to douse."))
 
             // Fills the column rather than a fixed 72 pt: names like "Goblin B" need the
-            // room, and the panel has a known width to give them.
-            TextField("label", text: Binding(
-                get: { pawn.label },
-                set: { appState.setPawnLabel(id: pawn.id, $0) }
-            ))
-            .textFieldStyle(.roundedBorder)
-            .frame(minWidth: 0)
+            // room, and the panel has a known width to give them. The row's tap target for
+            // a test: a click on it is a click on the row.
+            Text(pawn.label)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("scene-pawn-row")
+                .accessibilityAddTraits(isPointedAt ? [.isButton, .isSelected] : .isButton)
 
             // Take it off the Player Display without deleting it. The eye is filled when
             // players can see it and slashed when they cannot, so the DM reads the state
@@ -1778,12 +1775,18 @@ struct ControlView: View {
         }
         // The Health Bar is the DM's only view of what the table is shown (ADR-0036), so it
         // takes the row's whole width to be read as a fraction, under everything in it. No
-        // numbers here: the Scene tab is for placing and lighting, and the Encounter tab is
-        // where the DM reads hit points. Read from the Encounter's blocks while a fight runs,
-        // as the Stat Block editor does, so the two tabs agree.
+        // numbers in the row: they are in the Stat Editor at the foot of the tab, for the
+        // one Pawn pointed at, and a column of them here would take the label's room. Read
+        // from the Encounter's blocks while a fight runs, as the Stat Editor does, so the
+        // bar follows an edit made below it.
         .healthBarUnderRow(kind: pawn.kind,
                            stats: appState.liveStatBlock(for: pawn.id),
                            areHealthBarsOn: appState.areHealthBarsOn)
+        // The Encounter tab's mark for the row pointed at. Drawn a little outside the row,
+        // which has no padding of its own to draw it in — taking some would narrow the label.
+        .overlay(RoundedRectangle(cornerRadius: 4)
+            .stroke(isPointedAt ? Color.accentColor : .clear)
+            .padding(-3))
         .overlay(alignment: pawnLanding(onto: pawn) == .before ? .top : .bottom) {
             if pawnLanding(onto: pawn) != nil {
                 // Midway into the gap between rows, where the dropped row will go.
@@ -1794,6 +1797,9 @@ struct ControlView: View {
             }
         }
         .contentShape(Rectangle())
+        // Under the row's controls, which take their own clicks first; the reorder grip's
+        // drag is a drag, not a click, so it still reorders.
+        .onTapGesture { appState.statEditorPawn = pawn.id }
         .dropDestination(for: PawnDragPayload.self) { payloads, _ in
             guard let moving = payloads.first?.pawnID,
                   PawnOrder.landing(moving, onto: pawn.id, in: appState.fog.pawns) != nil
@@ -1821,8 +1827,8 @@ struct ControlView: View {
 
     /// The grip a Pawn's row is dragged by to reorder it within its group (`PawnOrder`).
     ///
-    /// A grip of its own rather than the whole row: the row is the name field and buttons,
-    /// each of which takes the mouse first, and a drag that began as a text selection or a
+    /// A grip of its own rather than the whole row: the row's buttons each take the mouse
+    /// first, a click on the rest of it points the Stat Editor, and a drag that began on a
     /// toggle would be a guess. The list is the Map's order, so the tooltip says what the
     /// order also does: lower in the list is drawn on top.
     private func reorderHandle(_ pawn: Pawn) -> some View {
@@ -2143,7 +2149,7 @@ struct ControlView: View {
     ///
     /// Vertical and grouped, because the horizontal row this replaces did not survive
     /// contact with a real encounter: a party of four plus a room of goblins ran off the
-    /// right-hand edge, and each entry carries a token, a name field and two toggles, so
+    /// right-hand edge, and each entry carries a token, a name and a run of toggles, so
     /// they are wide. A vertical list gives every row the same shape, lets the names be
     /// read down a column, and turns "which goblin is 3" into a glance.
     ///
@@ -2151,9 +2157,16 @@ struct ControlView: View {
     /// party is who they are running the world *for*, the Creatures are what they run *at*
     /// them, and the Treasure is what the room is worth. Lights lead because they are the
     /// Map's own furniture rather than anyone's token.
+    ///
+    /// The Stat Editor stands at the foot, below the rows, as it does in the Encounter tab:
+    /// the same view, pointed by the same pointer, so the two tabs cannot drift apart. It
+    /// edits through `editStatBlock` like the other, so during a fight an edit here is a
+    /// Change in the Turn. While the Encounter is being corrected it stands down
+    /// (`SceneTabCorrectionLock`) — the correcting bar that says so is in the other tab.
     @ViewBuilder
     private var scenePanel: some View {
         if !appState.fog.lights.isEmpty || !appState.fog.pawns.isEmpty || showsParty {
+            VStack(spacing: 0) {
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 12) {
                     // First, above the Lights: it is the palette a session starts from, and
@@ -2173,7 +2186,7 @@ struct ControlView: View {
                     // One group per kind, driven by the enum rather than by a filter per
                     // group. Two hand-written filters only partition the array as long as
                     // nobody adds a third kind — which is exactly what happened — and a
-                    // Pawn missing from this panel is one the DM cannot hide or rename
+                    // Pawn missing from this panel is one the DM cannot hide or edit
                     // mid-fight.
                     ForEach(PawnKind.allCases, id: \.self) { kind in
                         let group = appState.fog.pawns.filter { $0.kind == kind }
@@ -2185,6 +2198,12 @@ struct ControlView: View {
                     }
                 }
                 .padding(10)
+            }
+            StatEditor(combatant: appState.statEditorSubject,
+                       correctingLine: SceneTabCorrectionLock.line(for: appState.encounter))
+                .padding(8)
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("scene-stat-editor")
             }
             .frame(width: Self.livePanelWidth)
             // `.controlBackgroundColor` is all but identical to the window's own, so the
@@ -2202,7 +2221,7 @@ struct ControlView: View {
     /// reads the Encounter and nothing else this window holds, which is the seam issue
     /// 04's Scene extraction turned out not to have.
     private var combatPanel: some View {
-        CombatPanel(selection: $selectedCombatant,
+        CombatPanel(selection: $appState.statEditorPawn,
                     onRoll: { pawn, kind in rolling = RollTarget(pawn: pawn, kind: kind) })
     }
 

@@ -115,8 +115,25 @@ final class AppState: ObservableObject {
     /// here rather than from each thing that records a Change, so a Correction and a Change
     /// to someone else mid-Turn are not paths it can be forgotten on (ADR-0037).
     @Published var encounter: Encounter? {
-        didSet { shareFoldedNumbers(from: oldValue, to: encounter) }
+        didSet {
+            shareFoldedNumbers(from: oldValue, to: encounter)
+            // Every way a fight ends — Stop, closing the Map, switching Workspace — arrives
+            // here as `encounter` becoming nil, whichever tab of the live panel is showing.
+            if encounter == nil, oldValue != nil {
+                statEditorPawn = CombatSelectionPolicy.afterEncounterEnds()
+            }
+        }
     }
+
+    /// The Pawn the Stat Editor is pointed at: one pointer for the Scene tab and the
+    /// Encounter tab both, so switching tabs keeps the same Pawn in the editor.
+    ///
+    /// Here rather than in the Control Window's state because a fight ending clears it
+    /// (`CombatSelectionPolicy`), and the tab that watched for that was only on screen
+    /// while it was the tab showing — a fight stopped by closing the Map from the Scene tab
+    /// left the Encounter tab's editor pointing at the last Combatant. Unrelated to the
+    /// Map's `selection`, which is for moving. Never saved. See `statEditorSubject`.
+    @Published var statEditorPawn: Pawn.ID?
 
     /// Every Pawn's combat numbers on this Map, as they stand between fights.
     @Published var statsDocument = StatsDocument()
