@@ -75,6 +75,26 @@ enum SessionControl {
                               skill: skill, roll: roll, at: date)]
     }
 
+    /// An edit through a Pawn that moved its Character's shared numbers. Silent during a
+    /// fight, where the Combat Log records the same edit as Changes — and records, too, what
+    /// a fight resumed after a pause finds its Characters became meanwhile (ADR-0037).
+    static func characterChanged(_ numbers: CharacterNumbersMoved, pawnID: UUID, label: String,
+                                 map: String?, at date: Date,
+                                 in session: inout Session) -> [SessionLine] {
+        guard !session.isRecordingSuspended else { return [] }
+        return [.characterChanged(numbers, pawnID: pawnID, label: label, map: map, at: date)]
+    }
+
+    /// A Long Rest, with the Characters it changed. Nothing when it changed nobody — a rest
+    /// that moved nothing did not happen to anyone. Silent during a fight, as everything is:
+    /// one paused on another Map records the rest as Changes when it resumes (ADR-0037).
+    static func longRest(partyID: UUID, partyName: String, characters: [CharacterNumbersMoved],
+                         at date: Date, in session: inout Session) -> [SessionLine] {
+        guard !session.isRecordingSuspended, !characters.isEmpty else { return [] }
+        return [.longRest(partyID: partyID, partyName: partyName, characters: characters,
+                          at: date)]
+    }
+
     /// Hands recording over to the Combat Log.
     ///
     /// The pointer line is written *even though* this call sets the flag: it is what makes
@@ -126,7 +146,8 @@ enum SessionFold {
                 session?.suspendRecording()
             case .encounterEnded:
                 session?.resumeRecording()
-            case .comment, .pawnMoved, .savingThrow, .abilityCheck, .unrecognised:
+            case .comment, .pawnMoved, .savingThrow, .abilityCheck, .characterChanged,
+                 .longRest, .unrecognised:
                 // Records, not state. An unrecognised line must never end the evening.
                 break
             }

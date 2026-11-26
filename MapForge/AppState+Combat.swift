@@ -34,12 +34,20 @@ extension AppState {
     ///
     /// A Pawn that shares its Character's numbers writes them to the Character, so every
     /// other Pawn of it, on this Map and every other, shows them at once — and to its own
-    /// block too, which is what it keeps if the Character is deleted (ADR-0037).
+    /// block too, which is what it keeps if the Character is deleted (ADR-0037). What it moved
+    /// of them is recorded in the Session Log, here, because this is the one door every such
+    /// edit comes through; a Creature's or a no-note Player's edit is not.
     func setStatBlock(_ block: StatBlock, for pawn: Pawn.ID) {
         statsDocument.blocks[pawn] = block
         statsAutosave.schedule(statsDocument)
-        if encounter?.blocks[pawn] == nil, let shared = sharedCharacter(of: pawn) {
-            share(block, with: shared.character, note: shared.note)
+        guard encounter?.blocks[pawn] == nil, let shared = sharedCharacter(of: pawn) else { return }
+        // What the Pawn showed until now: the Character's numbers, as they stand before the
+        // share below moves them.
+        let shown = shared.character.sharedNumbers(over: block, maxHP: shared.note.maxHP)
+        share(block, with: shared.character, note: shared.note)
+        if let moved = CharacterNumbersMoved(of: shared.character, from: shown, to: block),
+           let onMap = fog.pawns.first(where: { $0.id == pawn }) {
+            recordSessionCharacterChange(moved, through: onMap)
         }
     }
 

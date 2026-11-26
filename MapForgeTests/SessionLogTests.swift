@@ -249,4 +249,82 @@ final class SessionLogTests: XCTestCase {
         XCTAssertEqual(json["d20"] as? Int, 16)
         XCTAssertNil(json["succeeded"], "the verdict is derived and must never be written")
     }
+
+    // MARK: A Character's numbers, and a Long Rest
+
+    private let durgaID = UUID()
+    private let aylaID = UUID()
+
+    func testACharactersNumbersChangingRoundTrips() throws {
+        try roundTrip(.characterChanged(
+            CharacterNumbersMoved(characterID: durgaID, name: "Durga",
+                                  currentHP: Moved(from: 12, to: 19),
+                                  exhaustion: Moved(from: 2, to: 1)),
+            pawnID: UUID(), label: "Durga", map: "town/street.png", at: when))
+    }
+
+    func testACharacterWhoseNoteGivesNoMaximumRoundTripsItsUnsetHitPoints() throws {
+        // A note with no maximum shows "—", never 0, and the Line keeps the difference.
+        try roundTrip(.characterChanged(
+            CharacterNumbersMoved(characterID: durgaID, name: "Durga",
+                                  currentHP: Moved(from: nil, to: 7)),
+            pawnID: UUID(), label: "Durga", map: nil, at: when))
+    }
+
+    func testALongRestRoundTrips() throws {
+        try roundTrip(.longRest(
+            partyID: UUID(), partyName: "Eroi",
+            characters: [
+                CharacterNumbersMoved(characterID: durgaID, name: "Durga",
+                                      currentHP: Moved(from: 19, to: 48),
+                                      temporaryHP: Moved(from: 5, to: 0)),
+                CharacterNumbersMoved(characterID: aylaID, name: "Ayla",
+                                      exhaustion: Moved(from: 2, to: 1)),
+            ],
+            at: when))
+    }
+
+    /// The keys a DM Realm import reads: chosen once, and documented on `SessionLine`.
+    func testACharactersNumbersChangingIsWrittenFlatWithOnlyTheNumbersThatMoved() throws {
+        let pawn = UUID()
+        let line = SessionLine.characterChanged(
+            CharacterNumbersMoved(characterID: durgaID, name: "Durga",
+                                  currentHP: Moved(from: 12, to: 19)),
+            pawnID: pawn, label: "Durga (2)", map: "town/street.png", at: when)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: try SessionLogFile.encoder().encode(line)) as? [String: Any])
+
+        XCTAssertEqual(json["line"] as? String, "characterChanged")
+        XCTAssertEqual(json["characterID"] as? String, durgaID.uuidString)
+        XCTAssertEqual(json["name"] as? String, "Durga")
+        XCTAssertEqual(json["pawnID"] as? String, pawn.uuidString)
+        XCTAssertEqual(json["label"] as? String, "Durga (2)")
+        XCTAssertEqual(json["map"] as? String, "town/street.png")
+        XCTAssertEqual(json["currentHP"] as? [String: Int], ["from": 12, "to": 19])
+        XCTAssertNil(json["temporaryHP"], "a number that did not move is not written")
+        XCTAssertNil(json["exhaustion"], "a number that did not move is not written")
+        XCTAssertNotNil(json["at"])
+    }
+
+    func testALongRestNamesItsPartyAndNoMap() throws {
+        let party = UUID()
+        let line = SessionLine.longRest(
+            partyID: party, partyName: "Eroi",
+            characters: [CharacterNumbersMoved(characterID: aylaID, name: "Ayla",
+                                               exhaustion: Moved(from: 2, to: 1))],
+            at: when)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: try SessionLogFile.encoder().encode(line)) as? [String: Any])
+
+        XCTAssertEqual(json["line"] as? String, "longRest")
+        XCTAssertEqual(json["partyID"] as? String, party.uuidString)
+        XCTAssertEqual(json["partyName"] as? String, "Eroi")
+        XCTAssertNil(json["map"], "a rest is not tied to one Map")
+        let characters = try XCTUnwrap(json["characters"] as? [[String: Any]])
+        XCTAssertEqual(characters.count, 1)
+        XCTAssertEqual(characters.first?["characterID"] as? String, aylaID.uuidString)
+        XCTAssertEqual(characters.first?["name"] as? String, "Ayla")
+        XCTAssertEqual(characters.first?["exhaustion"] as? [String: Int], ["from": 2, "to": 1])
+        XCTAssertNil(characters.first?["currentHP"], "a number that did not move is not written")
+    }
 }

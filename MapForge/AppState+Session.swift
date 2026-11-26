@@ -126,6 +126,28 @@ extension AppState {
         session = live
     }
 
+    /// Records an edit through `pawn` that moved its Character's shared numbers — what
+    /// `setStatBlock` does for every Pawn sharing them, so no caller can skip it (ADR-0037).
+    /// Whether this writes anything is `SessionControl`'s decision, not this call site's.
+    func recordSessionCharacterChange(_ numbers: CharacterNumbersMoved, through pawn: Pawn) {
+        guard var live = session else { return }
+        writeSession(SessionControl.characterChanged(numbers, pawnID: pawn.id, label: pawn.label,
+                                                     map: sessionMapName,
+                                                     at: Date(), in: &live))
+        session = live
+    }
+
+    /// Records a Long Rest granted to `party`, with what it moved of each Character it
+    /// changed. Called from `takeLongRest`, the one way a rest is taken. No Map: a rest is
+    /// taken in the roster, not on any Map.
+    func recordSessionLongRest(of party: Party, _ characters: [CharacterNumbersMoved]) {
+        guard var live = session else { return }
+        writeSession(SessionControl.longRest(partyID: party.id, partyName: party.name,
+                                             characters: characters,
+                                             at: Date(), in: &live))
+        session = live
+    }
+
     // MARK: The hand-off
 
     /// Hands recording to the Combat Log and writes the pointer naming it.
