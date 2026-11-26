@@ -491,3 +491,90 @@ final class LogViewModelTests: XCTestCase {
                        "the finished fight comes off disk, the live one out of memory")
     }
 }
+
+/// A Character's numbers changed outside a fight, and a Long Rest: Session Lines, read in
+/// the words the Combat Log's own hit point rows use, before → after (ADR-0037).
+final class CharacterLogRowTests: XCTestCase {
+    private var directory: URL!
+    private var workspace: Workspace!
+    private let durga = UUID()
+    private let ayla = UUID()
+
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        directory = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("CharacterLogRowTests.\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        workspace = Workspace(url: directory)
+    }
+
+    override func tearDownWithError() throws {
+        try? FileManager.default.removeItem(at: directory)
+        try super.tearDownWithError()
+    }
+
+    /// The Log View's rows for `lines`, in the words they show.
+    private func texts(_ lines: [SessionLine]) throws -> [String] {
+        let url = directory.appendingPathComponent("session.jsonl")
+        let encoder = SessionLogFile.encoder()
+        var data = Data()
+        for line in lines {
+            data.append(try encoder.encode(line))
+            data.append(0x0A)
+        }
+        try data.write(to: url)
+        let rows = LogViewModel().rows(sessionLogAt: url, workspace: workspace)
+        XCTAssertTrue(rows.allSatisfy { $0.indent == 0 }, "a Session Line sits at the top level")
+        return rows.map { LogRowText.describe($0, unit: .metres) }
+    }
+
+    func testACharactersHitPointsChangingReadsBeforeAndAfter() throws {
+        let rows = try texts([
+            .characterChanged(CharacterNumbersMoved(characterID: durga, name: "Durga",
+                                                    currentHP: Moved(from: 12, to: 19)),
+                              pawnID: UUID(), label: "Durga", map: "street.png", at: Date()),
+        ])
+        XCTAssertEqual(rows, ["Durga — HP 12 → 19"])
+    }
+
+    func testEveryNumberOneGestureMovedReadsOnTheOneRow() throws {
+        let rows = try texts([
+            .characterChanged(CharacterNumbersMoved(characterID: durga, name: "Durga",
+                                                    currentHP: Moved(from: nil, to: 5),
+                                                    temporaryHP: Moved(from: 0, to: 4),
+                                                    exhaustion: Moved(from: 0, to: 1)),
+                              pawnID: UUID(), label: "Durga", map: "street.png", at: Date()),
+        ])
+        XCTAssertEqual(rows, ["Durga — HP — → 5, temp HP 0 → 4, exhaustion 0 → 1"])
+    }
+
+    func testACharactersChangeOnAnotherMapDrawsASeparator() throws {
+        let rows = try texts([
+            .comment(text: "in the crypt", map: "crypt.png", pawnID: nil, at: Date()),
+            .characterChanged(CharacterNumbersMoved(characterID: durga, name: "Durga",
+                                                    exhaustion: Moved(from: 2, to: 3)),
+                              pawnID: UUID(), label: "Durga", map: "town/street.png", at: Date()),
+        ])
+        XCTAssertEqual(rows, ["in the crypt", "street.png", "Durga — exhaustion 2 → 3"])
+    }
+
+    func testALongRestReadsEachCharacterItChanged() throws {
+        let rows = try texts([
+            .comment(text: "at the inn", map: "inn.png", pawnID: nil, at: Date()),
+            .longRest(partyID: UUID(), partyName: "Eroi", characters: [
+                CharacterNumbersMoved(characterID: durga, name: "Durga",
+                                      currentHP: Moved(from: 19, to: 48),
+                                      temporaryHP: Moved(from: 5, to: 0)),
+                CharacterNumbersMoved(characterID: ayla, name: "Ayla",
+                                      exhaustion: Moved(from: 2, to: 1)),
+            ], at: Date()),
+            .comment(text: "morning", map: "inn.png", pawnID: nil, at: Date()),
+        ])
+        // No separator either side: a rest names no Map, so it changes none.
+        XCTAssertEqual(rows, [
+            "at the inn",
+            "Long Rest — Durga HP 19 → 48, temp HP 5 → 0; Ayla exhaustion 2 → 1",
+            "morning",
+        ])
+    }
+}

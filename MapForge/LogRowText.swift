@@ -131,6 +131,13 @@ enum LogRowText {
             String(localized: "\(label) — \(ability.abbreviation) save \(describe(roll))")
         case let .abilityCheck(label, skill, roll, _):
             String(localized: "\(label) — \(skill.title) (\(skill.ability.abbreviation)) \(describe(roll))")
+        case let .characterChanged(numbers, _):
+            // The Combat Log's own words for the same three numbers, so a wound reads alike
+            // on either side of an Encounter's splice.
+            String(localized: "\(numbers.name) — \(describeNumbers(of: numbers))")
+        case let .longRest(characters, _):
+            String(localized: "Long Rest — \(describeRest(of: characters))",
+                   comment: "A Long Rest in the Session Log: each Character it changed, with what moved")
         case let .mapSeparator(path):
             (path as NSString).lastPathComponent
         case let .encounterStarted(map, isLive):
@@ -157,6 +164,32 @@ enum LogRowText {
         case .unreadableLine:
             String(localized: "A line this version cannot read")
         }
+    }
+
+    /// What moved of one Character's numbers — "HP 12 → 19, exhaustion 2 → 1" — in the order
+    /// the Stat Editor shows them.
+    private static func describeNumbers(of numbers: CharacterNumbersMoved) -> String {
+        var parts: [String] = []
+        if let hp = numbers.currentHP {
+            parts.append(String(localized: "HP \(number(hp.from)) → \(number(hp.to))",
+                                comment: "A Character's current hit points, before and after"))
+        }
+        if let temp = numbers.temporaryHP {
+            parts.append(String(localized: "temp HP \(temp.from) → \(temp.to)",
+                                comment: "A Character's temporary hit points, before and after"))
+        }
+        if let exhaustion = numbers.exhaustion {
+            // The Long Rest confirmation's own words, so one translation serves both.
+            parts.append(String(localized: "exhaustion \(exhaustion.from) → \(exhaustion.to)",
+                                comment: "A Long Rest's line: the exhaustion level it lowers"))
+        }
+        return parts.joined(separator: ", ")
+    }
+
+    /// Each Character a Long Rest changed — "Durga HP 19 → 48; Ayla exhaustion 2 → 1". A
+    /// semicolon between Characters, because a comma already separates one's numbers.
+    private static func describeRest(of characters: [CharacterNumbersMoved]) -> String {
+        characters.map { "\($0.name) \(describeNumbers(of: $0))" }.joined(separator: "; ")
     }
 
     private static func mapName(_ map: String?) -> String {

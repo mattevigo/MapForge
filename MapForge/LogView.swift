@@ -251,7 +251,8 @@ struct LogRowView: View {
         switch row {
         case let .sessionStarted(at), let .sessionEnded(at),
              let .comment(_, at), let .pawnMoved(_, _, at),
-             let .savingThrow(_, _, _, at), let .abilityCheck(_, _, _, at):
+             let .savingThrow(_, _, _, at), let .abilityCheck(_, _, _, at),
+             let .characterChanged(_, at), let .longRest(_, at):
             LogRowText.time(at)
         default:
             nil

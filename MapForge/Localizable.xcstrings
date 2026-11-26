@@ -8206,6 +8206,9 @@
         }
       }
     },
+    "HP %@ → %@": {
+      "comment": "A Character's current hit points in the Session Log, before and after"
+    },
     "Heal": {
       "localizations": {
         "de": {
@@ -9495,6 +9498,9 @@
     },
     "Long Rest": {},
     "Long Rest: every Character with a note regains its hit points, loses its temporary hit points and one level of exhaustion": {},
+    "Long Rest — %@": {
+      "comment": "A Long Rest in the Session Log: each Character it changed, with what moved"
+    },
     "Low": {
       "comment": "An Encounter Difficulty band, as SRD 5.2.1 names it",
       "localizations": {
@@ -18637,6 +18643,9 @@
           }
         }
       }
+    },
+    "temp HP %lld → %lld": {
+      "comment": "A Character's temporary hit points in the Session Log, before and after"
     },
     "the Character has no note": {
       "comment": "Why a Player is not counted: its Character was never linked to a note",
