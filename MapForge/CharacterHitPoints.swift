@@ -27,16 +27,37 @@ struct CharacterHitPoints: Equatable {
         exhaustion = block.exhaustion > 0 ? Exhaustion(level: block.exhaustion) : nil
     }
 
+    /// What the row's bar and numbers say when pointed at: the tier, in words, so it is never
+    /// told by colour alone, and that every Pawn of the Character shows these same numbers.
+    ///
+    /// Nothing about the table, unlike a Pawn's row (`HealthBarReadout.tooltip`): whether the
+    /// table sees a bar is each Pawn's own switch, and a Character has none — it is never on
+    /// a Map. One sentence per tier, the tier after the dash, as `HealthBarReadout` writes it
+    /// (ADR-0022).
+    static func tooltip(for tier: HealthBar.Tier) -> String {
+        switch tier {
+        case .healthy:
+            return String(localized: "Shared by every Pawn of this Character, on every Map — Healthy.")
+        case .bloodied:
+            return String(localized: "Shared by every Pawn of this Character, on every Map — Bloodied.")
+        case .critical:
+            return String(localized: "Shared by every Pawn of this Character, on every Map — Critical.")
+        }
+    }
+
     /// The short marker the Encounter tab writes beside a Combatant's Conditions, and the
     /// tooltip that names the level, so the level is never told by a glyph alone.
     struct Exhaustion: Equatable {
         let level: Int
-        var marker: String { "E\(level)" }
+        /// The Encounter tab's own string, so each language's initial for exhaustion is the
+        /// same in both places.
+        var marker: String { String(localized: "E\(level)") }
         var tooltip: String { String(localized: "Exhaustion \(level)") }
     }
 }
 
 /// A Stat Block's hit points as the DM reads them on the Control Window: `current+temp/max`.
+/// Drawn by `HitPointNumbersText`, in the Encounter tab's rows and the Party panel's alike.
 struct HitPointNumbers: Equatable {
     let current: Int
     let temporary: Int

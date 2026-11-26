@@ -46,6 +46,17 @@ final class CharacterHitPointsTests: XCTestCase {
         XCTAssertEqual(shown.numbers?.text, "48/48")
     }
 
+    /// The bar's tooltip names its tier, so it is never told by colour alone — and says
+    /// nothing of what the table sees: that is each Pawn's own switch, not the Character's.
+    func testTheBarsTooltipNamesItsTierAndNotTheTable() throws {
+        XCTAssertEqual(CharacterHitPoints.tooltip(for: .healthy),
+                       "Shared by every Pawn of this Character, on every Map — Healthy.")
+        XCTAssertEqual(CharacterHitPoints.tooltip(for: .bloodied),
+                       "Shared by every Pawn of this Character, on every Map — Bloodied.")
+        XCTAssertEqual(CharacterHitPoints.tooltip(for: .critical),
+                       "Shared by every Pawn of this Character, on every Map — Critical.")
+    }
+
     func testExhaustionShowsItsMarker() throws {
         let shown = try XCTUnwrap(CharacterHitPoints(character: durga(currentHP: 24, exhaustion: 2),
                                                      note: durgaNote))
