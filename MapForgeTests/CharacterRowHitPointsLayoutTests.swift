@@ -17,8 +17,9 @@ final class CharacterRowHitPointsLayoutTests: XCTestCase {
         -> CharacterHitPoints {
         try XCTUnwrap(CharacterHitPoints(
             character: PartyCharacter(name: "Durga", noteName: "Durga Pietraferma",
-                                      currentHP: currentHP, temporaryHP: temporaryHP,
-                                      exhaustion: exhaustion),
+                                      sharedNumbers: SharedNumbers(currentHP: currentHP,
+                                                                   temporaryHP: temporaryHP,
+                                                                   exhaustion: exhaustion)),
             note: durgaNote))
     }
 

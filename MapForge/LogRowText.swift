@@ -179,9 +179,12 @@ enum LogRowText {
                                 comment: "A Character's temporary hit points, before and after"))
         }
         if let exhaustion = numbers.exhaustion {
-            // The Long Rest confirmation's own words, so one translation serves both.
-            parts.append(String(localized: "exhaustion \(exhaustion.from) → \(exhaustion.to)",
-                                comment: "A Long Rest's line: the exhaustion level it lowers"))
+            // A key of its own rather than the Long Rest confirmation's identical English: that
+            // one always lowers by one, and this one moves either way, through an edit as
+            // well as a rest, so a translator is told each truthfully.
+            parts.append(String(localized: "session-log.exhaustion-moved",
+                                defaultValue: "exhaustion \(exhaustion.from) → \(exhaustion.to)",
+                                comment: "A Character's exhaustion level in the Session Log, before and after"))
         }
         return parts.joined(separator: ", ")
     }

@@ -71,7 +71,7 @@ final class CharacterFollowsTheFightTests: XCTestCase {
     }
 
     private func currentHP(of character: PartyCharacter, in app: AppState) -> Int? {
-        app.character(id: character.id)?.currentHP
+        app.character(id: character.id)?.sharedNumbers.currentHP
     }
 
     // MARK: The Character follows the fold
@@ -121,8 +121,68 @@ final class CharacterFollowsTheFightTests: XCTestCase {
         app.editStatBlock(for: pawn.id) { $0.temporaryHP = 8; $0.exhaustion = 1 }
 
         let character = try XCTUnwrap(app.character(id: durga.id))
-        XCTAssertEqual(character.temporaryHP, 8)
-        XCTAssertEqual(character.exhaustion, 1)
+        XCTAssertEqual(character.sharedNumbers.temporaryHP, 8)
+        XCTAssertEqual(character.sharedNumbers.exhaustion, 1)
+    }
+
+    // MARK: Two Pawns of one Character
+
+    func testAHitOnOnePawnInAFightBringsTheOtherPawnToTheCharactersNumbersInTheLiveTurn() throws {
+        let (app, durga) = makeAppStateWithDurga()
+        try openMap("cellar", in: app)
+        let first = try stamp(durga, in: app)
+        let second = try stamp(durga, in: app, at: CGPoint(x: 200, y: 80))
+        app.startEncounter()
+
+        app.editStatBlock(for: first.id) { $0.currentHP = 20 }   // hit for 28
+
+        let encounter = try XCTUnwrap(app.encounter)
+        XCTAssertEqual(encounter.blocks[second.id]?.currentHP, 20)
+        XCTAssertEqual(encounter.pendingChanges, [
+            .hpChanged(combatantID: first.id, from: 48, to: 20),
+            .hpChanged(combatantID: second.id, from: 48, to: 20),
+        ], "one follow-up, and no follow-up of the follow-up")
+        XCTAssertEqual(currentHP(of: durga, in: app), 20)
+    }
+
+    func testACorrectionToOnePawnBringsTheOtherPawnAlongInTheLiveTurn() throws {
+        let (app, durga) = makeAppStateWithDurga()
+        try openMap("cellar", in: app)
+        let first = try stamp(durga, in: app)
+        let second = try stamp(durga, in: app, at: CGPoint(x: 200, y: 80))
+        app.startEncounter()
+        app.editStatBlock(for: first.id) { $0.currentHP = 20 }   // hit for 28
+        app.endTurn()
+        XCTAssertEqual(app.encounter?.blocks[second.id]?.currentHP, 20, "precondition")
+
+        app.stepBackForCorrection()
+        app.editStatBlock(for: first.id) { $0.currentHP = 30 }   // it was only 18
+
+        let encounter = try XCTUnwrap(app.encounter)
+        XCTAssertTrue(encounter.isCorrecting, "precondition: still correcting")
+        XCTAssertEqual(encounter.blocks[first.id]?.currentHP, 30)
+        XCTAssertEqual(encounter.blocks[second.id]?.currentHP, 30)
+        XCTAssertEqual(encounter.pendingChanges,
+                       [.hpChanged(combatantID: second.id, from: 20, to: 30)],
+                       "the follow-up is what happens now, not a Correction to a past Turn")
+        XCTAssertEqual(currentHP(of: durga, in: app), 30)
+    }
+
+    func testAnEditToAPawnOutsideTheFightBringsHerPawnInItToTheSameNumbers() throws {
+        let (app, durga) = makeAppStateWithDurga()
+        try openMap("cellar", in: app)
+        let fighting = try stamp(durga, in: app)
+        let watching = try stamp(durga, in: app, at: CGPoint(x: 200, y: 80))
+        app.setInCombat(false, for: watching.id)
+        app.startEncounter()
+        XCTAssertNil(app.encounter?.blocks[watching.id], "precondition: a bystander")
+
+        app.editStatBlock(for: watching.id) { $0.currentHP = 31; $0.exhaustion = 1 }
+
+        let encounter = try XCTUnwrap(app.encounter)
+        XCTAssertEqual(encounter.blocks[fighting.id]?.currentHP, 31)
+        XCTAssertEqual(encounter.blocks[fighting.id]?.exhaustion, 1)
+        XCTAssertEqual(currentHP(of: durga, in: app), 31)
     }
 
     // MARK: Joining and stopping
@@ -214,6 +274,101 @@ final class CharacterFollowsTheFightTests: XCTestCase {
         XCTAssertEqual(currentHP(of: durga, in: app), 20)
     }
 
+    // MARK: While the notes are being read
+
+    /// The Workspace's notes being read again, as when it opens: none of them found yet.
+    private func startReadingTheNotes(in app: AppState) {
+        app.bestiary = .reading
+        app.characterNotes = CharacterNotes()
+    }
+
+    /// The read landing, in the order `readBestiary` lands it.
+    private func landTheNotes(in app: AppState) {
+        app.bestiary = Bestiary()
+        app.characterNotes = CharacterNotes(notes: [durgaNote])
+    }
+
+    func testAFightResumedWhileTheNotesAreReadStillMeetsTheHealMadeWhileItWasPaused() throws {
+        let (app, durga, inTheCellar) = try pauseAFightWithDurgaAt20()
+        let onTheStreet = try stamp(durga, in: app)
+        app.editStatBlock(for: onTheStreet.id) { $0.currentHP = 48 }
+        startReadingTheNotes(in: app)
+
+        try openMap("cellar", in: app)
+        landTheNotes(in: app)
+
+        let encounter = try XCTUnwrap(app.encounter, "the fight did not resume")
+        XCTAssertEqual(encounter.blocks[inTheCellar.id]?.currentHP, 48)
+        XCTAssertEqual(encounter.pendingChanges,
+                       [.hpChanged(combatantID: inTheCellar.id, from: 20, to: 48)])
+        app.editStatBlock(for: inTheCellar.id) { $0.currentHP = 40 }
+        XCTAssertEqual(currentHP(of: durga, in: app), 40, "the heal was not undone")
+    }
+
+    func testAHitInAResumedFightWhileTheNotesAreReadIsKeptWhenTheyLand() throws {
+        let (app, durga, inTheCellar) = try pauseAFightWithDurgaAt20()
+        startReadingTheNotes(in: app)
+        try openMap("cellar", in: app)
+
+        app.editStatBlock(for: inTheCellar.id) { $0.currentHP = 9 }   // hit for 11
+        landTheNotes(in: app)
+
+        XCTAssertEqual(app.encounter?.blocks[inTheCellar.id]?.currentHP, 9)
+        XCTAssertEqual(currentHP(of: durga, in: app), 9)
+    }
+
+    func testAnEditOutsideAFightWhileTheNotesAreReadIsKeptWhenTheyLand() throws {
+        let (app, durga) = makeAppStateWithDurga()
+        try openMap("street", in: app)
+        let pawn = try stamp(durga, in: app)
+        startReadingTheNotes(in: app)
+        try openMap("street", in: app)
+
+        app.editStatBlock(for: pawn.id) { $0.currentHP = 30; $0.exhaustion = 2 }
+        landTheNotes(in: app)
+
+        let shown = app.statBlock(for: pawn.id)
+        XCTAssertEqual([shown.currentHP, shown.maxHP, shown.exhaustion], [30, 48, 2])
+        XCTAssertEqual(currentHP(of: durga, in: app), 30)
+        XCTAssertEqual(app.character(id: durga.id)?.sharedNumbers.exhaustion, 2)
+    }
+
+    func testAPawnWhoseNoteIsNotFoundWhenTheNotesLandKeepsTheEditMadeWhileTheyWereRead() throws {
+        let (app, durga) = makeAppStateWithDurga()
+        try openMap("street", in: app)
+        let pawn = try stamp(durga, in: app)
+        startReadingTheNotes(in: app)
+
+        app.editStatBlock(for: pawn.id) { $0.currentHP = 30 }
+        app.bestiary = Bestiary()
+        app.characterNotes = CharacterNotes()   // her note has left the notes
+
+        XCTAssertEqual(app.statBlock(for: pawn.id).currentHP, 30)
+    }
+
+    // MARK: A Pawn that starts sharing
+
+    func testACombatantMadeAPlayerAgainInTheEditPawnSheetComesToItsCharactersNumbers() throws {
+        let (app, durga) = makeAppStateWithDurga()
+        try openMap("cellar", in: app)
+        let durgasOwn = try stamp(durga, in: app)
+        let impostor = try stamp(durga, in: app, at: CGPoint(x: 200, y: 80))
+        let index = try XCTUnwrap(app.fog.pawns.firstIndex { $0.id == impostor.id })
+        app.fog.pawns[index].kind = .creature
+        app.startEncounter()
+        app.editStatBlock(for: impostor.id) { $0.currentHP = 3 }
+        app.editStatBlock(for: durgasOwn.id) { $0.currentHP = 20 }
+
+        var draft = EditPawnDraft(pawn: app.fog.pawns[index])
+        draft.kind = .player
+        app.updatePawn(id: impostor.id, with: draft)
+
+        XCTAssertEqual(app.encounter?.blocks[impostor.id]?.currentHP, 20)
+        XCTAssertEqual(app.encounter?.pendingChanges.last,
+                       .hpChanged(combatantID: impostor.id, from: 3, to: 20))
+        XCTAssertEqual(currentHP(of: durga, in: app), 20)
+    }
+
     // MARK: What never reaches the Character
 
     func testAConditionOrConcentrationInAFightLeavesTheCharactersNumbersUntouched() throws {
@@ -246,7 +401,7 @@ final class CharacterFollowsTheFightTests: XCTestCase {
 
         XCTAssertEqual(app.encounter?.blocks[impostor.id]?.currentHP, 3, "precondition")
         let character = try XCTUnwrap(app.character(id: durga.id))
-        XCTAssertNil(character.currentHP)
-        XCTAssertEqual(character.exhaustion, 0)
+        XCTAssertNil(character.sharedNumbers.currentHP)
+        XCTAssertEqual(character.sharedNumbers.exhaustion, 0)
     }
 }

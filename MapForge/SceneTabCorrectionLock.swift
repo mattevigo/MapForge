@@ -5,10 +5,10 @@ import Foundation
 /// While the Encounter's correction cursor is on a past Turn, an edit becomes a Correction
 /// against that Turn (ADR-0010). The Encounter tab makes the mode impossible to miss with its
 /// correcting bar; the Scene tab has no bar and the DM there is placing and lighting, so an
-/// edit typed into its editor would amend Round 2 without the DM having seen that it would.
-/// The editor is disabled instead, with one line naming the Turn and pointing at the tab
-/// that shows it. The Encounter tab's editor is not locked — that is where correcting is
-/// done.
+/// edit typed into its editor would become a Correction to Round 2 without the DM having
+/// seen that it would. The editor is disabled instead, with one line naming the Turn and
+/// pointing at the tab that shows it. The Encounter tab's editor is not locked — that is
+/// where correcting is done.
 enum SceneTabCorrectionLock {
     /// The line naming the Turn being corrected, or nil while there is nothing to correct —
     /// no fight, or the cursor on the live Turn — and the editor is open.

@@ -191,6 +191,21 @@ enum EncounterControl {
         return [line]
     }
 
+    /// Records a Change into the Turn in progress, wherever the correction cursor is.
+    ///
+    /// For a Change that happens *now* whatever Turn the DM is looking at: a Pawn brought to
+    /// its Character's numbers because another Pawn of it was hit, or corrected, or because
+    /// the Character was healed on another Map (ADR-0037). Filed against the Turn under the
+    /// cursor, it would say the second Pawn was hurt Rounds ago, by a blow nobody dealt it.
+    /// Buffered like any live Change, so it is written when the live Turn ends.
+    @discardableResult
+    static func recordInTheLiveTurn(_ change: Change, in encounter: inout Encounter) -> [LogLine] {
+        var changes = [change]
+        changes.append(contentsOf: consequences(of: change, in: encounter))
+        for change in changes { encounter.buffer(change) }
+        return []
+    }
+
     /// Adds a Combatant mid-fight — a summon, or a Character stamped while the fight runs.
     @discardableResult
     static func join<G: RandomNumberGenerator>(_ entrant: Entrant,

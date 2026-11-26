@@ -107,7 +107,7 @@ final class LongRestAppStateTests: XCTestCase {
 
         XCTAssertEqual(hitPoints(of: inTheCellar, in: app), [12, 48])
         let stored = try XCTUnwrap(app.character(id: durga.id))
-        XCTAssertEqual([stored.currentHP, stored.exhaustion], [12, 2])
+        XCTAssertEqual([stored.sharedNumbers.currentHP, stored.sharedNumbers.exhaustion], [12, 2])
     }
 
     func testAFightPausedOnAnotherMapDoesNotRefuseALongRest() throws {
@@ -124,7 +124,7 @@ final class LongRestAppStateTests: XCTestCase {
         XCTAssertNotNil(app.takeLongRest())
 
         let stored = try XCTUnwrap(app.character(id: durga.id))
-        XCTAssertEqual(stored.sharedNumbers(over: StatBlock(), maxHP: 48).currentHP, 48)
+        XCTAssertEqual(stored.sharedNumbers.shown(maxHP: 48).currentHP, 48)
     }
 
     // MARK: Only the active Party
@@ -137,14 +137,14 @@ final class LongRestAppStateTests: XCTestCase {
         app.editStatBlock(for: inTheCellar.id) { $0.currentHP = 12 }
         app.addParty(named: "Altri")
         let thorin = PartyCharacter(name: "Thorin", noteName: "Durga Pietraferma",
-                                    currentHP: 5, exhaustion: 3)
+                                    sharedNumbers: SharedNumbers(currentHP: 5, exhaustion: 3))
         app.addCharacter(thorin)
         app.setActiveParty(eroi.id)
 
         app.takeLongRest()
 
         let stillTired = try XCTUnwrap(app.character(id: thorin.id))
-        XCTAssertEqual([stillTired.currentHP, stillTired.exhaustion], [5, 3])
+        XCTAssertEqual([stillTired.sharedNumbers.currentHP, stillTired.sharedNumbers.exhaustion], [5, 3])
         XCTAssertEqual(hitPoints(of: inTheCellar, in: app), [48, 48])
     }
 

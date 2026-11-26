@@ -80,7 +80,10 @@ final class StringCatalogueTests: XCTestCase {
                 // variations, which the plural tests prove.
                 guard let value = entry.localizations?[language]?.stringUnit?.value,
                       !value.contains("%#@") else { continue }
-                XCTAssertEqual(placeholders(in: value), placeholders(in: key), "\(language): \(key)")
+                // The source is the English value where a key names it, and the key otherwise.
+                let source = entry.localizations?["en"]?.stringUnit?.value ?? key
+                XCTAssertEqual(placeholders(in: value), placeholders(in: source),
+                               "\(language): \(key)")
             }
         }
     }

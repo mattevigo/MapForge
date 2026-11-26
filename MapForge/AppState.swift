@@ -195,10 +195,14 @@ final class AppState: ObservableObject {
     /// Written straight through on every edit rather than debounced: a roster changes when
     /// the DM types in it, which is nothing like drag-rate.
     ///
-    /// Every change reaches the open Map's sharing Pawns' own Stat Blocks, whatever made it —
-    /// a wound, a note linked, another Workspace's roster (ADR-0037).
+    /// Every change reaches the open Map's sharing Pawns, whatever made it — a wound, a note
+    /// linked, another Workspace's roster: the own Stat Blocks of those outside the fight,
+    /// and the folded numbers of those in it (`reconcileWithCharacters`, ADR-0037).
     @Published private(set) var partyBook = PartyBook() {
-        didSet { refreshSharedStatBlocks() }
+        didSet {
+            refreshSharedStatBlocks()
+            reconcileWithCharacters()
+        }
     }
 
     /// Every Monster read from the open Workspace's notes. Read when the Workspace opens and
@@ -211,9 +215,14 @@ final class AppState: ObservableObject {
     /// Settable so a test can hand some over without a folder of notes.
     ///
     /// Whether a Pawn shares its Character's numbers turns on its note being found, so the
-    /// notes landing reaches the open Map's sharing Pawns as a roster change does (ADR-0037).
+    /// notes landing reaches the open Map's sharing Pawns as a roster change does, a live
+    /// fight's Combatants included (ADR-0037). Set after `bestiary` when a read lands, so it
+    /// is asked with the read over (`sharedCharacter(of:)`).
     @Published var characterNotes = CharacterNotes() {
-        didSet { refreshSharedStatBlocks() }
+        didSet {
+            refreshSharedStatBlocks()
+            reconcileWithCharacters()
+        }
     }
 
     /// Every Item read from the open Workspace's notes, in the same walk as the Bestiary and on
@@ -252,7 +261,7 @@ final class AppState: ObservableObject {
     @Published private(set) var chosenDisplay: DisplayIdentity?
 
     private let playerWindow = PlayerWindowController()
-    /// The pages of the DM's notes pinned out of the Stat Block editor's popover, each in
+    /// The pages of the DM's notes pinned out of the Stat Editor's popover, each in
     /// its own panel.
     let pinnedPages = PinnedPages()
     private let preferences: DisplayPreferences
@@ -884,15 +893,6 @@ final class AppState: ObservableObject {
         flushPendingFogWrites()
     }
 
-    /// Rename a Pawn outside the fog editing mode — "3" becomes "Goblin B" in the middle
-    /// of a fight, without leaving the table for authoring mode.
-    ///
-    /// The one deliberate crossing of the authoring/play line, and it follows `movePawn`
-    /// exactly: **not undoable**. A label is not geometry, and renaming is the same kind of
-    /// live, small, immediate act as moving a token. The fog undo stack is mode-local and
-    /// cannot unwind past what the mode opened with, so a live edit has no stack to land in
-    /// anyway. The in-mode `pawnInspector` path stays undoable through `FogEdits` — two
-    /// paths with different undo semantics is the pattern here, not an inconsistency.
     /// Move a Pawn to another's place in its Kind's group, from the Scene tab's drag
     /// (`PawnOrder`). The Scene list *is* this order, so the Map's stacking follows it.
     ///
@@ -902,11 +902,6 @@ final class AppState: ObservableObject {
     func movePawn(_ moving: Pawn.ID, onto target: Pawn.ID) {
         guard let reordered = PawnOrder.move(moving, onto: target, in: fog.pawns) else { return }
         fog.pawns = reordered
-    }
-
-    func setPawnLabel(id: Pawn.ID, _ label: String) {
-        guard let index = fog.pawns.firstIndex(where: { $0.id == id }) else { return }
-        fog.pawns[index].label = label
     }
 
     /// Rename a Light outside the fog editing mode — "Light 3" becomes "trapped brazier"
@@ -977,6 +972,14 @@ final class AppState: ObservableObject {
         // The Log keeps naming it, which is the rule for any Pawn that stops being one.
         if fog.pawns[index].kind == .treasure {
             benchCombatant(id)
+        }
+        // A Pawn made a Player again starts sharing its Character's numbers, as one whose
+        // Character's note lands does, and meets them as a resumed fight does: the Character
+        // wins (ADR-0037). This sheet is where a Pawn's Kind changes.
+        if fog.pawns[index].kind == .player {
+            refreshSharedStatBlocks()
+            reconcileWithCharacters()
+            flushPendingStatWrites()
         }
         flushPendingFogWrites()
     }
@@ -1176,8 +1179,8 @@ final class AppState: ObservableObject {
         characterNotes.note(named: character.noteName)
     }
 
-    /// The Character whose hit points and exhaustion `pawn` shares, with the note that makes
-    /// it share — or nil, when the Pawn keeps its own numbers (ADR-0037).
+    /// The Character whose hit points and exhaustion `pawn` shares, with the maximum that "at
+    /// full" means for it — or nil, when the Pawn keeps its own numbers (ADR-0037).
     ///
     /// The one place the rule is written, read by the door a Stat Block is read through and
     /// the one it is written through alike, so it cannot hold in one and be missed in the
@@ -1187,27 +1190,44 @@ final class AppState: ObservableObject {
     /// has left the notes, keeps its own, as a Creature does: sharing a current total without
     /// a shared maximum would make the Health Bar depend on the Map it is drawn on. By kind
     /// too, because a link outlives the kind it was made for: a Stamped Pawn the DM made a
-    /// Creature keeps its `characterID`, and its hero's wounds are not its own
+    /// Creature keeps its `characterID`, and its Character's wounds are not its own
     /// (`modifierSource(for:)` reads the same way).
+    ///
+    /// **While the notes are still being read**, a Character the DM linked to a note shares
+    /// as if it had been found, with the maximum its Pawn's own block was stamped with. The
+    /// roster is read with the Workspace and the notes land later, off the main thread, so a
+    /// Map — and a paused fight on it — can open before them. Deciding sharing by the notes
+    /// alone left a window in which the fight resumed unreconciled and then wrote its stale
+    /// numbers over the Character, and in which an edit to a Pawn reached only its own block,
+    /// for the Character's numbers to replace when the notes landed. Deciding it by the
+    /// roster closes that window instead of repairing what happened in it: the resume meets
+    /// the Character at once, and every edit reaches the Character as it is made. The notes
+    /// landing can then only take sharing away — a note not found — and that loses nothing,
+    /// because a sharing Pawn's own block is written alongside the Character's. Tracking
+    /// which edits fell in the window, to replay them once the notes landed, was the
+    /// alternative, and a second record of what the DM did.
     ///
     /// Says nothing about fights: whether the Encounter or the Character holds a Combatant's
     /// numbers is the doors' to decide.
-    func sharedCharacter(of pawn: Pawn.ID) -> (character: PartyCharacter, note: CharacterNote)? {
+    func sharedCharacter(of pawn: Pawn.ID) -> (character: PartyCharacter, maxHP: Int?)? {
         guard let onMap = fog.pawns.first(where: { $0.id == pawn }),
               onMap.kind == .player,
               let id = onMap.characterID,
               let character = character(id: id),
-              let note = note(for: character) else { return nil }
-        return (character, note)
+              character.noteName != nil else { return nil }
+        if let note = note(for: character) { return (character, note.maxHP) }
+        guard bestiary == .reading else { return nil }
+        return (character, statsDocument.blocks[pawn]?.maxHP)
     }
 
     /// Writes the shared numbers in `block` — one Pawn's, just edited — to the Character that
     /// Pawn shares them with, and on to disk. Nothing when they are the numbers it already
     /// has, so a `parties.json` is not rewritten by an edit that moved nothing shared.
-    func share(_ block: StatBlock, with character: PartyCharacter, note: CharacterNote) {
-        guard character.sharedNumbers(over: block, maxHP: note.maxHP) != block else { return }
+    func share(_ block: StatBlock, with character: PartyCharacter, maxHP: Int?) {
+        let taken = SharedNumbers(of: block)
+        guard character.sharedNumbers.shown(maxHP: maxHP) != taken else { return }
         var updated = character
-        updated.takeSharedNumbers(from: block)
+        updated.sharedNumbers = taken
         partyBook = PartyRoster.updateCharacter(updated, in: partyBook)
         writeParties()
     }
@@ -1218,7 +1238,7 @@ final class AppState: ObservableObject {
     ///
     /// Asked whenever the answer could have moved: when a Map opens, when the roster changes,
     /// and when the notes land. Only a block that exists — a Pawn the DM never gave numbers is
-    /// not given a block of defaults here, which would pass AC 10 off as the hero's — and
+    /// not given a block of defaults here, which would pass AC 10 off as the Character's — and
     /// never a Combatant's, whose block follows the fight's fold instead (ADR-0008).
     func refreshSharedStatBlocks() {
         var changed = false
@@ -1315,7 +1335,7 @@ final class AppState: ObservableObject {
     /// Stamp is the one offered.
     ///
     /// By the Pawn's kind first, because each link outlives the kind it was made for: a Stamped
-    /// Pawn the DM made a Creature keeps its `characterID`, and its hero's saves are not its
+    /// Pawn the DM made a Creature keeps its `characterID`, and its Character's saves are not its
     /// own. Nil for a Treasure, which has no numbers, and for any Pawn whose note is not read.
     func modifierSource(for pawn: Pawn) -> ModifierSource? {
         switch pawn.kind {
@@ -1369,9 +1389,7 @@ final class AppState: ObservableObject {
     /// one: a drag that began before the DM switched Party is still a drag of a real
     /// Character, and refusing it would be a puzzle rather than a rule.
     func character(id: UUID) -> PartyCharacter? {
-        partyBook.parties.lazy.compactMap { party in
-            party.characters.first { $0.id == id }
-        }.first
+        PartyRoster.character(id: id, in: partyBook)
     }
 
     // MARK: - The Interface Language
@@ -1559,6 +1577,9 @@ final class AppState: ObservableObject {
                 BestiaryStore.read(workspace)
             }.value
             guard let self, !Task.isCancelled, self.workspace == workspace else { return }
+            // The Bestiary first: the notes landing is what brings the open Map's sharing
+            // Pawns up to date, and it must be asked with the read already over, or a Pawn
+            // whose note was not found would go on sharing (`sharedCharacter(of:)`).
             self.bestiary = read.bestiary
             self.characterNotes = read.characters
             self.treasury = read.treasury
@@ -1646,19 +1667,20 @@ final class AppState: ObservableObject {
         cutNoteFaces()
     }
 
-    /// Edit a Character in place. Pawns already Stamped from it are deliberately untouched:
-    /// a Stamp is a copy taken at the drag, so renaming Thorin today, or giving him another
-    /// Face, leaves last week's map exactly as it was run.
+    /// Edit a Character in place. What a Stamp copied into its Pawns is deliberately left
+    /// alone: a Stamp is a copy taken at the drag, so renaming Thorin today, or giving him
+    /// another Face, leaves last week's map exactly as it was run.
     ///
-    /// Its shared numbers are the roster's, not the editor's: the editor edits what the
-    /// Character *is*, and the copy it was opened on would carry back the hit points it had
-    /// then, undoing any wound dealt since (ADR-0037).
+    /// Its hit points and exhaustion are the exception, because its Pawns share them rather
+    /// than copy them (ADR-0037). The editor never moves them — they are the roster's, not
+    /// the editor's: it edits what the Character *is*, and the copy it was opened on would
+    /// carry back the hit points it had then, undoing any wound dealt since. But linking it to
+    /// a note, or unlinking it, starts or stops that sharing, and its Pawns on the open Map
+    /// follow at once, a fight's Combatants included (`partyBook`).
     func updateCharacter(_ character: PartyCharacter, face: FaceDraft? = nil) {
         var edited = self.character(character, wearing: face)
         if let stored = self.character(id: character.id) {
-            edited.currentHP = stored.currentHP
-            edited.temporaryHP = stored.temporaryHP
-            edited.exhaustion = stored.exhaustion
+            edited.sharedNumbers = stored.sharedNumbers
         }
         partyBook = PartyRoster.updateCharacter(edited, in: partyBook)
         writeParties()
@@ -1672,11 +1694,8 @@ final class AppState: ObservableObject {
     func writeSharedNumbers(of characters: [PartyCharacter]) {
         var book = partyBook
         for character in characters {
-            guard var stored = book.parties.lazy.flatMap(\.characters)
-                .first(where: { $0.id == character.id }) else { continue }
-            stored.currentHP = character.currentHP
-            stored.temporaryHP = character.temporaryHP
-            stored.exhaustion = character.exhaustion
+            guard var stored = PartyRoster.character(id: character.id, in: book) else { continue }
+            stored.sharedNumbers = character.sharedNumbers
             book = PartyRoster.updateCharacter(stored, in: book)
         }
         guard book != partyBook else { return }

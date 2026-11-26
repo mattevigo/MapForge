@@ -144,4 +144,24 @@ final class PartyStoreTests: XCTestCase {
         let written = try String(contentsOf: store().fileURL, encoding: .utf8)
         XCTAssertFalse(written.contains("face"))
     }
+
+    /// The shared numbers sit flat on the Character, as `docs/data-on-disk.md` gives them,
+    /// with `currentHP` absent while it is at full.
+    func testACharactersSharedNumbersAreWrittenFlatAndSurviveARelaunch() throws {
+        let wounded = PartyCharacter(name: "Durga", noteName: "Durga Pietraferma",
+                                     sharedNumbers: SharedNumbers(currentHP: 12, temporaryHP: 4,
+                                                                  exhaustion: 2))
+        let rested = PartyCharacter(name: "Ayla", noteName: "Ayla")
+        try store().save(PartyBook(parties: [Party(name: "Eroi", characters: [wounded, rested])]))
+
+        let json = try JSONSerialization.jsonObject(with: Data(contentsOf: store().fileURL))
+        let characters = try XCTUnwrap(((json as? [String: Any])?["parties"] as? [[String: Any]])?
+            .first?["characters"] as? [[String: Any]])
+        XCTAssertEqual(characters[0]["currentHP"] as? Int, 12)
+        XCTAssertEqual(characters[0]["temporaryHP"] as? Int, 4)
+        XCTAssertEqual(characters[0]["exhaustion"] as? Int, 2)
+        XCTAssertNil(characters[0]["sharedNumbers"])
+        XCTAssertNil(characters[1]["currentHP"], "at full")
+        XCTAssertEqual(store().load().parties.first?.characters, [wounded, rested])
+    }
 }
