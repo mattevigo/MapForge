@@ -2438,13 +2438,14 @@ struct ControlView: View {
         partyNameEdit = nil
     }
 
-    /// One Character in the roster: what it looks like on the Map, its name, and how many of
-    /// its Pawns are already standing on this one.
+    /// One Character in the roster: what it looks like on the Map, its name, how hurt it is,
+    /// and how many of its Pawns are already standing on this one.
     ///
     /// The whole row is the drag source. Dropping it on the Map Stamps a Pawn — see
     /// `Stamp` and ADR 0007.
     private func characterRow(_ character: PartyCharacter) -> some View {
         let placed = appState.placedCount(of: character)
+        let hitPoints = appState.hitPoints(of: character)
         return HStack(spacing: 6) {
             PawnToken(pawn: appState.stampPreview(of: character),
                       squareSide: 14, scalesWithFootprint: false)
@@ -2458,6 +2459,12 @@ struct ControlView: View {
                     .foregroundStyle(.secondary)
                     .help("No note gives this Character's numbers: its Pawns are stamped without them.")
             }
+            if let hitPoints {
+                // The numbers every one of its Pawns shows, on whichever Map it stands
+                // (ADR-0037) — so the DM reads how hurt the party is without a Map that has
+                // them all on it. Read-only: they are changed on a Pawn, never here.
+                CharacterHitPointsLabel(shown: hitPoints)
+            }
             if placed > 0 {
                 // Decoration, never a constraint: duplicates are deliberate, and this is
                 // what makes an accidental second drop visible without forbidding a summon.
@@ -2467,6 +2474,9 @@ struct ControlView: View {
                     .help("\(placed) on this Map")
             }
         }
+        // Under the whole row, as the Scene and Encounter rows carry it: the same bar, so the
+        // roster and a Pawn's row cannot draw one Character's hit points differently.
+        .characterHitPointsUnderRow(hitPoints)
         .contentShape(Rectangle())
         .draggable(CharacterDragPayload(characterID: character.id)) {
             // The drag preview, which macOS renders under the cursor. This one DOES scale
