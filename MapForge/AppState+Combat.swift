@@ -23,7 +23,7 @@ extension AppState {
         let own = statsDocument.blocks[pawn] ?? StatBlock()
         guard encounter?.blocks[pawn] == nil, let shared = sharedCharacter(of: pawn)
         else { return own }
-        return shared.character.sharedNumbers(over: own, maxHP: shared.maxHP)
+        return shared.character.sharedNumbers.laid(over: own, maxHP: shared.maxHP)
     }
 
     /// Writes a Pawn's numbers directly.
@@ -43,9 +43,10 @@ extension AppState {
         guard encounter?.blocks[pawn] == nil, let shared = sharedCharacter(of: pawn) else { return }
         // What the Pawn showed until now: the Character's numbers, as they stand before the
         // share below moves them.
-        let shown = shared.character.sharedNumbers(over: block, maxHP: shared.maxHP)
+        let shown = shared.character.sharedNumbers.shown(maxHP: shared.maxHP)
         share(block, with: shared.character, maxHP: shared.maxHP)
-        if let moved = CharacterNumbersMoved(of: shared.character, from: shown, to: block),
+        if let moved = CharacterNumbersMoved(of: shared.character, from: shown,
+                                             to: SharedNumbers(of: block)),
            let onMap = fog.pawns.first(where: { $0.id == pawn }) {
             recordSessionCharacterChange(moved, through: onMap)
         }
@@ -560,7 +561,7 @@ extension AppState {
         guard let live = encounter else { return }
         for (id, folded) in live.blocks.sorted(by: { $0.key.uuidString < $1.key.uuidString }) {
             guard let shared = sharedCharacter(of: id) else { continue }
-            let theirs = shared.character.sharedNumbers(over: folded, maxHP: shared.maxHP)
+            let theirs = shared.character.sharedNumbers.laid(over: folded, maxHP: shared.maxHP)
             for change in Self.changes(for: id, from: folded, to: theirs) {
                 recordChangeInTheLiveTurn(change)
             }
@@ -586,9 +587,7 @@ extension AppState {
         let before = old.blocks
         for (id, folded) in new.blocks {
             guard let previous = before[id],
-                  previous.currentHP != folded.currentHP
-                    || previous.temporaryHP != folded.temporaryHP
-                    || previous.exhaustion != folded.exhaustion,
+                  SharedNumbers(of: previous) != SharedNumbers(of: folded),
                   let shared = sharedCharacter(of: id) else { continue }
             share(folded, with: shared.character, maxHP: shared.maxHP)
         }

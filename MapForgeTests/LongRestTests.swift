@@ -16,37 +16,37 @@ final class LongRestTests: XCTestCase {
 
     func testAWoundedTiredCharacterWakesWholeAndOneLevelLessTired() throws {
         let durga = PartyCharacter(name: "Durga", noteName: "Durga Pietraferma",
-                                   currentHP: 12, exhaustion: 2)
+                                   sharedNumbers: SharedNumbers(currentHP: 12, exhaustion: 2))
 
         let rest = longRest(of: [durga], notes: [durgaNote])
 
         let rested = try XCTUnwrap(rest.rested.first)
-        let block = rested.sharedNumbers(over: StatBlock(), maxHP: 48)
+        let block = rested.sharedNumbers.laid(over: StatBlock(), maxHP: 48)
         XCTAssertEqual([block.currentHP, block.exhaustion], [48, 1])
         XCTAssertEqual(rest.lines.map(\.text), ["Durga 12/48 → 48/48, exhaustion 2 → 1"])
     }
 
     func testTemporaryHitPointsAreLostAndTheLineSaysSo() throws {
-        let krathos = PartyCharacter(name: "Krathos", noteName: "Krathos", temporaryHP: 5)
+        let krathos = PartyCharacter(name: "Krathos", noteName: "Krathos", sharedNumbers: SharedNumbers(temporaryHP: 5))
 
         let rest = longRest(of: [krathos], notes: [CharacterNote(name: "Krathos", maxHP: 30)])
 
-        XCTAssertEqual(try XCTUnwrap(rest.rested.first).temporaryHP, 0)
+        XCTAssertEqual(try XCTUnwrap(rest.rested.first).sharedNumbers.temporaryHP, 0)
         XCTAssertEqual(rest.lines.map(\.text), ["Krathos +5 temp → 0"])
     }
 
     func testExhaustionNeverDropsBelowNone() throws {
-        let durga = PartyCharacter(name: "Durga", noteName: "Durga Pietraferma", currentHP: 40)
+        let durga = PartyCharacter(name: "Durga", noteName: "Durga Pietraferma", sharedNumbers: SharedNumbers(currentHP: 40))
 
         let rest = longRest(of: [durga], notes: [durgaNote])
 
-        XCTAssertEqual(try XCTUnwrap(rest.rested.first).exhaustion, 0)
+        XCTAssertEqual(try XCTUnwrap(rest.rested.first).sharedNumbers.exhaustion, 0)
         XCTAssertEqual(rest.lines.map(\.text), ["Durga 40/48 → 48/48"])
     }
 
     func testACharacterWithNoNoteIsPassedOver() {
         // Its Pawns keep their own numbers, and there is no maximum to return it to.
-        let ayla = PartyCharacter(name: "Ayla", currentHP: 3, temporaryHP: 2, exhaustion: 2)
+        let ayla = PartyCharacter(name: "Ayla", sharedNumbers: SharedNumbers(currentHP: 3, temporaryHP: 2, exhaustion: 2))
 
         let rest = longRest(of: [ayla], notes: [durgaNote])
 
@@ -58,8 +58,8 @@ final class LongRestTests: XCTestCase {
     func testACharacterAlreadyRestedProducesNoLine() {
         // At full however it got there: never wounded, or healed to exactly the maximum.
         let durga = PartyCharacter(name: "Durga", noteName: "Durga Pietraferma")
-        let krathos = PartyCharacter(name: "Krathos", noteName: "Krathos", currentHP: 30)
-        let ayla = PartyCharacter(name: "Ayla", noteName: "Ayla", exhaustion: 2)
+        let krathos = PartyCharacter(name: "Krathos", noteName: "Krathos", sharedNumbers: SharedNumbers(currentHP: 30))
+        let ayla = PartyCharacter(name: "Ayla", noteName: "Ayla", sharedNumbers: SharedNumbers(exhaustion: 2))
 
         let rest = longRest(of: [durga, krathos, ayla],
                             notes: [durgaNote, CharacterNote(name: "Krathos", maxHP: 30),
@@ -72,12 +72,12 @@ final class LongRestTests: XCTestCase {
     func testANoteWithNoMaximumLeavesTheHitPointsAsTheyAre() throws {
         // Nothing to return them to; making them none would lose the DM's number.
         let durga = PartyCharacter(name: "Durga", noteName: "Durga Pietraferma",
-                                   currentHP: 12, exhaustion: 1)
+                                   sharedNumbers: SharedNumbers(currentHP: 12, exhaustion: 1))
 
         let rest = longRest(of: [durga], notes: [CharacterNote(name: "Durga Pietraferma")])
 
         let rested = try XCTUnwrap(rest.rested.first)
-        XCTAssertEqual([rested.currentHP, rested.exhaustion], [12, 0])
+        XCTAssertEqual([rested.sharedNumbers.currentHP, rested.sharedNumbers.exhaustion], [12, 0])
         XCTAssertEqual(rest.lines.map(\.text), ["Durga exhaustion 1 → 0"])
     }
 }

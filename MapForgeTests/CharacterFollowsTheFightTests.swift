@@ -71,7 +71,7 @@ final class CharacterFollowsTheFightTests: XCTestCase {
     }
 
     private func currentHP(of character: PartyCharacter, in app: AppState) -> Int? {
-        app.character(id: character.id)?.currentHP
+        app.character(id: character.id)?.sharedNumbers.currentHP
     }
 
     // MARK: The Character follows the fold
@@ -121,8 +121,8 @@ final class CharacterFollowsTheFightTests: XCTestCase {
         app.editStatBlock(for: pawn.id) { $0.temporaryHP = 8; $0.exhaustion = 1 }
 
         let character = try XCTUnwrap(app.character(id: durga.id))
-        XCTAssertEqual(character.temporaryHP, 8)
-        XCTAssertEqual(character.exhaustion, 1)
+        XCTAssertEqual(character.sharedNumbers.temporaryHP, 8)
+        XCTAssertEqual(character.sharedNumbers.exhaustion, 1)
     }
 
     // MARK: Two Pawns of one Character
@@ -330,7 +330,7 @@ final class CharacterFollowsTheFightTests: XCTestCase {
         let shown = app.statBlock(for: pawn.id)
         XCTAssertEqual([shown.currentHP, shown.maxHP, shown.exhaustion], [30, 48, 2])
         XCTAssertEqual(currentHP(of: durga, in: app), 30)
-        XCTAssertEqual(app.character(id: durga.id)?.exhaustion, 2)
+        XCTAssertEqual(app.character(id: durga.id)?.sharedNumbers.exhaustion, 2)
     }
 
     func testAPawnWhoseNoteIsNotFoundWhenTheNotesLandKeepsTheEditMadeWhileTheyWereRead() throws {
@@ -378,7 +378,7 @@ final class CharacterFollowsTheFightTests: XCTestCase {
 
         XCTAssertEqual(app.encounter?.blocks[impostor.id]?.currentHP, 3, "precondition")
         let character = try XCTUnwrap(app.character(id: durga.id))
-        XCTAssertNil(character.currentHP)
-        XCTAssertEqual(character.exhaustion, 0)
+        XCTAssertNil(character.sharedNumbers.currentHP)
+        XCTAssertEqual(character.sharedNumbers.exhaustion, 0)
     }
 }

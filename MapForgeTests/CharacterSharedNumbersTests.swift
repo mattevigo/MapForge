@@ -161,7 +161,7 @@ final class CharacterSharedNumbersTests: XCTestCase {
 
         XCTAssertEqual(hitPoints(of: first, in: app), [5, 30])
         XCTAssertEqual(hitPoints(of: second, in: app), [30, 30])
-        XCTAssertNil(app.character(id: thorin.id)?.currentHP, "the Character took a wound")
+        XCTAssertNil(app.character(id: thorin.id)?.sharedNumbers.currentHP, "the Character took a wound")
     }
 
     func testACharacterWhoseNoteCannotBeFoundStampsAndEditsAsBefore() throws {
@@ -176,7 +176,7 @@ final class CharacterSharedNumbersTests: XCTestCase {
         app.editStatBlock(for: first.id) { $0.currentHP = 12 }
 
         XCTAssertEqual(hitPoints(of: second, in: app), [48, 48])
-        XCTAssertNil(app.character(id: durga.id)?.currentHP, "the Character took a wound")
+        XCTAssertNil(app.character(id: durga.id)?.sharedNumbers.currentHP, "the Character took a wound")
     }
 
     func testAStampedPawnTheDMMadeACreatureKeepsItsOwnNumbers() throws {
@@ -258,7 +258,7 @@ final class CharacterSharedNumbersTests: XCTestCase {
         app.editStatBlock(for: pawn.id) { $0.currentHP = 12 }
 
         let reread = PartyStore(directory: directory).load()
-        XCTAssertEqual(reread.parties.first?.characters.first?.currentHP, 12)
+        XCTAssertEqual(reread.parties.first?.characters.first?.sharedNumbers.currentHP, 12)
     }
 
     // MARK: The Character editor

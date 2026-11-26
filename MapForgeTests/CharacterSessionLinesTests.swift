@@ -41,7 +41,7 @@ final class CharacterSessionLinesTests: XCTestCase {
         }
         app.characterNotes = CharacterNotes(notes: [durgaNote])
         app.addParty(named: "Eroi")
-        let durga = PartyCharacter(name: "Durga", noteName: "Durga Pietraferma", currentHP: 12)
+        let durga = PartyCharacter(name: "Durga", noteName: "Durga Pietraferma", sharedNumbers: SharedNumbers(currentHP: 12))
         app.addCharacter(durga)
         return (app, durga)
     }
@@ -170,7 +170,7 @@ final class CharacterSessionLinesTests: XCTestCase {
 
         app.editStatBlock(for: pawn.id) { $0.currentHP = 19 }
 
-        XCTAssertEqual(app.character(id: durga.id)?.currentHP, 19, "precondition")
+        XCTAssertEqual(app.character(id: durga.id)?.sharedNumbers.currentHP, 19, "precondition")
         XCTAssertEqual(SessionLogReader().logURLs(in: Workspace(url: directory)), [])
     }
 
@@ -183,7 +183,7 @@ final class CharacterSessionLinesTests: XCTestCase {
 
         app.editStatBlock(for: pawn.id) { $0.currentHP = 4 }
 
-        XCTAssertEqual(app.character(id: durga.id)?.currentHP, 4, "precondition")
+        XCTAssertEqual(app.character(id: durga.id)?.sharedNumbers.currentHP, 4, "precondition")
         XCTAssertEqual(try characterLines(app), [])
     }
 
@@ -230,9 +230,9 @@ final class CharacterSessionLinesTests: XCTestCase {
         app.characterNotes = CharacterNotes(notes: [
             durgaNote, CharacterNote(name: "Ayla", maxHP: 30), CharacterNote(name: "Brom", maxHP: 40),
         ])
-        let ayla = PartyCharacter(name: "Ayla", noteName: "Ayla", exhaustion: 2)
+        let ayla = PartyCharacter(name: "Ayla", noteName: "Ayla", sharedNumbers: SharedNumbers(exhaustion: 2))
         let brom = PartyCharacter(name: "Brom", noteName: "Brom")   // already rested
-        let tessa = PartyCharacter(name: "Tessa", currentHP: 3)     // no note: passed over
+        let tessa = PartyCharacter(name: "Tessa", sharedNumbers: SharedNumbers(currentHP: 3))     // no note: passed over
         for character in [ayla, brom, tessa] { app.addCharacter(character) }
         let party = try XCTUnwrap(app.activeParty)
 

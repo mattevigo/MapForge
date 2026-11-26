@@ -1230,9 +1230,10 @@ final class AppState: ObservableObject {
     /// Pawn shares them with, and on to disk. Nothing when they are the numbers it already
     /// has, so a `parties.json` is not rewritten by an edit that moved nothing shared.
     func share(_ block: StatBlock, with character: PartyCharacter, maxHP: Int?) {
-        guard character.sharedNumbers(over: block, maxHP: maxHP) != block else { return }
+        let taken = SharedNumbers(of: block)
+        guard character.sharedNumbers.shown(maxHP: maxHP) != taken else { return }
         var updated = character
-        updated.takeSharedNumbers(from: block)
+        updated.sharedNumbers = taken
         partyBook = PartyRoster.updateCharacter(updated, in: partyBook)
         writeParties()
     }
@@ -1394,9 +1395,7 @@ final class AppState: ObservableObject {
     /// one: a drag that began before the DM switched Party is still a drag of a real
     /// Character, and refusing it would be a puzzle rather than a rule.
     func character(id: UUID) -> PartyCharacter? {
-        partyBook.parties.lazy.compactMap { party in
-            party.characters.first { $0.id == id }
-        }.first
+        PartyRoster.character(id: id, in: partyBook)
     }
 
     // MARK: - The Interface Language
@@ -1684,9 +1683,7 @@ final class AppState: ObservableObject {
     func updateCharacter(_ character: PartyCharacter, face: FaceDraft? = nil) {
         var edited = self.character(character, wearing: face)
         if let stored = self.character(id: character.id) {
-            edited.currentHP = stored.currentHP
-            edited.temporaryHP = stored.temporaryHP
-            edited.exhaustion = stored.exhaustion
+            edited.sharedNumbers = stored.sharedNumbers
         }
         partyBook = PartyRoster.updateCharacter(edited, in: partyBook)
         writeParties()
@@ -1700,11 +1697,8 @@ final class AppState: ObservableObject {
     func writeSharedNumbers(of characters: [PartyCharacter]) {
         var book = partyBook
         for character in characters {
-            guard var stored = book.parties.lazy.flatMap(\.characters)
-                .first(where: { $0.id == character.id }) else { continue }
-            stored.currentHP = character.currentHP
-            stored.temporaryHP = character.temporaryHP
-            stored.exhaustion = character.exhaustion
+            guard var stored = PartyRoster.character(id: character.id, in: book) else { continue }
+            stored.sharedNumbers = character.sharedNumbers
             book = PartyRoster.updateCharacter(stored, in: book)
         }
         guard book != partyBook else { return }

@@ -12,7 +12,8 @@ final class CharacterHitPointsTests: XCTestCase {
     private func durga(currentHP: Int? = nil, temporaryHP: Int = 0,
                        exhaustion: Int = 0) -> PartyCharacter {
         PartyCharacter(name: "Durga", noteName: "Durga Pietraferma",
-                       currentHP: currentHP, temporaryHP: temporaryHP, exhaustion: exhaustion)
+                       sharedNumbers: SharedNumbers(currentHP: currentHP, temporaryHP: temporaryHP,
+                                                    exhaustion: exhaustion))
     }
 
     func testAtHalfItShowsAHalfBloodiedBarAndItsNumbers() throws {

@@ -63,22 +63,23 @@ struct LongRest: Equatable {
         for character in characters {
             guard let note = note(character) else { continue }
             var changes: [Line.Change] = []
+            let numbers = character.sharedNumbers
             var rested = character
             // A note with no maximum gives the rest nothing to return the hit points to, so
             // they stay as they are rather than becoming none.
             if let max = note.maxHP {
-                let current = character.currentHP ?? max
+                let current = numbers.currentHP ?? max
                 if current != max { changes.append(.hitPoints(before: current, max: max)) }
                 // nil is "at full": the note's maximum, whatever it says next week.
-                rested.currentHP = nil
+                rested.sharedNumbers.currentHP = nil
             }
-            if character.temporaryHP != 0 {
-                changes.append(.temporaryHP(before: character.temporaryHP))
-                rested.temporaryHP = 0
+            if numbers.temporaryHP != 0 {
+                changes.append(.temporaryHP(before: numbers.temporaryHP))
+                rested.sharedNumbers.temporaryHP = 0
             }
-            if character.exhaustion > 0 {
-                changes.append(.exhaustion(before: character.exhaustion))
-                rested.exhaustion = character.exhaustion - 1
+            if numbers.exhaustion > 0 {
+                changes.append(.exhaustion(before: numbers.exhaustion))
+                rested.sharedNumbers.exhaustion = numbers.exhaustion - 1
             }
             guard !changes.isEmpty else { continue }
             self.rested.append(rested)

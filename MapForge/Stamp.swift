@@ -59,7 +59,7 @@ enum Stamp {
                               armorClass: note.armorClass ?? StatBlock.defaultArmorClass,
                               currentHP: note.maxHP,
                               maxHP: note.maxHP)
-        return character?.sharedNumbers(over: block, maxHP: note.maxHP) ?? block
+        return character?.sharedNumbers.laid(over: block, maxHP: note.maxHP) ?? block
     }
 
     /// The Pawn a Character Stamps when dropped at `droppedAt`, or nil when the drop misses

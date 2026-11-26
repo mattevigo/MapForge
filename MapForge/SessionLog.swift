@@ -121,9 +121,10 @@ struct CharacterNumbersMoved: Codable, Equatable {
         self.exhaustion = exhaustion
     }
 
-    /// What moved of `character`'s shared numbers between two Stat Blocks showing them — or
-    /// nil, when none of the three did, which is no Line at all.
-    init?(of character: PartyCharacter, from before: StatBlock, to after: StatBlock) {
+    /// What moved of `character`'s shared numbers between two states of them as its Pawns
+    /// show them (`SharedNumbers.shown(maxHP:)`) — or nil, when none of the three did, which
+    /// is no Line at all.
+    init?(of character: PartyCharacter, from before: SharedNumbers, to after: SharedNumbers) {
         self.init(characterID: character.id, name: character.name)
         if before.currentHP != after.currentHP {
             currentHP = Moved(from: before.currentHP, to: after.currentHP)
@@ -141,8 +142,8 @@ struct CharacterNumbersMoved: Codable, Equatable {
     /// to it — shown as its Pawns would show them, with `maxHP` its note's.
     init?(of before: PartyCharacter, becoming after: PartyCharacter, maxHP: Int?) {
         self.init(of: before,
-                  from: before.sharedNumbers(over: StatBlock(), maxHP: maxHP),
-                  to: after.sharedNumbers(over: StatBlock(), maxHP: maxHP))
+                  from: before.sharedNumbers.shown(maxHP: maxHP),
+                  to: after.sharedNumbers.shown(maxHP: maxHP))
     }
 
     /// The flat half, shared by both Lines that carry one: a `characterChanged` writes it

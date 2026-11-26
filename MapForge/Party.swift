@@ -29,27 +29,22 @@ struct PartyCharacter: Codable, Equatable, Identifiable {
     ///
     /// The note's numbers themselves are not here. They were, typed in the app, and drifted
     /// from the notes within weeks; now the notes are the only place they are written
-    /// (ADR-0024). What is here is what the evening has done to them, `currentHP` below.
+    /// (ADR-0024). What is here is what the evening has done to them, `sharedNumbers` below.
     var noteName: String?
     /// The Face the DM cut for this Character, which every Pawn it Stamps is given a copy of —
     /// or nil, when its Pawns are drawn in its colour. Kept in `.mapforge/faces/` with every
     /// other cut, and always cut by hand (ADR-0028).
     var face: PawnFace?
 
-    /// What the evening has done to it: its current hit points, or nil while it is at full —
-    /// its note's maximum, whatever that is today. Kept here, beside the Party, rather than in
-    /// any one Map's `stats.json`, because every Player Pawn stamped from a Character with a
-    /// note shows and changes this same number on whichever Map it stands (ADR-0037).
+    /// What the evening has done to it: its current and temporary hit points and its
+    /// exhaustion. Kept here, beside the Party, rather than in any one Map's `stats.json`,
+    /// because every Player Pawn stamped from a Character with a note shows and changes these
+    /// same numbers on whichever Map it stands (ADR-0037).
     ///
-    /// Not the note's: it changes several times a minute, and the notes are where the
+    /// Not the note's: they change several times a minute, and the notes are where the
     /// definition is written, not the evening. Meaningless for a Character with no note, whose
     /// Pawns keep their own, as a Creature's do.
-    var currentHP: Int?
-    /// Its temporary hit points, shared on the same terms as `currentHP`.
-    var temporaryHP: Int = 0
-    /// Its exhaustion level, shared on the same terms as `currentHP`. Clamped where it lands,
-    /// in a Pawn's Stat Block, which is also the only place it is taken from.
-    var exhaustion: Int = 0
+    var sharedNumbers = SharedNumbers()
 
     /// What click-to-place already gives a Pawn, so a Stamped Pawn and a hand-placed one
     /// start from the same defaults rather than drifting apart.
@@ -61,41 +56,14 @@ struct PartyCharacter: Codable, Equatable, Identifiable {
          sightSquares: CGFloat = PartyCharacter.defaultSightSquares,
          noteName: String? = nil,
          face: PawnFace? = nil,
-         currentHP: Int? = nil,
-         temporaryHP: Int = 0,
-         exhaustion: Int = 0) {
+         sharedNumbers: SharedNumbers = SharedNumbers()) {
         self.id = id
         self.name = name
         self.colorHex = colorHex
         self.sightSquares = sightSquares
         self.noteName = noteName
         self.face = face
-        self.currentHP = currentHP
-        self.temporaryHP = temporaryHP
-        self.exhaustion = exhaustion
-    }
-
-    /// A Pawn's own Stat Block with this Character's shared numbers laid over it: its current
-    /// and temporary hit points and its exhaustion. Everything else stays the Pawn's — armour
-    /// class, maximum hit points and initiative bonus as the Stamp copied them from the note,
-    /// and Conditions and concentration, which belong to the place and the fight the Pawn is
-    /// in (ADR-0037).
-    ///
-    /// `maxHP` is the note's: what "at full" means while `currentHP` is nil.
-    func sharedNumbers(over block: StatBlock, maxHP: Int?) -> StatBlock {
-        var block = block
-        block.currentHP = currentHP ?? maxHP
-        block.temporaryHP = temporaryHP
-        block.exhaustion = exhaustion
-        return block
-    }
-
-    /// Takes the shared numbers from one of its Pawns' Stat Blocks — what an edit to that
-    /// Pawn does — and leaves the rest of the block where it is.
-    mutating func takeSharedNumbers(from block: StatBlock) {
-        currentHP = block.currentHP
-        temporaryHP = block.temporaryHP
-        exhaustion = block.exhaustion
+        self.sharedNumbers = sharedNumbers
     }
 
     /// Says which note is this Character's own. A Character still nameless — one being
@@ -133,9 +101,72 @@ struct PartyCharacter: Codable, Equatable, Identifiable {
         sightSquares = try container.decode(CGFloat.self, forKey: .sightSquares)
         noteName = try container.decodeIfPresent(String.self, forKey: .noteName)
         face = try container.decodeIfPresent(PawnFace.self, forKey: .face)
-        currentHP = try container.decodeIfPresent(Int.self, forKey: .currentHP)
-        temporaryHP = try container.decodeIfPresent(Int.self, forKey: .temporaryHP) ?? 0
-        exhaustion = try container.decodeIfPresent(Int.self, forKey: .exhaustion) ?? 0
+        sharedNumbers = SharedNumbers(
+            currentHP: try container.decodeIfPresent(Int.self, forKey: .currentHP),
+            temporaryHP: try container.decodeIfPresent(Int.self, forKey: .temporaryHP) ?? 0,
+            exhaustion: try container.decodeIfPresent(Int.self, forKey: .exhaustion) ?? 0)
+    }
+
+    /// Hand-written so `sharedNumbers` is written flat, under the keys `parties.json` has
+    /// always given them — `currentHP` absent at full — rather than nested in an object.
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(colorHex, forKey: .colorHex)
+        try container.encode(sightSquares, forKey: .sightSquares)
+        try container.encodeIfPresent(noteName, forKey: .noteName)
+        try container.encodeIfPresent(face, forKey: .face)
+        try container.encodeIfPresent(sharedNumbers.currentHP, forKey: .currentHP)
+        try container.encode(sharedNumbers.temporaryHP, forKey: .temporaryHP)
+        try container.encode(sharedNumbers.exhaustion, forKey: .exhaustion)
+    }
+}
+
+/// What the evening has done to a Character with a note: its current and temporary hit
+/// points and its exhaustion level — the three numbers it shares with every Player Pawn
+/// stamped from it, on every Map (ADR-0037). One value, so no door that moves them copies
+/// one and forgets another. Read off a Stat Block, the same three as that Pawn shows them.
+///
+/// Everything else of a Stat Block stays the Pawn's: armour class, maximum hit points and
+/// initiative bonus as the Stamp copied them from the note, and Conditions and
+/// concentration, which belong to the place and the fight the Pawn is in.
+struct SharedNumbers: Equatable {
+    /// Current hit points. On a Character, nil while it is at full — its note's maximum,
+    /// whatever that is today; read off a Stat Block, nil is hit points never recorded.
+    var currentHP: Int?
+    var temporaryHP: Int = 0
+    /// Clamped where it lands, in a Pawn's Stat Block, which is also the only place it is
+    /// taken from.
+    var exhaustion: Int = 0
+
+    init(currentHP: Int? = nil, temporaryHP: Int = 0, exhaustion: Int = 0) {
+        self.currentHP = currentHP
+        self.temporaryHP = temporaryHP
+        self.exhaustion = exhaustion
+    }
+
+    /// The three as `block` shows them — what an edit to one Pawn hands its Character.
+    init(of block: StatBlock) {
+        self.init(currentHP: block.currentHP, temporaryHP: block.temporaryHP,
+                  exhaustion: block.exhaustion)
+    }
+
+    /// These numbers as a Pawn shows them: at full is `maxHP`, the note's.
+    func shown(maxHP: Int?) -> SharedNumbers {
+        SharedNumbers(currentHP: currentHP ?? maxHP, temporaryHP: temporaryHP,
+                      exhaustion: exhaustion)
+    }
+
+    /// A Pawn's own Stat Block showing these numbers, the rest of it left as it is. `maxHP`
+    /// is the note's: what "at full" means while `currentHP` is nil.
+    func laid(over block: StatBlock, maxHP: Int?) -> StatBlock {
+        let shown = shown(maxHP: maxHP)
+        var block = block
+        block.currentHP = shown.currentHP
+        block.temporaryHP = shown.temporaryHP
+        block.exhaustion = shown.exhaustion
+        return block
     }
 }
 
