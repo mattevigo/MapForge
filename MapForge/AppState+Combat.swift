@@ -14,8 +14,16 @@ extension AppState {
     ///
     /// Never optional at the call site: a Creature stamped and not yet given hit points is
     /// AC 10 with none, which the tracker flags rather than refuses.
+    ///
+    /// A Pawn that shares its Character's numbers (`sharedCharacter(of:)`) reads its current
+    /// and temporary hit points and its exhaustion from the Character, and the rest from its
+    /// own block (ADR-0037) — outside a fight. A Combatant's numbers are the Encounter's
+    /// (ADR-0008), and its own block follows the fold, so it is read as it stands.
     func statBlock(for pawn: Pawn.ID) -> StatBlock {
-        statsDocument.blocks[pawn] ?? StatBlock()
+        let own = statsDocument.blocks[pawn] ?? StatBlock()
+        guard encounter?.blocks[pawn] == nil, let shared = sharedCharacter(of: pawn)
+        else { return own }
+        return shared.character.sharedNumbers(over: own, maxHP: shared.note.maxHP)
     }
 
     /// Writes a Pawn's numbers directly.
@@ -23,9 +31,16 @@ extension AppState {
     /// For prep, before any fight: there is no Log open then, so there is nothing to
     /// record into. **Not** the path for changing a number mid-Encounter — that is
     /// `recordChange`, and the difference is the whole of ADR-0008.
+    ///
+    /// A Pawn that shares its Character's numbers writes them to the Character, so every
+    /// other Pawn of it, on this Map and every other, shows them at once — and to its own
+    /// block too, which is what it keeps if the Character is deleted (ADR-0037).
     func setStatBlock(_ block: StatBlock, for pawn: Pawn.ID) {
         statsDocument.blocks[pawn] = block
         statsAutosave.schedule(statsDocument)
+        if encounter?.blocks[pawn] == nil, let shared = sharedCharacter(of: pawn) {
+            share(block, with: shared.character, note: shared.note)
+        }
     }
 
     /// Edits a Pawn's numbers, whichever way is correct right now.

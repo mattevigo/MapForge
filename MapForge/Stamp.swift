@@ -47,16 +47,19 @@ enum Stamp {
     /// numbers in `<map>.combat/stats.json`. Keeping them separate at the seam keeps that
     /// split visible at every call site.
     ///
-    /// A note records what a Character is at full strength; a Pawn records what it is right
-    /// now — so `currentHP` starts at `maxHP` and the party walks in undamaged. No
-    /// Conditions and no exhaustion: those are things that happen on a Map, and a
-    /// Character has never been on one.
-    static func statBlock(from note: CharacterNote?) -> StatBlock? {
+    /// A note records what a Character is at full strength; the Character records what the
+    /// evening has done to it — so the Pawn arrives at `character`'s current and temporary hit
+    /// points and exhaustion, which it then shares rather than copies (ADR-0037), and at full
+    /// when no Character is given. No Conditions and no concentration: those belong to the
+    /// place and the fight a Pawn is in, and this Pawn has not been in either yet.
+    static func statBlock(from note: CharacterNote?,
+                          of character: PartyCharacter? = nil) -> StatBlock? {
         guard let note else { return nil }
-        return StatBlock(initiativeBonus: note.initiativeBonus ?? 0,
-                         armorClass: note.armorClass ?? StatBlock.defaultArmorClass,
-                         currentHP: note.maxHP,
-                         maxHP: note.maxHP)
+        let block = StatBlock(initiativeBonus: note.initiativeBonus ?? 0,
+                              armorClass: note.armorClass ?? StatBlock.defaultArmorClass,
+                              currentHP: note.maxHP,
+                              maxHP: note.maxHP)
+        return character?.sharedNumbers(over: block, maxHP: note.maxHP) ?? block
     }
 
     /// The Pawn a Character Stamps when dropped at `droppedAt`, or nil when the drop misses
